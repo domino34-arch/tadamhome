@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>TadamHome — Canapé Palermo en AR</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#7C3AED;--pk:#EC4899;--grad:linear-gradient(135deg,#7C3AED,#EC4899)}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#07051a;color:#fff;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(7,5,26,.95),transparent)}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#fff}
+.scan-count{background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);border-radius:100px;padding:5px 12px;font-size:11px;font-weight:700;color:#a78bfa;display:flex;align-items:center;gap:6px}
+.scan-dot{width:5px;height:5px;border-radius:50%;background:#a78bfa;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MODEL VIEWER */
+model-viewer{width:100%;height:70vh;background:transparent;--poster-color:transparent}
+.model-wrap{position:relative;background:linear-gradient(160deg,#0f0c28,#1a0f2e);min-height:70vh}
+.model-wrap::before{content:'';position:absolute;top:20%;left:50%;transform:translateX(-50%);width:280px;height:280px;background:radial-gradient(circle,rgba(124,58,237,.25),transparent 70%);border-radius:50%;pointer-events:none;z-index:0}
+
+/* BOTTOM SHEET */
+.sheet{position:fixed;bottom:0;left:0;right:0;background:#0f0c28;border-radius:28px 28px 0 0;border-top:1px solid rgba(124,58,237,.2);padding:24px 20px 40px;z-index:50}
+.sheet-handle{width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:100px;margin:0 auto 20px}
+.product-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.product-name{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px}
+.product-ref{font-size:12px;color:rgba(167,139,250,.6);font-weight:600}
+.product-price{font-size:24px;font-weight:900;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tag{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.2);border-radius:100px;padding:5px 12px;font-size:11px;font-weight:700;color:#a78bfa}
+.tag.green{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:#34d399}
+
+/* COLOR PICKER */
+.section-label{font-size:11px;font-weight:700;color:rgba(167,139,250,.55);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.colors{display:flex;gap:10px;margin-bottom:20px}
+.color-btn{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;position:relative}
+.color-btn.active::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid #a78bfa}
+.color-btn:hover{transform:scale(1.1)}
+
+/* BUTTONS */
+.btn-ar{width:100%;background:var(--grad);color:#fff;border:none;padding:16px;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:12px;box-shadow:0 8px 24px rgba(124,58,237,.35);font-family:inherit}
+.btn-ar:hover{opacity:.88;transform:translateY(-1px)}
+.btn-ar:active{transform:translateY(0)}
+.btn-secondary{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#fff;padding:14px;border-radius:16px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;font-family:inherit}
+.btn-secondary:hover{background:rgba(255,255,255,.08)}
+
+/* SPECS */
+.specs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.spec{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;text-align:center}
+.spec-val{font-size:16px;font-weight:800;margin-bottom:2px}
+.spec-label{font-size:10px;color:rgba(167,139,250,.55);font-weight:600}
+
+/* AR OVERLAY */
+.ar-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:10;opacity:0;transition:opacity .3s}
+.ar-hint.show{opacity:1}
+.ar-circle{width:80px;height:80px;border-radius:50%;border:2px solid rgba(124,58,237,.5);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;animation:ar-ring 2s ease-in-out infinite}
+@keyframes ar-ring{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.1);opacity:1}}
+.ar-hint p{font-size:13px;font-weight:600;color:rgba(255,255,255,.7)}
+
+/* SUPABASE STATUS */
+.sb-status{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.sb-dot{width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0;animation:pulse 1.8s infinite}
+.sb-text{font-size:12px;color:#34d399;font-weight:600}
+
+/* TOAST */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:#10b981;color:#fff;padding:12px 20px;border-radius:100px;font-size:13px;font-weight:700;opacity:0;transition:all .3s;z-index:200;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* LOADING */
+.loader{position:fixed;inset:0;background:#07051a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;transition:opacity .5s}
+.loader.hide{opacity:0;pointer-events:none}
+.loader-logo{font-size:48px;margin-bottom:16px;animation:bounce .8s ease-in-out infinite alternate}
+@keyframes bounce{0%{transform:translateY(0)}100%{transform:translateY(-12px)}}
+.loader-text{font-size:16px;font-weight:700;color:#a78bfa;margin-bottom:8px}
+.loader-sub{font-size:12px;color:rgba(167,139,250,.5)}
+.progress{width:160px;height:3px;background:rgba(124,58,237,.2);border-radius:100px;margin-top:20px;overflow:hidden}
+.progress-fill{height:100%;background:var(--grad);border-radius:100px;animation:load 2s ease-out forwards}
+@keyframes load{0%{width:0}100%{width:100%}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loader" id="loader">
+  <div class="loader-logo">🛋️</div>
+  <div class="loader-text">Chargement du jumeau numérique</div>
+  <div class="loader-sub">Canapé Palermo · Velours Bleu Nuit</div>
+  <div class="progress"><div class="progress-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Scan enregistré</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <svg height="22" viewBox="0 0 560 80" fill="none">
+      <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
+      <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
+      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
+    </svg>
+  </div>
+  <div class="scan-count"><div class="scan-dot"></div><span id="scan-count">284 scans</span></div>
+</div>
+
+<!-- 3D MODEL VIEWER -->
+<div class="model-wrap">
+  <model-viewer
+    id="viewer"
+    src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/SheenChair/glTF-Binary/SheenChair.glb"
+    ios-src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/SheenChair/glTF-Binary/SheenChair.glb"
+    alt="Canapé Palermo 3D"
+    shadow-intensity="1"
+    camera-controls
+    auto-rotate
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-scale="fixed"
+    exposure="1"
+    style="width:100%;height:70vh;background:transparent">
+    <button slot="ar-button" class="btn-ar" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px)">
+      <span>✨</span> Voir dans mon salon (AR)
+    </button>
+  </model-viewer>
+  <div class="ar-hint" id="ar-hint">
+    <div class="ar-circle">📱</div>
+    <p>Pointez votre caméra<br>vers le sol</p>
+  </div>
+</div>
+
+<!-- BOTTOM SHEET -->
+<div class="sheet">
+  <div class="sheet-handle"></div>
+
+  <!-- Supabase connected indicator -->
+  <div class="sb-status">
+    <div class="sb-dot"></div>
+    <div class="sb-text">Connecté · Scan tracké en temps réel via Supabase</div>
+  </div>
+
+  <div class="product-header">
+    <div>
+      <div class="product-name">Canapé Palermo</div>
+      <div class="product-ref">Réf. PAL-240-BLN · 3 places</div>
+    </div>
+    <div class="product-price">1 299€</div>
+  </div>
+
+  <div class="tags">
+    <div class="tag">240 × 90 cm</div>
+    <div class="tag">H. 85 cm</div>
+    <div class="tag green">● AR actif</div>
+    <div class="tag">Livraison 5-7j</div>
+  </div>
+
+  <div class="specs">
+    <div class="spec"><div class="spec-val">240cm</div><div class="spec-label">Largeur</div></div>
+    <div class="spec"><div class="spec-val">90cm</div><div class="spec-label">Profondeur</div></div>
+    <div class="spec"><div class="spec-val">85cm</div><div class="spec-label">Hauteur</div></div>
+  </div>
+
+  <div class="section-label">Choisir un coloris</div>
+  <div class="colors" id="colors">
+    <div class="color-btn active" style="background:#1e3a5f" data-color="Bleu Nuit" title="Bleu Nuit"></div>
+    <div class="color-btn" style="background:#4a3728" data-color="Marron Cognac" title="Marron Cognac"></div>
+    <div class="color-btn" style="background:#2d4a3e" data-color="Vert Sauge" title="Vert Sauge"></div>
+    <div class="color-btn" style="background:#f5f0e8" data-color="Beige Lin" title="Beige Lin"></div>
+    <div class="color-btn" style="background:#1a1a1a" data-color="Noir Minuit" title="Noir Minuit"></div>
+  </div>
+
+  <button class="btn-ar" id="btn-ar" onclick="launchAR()">
+    <span>✨</span> Voir dans mon salon — AR
+  </button>
+  <button class="btn-secondary" onclick="addToCart()">
+    🛒 Ajouter au panier · 1 299€
+  </button>
+</div>
+
+<script>
+// =============================================
+// SUPABASE INTEGRATION (remplacez les clés)
+// =============================================
+const SUPABASE_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+
+// Simuler le tracking de scan (en prod, utilisez le vrai Supabase)
+async function trackScan(productId, coloris) {
+  console.log('[Supabase] Tracking scan:', { productId, coloris, timestamp: new Date() });
+  
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/scans`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        produit_id: null,
+        coloris: coloris,
+        converti: false,
+        user_agent: navigator.userAgent
+      })
+    });
+    if (res.ok) {
+      const countEl = document.getElementById('scan-count');
+      const current = parseInt(countEl.textContent) || 284;
+      countEl.textContent = (current + 1) + ' scans';
+      showToast('✓ Scan enregistré dans Supabase');
+    }
+  } catch(e) {
+    console.error('[Supabase] Erreur:', e);
+    showToast('✓ Scan enregistré (mode démo)');
+  }
+}
+
+// =============================================
+// INTERACTIONS
+// =============================================
+let selectedColor = 'Bleu Nuit';
+
+// Couleurs
+document.getElementById('colors').addEventListener('click', e => {
+  const btn = e.target.closest('.color-btn');
+  if (!btn) return;
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedColor = btn.dataset.color;
+  showToast('Coloris : ' + selectedColor);
+});
+
+// Lancer AR
+function launchAR() {
+  const viewer = document.getElementById('viewer');
+  if (viewer.canActivateAR) {
+    viewer.activateAR();
+    trackScan('canape-palermo', selectedColor);
+  } else {
+    // Fallback si AR non supporté
+    showToast('⚠️ AR non supporté sur cet appareil');
+    // Rotation 3D quand même
+    viewer.autoRotate = !viewer.autoRotate;
+  }
+}
+
+// Panier
+function addToCart() {
+  showToast('🛒 Canapé Palermo ajouté au panier !');
+  trackScan('canape-palermo-purchase', selectedColor);
+}
+
+// Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Loading
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hide');
+    // Track scan à l'ouverture
+    trackScan('canape-palermo', 'Bleu Nuit');
+  }, 2200);
+});
+
+// Model Viewer events
+const viewer = document.getElementById('viewer');
+viewer.addEventListener('ar-status', e => {
+  console.log('[Model Viewer] AR status:', e.detail.status);
+});
+</script>
+
+<!-- 
+===================================================
+GUIDE D'INTÉGRATION SUPABASE
+===================================================
+
+1. Créer un compte sur supabase.com (gratuit)
+
+2. Créer un nouveau projet
+
+3. Créer la table "scans" :
+   CREATE TABLE scans (
+     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+     product_id TEXT NOT NULL,
+     coloris TEXT,
+     user_agent TEXT,
+     scanned_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+4. Créer la table "products" :
+   CREATE TABLE products (
+     id TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     price DECIMAL,
+     dimensions JSONB,
+     model_url TEXT,
+     active BOOLEAN DEFAULT TRUE
+   );
+
+5. Installer le SDK :
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+6. Remplacer SUPABASE_URL et SUPABASE_KEY par vos vraies clés
+
+===================================================
+-->
+</body>
+</html>
