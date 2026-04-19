@@ -213,14 +213,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
     <!-- UPLOAD -->
     <div class="page" id="page-upload">
-      <div class="upload-zone" id="drop-zone">
-        <input type="file" id="file-input" accept=".glb,.gltf,.obj,.fbx" onchange="handleFileSelect(this.files[0])"/>
-        <div class="upload-ico">☁️</div>
-        <div class="upload-title" id="upload-label">Glissez votre fichier 3D ici</div>
-        <div class="upload-sub">ou cliquez pour parcourir vos fichiers</div>
-        <div class="formats">
-          <div class="fmt">GLB</div><div class="fmt">GLTF</div><div class="fmt">OBJ</div><div class="fmt">FBX</div>
-        </div>
+      <!-- GLB -->
+      <div class="upload-zone" id="drop-zone-glb">
+        <input type="file" id="file-input-glb" accept=".glb,.gltf" onchange="handleFileSelect(this.files[0],'glb')"/>
+        <div class="upload-ico">🤖</div>
+        <div class="upload-title" id="upload-label-glb">Fichier GLB — Android & Web</div>
+        <div class="upload-sub">Glissez ou cliquez · Compatible Chrome, Android</div>
+        <div class="formats"><div class="fmt">GLB</div><div class="fmt">GLTF</div></div>
+      </div>
+
+      <!-- USDZ -->
+      <div class="upload-zone" id="drop-zone-usdz" style="margin-top:12px">
+        <input type="file" id="file-input-usdz" accept=".usdz,.reality" onchange="handleFileSelect(this.files[0],'usdz')"/>
+        <div class="upload-ico">🍎</div>
+        <div class="upload-title" id="upload-label-usdz">Fichier USDZ — iPhone & iPad</div>
+        <div class="upload-sub">Glissez ou cliquez · AR natif Safari via Quick Look</div>
+        <div class="formats"><div class="fmt">USDZ</div><div class="fmt">REALITY</div></div>
       </div>
 
       <div class="upload-progress" id="upload-progress">
@@ -386,29 +394,33 @@ async function saveProduit() {
   btn.textContent = '⏳ Création en cours...';
 
   let modelUrl = null;
+  let modelUrlUsdz = null;
 
-  // Upload GLB si fichier sélectionné
+  // Upload GLB
   if (selectedFile) {
     const progress = document.getElementById('upload-progress');
     const fill = document.getElementById('prog-fill');
     const pct = document.getElementById('prog-pct');
     progress.classList.add('show');
     document.getElementById('prog-name').textContent = selectedFile.name;
-
-    // Simuler progression (Supabase ne donne pas de progress events)
     let p = 0;
     const iv = setInterval(() => { p = Math.min(p + Math.random() * 15, 90); fill.style.width = p + '%'; pct.textContent = Math.round(p) + '%'; }, 200);
-
     const path = `${currentUser.id}/${Date.now()}-${selectedFile.name}`;
     const { data: uploadData, error: uploadError } = await sb.storage.from('models').upload(path, selectedFile);
-
-    clearInterval(iv);
-    fill.style.width = '100%';
-    pct.textContent = '100%';
-
+    clearInterval(iv); fill.style.width = '100%'; pct.textContent = '100%';
     if (!uploadError) {
       const { data: urlData } = sb.storage.from('models').getPublicUrl(path);
       modelUrl = urlData.publicUrl;
+    }
+  }
+
+  // Upload USDZ
+  if (selectedFileUsdz) {
+    const pathUsdz = `${currentUser.id}/${Date.now()}-${selectedFileUsdz.name}`;
+    const { data: uploadDataUsdz, error: uploadErrorUsdz } = await sb.storage.from('models').upload(pathUsdz, selectedFileUsdz);
+    if (!uploadErrorUsdz) {
+      const { data: urlDataUsdz } = sb.storage.from('models').getPublicUrl(pathUsdz);
+      modelUrlUsdz = urlDataUsdz.publicUrl;
     }
   }
 
