@@ -3,219 +3,330 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="TadamHome — Transformez l'hésitation en certitude grâce à la réalité augmentée pour l'ameublement."/>
+<meta name="description" content="TadamHome — Réalité Augmentée pour l'ameublement"/>
 <title>TadamHome — Réalité Augmentée pour l'Ameublement</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-body{font-family:'Plus Jakarta Sans',sans-serif}
-.hero-bg{background:linear-gradient(150deg,#5b21b6 0%,#3b0764 50%,#4c1d95 100%);position:relative;overflow:hidden}
-.hero-bg::before{content:"";position:absolute;top:-15%;left:-10%;width:65%;height:65%;background:radial-gradient(circle,rgba(217,70,239,.75) 0%,transparent 65%);mix-blend-mode:screen;filter:blur(90px);animation:glow 9s ease-in-out infinite alternate}
-.hero-bg::after{content:"";position:absolute;bottom:-20%;right:-10%;width:70%;height:70%;background:radial-gradient(circle,rgba(109,40,217,.9) 0%,transparent 65%);mix-blend-mode:screen;filter:blur(90px);animation:glow 7s ease-in-out infinite alternate-reverse}
-@keyframes glow{0%{opacity:.55;transform:scale(1)}100%{opacity:1;transform:scale(1.12)}}
-.glass{background:linear-gradient(145deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 50%,rgba(124,58,237,.05) 100%);backdrop-filter:blur(32px) saturate(1.6);-webkit-backdrop-filter:blur(32px) saturate(1.6);border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.15),0 24px 64px rgba(0,0,0,.25)}
-.phone-wrap{transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
-.phone-wrap:hover{transform:translateY(-10px) rotate(-1deg)}
-.phone-wrap:hover .tadam-reveal{opacity:1;transform:translateY(0)}
-.tadam-reveal{opacity:0;transform:translateY(24px);transition:all .5s cubic-bezier(.16,1,.3,1)}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.float{animation:float 4s ease-in-out infinite}
-.stat-card{transition:transform .25s,box-shadow .25s}
-.stat-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,.1)}
-.feat-card{transition:transform .25s,border-color .25s}
-.feat-card:hover{transform:translateY(-5px);border-color:#e9d5ff}
-.price-card{transition:transform .25s,box-shadow .25s}
-.price-card:hover{transform:translateY(-6px)}
-.price-pop{box-shadow:0 0 0 2px #7c3aed,0 20px 60px rgba(124,58,237,.2)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#3b0764;color:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* BG gradient */
+.hero-bg{
+  min-height:100vh;
+  background:radial-gradient(ellipse at 70% 50%,#7c3aed 0%,#5b21b6 30%,#3b0764 65%,#1e0a3c 100%);
+  position:relative;overflow:hidden
+}
+.hero-bg::before{content:"";position:absolute;top:-20%;left:-10%;width:60%;height:80%;background:radial-gradient(ellipse,rgba(167,139,250,.18) 0%,transparent 65%);pointer-events:none}
+
+/* NAV */
+nav{padding:28px 60px 0;position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;gap:18px}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo svg{height:32px;width:auto}
+.nav-links{display:flex;gap:48px;list-style:none}
+.nav-links a{color:rgba(255,255,255,.75);font-size:15px;font-weight:500;text-decoration:none;letter-spacing:.03em;transition:color .2s}
+.nav-links a:hover{color:#fff}
+
+/* HERO */
+.hero{display:flex;align-items:center;justify-content:space-between;padding:60px 80px 80px;max-width:1400px;margin:0 auto;gap:40px;min-height:calc(100vh - 120px)}
+
+/* LEFT */
+.hero-left{flex:1;display:flex;flex-direction:column;align-items:flex-start}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:100px;padding:7px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,.85);margin-bottom:28px}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:#c084fc;animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+h1{font-size:clamp(52px,6vw,88px);font-weight:800;line-height:1.01;letter-spacing:-2.5px;margin-bottom:24px}
+h1 span{color:#ddd6fe}
+.hero-sub{font-size:clamp(16px,1.6vw,20px);color:rgba(255,255,255,.6);line-height:1.7;max-width:520px;margin-bottom:40px;font-weight:400}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
+.btn-white{background:#fff;color:#3b0764;border:none;padding:16px 32px;border-radius:100px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-white:hover{transform:scale(1.03);box-shadow:0 0 40px rgba(255,255,255,.2)}
+.btn-ghost{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;padding:16px 32px;border-radius:100px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(8px);transition:all .2s}
+.btn-ghost:hover{background:rgba(255,255,255,.14)}
+
+/* RIGHT — phone */
+.hero-right{flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative}
+.phone-scene{position:relative}
+
+/* Depth 3D float */
+@keyframes depth-float{
+  0%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(0px)}
+  25%{transform:perspective(1000px) rotateY(-5deg) rotateX(2deg) translateY(-12px)}
+  50%{transform:perspective(1000px) rotateY(-9deg) rotateX(5deg) translateY(-20px)}
+  75%{transform:perspective(1000px) rotateY(-12deg) rotateX(3deg) translateY(-10px)}
+  100%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(0px)}
+}
+@keyframes shadow-depth{0%,100%{transform:scaleX(1);opacity:.4}50%{transform:scaleX(.8);opacity:.2}}
+@keyframes border-spin{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes glow-pulse{0%,100%{opacity:.6}50%{opacity:.9}}
+@keyframes halo-b{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:.8;transform:scale(1.07)}}
+
+.phone-3d{animation:depth-float 6s ease-in-out infinite;transform-style:preserve-3d;position:relative}
+.phone-border{position:relative;display:inline-block;border-radius:48px;padding:3px;background:linear-gradient(135deg,#a855f7,#ec4899,#7c3aed,#c026d3,#a855f7);background-size:300% 300%;animation:border-spin 3s ease infinite;box-shadow:12px 20px 48px rgba(0,0,0,.4)}
+.phone-glow{position:absolute;inset:-8px;border-radius:56px;background:linear-gradient(135deg,#a855f7,#ec4899,#7c3aed,#c026d3);background-size:300% 300%;animation:border-spin 3s ease infinite,glow-pulse 2.5s ease-in-out infinite;filter:blur(16px);opacity:.6;z-index:0}
+.phone-img{border-radius:46px;display:block;position:relative;z-index:1;width:280px}
+.phone-shadow-el{position:absolute;bottom:-28px;left:8%;right:8%;height:28px;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 70%);border-radius:50%;filter:blur(8px);animation:shadow-depth 6s ease-in-out infinite}
+
+/* halos */
+.halo-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
+.halo{position:absolute;border-radius:50%}
+.h1{width:480px;height:480px;background:radial-gradient(ellipse,rgba(109,40,217,.45) 0%,transparent 65%);filter:blur(40px);animation:halo-b 4s ease-in-out infinite}
+.h2{width:340px;height:340px;background:radial-gradient(ellipse,rgba(192,38,211,.28) 0%,transparent 65%);filter:blur(56px);transform:translateY(50px);animation:halo-b 4.5s ease-in-out infinite .6s}
+.h3{width:240px;height:60px;background:radial-gradient(ellipse,rgba(124,58,237,.5),transparent 70%);border-radius:50%;filter:blur(20px);bottom:0;animation:halo-b 4s ease-in-out infinite 1.2s;position:absolute}
+
+/* SECTIONS */
+section{padding:90px 80px;max-width:1400px;margin:0 auto}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#c084fc;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:'';display:block;width:20px;height:1.5px;background:#c084fc}
+.section-title{font-size:clamp(32px,4vw,56px);font-weight:800;line-height:1.06;letter-spacing:-1.5px;margin-bottom:20px}
+.section-title em{font-style:normal;background:linear-gradient(135deg,#c084fc,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.section-sub{font-size:17px;color:rgba(255,255,255,.5);line-height:1.75;max-width:520px}
+
+/* IMPACT */
+.impact-bg{background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:48px}
+.stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:40px 32px}
+.stat-card.dark{background:#000;border-color:rgba(255,255,255,.1);position:relative;overflow:hidden}
+.stat-card.dark::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(192,38,211,.25),transparent 70%)}
+.stat-num{font-size:72px;font-weight:800;letter-spacing:-3px;line-height:1;margin-bottom:8px}
+.stat-card:not(.dark) .stat-num{color:#1a0640}
+.stat-card.dark .stat-num{color:#fff}
+.stat-name{font-size:18px;font-weight:700;margin-bottom:6px}
+.stat-card:not(.dark) .stat-name{color:#1a0640}
+.stat-desc{font-size:14px;line-height:1.6}
+.stat-card:not(.dark) .stat-desc{color:rgba(26,6,64,.6)}
+.stat-card.dark .stat-desc{color:rgba(255,255,255,.5)}
+.stats-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.stat-mini{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:28px 24px}
+.stat-mini .stat-num{font-size:48px;color:#a78bfa}
+.stat-mini .stat-name{font-size:14px;font-weight:700;color:rgba(255,255,255,.8)}
+.stat-mini .stat-desc{font-size:12px;color:rgba(255,255,255,.4)}
+
+/* PLATFORM */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:48px}
+.feat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:32px;transition:all .2s}
+.feat:hover{background:rgba(124,58,237,.1);border-color:rgba(167,139,250,.25);transform:translateY(-4px)}
+.feat-n{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;margin-bottom:20px}
+.feat h3{font-size:17px;font-weight:700;margin-bottom:10px}
+.feat p{font-size:14px;color:rgba(255,255,255,.5);line-height:1.7}
+
+/* PRICING */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:48px}
+.plan{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;transition:all .2s}
+.plan:hover{border-color:rgba(255,255,255,.15);transform:translateY(-4px)}
+.plan.pop{background:rgba(124,58,237,.12);border-color:rgba(167,139,250,.35);box-shadow:0 0 0 1px rgba(167,139,250,.2)}
+.plan-badge{font-size:10px;font-weight:700;color:#c084fc;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+.plan-name{font-size:14px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:14px}
+.plan-price{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1;margin-bottom:4px}
+.plan-per{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px}
+.plan-feats{list-style:none;border-top:1px solid rgba(255,255,255,.07);padding-top:20px;display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.plan-feats li{font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:10px}
+.pck{color:#a78bfa;flex-shrink:0}
+.plan-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.7);font-family:inherit;transition:all .2s}
+.plan-btn:hover{border-color:rgba(255,255,255,.25);color:#fff}
+.plan-btn.grad{background:linear-gradient(135deg,#7c3aed,#ec4899);border:none;color:#fff}
+.plan-btn.grad:hover{opacity:.88}
+
+/* FOOTER CTA */
+.footer-cta{background:#000;border-radius:32px;margin:0 0 80px;padding:90px 60px;text-align:center;position:relative;overflow:hidden}
+.footer-cta::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:500px;height:300px;background:radial-gradient(ellipse,rgba(124,58,237,.2),transparent 70%);pointer-events:none}
+.footer-cta h2{font-size:clamp(40px,6vw,72px);font-weight:800;letter-spacing:-2px;margin-bottom:16px}
+.footer-cta h2 em{font-style:normal;background:linear-gradient(135deg,#c084fc,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.footer-cta p{font-size:17px;color:rgba(255,255,255,.5);margin-bottom:36px}
+footer{border-top:1px solid rgba(255,255,255,.06);padding:28px 80px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer p{font-size:12px;color:rgba(255,255,255,.3)}
+.flinks{display:flex;gap:20px}
+.flinks a{font-size:12px;color:rgba(255,255,255,.3);text-decoration:none;transition:color .15s}
+.flinks a:hover{color:rgba(255,255,255,.6)}
+
+@media(max-width:900px){
+  .hero{flex-direction:column;padding:40px 24px 60px;text-align:center}
+  .hero-left{align-items:center}
+  .hero-sub{text-align:center}
+  nav{padding:20px 24px 0}
+  .stats,.plans,.feat-grid{grid-template-columns:1fr}
+  section{padding:60px 24px}
+  footer{padding:24px}
+  .footer-cta{margin:0 0 40px;padding:56px 24px}
+}
 </style>
 </head>
-<body class="bg-white text-gray-900 antialiased selection:bg-purple-900 selection:text-white">
+<body>
+
+<div class="hero-bg">
 
 <!-- NAV -->
-<nav class="fixed top-5 left-1/2 -translate-x-1/2 w-[92%] max-w-5xl z-50 bg-white/90 backdrop-blur-xl border border-gray-200/60 rounded-full px-6 py-3 flex justify-between items-center shadow-[0_8px_24px_rgba(0,0,0,.07)]">
-  <a href="#" class="flex items-center">
-    <svg height="28" viewBox="0 0 560 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="9" y1="70" x2="44" y2="28" stroke="#3b0764" stroke-width="8" stroke-linecap="round"/>
-      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="#3b0764"/>
-      <circle cx="20" cy="22" r="3.8" fill="#3b0764" opacity=".8"/>
-      <circle cx="30" cy="52" r="2.2" fill="#3b0764" opacity=".55"/>
-      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="#3b0764" letter-spacing="-2">TadamHome</text>
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 560 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
+      <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
+      <circle cx="30" cy="52" r="2.2" fill="white" opacity=".65"/>
+      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
     </svg>
-  </a>
-  <div class="hidden md:flex gap-8 text-sm font-semibold text-gray-500">
-    <a href="#concept" class="hover:text-black transition-colors">Concept</a>
-    <a href="#retours" class="hover:text-black transition-colors">Impact</a>
-    <a href="#dashboard" class="hover:text-black transition-colors">Plateforme</a>
-    <a href="#tarifs" class="hover:text-black transition-colors">Tarifs</a>
   </div>
-  <a href="login.html"><button class="bg-black text-white text-sm font-bold py-2.5 px-6 rounded-full hover:bg-purple-900 transition-colors duration-300">Activer l'effet Tadam →</button></a>
+  <ul class="nav-links">
+    <li><a href="#concept">Concept</a></li>
+    <li><a href="#impact">Impact</a></li>
+    <li><a href="#platform">Plateforme</a></li>
+    <li><a href="#tarifs">Tarifs</a></li>
+  </ul>
 </nav>
 
 <!-- HERO -->
-<section id="concept" class="hero-bg pt-44 pb-36 px-6 min-h-screen flex items-center rounded-b-[3.5rem] shadow-2xl relative z-10">
-  <div class="max-w-6xl mx-auto w-full flex flex-col md:flex-row items-center gap-16 relative z-10">
-    <div class="w-full md:w-[55%] text-white flex flex-col items-start">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm font-semibold mb-8 backdrop-blur-md">
-        <span class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
-        La révolution du retail meublé
-      </div>
-      <h1 class="text-6xl md:text-[5.5rem] font-black tracking-tighter leading-[1.02] mb-8">
-        Le meuble,<br>
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 via-pink-200 to-white">chez vous. Maintenant.</span>
-      </h1>
-      <p class="text-xl md:text-2xl text-purple-100/75 mb-10 font-medium leading-relaxed max-w-xl">
-        Déployez la Réalité Augmentée en magasin. Vos clients scannent un QR code et visualisent le meuble chez eux. L'effet de surprise est immédiat.
-      </p>
-      <div class="flex flex-wrap gap-4">
-        <a href="login.html"><button class="bg-white text-purple-900 font-bold text-lg py-4 px-8 rounded-full shadow-[0_0_40px_rgba(255,255,255,.28)] hover:scale-105 hover:shadow-[0_0_60px_rgba(255,255,255,.45)] transition-all duration-300">Découvrir l'effet ✨</button></a>
-        <button class="border border-white/30 text-white font-semibold text-base py-4 px-8 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-md">Voir la démo ▶</button>
-      </div>
-    </div>
-    <div class="w-full md:w-[45%] flex justify-center relative">
-      <!-- Blooming layers -->
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index:0">
-        <!-- Halo principal violet -->
-        <div style="position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(ellipse,rgba(109,40,217,0.55) 0%,rgba(88,28,135,0.25) 40%,transparent 70%);filter:blur(32px)"></div>
-        <!-- Halo fuchsia secondaire -->
-        <div style="position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(ellipse,rgba(192,38,211,0.35) 0%,rgba(168,85,247,0.15) 50%,transparent 70%);filter:blur(48px);transform:translateY(40px)"></div>
-        <!-- Glow bas (sol) -->
-        <div style="position:absolute;bottom:-20px;width:280px;height:80px;border-radius:50%;background:radial-gradient(ellipse,rgba(124,58,237,0.45) 0%,transparent 70%);filter:blur(24px)"></div>
-      </div>
-      <!-- Image -->
-      <img
-        src="hero-ar.png"
-        alt="Fauteuil en réalité augmentée via TadamHome"
-        class="relative w-72 md:w-80"
-        style="z-index:1;filter:drop-shadow(0 0 40px rgba(139,92,246,0.6)) drop-shadow(0 24px 48px rgba(109,40,217,0.5))"
-      />
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-badge"><div class="badge-dot"></div>La révolution du retail meublé</div>
+    <h1>Le meuble,<br><span>chez vous.</span><br>Maintenant.</h1>
+    <p class="hero-sub">Déployez la Réalité Augmentée en magasin. Vos clients scannent un QR code et visualisent le meuble chez eux. L'effet de surprise est immédiat.</p>
+    <div class="hero-btns">
+      <a href="login.html"><button class="btn-white">Découvrir l'effet ✨</button></a>
+      <button class="btn-ghost">Voir la démo ▶</button>
     </div>
   </div>
-</section>
+
+  <div class="hero-right">
+    <div class="phone-scene">
+      <div class="halo-wrap">
+        <div class="halo h1"></div>
+        <div class="halo h2"></div>
+        <div class="halo h3"></div>
+      </div>
+      <style>
+        @keyframes depth-float{0%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(0px)}25%{transform:perspective(1000px) rotateY(-5deg) rotateX(2deg) translateY(-12px)}50%{transform:perspective(1000px) rotateY(-9deg) rotateX(5deg) translateY(-20px)}75%{transform:perspective(1000px) rotateY(-12deg) rotateX(3deg) translateY(-10px)}100%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(0px)}}
+        @keyframes shadow-depth{0%,100%{transform:scaleX(1);opacity:.4}50%{transform:scaleX(.8);opacity:.2}}
+        @keyframes border-spin{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        @keyframes glow-pulse{0%,100%{opacity:.6}50%{opacity:.9}}
+        .phone-3d{animation:depth-float 6s ease-in-out infinite;transform-style:preserve-3d;position:relative;z-index:1}
+        .phone-border{position:relative;display:inline-block;border-radius:48px;padding:3px;background:linear-gradient(135deg,#a855f7,#ec4899,#7c3aed,#c026d3,#a855f7);background-size:300% 300%;animation:border-spin 3s ease infinite;box-shadow:12px 20px 60px rgba(0,0,0,.5)}
+        .phone-glow{position:absolute;inset:-8px;border-radius:56px;background:linear-gradient(135deg,#a855f7,#ec4899,#7c3aed,#c026d3);background-size:300% 300%;animation:border-spin 3s ease infinite,glow-pulse 2.5s ease-in-out infinite;filter:blur(16px);opacity:.6;z-index:0}
+        .phone-img{border-radius:46px;display:block;position:relative;z-index:1;width:280px}
+        .phone-shadow-el{position:absolute;bottom:-28px;left:8%;right:8%;height:28px;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 70%);border-radius:50%;filter:blur(8px);animation:shadow-depth 6s ease-in-out infinite}
+      </style>
+      <div class="phone-3d">
+        <div class="phone-border">
+          <div class="phone-glow"></div>
+          <img src="hero-ar.png" alt="AR TadamHome" class="phone-img"/>
+        </div>
+        <div class="phone-shadow-el"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end hero-bg -->
 
 <!-- IMPACT -->
-<section id="retours" class="py-32 bg-white">
-  <div class="max-w-6xl mx-auto px-6">
-    <div class="mb-20">
-      <p class="text-xs font-bold text-purple-600 tracking-[.15em] uppercase mb-4">Résultats mesurés</p>
-      <h2 class="text-5xl md:text-6xl font-black tracking-tighter text-black leading-tight mb-6">Fini les devinettes.<br><span class="text-gray-300">Place à l'évidence.</span></h2>
-      <p class="text-xl text-gray-500 font-medium leading-relaxed max-w-2xl">Chaque centimètre compte. En projetant vos meubles à l'échelle 1:1, vous supprimez le doute et réduisez drastiquement vos coûts de logistique inverse.</p>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <div class="stat-card bg-gray-50 rounded-[2rem] p-12 border border-gray-100">
-        <h3 class="text-[5.5rem] font-black tracking-tighter text-black leading-none mb-4">−40%</h3>
-        <p class="text-xl font-bold text-gray-900 mb-2">De retours produits</p>
-        <p class="text-gray-500 font-medium">Les clients ne se trompent plus sur les dimensions ou les couleurs de leur mobilier.</p>
+<div class="impact-bg" id="impact">
+  <section>
+    <div class="section-label">Résultats mesurés</div>
+    <h2 class="section-title">Fini les devinettes.<br><em>Place à l'évidence.</em></h2>
+    <p class="section-sub">Chaque centimètre compte. En projetant vos meubles à l'échelle 1:1, vous supprimez le doute et réduisez vos coûts de retour.</p>
+    <div class="stats">
+      <div class="stat-card" style="background:#f5f0ff">
+        <div class="stat-num" style="background:linear-gradient(135deg,#7c3aed,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">−40%</div>
+        <div class="stat-name">De retours produits</div>
+        <div class="stat-desc">Les clients ne se trompent plus sur les dimensions ou les couleurs de leur mobilier.</div>
       </div>
-      <div class="stat-card bg-black rounded-[2rem] p-12 text-white relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-72 h-72 bg-fuchsia-600 opacity-20 blur-[90px] rounded-full"></div>
-        <h3 class="text-[5.5rem] font-black tracking-tighter text-white leading-none mb-4">+25%</h3>
-        <p class="text-xl font-bold text-white mb-2">De conversion</p>
-        <p class="text-gray-400 font-medium relative z-10">L'effet "Tadam !" rassure instantanément et transforme l'hésitation en acte d'achat direct.</p>
+      <div class="stat-card dark">
+        <div class="stat-num">+25%</div>
+        <div class="stat-name" style="color:#fff">De conversion</div>
+        <div class="stat-desc">L'effet "Tadam !" rassure instantanément et transforme l'hésitation en achat direct.</div>
       </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="stat-card bg-purple-50 rounded-[2rem] p-10 border border-purple-100"><h3 class="text-5xl font-black tracking-tighter text-purple-800 leading-none mb-3">2,3×</h3><p class="font-bold text-gray-900 mb-1">Temps de visualisation</p><p class="text-gray-500 text-sm font-medium">Plus de temps passé sur les produits vus en AR.</p></div>
-      <div class="stat-card bg-fuchsia-50 rounded-[2rem] p-10 border border-fuchsia-100"><h3 class="text-5xl font-black tracking-tighter text-fuchsia-800 leading-none mb-3">89%</h3><p class="font-bold text-gray-900 mb-1">Clients plus confiants</p><p class="text-gray-500 text-sm font-medium">Se sentent plus sûrs de leur décision d'achat.</p></div>
-      <div class="stat-card bg-indigo-50 rounded-[2rem] p-10 border border-indigo-100"><h3 class="text-5xl font-black tracking-tighter text-indigo-800 leading-none mb-3">&lt; 2s</h3><p class="font-bold text-gray-900 mb-1">Temps de lancement AR</p><p class="text-gray-500 text-sm font-medium">Du scan à la projection du meuble en taille réelle.</p></div>
+    <div class="stats-mini">
+      <div class="stat-mini"><div class="stat-num">2,3×</div><div class="stat-name">Temps de visualisation</div><div class="stat-desc">Plus de temps passé sur les produits AR</div></div>
+      <div class="stat-mini"><div class="stat-num">89%</div><div class="stat-name">Clients plus confiants</div><div class="stat-desc">Se sentent plus sûrs de leur achat</div></div>
+      <div class="stat-mini"><div class="stat-num">&lt;2s</div><div class="stat-name">Lancement AR</div><div class="stat-desc">Du scan à la projection en taille réelle</div></div>
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
-<!-- DASHBOARD -->
-<section id="dashboard" class="py-32 bg-gray-50">
-  <div class="max-w-6xl mx-auto px-6">
-    <div class="text-center mb-20">
-      <p class="text-xs font-bold text-purple-600 tracking-[.15em] uppercase mb-4">Plateforme</p>
-      <h2 class="text-4xl md:text-5xl font-black tracking-tighter text-black mb-6">Aussi simple qu'un glisser-déposer.</h2>
-      <p class="text-xl text-gray-500 max-w-2xl mx-auto font-medium">Aucune ligne de code. Transformez vos visuels en expériences immersives depuis un tableau de bord pensé pour vos équipes.</p>
+<!-- PLATFORM -->
+<div id="platform">
+  <section id="concept">
+    <div class="section-label">Plateforme</div>
+    <h2 class="section-title">Aussi simple qu'un<br><em>glisser-déposer.</em></h2>
+    <p class="section-sub">Aucune ligne de code. Transformez vos visuels en expériences immersives depuis un tableau de bord pensé pour aller vite.</p>
+    <div class="feat-grid">
+      <div class="feat"><div class="feat-n">1</div><h3>Import 3D / Photo</h3><p>Déposez vos modèles GLB ou USDZ. Le système génère instantanément le jumeau numérique interactif.</p></div>
+      <div class="feat"><div class="feat-n">2</div><h3>Génération QR</h3><p>Un code unique par produit, prêt à imprimer sur vos étiquettes en magasin en un clic.</p></div>
+      <div class="feat"><div class="feat-n">3</div><h3>Data & Tracking</h3><p>Suivez en temps réel quels produits sont les plus visualisés en AR par vos clients.</p></div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-      <div class="feat-card bg-white rounded-[2rem] p-10 border border-gray-100 shadow-sm"><div class="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-8"><span class="text-purple-700 font-black text-xl">1</span></div><h3 class="text-2xl font-bold text-black mb-3 tracking-tight">Import 3D / Photo</h3><p class="text-gray-500 font-medium leading-relaxed">Déposez vos modèles 3D. Le système les convertit instantanément en jumeaux numériques interactifs.</p></div>
-      <div class="feat-card bg-white rounded-[2rem] p-10 border border-gray-100 shadow-sm"><div class="w-12 h-12 rounded-2xl bg-fuchsia-100 flex items-center justify-center mb-8"><span class="text-fuchsia-700 font-black text-xl">2</span></div><h3 class="text-2xl font-bold text-black mb-3 tracking-tight">Génération QR</h3><p class="text-gray-500 font-medium leading-relaxed">Générez vos codes uniques en un clic. Imprimez-les sur vos étiquettes en magasin.</p></div>
-      <div class="feat-card bg-white rounded-[2rem] p-10 border border-gray-100 shadow-sm"><div class="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center mb-8"><span class="text-indigo-700 font-black text-xl">3</span></div><h3 class="text-2xl font-bold text-black mb-3 tracking-tight">Data & Tracking</h3><p class="text-gray-500 font-medium leading-relaxed">Suivez en temps réel quels produits sont les plus visualisés en AR par vos clients.</p></div>
-    </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <!-- PRICING -->
-<section id="tarifs" class="py-32 bg-white">
-  <div class="max-w-6xl mx-auto px-6">
-    <div class="text-center mb-16">
-      <p class="text-xs font-bold text-purple-600 tracking-[.15em] uppercase mb-4">Tarifs</p>
-      <h2 class="text-4xl md:text-5xl font-black tracking-tighter text-black mb-4">Simple et transparent.</h2>
-      <p class="text-xl text-gray-400 font-medium">Sans engagement. Sans surprise.</p>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="price-card bg-gray-50 rounded-[2rem] p-10 border border-gray-100">
-        <div class="text-sm font-bold text-gray-500 mb-4">Starter</div>
-        <div class="text-5xl font-black tracking-tighter text-black mb-1">199€</div>
-        <div class="text-sm text-gray-400 font-medium mb-8">par mois</div>
-        <ul class="space-y-3 mb-10 border-t border-gray-200 pt-6">
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>25 produits AR</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>500 scans / mois</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>QR codes illimités</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>Analytics de base</li>
+<div id="tarifs">
+  <section>
+    <div class="section-label">Tarifs</div>
+    <h2 class="section-title">Simple<br><em>et transparent.</em></h2>
+    <p class="section-sub">Sans engagement. Sans surprise. Changez de plan à tout moment.</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">199€</div>
+        <div class="plan-per">par mois</div>
+        <ul class="plan-feats">
+          <li><span class="pck">✓</span>25 produits AR</li>
+          <li><span class="pck">✓</span>500 scans / mois</li>
+          <li><span class="pck">✓</span>QR codes illimités</li>
+          <li><span class="pck">✓</span>Analytics de base</li>
         </ul>
-        <a href="login.html"><button class="w-full py-3.5 rounded-2xl border border-gray-300 text-gray-700 font-bold text-sm hover:border-purple-400 hover:text-purple-700 transition-colors">Commencer</button></a>
+        <button class="plan-btn">Commencer</button>
       </div>
-      <div class="price-card price-pop bg-white rounded-[2rem] p-10 border border-purple-200">
-        <div class="inline-block bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-4">★ Plus populaire</div>
-        <div class="text-sm font-bold text-gray-500 mb-4">Pro</div>
-        <div class="text-5xl font-black tracking-tighter text-black mb-1">499€</div>
-        <div class="text-sm text-gray-400 font-medium mb-8">par mois</div>
-        <ul class="space-y-3 mb-10 border-t border-gray-200 pt-6">
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>200 produits AR</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>5 000 scans / mois</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>Personnalisation temps réel</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>Analytics avancés</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>Intégration e-commerce</li>
+      <div class="plan pop">
+        <div class="plan-badge">★ Plus populaire</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">499€</div>
+        <div class="plan-per">par mois</div>
+        <ul class="plan-feats">
+          <li><span class="pck">✓</span>200 produits AR</li>
+          <li><span class="pck">✓</span>5 000 scans / mois</li>
+          <li><span class="pck">✓</span>Personnalisation temps réel</li>
+          <li><span class="pck">✓</span>Analytics avancés</li>
+          <li><span class="pck">✓</span>Intégration e-commerce</li>
         </ul>
-        <a href="login.html"><button class="w-full py-3.5 rounded-2xl bg-purple-700 text-white font-bold text-sm hover:bg-purple-800 transition-colors">Activer l'effet Tadam →</button></a>
+        <a href="login.html"><button class="plan-btn grad">Activer l'effet Tadam →</button></a>
       </div>
-      <div class="price-card bg-gray-50 rounded-[2rem] p-10 border border-gray-100">
-        <div class="text-sm font-bold text-gray-500 mb-4">Entreprise</div>
-        <div class="text-3xl font-black tracking-tight text-black mb-1 mt-3">Sur mesure</div>
-        <div class="text-sm text-gray-400 font-medium mb-8">volume & besoins dédiés</div>
-        <ul class="space-y-3 mb-10 border-t border-gray-200 pt-6">
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>Produits & scans illimités</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>API dédiée</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>CSM dédié</li>
-          <li class="flex items-center gap-3 text-sm font-medium text-gray-700"><span class="text-purple-500 font-bold">✓</span>SLA garanti</li>
+      <div class="plan">
+        <div class="plan-name">Entreprise</div>
+        <div class="plan-price" style="font-size:30px;letter-spacing:-1px">Sur mesure</div>
+        <div class="plan-per">volume & besoins dédiés</div>
+        <ul class="plan-feats">
+          <li><span class="pck">✓</span>Produits & scans illimités</li>
+          <li><span class="pck">✓</span>API dédiée</li>
+          <li><span class="pck">✓</span>CSM dédié</li>
+          <li><span class="pck">✓</span>SLA garanti</li>
         </ul>
-        <button class="w-full py-3.5 rounded-2xl border border-gray-300 text-gray-700 font-bold text-sm hover:border-purple-400 hover:text-purple-700 transition-colors">Nous contacter</button>
+        <button class="plan-btn">Nous contacter</button>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
-<!-- FOOTER -->
-<footer class="bg-black text-white pt-24 pb-12 rounded-t-[3rem] md:rounded-t-[4rem] px-6 mt-[-1rem] relative z-20">
-  <div class="max-w-4xl mx-auto text-center mb-20">
-    <p class="text-sm font-semibold text-gray-400 tracking-widest uppercase mb-6">Rejoignez TadamHome</p>
-    <h2 class="text-5xl md:text-7xl font-black tracking-tighter mb-10 leading-none">Prêt à faire le<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-300">Tadam ! ?</span></h2>
-    <a href="login.html"><button class="bg-white text-black font-bold text-lg py-4 px-12 rounded-full hover:scale-105 hover:shadow-[0_0_60px_rgba(255,255,255,.2)] transition-all duration-300">Demander une démo →</button></a>
+<!-- FOOTER CTA -->
+<div style="padding:0 80px">
+  <div class="footer-cta">
+    <h2>Prêt à faire le<br><em>Tadam ! ?</em></h2>
+    <p>Supprimez l'incertitude. Donnez à vos clients la certitude d'acheter juste.</p>
+    <a href="login.html"><button class="btn-white" style="font-size:17px;padding:18px 44px">Demander une démo →</button></a>
   </div>
-  <div class="max-w-6xl mx-auto border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-    <svg height="26" viewBox="0 0 560 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="9" y1="70" x2="44" y2="28" stroke="rgba(255,255,255,.4)" stroke-width="8" stroke-linecap="round"/>
-      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="rgba(255,255,255,.4)"/>
-      <circle cx="20" cy="22" r="3.8" fill="rgba(255,255,255,.35)"/>
-      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="rgba(255,255,255,.4)" letter-spacing="-2">TadamHome</text>
-    </svg>
-    <p class="text-gray-500 text-sm font-medium">© 2026 TadamHome. Le futur du retail mobilier.</p>
-    <div class="flex gap-6">
-      <a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Mentions légales</a>
-      <a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">CGU</a>
-      <a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Contact</a>
-    </div>
+</div>
+
+<footer>
+  <svg height="24" viewBox="0 0 560 80" fill="none">
+    <line x1="9" y1="70" x2="44" y2="28" stroke="rgba(255,255,255,.35)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="rgba(255,255,255,.35)"/>
+    <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="rgba(255,255,255,.35)" letter-spacing="-2">TadamHome</text>
+  </svg>
+  <p>© 2026 TadamHome. Le futur du retail mobilier.</p>
+  <div class="flinks">
+    <a href="#">Mentions légales</a>
+    <a href="#">CGU</a>
+    <a href="#">Contact</a>
   </div>
 </footer>
 
-<script>
-document.querySelector('.phone-wrap')?.addEventListener('click',function(){
-  const r=this.querySelector('.tadam-reveal');
-  if(r){r.style.opacity=r.style.opacity==='1'?'0':'1';r.style.transform=r.style.opacity==='1'?'translateY(0)':'translateY(24px)'}
-});
-</script>
 </body>
 </html>
