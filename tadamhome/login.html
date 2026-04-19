@@ -5,389 +5,120 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TadamHome — Connexion</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#07051a;--s1:#0f0c28;--s2:#17133a;
-  --p:#7c3aed;--pk:#ec4899;--acc:#a78bfa;
-  --grad:linear-gradient(135deg,#7c3aed,#ec4899);
-  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
-  --text:#f0eeff;--muted:rgba(167,139,250,.55);
-}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-
-/* ORBS */
-.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
-.o1{width:700px;height:700px;background:#3b0764;top:-300px;left:-200px;opacity:.6}
-.o2{width:600px;height:600px;background:#4a044e;bottom:-200px;right:-150px;opacity:.5}
-.o3{width:350px;height:350px;background:#1e1b4b;top:40%;left:40%;opacity:.4}
-
-/* SCREENS */
-.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;opacity:0;pointer-events:none;transition:opacity .4s ease}
-.screen.active{opacity:1;pointer-events:all}
-
-/* CARD */
-.card{background:rgba(15,12,40,.85);border:1px solid var(--border2);border-radius:28px;padding:44px 48px;width:100%;max-width:460px;backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);box-shadow:0 40px 100px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
-
-/* LOGO */
-.logo{display:flex;justify-content:center;margin-bottom:36px}
-
-/* HEADINGS */
-h2{font-size:26px;font-weight:900;letter-spacing:-.8px;text-align:center;margin-bottom:8px}
-.sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:32px;line-height:1.6}
-
-/* FORM */
-.field{margin-bottom:16px}
-.field label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:7px}
-.field input,.field select{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:12px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:all .2s}
-.field input:focus,.field select:focus{border-color:var(--p);background:rgba(124,58,237,.06);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+:root{--bg:#07051a;--p:#7C3AED;--pk:#EC4899;--acc:#a78bfa;--grad:linear-gradient(135deg,#7C3AED,#EC4899);--border:rgba(255,255,255,.1);--text:#f0eeff;--muted:rgba(167,139,250,.55)}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;-webkit-font-smoothing:antialiased}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:.5}
+.o1{width:600px;height:600px;background:#3b0764;top:-200px;left:-150px}
+.o2{width:500px;height:500px;background:#4a044e;bottom:-150px;right:-100px}
+.card{background:rgba(15,12,40,.9);border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:44px 48px;width:100%;max-width:440px;position:relative;z-index:1;box-shadow:0 40px 100px rgba(0,0,0,.5)}
+.logo{display:flex;justify-content:center;margin-bottom:32px}
+h2{font-size:24px;font-weight:800;text-align:center;margin-bottom:8px;letter-spacing:-.5px}
+.sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:28px}
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:6px}
+.field input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:all .2s}
+.field input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
 .field input::placeholder{color:rgba(167,139,250,.3)}
-.field select option{background:#0f0c28}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-/* BUTTONS */
-.btn-main{width:100%;background:var(--grad);color:#fff;border:none;padding:14px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.01em;box-shadow:0 8px 24px rgba(124,58,237,.35)}
-.btn-main:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 12px 32px rgba(124,58,237,.45)}
-.btn-main:active{transform:translateY(0)}
-.btn-outline{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);color:var(--text);padding:13px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
-.btn-outline:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
-.btn-text{background:none;border:none;color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
-.btn-text:hover{opacity:.7}
-
-/* DIVIDER */
-.divider{display:flex;align-items:center;gap:12px;margin:20px 0}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border2)}
-.divider span{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.05em}
-
-/* LINKS */
-.link-row{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
-
-/* MAGIC LINK */
-.magic-box{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:20px;text-align:center;margin-bottom:24px}
-.magic-ico{font-size:36px;margin-bottom:10px}
-.magic-title{font-size:15px;font-weight:800;margin-bottom:6px}
-.magic-sub{font-size:13px;color:var(--muted);line-height:1.5}
-
-/* ONBOARDING */
-.progress-bar{background:rgba(255,255,255,.06);border-radius:100px;height:4px;margin-bottom:36px;overflow:hidden}
-.progress-fill{height:100%;border-radius:100px;background:var(--grad);transition:width .5s cubic-bezier(.34,1.56,.64,1)}
-.step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:28px}
-.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12);transition:all .3s}
-.step-dot.done{background:var(--grad);width:24px;border-radius:100px}
-.step-dot.active{background:var(--acc)}
-
-/* OPTION CARDS */
-.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.option-card{background:rgba(255,255,255,.03);border:1.5px solid var(--border2);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;text-align:center}
-.option-card:hover{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.06)}
-.option-card.selected{border-color:var(--p);background:rgba(124,58,237,.1);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
-.option-ico{font-size:26px;margin-bottom:8px}
-.option-label{font-size:12px;font-weight:700}
-
-/* SUCCESS */
-.success-ico{width:72px;height:72px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;box-shadow:0 0 40px rgba(124,58,237,.4);animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
-@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
-.confetti{position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden}
-.cf{position:absolute;width:8px;height:8px;border-radius:2px;animation:fall linear forwards}
-@keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
-
-/* LOADING */
-.spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.btn{width:100%;background:var(--grad);color:#fff;border:none;padding:14px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px}
+.btn:hover{opacity:.88;transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-bottom:14px;display:none}
+.error.show{display:block}
+.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:#6ee7b7;margin-bottom:14px;display:none}
+.success.show{display:block}
+.hint{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);border-radius:12px;padding:14px;margin-bottom:20px;font-size:12px;color:var(--acc);line-height:1.6}
+.hint strong{color:#fff}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:100px}
-
-.fade-in{animation:fi .35s ease forwards}
-@keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
-
 <div class="orb o1"></div>
 <div class="orb o2"></div>
-<div class="orb o3"></div>
-<div class="confetti" id="confetti"></div>
 
-<!-- ===== SCREEN 1 : LOGIN ===== -->
-<div class="screen active" id="screen-login">
-  <div class="card fade-in">
-    <div class="logo">
-      <svg height="30" viewBox="0 0 560 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
-        <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
-        <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
-        <circle cx="30" cy="52" r="2.2" fill="white" opacity=".65"/>
-        <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
-      </svg>
-    </div>
-    <h2>Bon retour 👋</h2>
-    <p class="sub">Connectez-vous à votre espace enseigne</p>
-
-    <button class="btn-outline" style="margin-bottom:12px" onclick="showMagicLink()">
-      <span>✉️</span> Connexion par Magic Link
-    </button>
-
-    <div class="divider"><span>ou par email</span></div>
-
-    <div class="field">
-      <label>Email professionnel</label>
-      <input type="email" placeholder="vous@votreenseigne.fr" id="login-email"/>
-    </div>
-    <div class="field">
-      <label>Mot de passe</label>
-      <input type="password" placeholder="••••••••••" id="login-pwd"/>
-    </div>
-    <div style="text-align:right;margin-bottom:20px;margin-top:-8px">
-      <button class="btn-text" style="font-size:12px">Mot de passe oublié ?</button>
-    </div>
-    <button class="btn-main" onclick="handleLogin()">Se connecter →</button>
-
-    <div class="link-row">
-      Pas encore de compte ? <button class="btn-text" onclick="goTo('screen-register')">Créer un compte</button>
-    </div>
+<div class="card">
+  <div class="logo">
+    <svg height="28" viewBox="0 0 560 80" fill="none">
+      <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
+      <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
+      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
+    </svg>
   </div>
-</div>
 
-<!-- ===== SCREEN 2 : MAGIC LINK ===== -->
-<div class="screen" id="screen-magic">
-  <div class="card fade-in">
-    <div class="logo">
-      <svg height="30" viewBox="0 0 560 80" fill="none"><line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/><path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/><circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/><text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text></svg>
-    </div>
-    <h2>Magic Link ✨</h2>
-    <p class="sub">Recevez un lien de connexion instantané par email. Aucun mot de passe requis.</p>
-    <div class="field">
-      <label>Votre email professionnel</label>
-      <input type="email" placeholder="vous@votreenseigne.fr" id="magic-email"/>
-    </div>
-    <button class="btn-main" onclick="sendMagicLink()">Envoyer le Magic Link →</button>
-    <div class="link-row"><button class="btn-text" onclick="goTo('screen-login')">← Retour</button></div>
-  </div>
-</div>
+  <h2>Bon retour 👋</h2>
+  <p class="sub">Connectez-vous à votre espace enseigne</p>
 
-<!-- ===== SCREEN 3 : MAGIC SENT ===== -->
-<div class="screen" id="screen-magic-sent">
-  <div class="card fade-in" style="text-align:center">
-    <div style="font-size:56px;margin-bottom:20px">📬</div>
-    <h2>Vérifiez vos emails</h2>
-    <p class="sub">Nous avons envoyé un lien magique à<br><strong style="color:var(--acc)" id="magic-email-display">—</strong></p>
-    <div class="magic-box">
-      <div class="magic-ico">⚡</div>
-      <div class="magic-title">Connexion en 1 clic</div>
-      <div class="magic-sub">Cliquez sur le lien dans votre email pour vous connecter instantanément. Le lien expire dans 15 minutes.</div>
-    </div>
-    <button class="btn-outline" onclick="goTo('screen-login')" style="margin-bottom:12px">← Revenir à la connexion</button>
-    <div class="link-row" style="font-size:12px">Email non reçu ? <button class="btn-text" style="font-size:12px">Renvoyer</button></div>
+  <div class="hint">
+    <strong>Compte test disponible :</strong><br>
+    Email : test@maisonsbelfort.fr<br>
+    Mot de passe : Tadam2025!
   </div>
-</div>
 
-<!-- ===== SCREEN 4 : REGISTER ===== -->
-<div class="screen" id="screen-register">
-  <div class="card fade-in" style="max-width:500px">
-    <div class="logo">
-      <svg height="28" viewBox="0 0 560 80" fill="none"><line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/><path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/><circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/><text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text></svg>
-    </div>
-    <h2>Créer votre compte</h2>
-    <p class="sub">Déployez la réalité augmentée en magasin en quelques minutes</p>
-    <div class="field-row">
-      <div class="field"><label>Prénom</label><input placeholder="Marie"/></div>
-      <div class="field"><label>Nom</label><input placeholder="Dupont"/></div>
-    </div>
-    <div class="field"><label>Email professionnel</label><input type="email" placeholder="marie@votreenseigne.fr"/></div>
-    <div class="field"><label>Nom de l'enseigne</label><input placeholder="Maisons Belfort"/></div>
-    <div class="field"><label>Mot de passe</label><input type="password" placeholder="8 caractères minimum"/></div>
-    <button class="btn-main" onclick="goTo('screen-onboard-1')" style="margin-top:4px">Créer mon compte →</button>
-    <div class="link-row">Déjà un compte ? <button class="btn-text" onclick="goTo('screen-login')">Se connecter</button></div>
-  </div>
-</div>
+  <div class="error" id="error"></div>
+  <div class="success" id="success"></div>
 
-<!-- ===== SCREEN 5 : ONBOARDING 1 — Type d'enseigne ===== -->
-<div class="screen" id="screen-onboard-1">
-  <div class="card fade-in" style="max-width:500px">
-    <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
-    <div class="step-indicator">
-      <div class="step-dot done"></div>
-      <div class="step-dot active"></div>
-      <div class="step-dot"></div>
-    </div>
-    <h2>Quel est votre secteur ?</h2>
-    <p class="sub">Pour personnaliser votre expérience TadamHome</p>
-    <div class="option-grid" id="sector-grid">
-      <div class="option-card selected" onclick="selectOption(this,'sector-grid')"><div class="option-ico">🛋️</div><div class="option-label">Ameublement</div></div>
-      <div class="option-card" onclick="selectOption(this,'sector-grid')"><div class="option-ico">🛏️</div><div class="option-label">Literie</div></div>
-      <div class="option-card" onclick="selectOption(this,'sector-grid')"><div class="option-ico">🍳</div><div class="option-label">Cuisine</div></div>
-      <div class="option-card" onclick="selectOption(this,'sector-grid')"><div class="option-ico">🏡</div><div class="option-label">Décoration</div></div>
-    </div>
-    <button class="btn-main" onclick="goTo('screen-onboard-2')">Continuer →</button>
+  <div class="field">
+    <label>Email professionnel</label>
+    <input type="email" id="email" placeholder="vous@votreenseigne.fr" value="test@maisonsbelfort.fr"/>
   </div>
-</div>
+  <div class="field">
+    <label>Mot de passe</label>
+    <input type="password" id="password" placeholder="••••••••••" value="Tadam2025!"/>
+  </div>
 
-<!-- ===== SCREEN 6 : ONBOARDING 2 — Taille du catalogue ===== -->
-<div class="screen" id="screen-onboard-2">
-  <div class="card fade-in" style="max-width:500px">
-    <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
-    <div class="step-indicator">
-      <div class="step-dot done"></div>
-      <div class="step-dot done"></div>
-      <div class="step-dot active"></div>
-    </div>
-    <h2>Votre catalogue</h2>
-    <p class="sub">Combien de références souhaitez-vous déployer en AR ?</p>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px" id="size-grid">
-      <div class="option-card selected" style="text-align:left;display:flex;align-items:center;gap:14px;padding:16px 20px" onclick="selectOption(this,'size-grid')">
-        <div class="option-ico" style="font-size:22px;margin:0">🌱</div>
-        <div><div class="option-label" style="font-size:13px;margin-bottom:2px">Moins de 25 produits</div><div style="font-size:11px;color:var(--muted)">Idéal pour démarrer — Plan Starter</div></div>
-      </div>
-      <div class="option-card" style="text-align:left;display:flex;align-items:center;gap:14px;padding:16px 20px" onclick="selectOption(this,'size-grid')">
-        <div class="option-ico" style="font-size:22px;margin:0">🚀</div>
-        <div><div class="option-label" style="font-size:13px;margin-bottom:2px">25 à 200 produits</div><div style="font-size:11px;color:var(--muted)">Pour accélérer — Plan Pro</div></div>
-      </div>
-      <div class="option-card" style="text-align:left;display:flex;align-items:center;gap:14px;padding:16px 20px" onclick="selectOption(this,'size-grid')">
-        <div class="option-ico" style="font-size:22px;margin:0">🏢</div>
-        <div><div class="option-label" style="font-size:13px;margin-bottom:2px">Plus de 200 produits</div><div style="font-size:11px;color:var(--muted)">Grands comptes — Plan Entreprise</div></div>
-      </div>
-    </div>
-    <button class="btn-main" onclick="goTo('screen-onboard-3')">Continuer →</button>
-    <div class="link-row"><button class="btn-text" onclick="goTo('screen-onboard-1')">← Retour</button></div>
-  </div>
-</div>
-
-<!-- ===== SCREEN 7 : ONBOARDING 3 — Premier import ===== -->
-<div class="screen" id="screen-onboard-3">
-  <div class="card fade-in" style="max-width:500px">
-    <div class="progress-bar"><div class="progress-fill" style="width:88%"></div></div>
-    <div class="step-indicator">
-      <div class="step-dot done"></div>
-      <div class="step-dot done"></div>
-      <div class="step-dot done"></div>
-    </div>
-    <h2>Importez votre premier produit</h2>
-    <p class="sub">Commencez avec un meuble pour voir la magie opérer</p>
-    <div id="drop-zone" style="background:rgba(124,58,237,.06);border:2px dashed rgba(124,58,237,.3);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px" onclick="simulateUpload()">
-      <div style="font-size:36px;margin-bottom:10px">☁️</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Glissez un fichier 3D ici</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">ou cliquez pour parcourir</div>
-      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-        <span style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc)">GLB</span>
-        <span style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc)">GLTF</span>
-        <span style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc)">OBJ</span>
-        <span style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc)">FBX</span>
-      </div>
-    </div>
-    <div id="upload-progress" style="display:none;margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:12px;padding:14px 16px;margin-bottom:12px">
-        <div style="font-size:24px">🛋️</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;margin-bottom:4px">canapé_palermo.glb</div>
-          <div style="background:rgba(255,255,255,.06);border-radius:100px;height:4px;overflow:hidden"><div id="pbar" style="height:100%;border-radius:100px;background:var(--grad);width:0;transition:width .08s linear"></div></div>
-        </div>
-        <div style="font-size:12px;font-weight:700;color:var(--acc)" id="pct">0%</div>
-      </div>
-    </div>
-    <button class="btn-main" onclick="finishOnboarding()" id="finish-btn">Accéder au dashboard →</button>
-    <div class="link-row"><button class="btn-text" onclick="skipAndFinish()">Passer cette étape</button></div>
-  </div>
-</div>
-
-<!-- ===== SCREEN 8 : SUCCESS ===== -->
-<div class="screen" id="screen-success">
-  <div class="card fade-in" style="text-align:center;max-width:440px">
-    <div class="success-ico">✨</div>
-    <h2>Tadam ! 🎉</h2>
-    <p class="sub">Votre compte est prêt. Bienvenue dans<br>la révolution du retail meublé.</p>
-    <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:20px;margin-bottom:28px;text-align:left">
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="color:#10b981;font-size:16px">✓</span> Compte enseigne créé</div>
-        <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="color:#10b981;font-size:16px">✓</span> Plan Pro activé — 14 jours offerts</div>
-        <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="color:#10b981;font-size:16px">✓</span> Premier produit AR en cours de génération</div>
-        <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="color:#10b981;font-size:16px">✓</span> QR code disponible dans 2 minutes</div>
-      </div>
-    </div>
-    <button class="btn-main" style="font-size:16px;padding:16px" onclick="launchDashboard()">Accéder à mon dashboard →</button>
-  </div>
+  <button class="btn" id="btn-login" onclick="login()">
+    Se connecter →
+  </button>
 </div>
 
 <script>
-function goTo(id){
-  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active')});
-  const el=document.getElementById(id);
-  if(el){el.classList.add('active');const c=el.querySelector('.card');if(c){c.classList.remove('fade-in');void c.offsetWidth;c.classList.add('fade-in')}}
-}
+const SUPABASE_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function handleLogin(){
-  const email=document.getElementById('login-email').value||'contact@enseigne.fr';
-  const pwd=document.getElementById('login-pwd').value;
-  if(!email){document.getElementById('login-email').focus();return}
-  const btn=document.querySelector('#screen-login .btn-main');
-  btn.innerHTML='<div class="spinner"></div>';btn.disabled=true;
-  setTimeout(()=>{btn.innerHTML='Se connecter →';btn.disabled=false;goTo('screen-success')},1600);
-}
+async function login() {
+  const email = document.getElementById('email').value;
+  const pwd = document.getElementById('password').value;
+  const btn = document.getElementById('btn-login');
+  const err = document.getElementById('error');
+  const suc = document.getElementById('success');
 
-function showMagicLink(){goTo('screen-magic')}
+  if (!email || !pwd) { showError('Veuillez remplir tous les champs.'); return; }
 
-function sendMagicLink(){
-  const email=document.getElementById('magic-email').value||'vous@enseigne.fr';
-  document.getElementById('magic-email-display').textContent=email;
-  const btn=document.querySelector('#screen-magic .btn-main');
-  btn.innerHTML='<div class="spinner"></div>';btn.disabled=true;
-  setTimeout(()=>{btn.innerHTML='Envoyer →';btn.disabled=false;goTo('screen-magic-sent')},1400);
-}
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Connexion...';
+  err.classList.remove('show');
 
-function selectOption(el,gridId){
-  document.querySelectorAll(`#${gridId} .option-card`).forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-}
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
 
-let uploading=false;
-function simulateUpload(){
-  if(uploading)return;uploading=true;
-  const dz=document.getElementById('drop-zone');
-  const up=document.getElementById('upload-progress');
-  const pbar=document.getElementById('pbar');
-  const pct=document.getElementById('pct');
-  const btn=document.getElementById('finish-btn');
-  dz.style.display='none';up.style.display='block';
-  let p=0;
-  const iv=setInterval(()=>{
-    p+=Math.random()*4+1;if(p>=100){p=100;clearInterval(iv);
-      pct.textContent='✓';pct.style.color='#10b981';
-      btn.textContent='Parfait ! Accéder au dashboard →';
-    } else pct.textContent=Math.round(p)+'%';
-    pbar.style.width=p+'%';
-  },80);
-}
-
-function finishOnboarding(){goTo('screen-success');launchConfetti()}
-function skipAndFinish(){goTo('screen-success');launchConfetti()}
-
-function launchConfetti(){
-  const c=document.getElementById('confetti');
-  const colors=['#7c3aed','#ec4899','#a78bfa','#f472b6','#ffffff','#fbbf24'];
-  for(let i=0;i<60;i++){
-    const el=document.createElement('div');
-    el.className='cf';
-    el.style.cssText=`left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${4+Math.random()*8}px;height:${4+Math.random()*8}px;animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.8}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-    c.appendChild(el);
+  if (error) {
+    showError('Email ou mot de passe incorrect. Utilisez le compte test indiqué.');
+    btn.disabled = false;
+    btn.innerHTML = 'Se connecter →';
+    return;
   }
-  setTimeout(()=>c.innerHTML='',4000);
+
+  suc.textContent = '✓ Connecté ! Redirection vers le dashboard...';
+  suc.classList.add('show');
+
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
 }
 
-function launchDashboard(){
-  document.body.style.opacity='0';
-  document.body.style.transition='opacity .4s';
-  setTimeout(()=>{ window.location.href='dashboard.html'; },400);
+function showError(msg) {
+  const err = document.getElementById('error');
+  err.textContent = msg;
+  err.classList.add('show');
 }
 
-// Enter key login
-document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    const active=document.querySelector('.screen.active');
-    if(active?.id==='screen-login') handleLogin();
-    if(active?.id==='screen-magic') sendMagicLink();
-  }
+document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+// Vérifier si déjà connecté
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) window.location.href = 'dashboard.html';
 });
 </script>
 </body>
