@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Voir en AR — Tadam Home</title>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple: #8B5CF6; --pink: #EC4899;
+      --grad: linear-gradient(135deg, #8B5CF6, #EC4899);
+      --dark: #09090B; --surface: #111113;
+      --border: rgba(255,255,255,0.08);
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--dark); color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      display: flex; flex-direction: column;
+      max-width: 430px; margin: 0 auto;
+    }
+    /* Loader */
+    #loader {
+      position: absolute; inset: 0; z-index: 100;
+      background: var(--dark); display: flex;
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px;
+      transition: opacity .5s ease;
+    }
+    .loader-ring {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.06);
+      border-top: 2px solid #8B5CF6;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-size: 13px; color: rgba(255,255,255,0.35); font-weight: 300; }
+    /* Header */
+    .header {
+      padding: 16px 20px; display: flex;
+      align-items: center; justify-content: space-between;
+      flex-shrink: 0; position: relative; z-index: 10;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px;
+      background: var(--grad); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .badge {
+      font-size: 10px; letter-spacing: .05em;
+      color: rgba(255,255,255,0.35);
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 100px;
+    }
+    /* Model viewer */
+    model-viewer {
+      width: 100%; flex: 1; background: transparent;
+      --progress-bar-color: transparent;
+      opacity: 0; transition: opacity .7s ease;
+    }
+    model-viewer.visible { opacity: 1; }
+    /* Bottom */
+    .bottom { padding: 0 20px 28px; flex-shrink: 0; }
+    .product-info { margin-bottom: 16px; opacity: 0; transition: opacity .4s ease; }
+    .product-info.visible { opacity: 1; }
+    .enseigne-tag {
+      font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3); margin-bottom: 4px;
+    }
+    .product-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; }
+    .ar-btn {
+      width: 100%; padding: 16px;
+      background: var(--grad); border: none; border-radius: 14px;
+      color: #fff; font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: transform .15s; opacity: 0;
+    }
+    .ar-btn.visible { opacity: 1; }
+    .ar-btn:active { transform: scale(.98); }
+    .hint {
+      text-align: center; font-size: 11px; margin-top: 12px;
+      color: rgba(255,255,255,0.2); font-style: italic;
+    }
+    /* Error state */
+    .error {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; gap: 12px; color: rgba(255,255,255,0.4);
+      font-size: 14px; text-align: center; padding: 40px;
+    }
+    .error-icon { font-size: 40px; }
+  </style>
+</head>
+<body>
+
+  <div id="loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Chargement du modèle…</div>
+  </div>
+
+  <div class="header">
+    <div class="logo">Tadam Home ✦</div>
+    <div class="badge">Réalité Augmentée</div>
+  </div>
+
+  <model-viewer
+    id="viewer"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="1000"
+    rotation-per-second="20deg"
+    shadow-intensity="1"
+    exposure="1"
+  ></model-viewer>
+
+  <div class="bottom">
+    <div class="product-info" id="info">
+      <div class="enseigne-tag" id="enseigne-name"></div>
+      <div class="product-name"  id="product-name"></div>
+    </div>
+    <button class="ar-btn" id="ar-btn" onclick="document.getElementById('viewer').activateAR()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      Voir dans mon salon →
+    </button>
+    <div class="hint">Pointez votre caméra vers le sol pour placer le meuble</div>
+  </div>
+
+  <script type="module">
+    // ── CONFIG — remplacer par tes vraies valeurs ──────────────
+    const SUPABASE_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+    // ──────────────────────────────────────────────────────────
+
+    const params    = new URLSearchParams(window.location.search);
+    const productId = params.get('id');
+
+    if (!productId) {
+      showError('QR code invalide ou expiré.');
+    } else {
+      loadProduct(productId);
+    }
+
+    async function loadProduct(id) {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=name,enseigne_name,model_glb_url,model_usdz_url&is_active=eq.true`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const [product] = await res.json();
+        if (!product) { showError('Produit introuvable.'); return; }
+
+        renderModel(product);
+        trackScan(id);   // fire & forget
+
+      } catch (e) {
+        showError('Erreur de connexion. Vérifiez votre réseau.');
+        console.error(e);
+      }
+    }
+
+    function renderModel(product) {
+      const viewer = document.getElementById('viewer');
+      viewer.src   = product.model_glb_url;
+      if (product.model_usdz_url) viewer.setAttribute('ios-src', product.model_usdz_url);
+      viewer.alt   = product.name;
+      viewer.classList.add('visible');
+
+      document.getElementById('product-name').textContent  = product.name;
+      document.getElementById('enseigne-name').textContent = product.enseigne_name;
+
+      hideLoader();
+
+      setTimeout(() => {
+        document.getElementById('info').classList.add('visible');
+        document.getElementById('ar-btn').classList.add('visible');
+      }, 300);
+    }
+
+    function trackScan(id) {
+      // Incrémenter scan_count via la RPC Supabase (sans auth)
+      fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_scan_count`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ product_id: id })
+      }).catch(() => {});  // silencieux, pas critique
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      loader.style.pointerEvents = 'none';
+      setTimeout(() => loader.remove(), 600);
+    }
+
+    function showError(msg) {
+      hideLoader();
+      document.body.innerHTML += `
+        <div class="error">
+          <div class="error-icon">⚠️</div>
+          <div>${msg}</div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
