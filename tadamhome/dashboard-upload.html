@@ -4,181 +4,155 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tadam Home — Ajouter un produit</title>
-
-  <!-- Supabase + QRCode via CDN, zéro npm -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --purple: #8B5CF6; --pink: #EC4899;
-      --grad: linear-gradient(135deg, #8B5CF6, #EC4899);
-      --dark: #09090B; --surface: #111113; --card: #18181B;
-      --border: rgba(255,255,255,0.08); --text: #fff;
-      --muted: rgba(255,255,255,0.4);
+      --purple: #7C3AED;
+      --grad: linear-gradient(135deg, #7C3AED, #EC4899);
+      --bg: #F4F4F5; --card: #fff;
+      --border: #E4E4E7; --text: #09090B; --muted: #71717A;
     }
     body {
-      background: var(--dark); color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: 'DM Sans', sans-serif;
       min-height: 100vh; padding: 40px 20px;
       display: flex; flex-direction: column; align-items: center;
     }
-    /* ── Header ── */
     header {
       width: 100%; max-width: 520px;
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
     }
-    .logo {
-      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px;
-      background: var(--grad); -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .subtitle { font-size: 12px; color: var(--muted); }
-
-    /* ── Card ── */
+    .logo { height: 32px; display: block; }
+    .subtitle { font-size: 12px; color: var(--muted); font-weight: 500; }
     .card {
       width: 100%; max-width: 520px;
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 20px; padding: 32px;
+      border-radius: 16px; padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
     .card-title {
       font-family: 'Syne', sans-serif; font-weight: 700;
-      font-size: 18px; margin-bottom: 24px;
+      font-size: 17px; margin-bottom: 24px; color: var(--text);
     }
-
-    /* ── Form fields ── */
-    .field { margin-bottom: 20px; }
+    .field { margin-bottom: 18px; }
     label {
-      display: block; font-size: 12px; font-weight: 500;
-      color: var(--muted); letter-spacing: .08em;
-      text-transform: uppercase; margin-bottom: 8px;
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--muted); letter-spacing: .07em;
+      text-transform: uppercase; margin-bottom: 7px;
     }
     input[type="text"] {
-      width: 100%; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px 16px; color: #fff; font-family: 'DM Sans', sans-serif;
-      font-size: 14px; outline: none; transition: border-color .2s;
+      width: 100%; background: var(--card);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      outline: none; transition: border-color .2s, box-shadow .2s;
     }
-    input[type="text"]:focus { border-color: rgba(139,92,246,0.5); }
-    input[type="text"]::placeholder { color: rgba(255,255,255,0.2); }
-
-    /* ── File drop zones ── */
+    input[type="text"]:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.08);
+    }
+    input[type="text"]::placeholder { color: #A1A1AA; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .dropzone {
-      width: 100%; background: var(--surface);
+      width: 100%; background: var(--bg);
       border: 1.5px dashed var(--border); border-radius: 10px;
       padding: 20px; cursor: pointer; text-align: center;
       transition: border-color .2s, background .2s; position: relative;
     }
     .dropzone:hover, .dropzone.dragover {
-      border-color: rgba(139,92,246,0.5);
-      background: rgba(139,92,246,0.04);
+      border-color: var(--purple); background: rgba(124,58,237,0.04);
     }
     .dropzone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
     }
-    .drop-icon { font-size: 24px; margin-bottom: 6px; }
-    .drop-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6); }
+    .drop-icon { font-size: 22px; margin-bottom: 6px; }
+    .drop-label { font-size: 13px; font-weight: 500; color: var(--text); }
     .drop-hint  { font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .drop-chosen { font-size: 12px; color: #8B5CF6; margin-top: 6px; font-weight: 500; }
-
-    /* ── Row layout ── */
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    /* ── Submit button ── */
+    .drop-chosen { font-size: 12px; color: var(--purple); margin-top: 6px; font-weight: 500; }
     .btn-submit {
-      width: 100%; padding: 14px;
-      background: var(--grad); border: none; border-radius: 12px;
+      width: 100%; padding: 13px;
+      background: var(--grad); border: none; border-radius: 10px;
       color: #fff; font-family: 'DM Sans', sans-serif;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      margin-top: 28px; transition: opacity .2s, transform .1s;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      margin-top: 24px; transition: opacity .2s, transform .1s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-submit:hover { opacity: .9; }
     .btn-submit:active { transform: scale(.98); }
     .btn-submit:disabled { opacity: .4; cursor: not-allowed; }
-
-    /* ── Progress ── */
     .progress-wrap {
-      display: none; margin-top: 20px;
-      background: rgba(255,255,255,0.05); border-radius: 8px;
-      overflow: hidden; height: 4px;
+      display: none; margin-top: 16px;
+      background: var(--border); border-radius: 8px; overflow: hidden; height: 3px;
     }
     .progress-bar {
       height: 100%; background: var(--grad);
-      width: 0; transition: width .3s ease;
-      border-radius: 8px;
+      width: 0; transition: width .3s ease; border-radius: 8px;
     }
     .progress-label {
       font-size: 12px; color: var(--muted);
       margin-top: 8px; text-align: center; display: none;
     }
-
-    /* ── Result card ── */
     .result {
       display: none; width: 100%; max-width: 520px;
-      margin-top: 24px; background: var(--card);
-      border: 1px solid rgba(139,92,246,0.3);
-      border-radius: 20px; padding: 32px; text-align: center;
+      margin-top: 16px; background: var(--card);
+      border: 1px solid #DDD6FE; border-radius: 16px;
+      padding: 32px; text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
     .result-title {
       font-family: 'Syne', sans-serif; font-weight: 800;
-      font-size: 20px; margin-bottom: 4px;
+      font-size: 18px; margin-bottom: 4px; color: var(--text);
     }
     .result-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
     #qr-img {
       width: 180px; height: 180px; border-radius: 12px;
-      margin: 0 auto 20px; display: block;
+      margin: 0 auto 20px; display: block; border: 1px solid var(--border);
     }
     .scan-url {
       font-size: 11px; color: var(--muted); word-break: break-all;
-      background: var(--surface); border: 1px solid var(--border);
+      background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;
     }
     .btn-dl {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px; background: var(--grad);
+      padding: 11px 24px; background: var(--grad);
       border: none; border-radius: 100px; color: #fff;
       font-family: 'DM Sans', sans-serif; font-weight: 700;
       font-size: 14px; cursor: pointer; text-decoration: none;
     }
-
-    /* ── Error ── */
     .error-msg {
-      display: none; margin-top: 16px; padding: 12px 16px;
-      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 10px; color: #FCA5A5; font-size: 13px;
+      display: none; margin-top: 14px; padding: 11px 14px;
+      background: #FEF2F2; border: 1px solid #FECACA;
+      border-radius: 8px; color: #DC2626; font-size: 13px;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <img src="/logo.png" style="height:36px;">
+    <img src="/logo.png" class="logo" alt="Tadam Home">
     <div class="subtitle">Dashboard — Ajouter un produit</div>
   </header>
 
   <div class="card">
     <div class="card-title">Nouveau produit AR</div>
 
-    <!-- Nom du produit -->
     <div class="field">
       <label>Nom du produit</label>
       <input type="text" id="product-name" placeholder="ex. Canapé Modulaire Oslo">
     </div>
-
-    <!-- Nom de l'enseigne -->
     <div class="field">
       <label>Nom de l'enseigne</label>
       <input type="text" id="enseigne-name" placeholder="ex. Maisons du Monde">
     </div>
 
-    <!-- Fichiers 3D -->
     <div class="row">
       <div class="field">
-        <label>Fichier GLB <span style="color:#8B5CF6">*</span></label>
+        <label>Fichier GLB <span style="color:var(--purple)">*</span></label>
         <div class="dropzone" id="zone-glb">
           <input type="file" id="file-glb" accept=".glb">
           <div class="drop-icon">📦</div>
@@ -202,7 +176,6 @@
     <button class="btn-submit" id="btn-submit" onclick="handleUpload()">
       ✦ Générer le QR Code
     </button>
-
     <div class="progress-wrap" id="progress-wrap">
       <div class="progress-bar" id="progress-bar"></div>
     </div>
@@ -210,29 +183,21 @@
     <div class="error-msg" id="error-msg"></div>
   </div>
 
-  <!-- Résultat -->
   <div class="result" id="result">
     <div class="result-title">✦ QR Code prêt !</div>
     <div class="result-sub" id="result-sub"></div>
     <img id="qr-img" alt="QR Code">
     <div class="scan-url" id="scan-url"></div>
-    <a id="btn-dl" class="btn-dl" download="qr-tadam.png">
-      ⬇ Télécharger le QR
-    </a>
+    <a id="btn-dl" class="btn-dl" download="qr-tadam.png">⬇ Télécharger le QR</a>
   </div>
 
   <script>
-    // ══════════════════════════════════════════════════
-    // ⚙️  CONFIG — remplace ces 3 valeurs
-    // ══════════════════════════════════════════════════
     const SUPABASE_URL  = 'https://wbunwfxecvxngypuehop.supabase.co';
     const SUPABASE_KEY  = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
     const SCAN_BASE_URL = 'https://tadamhome.vercel.app/scan';
-    // ══════════════════════════════════════════════════
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Affichage nom de fichier choisi
     ['glb','usdz'].forEach(type => {
       document.getElementById(`file-${type}`).addEventListener('change', e => {
         const f = e.target.files[0];
@@ -240,7 +205,6 @@
       });
     });
 
-    // Drag & drop feedback
     document.querySelectorAll('.dropzone').forEach(zone => {
       zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
       zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
@@ -248,28 +212,23 @@
     });
 
     async function handleUpload() {
-      const name        = document.getElementById('product-name').value.trim();
+      const name         = document.getElementById('product-name').value.trim();
       const enseigneName = document.getElementById('enseigne-name').value.trim();
-      const glbFile     = document.getElementById('file-glb').files[0];
-      const usdzFile    = document.getElementById('file-usdz').files[0] || null;
+      const glbFile      = document.getElementById('file-glb').files[0];
+      const usdzFile     = document.getElementById('file-usdz').files[0] || null;
 
-      // Validation
       if (!name)         return showError('Saisis le nom du produit.');
       if (!enseigneName) return showError("Saisis le nom de l'enseigne.");
       if (!glbFile)      return showError('Le fichier .glb est obligatoire.');
 
-      hideError();
-      setLoading(true);
-      setProgress(10, 'Upload du fichier GLB…');
+      hideError(); setLoading(true); setProgress(10, 'Upload du fichier GLB…');
 
       try {
-        // 1. Générer l'UUID du produit côté client
         const productId  = crypto.randomUUID();
         const { data: { user } } = await sb.auth.getUser();
-        const enseigneId = user?.id || 'anonymous'; // remplace par auth réelle
+        const enseigneId = user?.id || 'anonymous';
         const basePath   = `${enseigneId}/${productId}`;
 
-        // 2. Upload GLB
         const { error: glbErr } = await sb.storage
           .from('models')
           .upload(`${basePath}/model.glb`, glbFile, { contentType: 'model/gltf-binary' });
@@ -278,7 +237,6 @@
         const glbUrl = sb.storage.from('models').getPublicUrl(`${basePath}/model.glb`).data.publicUrl;
         setProgress(50, 'Fichier GLB uploadé ✓');
 
-        // 3. Upload USDZ (optionnel)
         let usdzUrl = null;
         if (usdzFile) {
           setProgress(60, 'Upload du fichier USDZ…');
@@ -290,20 +248,15 @@
         }
         setProgress(75, 'Enregistrement en base…');
 
-        // 4. Insert en base Supabase
         const { error: dbErr } = await sb.from('products').insert({
-          id:             productId,
-          enseigne_id:    enseigneId,
-          enseigne_name:  enseigneName,
-          name,
-          model_glb_url:  glbUrl,
-          model_usdz_url: usdzUrl,
+          id: productId, enseigne_id: enseigneId,
+          enseigne_name: enseigneName, name,
+          model_glb_url: glbUrl, model_usdz_url: usdzUrl,
         });
         if (dbErr) throw new Error('DB : ' + dbErr.message);
         setProgress(90, 'Génération du QR…');
 
-        // 5. Générer le QR
-        const scanUrl = `${SCAN_BASE_URL}?id=${productId}`;
+        const scanUrl   = `${SCAN_BASE_URL}?id=${productId}`;
         const qrDataUrl = await QRCode.toDataURL(scanUrl, {
           width: 512, margin: 2,
           color: { dark: '#0A0A0F', light: '#FFFFFF' }
@@ -345,8 +298,7 @@
 
     function showError(msg) {
       const el = document.getElementById('error-msg');
-      el.textContent = '⚠ ' + msg;
-      el.style.display = 'block';
+      el.textContent = '⚠ ' + msg; el.style.display = 'block';
     }
 
     function hideError() {
