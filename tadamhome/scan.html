@@ -310,6 +310,32 @@ let sid=localStorage.getItem('tadam_sid');if(!sid){sid=crypto.randomUUID();local
 let prod=null,col=null,dpi=null;
 const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dimensions:'240 × 95 × 82',enseigne_name:'Démonstration',model_url:'https://modelviewer.dev/shared-assets/models/Astronaut.glb',colors:[{name:'Velours Ocre',hex:'#C8853A'},{name:'Velours Taupe',hex:'#9E8E7E'},{name:'Velours Vert',hex:'#5A7A5C'},{name:'Velours Bleu',hex:'#3A5F8A'},{name:'Velours Anthracite',hex:'#3D3D3D'},{name:'Velours Rose',hex:'#C4858A'},{name:'Velours Bordeaux',hex:'#8B3A3A'},{name:'Velours Ciel',hex:'#6B9DBF'}]};
 
+
+// AUTO-ADD au wallet dès l'ouverture de la page scan
+function autoAddToWallet(p){
+  const w=getW();
+  const exists=w.find(i=>i.id===p.id);
+  if(exists){
+    // Mettre à jour le coloris si changé
+    exists.color=col;setW(w);
+    return;
+  }
+  // Premier scan — ajout silencieux
+  w.push({
+    id:p.id,name:p.name,price:p.price,
+    enseigne:p.enseigne_name,color:col,
+    model_url:p.model_url,
+    added_at:new Date().toISOString()
+  });
+  setW(w);
+  updateWalletUI();
+  // Masquer le bouton "Ajouter" et afficher "Voir ma sélection"
+  document.getElementById('btn-add').classList.add('hide');
+  document.getElementById('added-confirm').classList.add('show');
+  // Toast discret
+  setTimeout(()=>toast('✦ Ajouté à votre sélection TadamHome'), 800);
+}
+
 async function loadProduct(){
   const id=new URLSearchParams(location.search).get('id') || new URLSearchParams(location.search).get('product');
   if(!id){render(DEMO);return}
@@ -344,6 +370,8 @@ function render(p){
   if(p.usdz_url)document.getElementById('mv').setAttribute('ios-src',p.usdz_url);
   renderColors(p.colors);
   checkAdded();
+  // Ajout automatique au wallet dès le scan
+  if(p.id !== 'demo-001') autoAddToWallet(p);
 }
 
 function renderColors(colors){
@@ -360,6 +388,9 @@ function renderColors(colors){
       s.classList.add('active');col=c;
       document.getElementById('col-name').textContent=c.name;
       toast('Coloris : '+c.name);
+      // Mettre à jour le coloris dans le wallet
+      const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
+      if(ex){ex.color=c;setW(w2);}
     };
     g.appendChild(s);
   });
@@ -425,7 +456,7 @@ function updateWalletUI(){
     </div>`).join('');
 }
 
-function openWallet(){updateWalletUI();document.getElementById('wallet-overlay').classList.add('open')}
+function openWallet(){window.location.href='wallet.html'}
 function closeWallet(){document.getElementById('wallet-overlay').classList.remove('open')}
 function closeWalletOutside(e){if(e.target===document.getElementById('wallet-overlay'))closeWallet()}
 function goTo(id){closeWallet();if(id!==prod?.id)location.href='?product='+id}
