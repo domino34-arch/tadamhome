@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>TadamHome — Ma sélection</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0F0E1A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="TadamHome"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --dark:#0F0E1A;--white:#fff;--bg:#F4F5F7;
+  --text:#1A1A2E;--mid:#6B7280;--border:#E5E7EB;
+  --accent:#7C3AED;--accent-light:#EDE9FE;
+  --grad:linear-gradient(135deg,#7C3AED,#EC4899);
+  --green:#10B981;--green-light:#ECFDF5;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+html,body{min-height:100vh;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:var(--dark);height:52px;
+  padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo img{height:22px;object-fit:contain;filter:brightness(0) invert(1)}
+.logo-fallback{font-size:15px;font-weight:700;color:#fff;display:none}
+.scan-btn{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:6px 12px;
+  font-size:12px;font-weight:600;color:#fff;
+  cursor:pointer;text-decoration:none;
+  display:flex;align-items:center;gap:5px;
+}
+
+/* HEADER */
+.page-header{
+  padding:20px 16px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--white);
+}
+.page-title{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.page-sub{font-size:13px;color:var(--mid);margin-top:3px}
+.count-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--accent-light);color:var(--accent);
+  font-size:11px;font-weight:700;
+  border-radius:100px;padding:3px 10px;margin-top:8px;
+}
+
+/* EMPTY STATE */
+.empty{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 24px;text-align:center;
+  min-height:50vh;
+}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:24px}
+.btn-scan{
+  background:var(--grad);color:#fff;
+  border:none;border-radius:12px;
+  padding:14px 28px;font-size:14px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 14px rgba(124,58,237,.3);
+  text-decoration:none;
+}
+
+/* CARDS */
+.cards-list{padding:14px 14px 100px;display:flex;flex-direction:column;gap:12px}
+
+.furniture-tag{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s;
+}
+.furniture-tag:active{box-shadow:var(--shadow-md)}
+
+/* TAG HEADER */
+.tag-header{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tag-enseigne{
+  display:flex;align-items:center;gap:6px;
+}
+.enseigne-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.enseigne-name{font-size:11px;font-weight:600;color:var(--mid)}
+.tag-date{font-size:10px;color:var(--mid)}
+
+/* TAG BODY */
+.tag-body{display:flex;gap:0}
+
+.tag-info{flex:1;padding:14px 16px}
+.tag-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px;margin-bottom:4px}
+.tag-color{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.color-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,.08)}
+.color-name{font-size:12px;color:var(--mid)}
+
+.tag-actions{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.btn-ar{
+  display:flex;align-items:center;gap:6px;
+  background:var(--grad);color:#fff;
+  border:none;border-radius:9px;padding:9px 14px;
+  font-size:12px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;text-decoration:none;
+  box-shadow:0 2px 8px rgba(124,58,237,.25);
+}
+.btn-voir{
+  display:flex;align-items:center;gap:6px;
+  background:var(--accent-light);color:var(--accent);
+  border:1px solid rgba(124,58,237,.15);border-radius:9px;
+  padding:8px 14px;font-size:12px;font-weight:600;
+  font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none;
+}
+.btn-remove{
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:1px solid var(--border);
+  border-radius:9px;padding:8px;
+  cursor:pointer;color:var(--mid);font-size:14px;
+}
+.btn-remove:active{background:#FEF2F2;border-color:#FECACA;color:#EF4444}
+
+/* TAG QR */
+.tag-qr{
+  padding:14px 14px 14px 0;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;
+  flex-shrink:0;
+}
+.qr-wrap{
+  width:80px;height:80px;
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.qr-wrap canvas{width:76px!important;height:76px!important}
+.qr-label{font-size:9px;color:var(--mid);font-weight:500}
+
+/* TAG FOOTER */
+.tag-footer{
+  border-top:1px solid var(--border);
+  padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tag-ref{font-size:10px;color:var(--mid);font-family:monospace}
+.tag-share{
+  font-size:11px;font-weight:600;color:var(--accent);
+  background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:4px;
+}
+
+/* INSTALL BANNER */
+.install-banner{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--dark);
+  padding:12px 16px 24px;
+  display:none;align-items:center;gap:12px;
+  border-top:1px solid rgba(255,255,255,.08);
+  z-index:200;
+}
+.install-banner.show{display:flex}
+.install-icon{
+  width:38px;height:38px;border-radius:9px;
+  background:var(--grad);display:grid;place-items:center;
+  flex-shrink:0;font-size:18px;
+}
+.install-text{flex:1}
+.install-text p{font-size:13px;font-weight:700;color:#fff}
+.install-text span{font-size:11px;color:rgba(255,255,255,.5)}
+.install-close{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;padding:4px}
+.btn-install{
+  background:#fff;color:var(--dark);
+  border:none;border-radius:8px;
+  padding:8px 14px;font-size:12px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;
+}
+
+/* SHARE MODAL */
+.share-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.4);
+  display:none;align-items:flex-end;
+}
+.share-overlay.open{display:flex}
+.share-sheet{
+  width:100%;background:var(--white);
+  border-radius:18px 18px 0 0;
+  padding:0 0 40px;
+}
+.share-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto}
+.share-title{padding:4px 16px 16px;font-size:16px;font-weight:800;color:var(--text);border-bottom:1px solid var(--border)}
+.share-options{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.share-option{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;background:var(--bg);
+  border:1px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:background .15s;
+}
+.share-option:active{background:var(--accent-light)}
+.share-option-icon{font-size:22px;width:32px;text-align:center}
+.share-option-label{font-size:14px;font-weight:600;color:var(--text)}
+.share-option-sub{font-size:11px;color:var(--mid)}
+.share-url{
+  margin:0 16px;padding:12px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;font-size:11px;color:var(--mid);
+  word-break:break-all;line-height:1.5;
+}
+
+/* ACTION BAR */
+.action-bar{
+  background:var(--white);
+  border-top:1px solid var(--border);
+  padding:12px 16px;
+  display:flex;gap:8px;
+}
+.action-bar .btn-scan-more{
+  flex:1;padding:13px;
+  background:var(--dark);color:#fff;
+  border:none;border-radius:12px;
+  font-size:13px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;
+}
+.action-bar .btn-send{
+  flex:1;padding:13px;
+  background:var(--grad);color:#fff;
+  border:none;border-radius:12px;
+  font-size:13px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 4px 12px rgba(124,58,237,.25);
+}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:90px;left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--dark);color:#fff;
+  border-radius:100px;padding:10px 18px;
+  font-size:13px;font-weight:500;
+  opacity:0;transition:all .25s;z-index:400;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* STICKY ACTION BAR */
+.sticky-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:150;
+  background:var(--white);
+  border-top:1px solid var(--border);
+  padding:10px 14px 24px;
+  display:flex;gap:8px;
+}
+.sticky-bar.hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <img src="logo_blanc.png" alt="TadamHome"
+      onerror="this.style.display='none';document.querySelector('.logo-fallback').style.display='block'"/>
+    <span class="logo-fallback">✦ TadamHome</span>
+  </div>
+  <a href="javascript:void(0)" onclick="goScan()" class="scan-btn">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3"/><path d="M17 20v1h3"/><path d="M20 14h1"/></svg>
+    Scanner
+  </a>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header" id="page-header" style="display:none">
+  <div class="page-title">Ma sélection</div>
+  <div class="page-sub">Vos meubles sauvegardés en magasin</div>
+  <div class="count-badge" id="count-badge">0 meuble</div>
+</div>
+
+<!-- EMPTY STATE -->
+<div class="empty" id="empty-state">
+  <div class="empty-icon">🛋️</div>
+  <div class="empty-title">Votre sélection est vide</div>
+  <div class="empty-sub">Scannez les QR codes des meubles en magasin pour les retrouver ici avec leur configurateur AR.</div>
+  <a href="javascript:void(0)" onclick="goScan()" class="btn-scan">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3"/><path d="M17 20v1h3"/><path d="M20 14h1"/></svg>
+    Scanner un meuble
+  </a>
+</div>
+
+<!-- CARDS -->
+<div class="cards-list" id="cards-list" style="display:none"></div>
+
+<!-- STICKY ACTION BAR -->
+<div class="sticky-bar hidden" id="sticky-bar">
+  <button class="btn-scan-more" onclick="goScan()">+ Scanner</button>
+  <button class="btn-send" onclick="openShare()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Recevoir par email
+  </button>
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="install-banner">
+  <div class="install-icon">🏠</div>
+  <div class="install-text">
+    <p>Accéder à ma sélection</p>
+    <span>Ajouter à l'écran d'accueil</span>
+  </div>
+  <button class="btn-install" onclick="installPWA()">Installer</button>
+  <button class="install-close" onclick="closeInstall()">✕</button>
+</div>
+
+<!-- SHARE OVERLAY -->
+<div class="share-overlay" id="share-overlay" onclick="closeShareOutside(event)">
+  <div class="share-sheet">
+    <div class="share-handle"></div>
+    <div class="share-title">Partager ma sélection</div>
+    <div class="share-options">
+      <div class="share-option" onclick="shareEmail()">
+        <div class="share-option-icon">📧</div>
+        <div>
+          <div class="share-option-label">Envoyer par email</div>
+          <div class="share-option-sub">Recevez la liste avec les liens AR</div>
+        </div>
+      </div>
+      <div class="share-option" onclick="copyLink()">
+        <div class="share-option-icon">🔗</div>
+        <div>
+          <div class="share-option-label">Copier le lien</div>
+          <div class="share-option-sub">Partagez votre sélection</div>
+        </div>
+      </div>
+      <div class="share-option" onclick="shareNative()">
+        <div class="share-option-icon">📤</div>
+        <div>
+          <div class="share-option-label">Partager</div>
+          <div class="share-option-sub">Via SMS, WhatsApp, etc.</div>
+        </div>
+      </div>
+    </div>
+    <div class="share-url" id="share-url-display"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SCAN_BASE = 'https://tadamhome.fr/scan';
+
+function getWallet(){return JSON.parse(localStorage.getItem('tadam_wallet')||'[]')}
+function saveWallet(w){localStorage.setItem('tadam_wallet',JSON.stringify(w))}
+
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredInstall = e;
+  setTimeout(()=>document.getElementById('install-banner').classList.add('show'), 2000);
+});
+
+function init(){
+  const wallet = getWallet();
+  const header = document.getElementById('page-header');
+  const empty = document.getElementById('empty-state');
+  const list = document.getElementById('cards-list');
+  const bar = document.getElementById('sticky-bar');
+  const badge = document.getElementById('count-badge');
+
+  if(!wallet.length){
+    header.style.display='none';
+    empty.style.display='flex';
+    list.style.display='none';
+    bar.classList.add('hidden');
+    return;
+  }
+
+  header.style.display='block';
+  empty.style.display='none';
+  list.style.display='flex';
+  bar.classList.remove('hidden');
+
+  const n = wallet.length;
+  badge.textContent = n + ' meuble' + (n>1?'s':'');
+
+  list.innerHTML = wallet.map((item, idx) => `
+    <div class="furniture-tag" id="tag-${idx}">
+      <div class="tag-header">
+        <div class="tag-enseigne">
+          <div class="enseigne-dot"></div>
+          <span class="enseigne-name">${item.enseigne||'TadamHome'}</span>
+        </div>
+        <span class="tag-date">${formatDate(item.added_at)}</span>
+      </div>
+      <div class="tag-body">
+        <div class="tag-info">
+          <div class="tag-name">${item.name}</div>
+          <div class="tag-color">
+            <div class="color-dot" style="background:${item.color?.hex||'#ccc'}"></div>
+            <span class="color-name">${item.color?.name||'Coloris standard'}</span>
+          </div>
+          <div class="tag-actions">
+            <a href="${SCAN_BASE}?id=${item.id}" class="btn-ar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              Voir en AR
+            </a>
+            <a href="${SCAN_BASE}?id=${item.id}" class="btn-voir">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Configurer
+            </a>
+          </div>
+        </div>
+        <div class="tag-qr">
+          <div class="qr-wrap">
+            <canvas id="qr-${idx}"></canvas>
+          </div>
+          <span class="qr-label">Scanner</span>
+          <button class="btn-remove" onclick="removeItem(${idx})" title="Supprimer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tag-footer">
+        <span class="tag-ref">ID : ${item.id?.substring(0,8)||'—'}</span>
+        <button class="tag-share" onclick="shareItem('${item.id}','${item.name}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Partager
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  // Générer les QR codes
+  wallet.forEach((item, idx)=>{
+    const url = `${SCAN_BASE}?id=${item.id}`;
+    QRCode.toCanvas(document.getElementById('qr-'+idx), url, {
+      width:76, margin:1,
+      color:{dark:'#1A1A2E',light:'#ffffff'}
+    });
+  });
+}
+
+function formatDate(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
+function removeItem(idx){
+  const wallet = getWallet();
+  wallet.splice(idx,1);
+  saveWallet(wallet);
+  toast('Meuble retiré de votre sélection');
+  init();
+}
+
+function goScan(){
+  // Essaie de retourner à la dernière page scan ou ouvre le scanner
+  if(document.referrer && document.referrer.includes('scan')){
+    history.back();
+  } else {
+    window.location.href = 'scan';
+  }
+}
+
+// SHARE
+function openShare(){
+  const url = window.location.href;
+  document.getElementById('share-url-display').textContent = url;
+  document.getElementById('share-overlay').classList.add('open');
+}
+function closeShareOutside(e){
+  if(e.target===document.getElementById('share-overlay'))
+    document.getElementById('share-overlay').classList.remove('open');
+}
+
+function shareEmail(){
+  const wallet = getWallet();
+  const subject = encodeURIComponent('Ma sélection TadamHome');
+  const body = encodeURIComponent(
+    'Bonjour,\n\nVoici ma sélection de meubles TadamHome :\n\n' +
+    wallet.map(item =>
+      `• ${item.name} — ${item.color?.name||'Coloris standard'}\n  Voir en AR : ${SCAN_BASE}?id=${item.id}`
+    ).join('\n\n') +
+    '\n\nEnvoyé depuis TadamHome'
+  );
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  document.getElementById('share-overlay').classList.remove('open');
+}
+
+function copyLink(){
+  navigator.clipboard.writeText(window.location.href)
+    .then(()=>{toast('Lien copié !');})
+    .catch(()=>{toast('Impossible de copier');});
+  document.getElementById('share-overlay').classList.remove('open');
+}
+
+function shareNative(){
+  const wallet = getWallet();
+  if(navigator.share){
+    navigator.share({
+      title: 'Ma sélection TadamHome',
+      text: `J'ai sélectionné ${wallet.length} meuble(s) en magasin — voir en AR !`,
+      url: window.location.href
+    });
+  } else {
+    copyLink();
+  }
+  document.getElementById('share-overlay').classList.remove('open');
+}
+
+function shareItem(id, name){
+  const url = `${SCAN_BASE}?id=${id}`;
+  if(navigator.share){
+    navigator.share({title: name, text: `Voir ${name} en réalité augmentée !`, url});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>toast('Lien copié !'));
+  }
+}
+
+// INSTALL PWA
+function installPWA(){
+  if(deferredInstall){
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(r=>{
+      if(r.outcome==='accepted') toast('TadamHome ajouté à votre écran !');
+      deferredInstall = null;
+      closeInstall();
+    });
+  } else {
+    toast('Ajoutez cette page via le menu partage de votre navigateur');
+  }
+}
+function closeInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+}
+
+// TOAST
+let tt;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+init();
+</script>
+</body>
+</html>
