@@ -163,8 +163,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:100px}
-
-/* TABLET */
 @media(max-width:900px){
   .metrics{grid-template-columns:repeat(2,1fr)}
   .charts-row{grid-template-columns:1fr}
@@ -173,8 +171,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .form-grid{grid-template-columns:1fr}
   .field.full{grid-column:1}
 }
-
-/* MOBILE */
 @media(max-width:768px){
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.3)}
   .sidebar.open{transform:translateX(0)}
@@ -212,11 +208,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo" onclick="window.location.href='index.html'">
-    <svg height="26" viewBox="0 0 560 80" fill="none">
+    <img src="logo_blanc.png" alt="TadamHome" style="height:26px;object-fit:contain"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+    <svg style="display:none" height="26" viewBox="0 0 560 80" fill="none">
       <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
       <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
       <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
-      <circle cx="30" cy="52" r="2.2" fill="white" opacity=".65"/>
       <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
     </svg>
   </div>
@@ -233,9 +230,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </nav>
   <div class="sidebar-bottom">
     <div class="user-card">
-      <div class="avatar" id="user-avatar">MB</div>
+      <div class="avatar" id="user-avatar">?</div>
       <div>
-        <div class="user-name">Maisons Belfort</div>
+        <div class="user-name" id="user-name">—</div>
         <div class="user-email" id="user-email">—</div>
       </div>
     </div>
@@ -252,8 +249,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </button>
       <div>
         <h1 id="page-title">Vue d'ensemble</h1>
-        <p id="page-sub">Bienvenue 👋 — Avril 2025</p>
-      </div>https://github.com/domino34-arch/tadamhome/blob/main/tadamhome/dashboard.html
+        <p id="page-sub">Bienvenue 👋</p>
+      </div>
     </div>
     <div class="tb-right">
       <button class="btn btn-outline" onclick="showPage('upload')">⬆ Importer</button>
@@ -394,15 +391,28 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
       <div class="settings-grid">
-        <div class="scard"><h3>Informations enseigne</h3><p>Vos données de compte</p>
+        <div class="scard">
+          <h3>Informations enseigne</h3>
+          <p>Vos données de compte</p>
           <div class="form-grid">
-            <div class="field full"><label>Nom de l'enseigne</label><input value="Maisons Belfort"/></div>
-            <div class="field full"><label>Email</label><input value="test@maisonsbelfort.fr"/></div>
-            <div class="field"><label>Téléphone</label><input placeholder="+33 1 00 00 00 00"/></div>
-            <div class="field"><label>Secteur</label><select><option>Ameublement</option><option>Literie</option><option>Cuisine</option></select></div>
+            <div class="field full"><label>Nom de l'enseigne</label><input id="settings-name" placeholder="Nom de votre enseigne"/></div>
+            <div class="field full"><label>Email</label><input id="settings-email" placeholder="votre@email.fr" readonly style="opacity:.7;cursor:not-allowed"/></div>
+            <div class="field"><label>Téléphone</label><input id="settings-phone" placeholder="+33 1 00 00 00 00"/></div>
+            <div class="field"><label>Secteur</label>
+              <select id="settings-secteur">
+                <option value="">Choisir...</option>
+                <option value="ameublement">Ameublement</option>
+                <option value="literie">Literie</option>
+                <option value="cuisine">Cuisine</option>
+                <option value="decoration">Décoration</option>
+                <option value="outdoor">Mobilier extérieur</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
           </div>
-          <button class="btn btn-primary btn-sm" style="margin-top:12px">Enregistrer</button>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveSettings()">Enregistrer</button>
         </div>
+
         <div class="scard"><h3>Plan actuel</h3><p>Gérez votre abonnement</p>
           <div class="plan-box">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:14px;font-weight:800;color:var(--p)">Plan Pro</div><span class="badge badge-green">Actif</span></div>
@@ -410,18 +420,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div style="font-size:11px;color:var(--muted)">Renouvellement : 1er mai 2025</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Produits AR</span><span style="font-weight:700">87 / 200</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Scans ce mois</span><span style="font-weight:700">1 284 / 5 000</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">QR codes</span><span style="font-weight:700">87 / ∞</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Produits AR</span><span style="font-weight:700" id="plan-products">— / 200</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Scans ce mois</span><span style="font-weight:700" id="plan-scans">— / 5 000</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">QR codes</span><span style="font-weight:700" id="plan-qr">— / ∞</span></div>
           </div>
         </div>
+
         <div class="scard"><h3>Notifications</h3><p>Préférences d'alertes</p>
           <div class="toggle-row"><div><div class="toggle-label">Rapport hebdomadaire</div><div class="toggle-desc">Reçu chaque lundi par email</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
           <div class="toggle-row"><div><div class="toggle-label">Alertes de scans</div><div class="toggle-desc">Notification à chaque pic</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
           <div class="toggle-row"><div><div class="toggle-label">Produit prêt</div><div class="toggle-desc">Quand le jumeau 3D est généré</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
         </div>
+
         <div class="scard"><h3>Intégrations</h3><p>Connectez vos outils</p>
-          <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🛒</span><div><div style="font-size:13px;font-weight:700">Shopify</div><div style="font-size:11px;color:var(--muted)">Synchronisation catalogue</div></div></div><span class="badge badge-green">Connecté</span></div>
+          <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🛒</span><div><div style="font-size:13px;font-weight:700">Shopify</div><div style="font-size:11px;color:var(--muted)">Synchronisation catalogue</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
           <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📊</span><div><div style="font-size:13px;font-weight:700">Google Analytics</div><div style="font-size:11px;color:var(--muted)">Suivi AR</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
           <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📧</span><div><div style="font-size:13px;font-weight:700">Klaviyo</div><div style="font-size:11px;color:var(--muted)">Emails post-scan</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
         </div>
@@ -441,44 +453,81 @@ async function init(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session){window.location.href='login.html';return}
   currentUser=session.user;
+
+  // Email dans la sidebar
   document.getElementById('user-email').textContent=currentUser.email;
+
+  // Charger le nom de l'enseigne depuis la table enseignes
+  const{data:enseigne}=await sb.from('enseignes').select('*').eq('id',currentUser.id).single();
+
+  const nomEnseigne = enseigne?.name || currentUser.user_metadata?.enseigne_name || currentUser.email.split('@')[0];
+  const initiales = nomEnseigne.substring(0,2).toUpperCase();
+
+  document.getElementById('user-name').textContent=nomEnseigne;
+  document.getElementById('user-avatar').textContent=initiales;
+  document.getElementById('page-sub').textContent='Bienvenue 👋 — '+new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+
+  // Préremplir les paramètres
+  document.getElementById('settings-email').value=currentUser.email;
+  document.getElementById('settings-name').value=enseigne?.name||currentUser.user_metadata?.enseigne_name||'';
+  document.getElementById('settings-phone').value=enseigne?.phone||'';
+  if(enseigne?.secteur) document.getElementById('settings-secteur').value=enseigne.secteur;
+
   loadData();
 }
 
-async function loadData(){await loadProducts();await loadStats();await loadScans();renderQRList();renderBars();}
+async function loadData(){
+  await loadProducts();
+  await loadStats();
+  await loadScans();
+  renderQRList();
+  renderBars();
+}
 
 async function loadProducts(){
-  const{data,error}=await sb.from('produits').select('*').order('created_at',{ascending:false});
-  if(error){console.error(error);return}
+  // Essayer d'abord la table 'products', sinon 'produits'
+  let{data,error}=await sb.from('products').select('*').eq('enseigne_id',currentUser.id).order('created_at',{ascending:false});
+  if(error){
+    // Fallback sur l'ancienne table
+    const res=await sb.from('produits').select('*').order('created_at',{ascending:false});
+    data=res.data;
+  }
   products=data||[];
   document.getElementById('prod-count').textContent=products.length;
   document.getElementById('donut-total').textContent=products.length;
+  document.getElementById('plan-products').textContent=products.length+' / 200';
+  document.getElementById('plan-qr').textContent=products.length+' / ∞';
   renderProducts();
 }
 
 async function loadStats(){
   const{count:sc}=await sb.from('scans').select('*',{count:'exact',head:true});
-  const{count:pc}=await sb.from('produits').select('*',{count:'exact',head:true});
+  const pc=products.length;
   document.getElementById('stat-scans').textContent=sc||0;
-  document.getElementById('stat-produits').textContent=pc||0;
-  document.getElementById('stat-qr').textContent=pc||0;
+  document.getElementById('stat-produits').textContent=pc;
+  document.getElementById('stat-qr').textContent=pc;
   document.getElementById('an-scans').textContent=sc||0;
   document.getElementById('an-conv').textContent=Math.floor((sc||0)*.41);
+  document.getElementById('plan-scans').textContent=(sc||0)+' / 5 000';
   if(sc>0)document.getElementById('trend-scans').textContent='▲ Actif';
 }
 
 async function loadScans(){
-  const{data}=await sb.from('scans').select('*').order('scanned_at',{ascending:false}).limit(10);
+  const{data}=await sb.from('scans').select('*').order('created_at',{ascending:false}).limit(10);
   const el=document.getElementById('scans-list');
   if(!data||!data.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Aucun scan enregistré</div>';return}
-  const coloris=data.filter(s=>s.coloris).map(s=>s.coloris);
+  const coloris=data.filter(s=>s.selected_color).map(s=>s.selected_color);
   if(coloris.length){const freq=coloris.reduce((a,b)=>(a[b]=(a[b]||0)+1,a),{});document.getElementById('an-color').textContent=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'—'}
-  el.innerHTML=data.map(s=>`<div class="prod-row"><div class="col-1" style="flex:2"><div style="font-size:12px;font-weight:700;color:var(--text)">${s.coloris||'N/A'}</div><div style="font-size:10px;color:var(--muted)">${new Date(s.scanned_at).toLocaleString('fr-FR')}</div></div><div class="col-2"><span class="badge badge-green">Scanné</span></div></div>`).join('');
+  el.innerHTML=data.map(s=>`<div class="prod-row"><div class="col-1" style="flex:2"><div style="font-size:12px;font-weight:700;color:var(--text)">${s.selected_color||'N/A'}</div><div style="font-size:10px;color:var(--muted)">${new Date(s.created_at).toLocaleString('fr-FR')}</div></div><div class="col-2"><span class="badge badge-green">Scanné</span></div></div>`).join('');
 }
 
 function renderProducts(){
-  const icons={canapé:'🛋️',fauteuil:'🪑',lit:'🛏️',table:'🪵',chaise:'🪑',autre:'📦'};
-  const html=products.map(p=>`<div class="prod-row"><div class="col-1"><div class="prod-ico">${icons[p.categorie]||'📦'}</div><div><div class="prod-name">${p.nom}</div><div class="prod-cat">${p.categorie||''} ${p.reference?'· '+p.reference:''}</div></div></div><div class="col-2" style="display:flex;justify-content:center"><span class="badge ${p.actif?'badge-green':'badge-muted'}">${p.actif?'● AR actif':'Inactif'}</span></div><div class="col-3" style="text-align:center"><div class="prod-scans">—</div></div><div class="col-3" style="text-align:center"><div class="prod-conv">—</div></div><div class="col-4"><button class="row-btn" onclick="showQR('${p.id}','${p.nom}')">🔲 QR</button><button class="row-btn" onclick="window.open('scan','_blank')">👁️ AR</button></div></div>`).join('')||'<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun produit — importez votre premier meuble !</div>';
+  const icons={canapé:'🛋️',canape:'🛋️',fauteuil:'🪑',lit:'🛏️',table:'🪵',chaise:'🪑',autre:'📦'};
+  const getName=p=>p.name||p.nom||'—';
+  const getCat=p=>p.category||p.categorie||'';
+  const getRef=p=>p.reference||p.ref||'';
+  const getActive=p=>p.is_active!==undefined?p.is_active:(p.actif!==undefined?p.actif:true);
+  const html=products.map(p=>`<div class="prod-row"><div class="col-1"><div class="prod-ico">${icons[getCat(p)]||'📦'}</div><div><div class="prod-name">${getName(p)}</div><div class="prod-cat">${getCat(p)} ${getRef(p)?'· '+getRef(p):''}</div></div></div><div class="col-2" style="display:flex;justify-content:center"><span class="badge ${getActive(p)?'badge-green':'badge-muted'}">${getActive(p)?'● AR actif':'Inactif'}</span></div><div class="col-3" style="text-align:center"><div class="prod-scans">—</div></div><div class="col-3" style="text-align:center"><div class="prod-conv">—</div></div><div class="col-4"><button class="row-btn" onclick="showQR('${p.id}','${getName(p)}')">🔲 QR</button><button class="row-btn" onclick="window.open('scan?id=${p.id}','_blank')">👁️ AR</button></div></div>`).join('')||'<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun produit — importez votre premier meuble !</div>';
   document.getElementById('overview-products').innerHTML=html;
   document.getElementById('catalogue-list').innerHTML=html;
 }
@@ -486,7 +535,9 @@ function renderProducts(){
 function renderQRList(){
   const el=document.getElementById('qr-list');
   if(!products.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Aucun produit</div>';return}
-  el.innerHTML=products.map(p=>`<div class="qr-card" onclick="showQR('${p.id}','${p.nom}')"><div class="qr-box">🔲</div><div class="qr-name">${p.nom}</div><div class="qr-scans">${p.reference||'Sans référence'}</div><button class="btn btn-primary btn-sm" style="width:100%;justify-content:center">Générer QR</button></div>`).join('');
+  const getName=p=>p.name||p.nom||'—';
+  const getRef=p=>p.reference||p.ref||'';
+  el.innerHTML=products.map(p=>`<div class="qr-card" onclick="showQR('${p.id}','${getName(p)}')"><div class="qr-box">🔲</div><div class="qr-name">${getName(p)}</div><div class="qr-scans">${getRef(p)||'Sans référence'}</div><button class="btn btn-primary btn-sm" style="width:100%;justify-content:center">Générer QR</button></div>`).join('');
 }
 
 function renderBars(){
@@ -503,9 +554,33 @@ function renderBars(){
   });
   const tp=document.getElementById('top-products');
   if(tp&&products.length){
-    const sorted=[...products].filter(p=>p.nom).slice(0,5);
-    tp.innerHTML=sorted.map((p,i)=>`<div class="top-item"><div class="top-rank">${i+1}</div><div style="flex:1"><div class="top-name">${p.nom}</div><div class="top-bar-bg"><div class="top-bar-fill" style="width:${100-i*18}%"></div></div></div><div class="top-val">${Math.floor(Math.random()*200+50)}</div></div>`).join('');
+    const sorted=[...products].slice(0,5);
+    const getName=p=>p.name||p.nom||'—';
+    tp.innerHTML=sorted.map((p,i)=>`<div class="top-item"><div class="top-rank">${i+1}</div><div style="flex:1"><div class="top-name">${getName(p)}</div><div class="top-bar-bg"><div class="top-bar-fill" style="width:${100-i*18}%"></div></div></div><div class="top-val">${Math.floor(Math.random()*200+50)}</div></div>`).join('');
   }
+}
+
+// SETTINGS — Sauvegarder les modifications
+async function saveSettings(){
+  const name=document.getElementById('settings-name').value.trim();
+  const phone=document.getElementById('settings-phone').value.trim();
+  const secteur=document.getElementById('settings-secteur').value;
+
+  if(!name){toast('Le nom de l\'enseigne est obligatoire','error');return}
+
+  const{error}=await sb.from('enseignes').upsert({
+    id:currentUser.id,
+    name,
+    phone:phone||null,
+    secteur:secteur||null,
+  });
+
+  if(error){toast('Erreur : '+error.message,'error');return}
+
+  // Mettre à jour la sidebar
+  document.getElementById('user-name').textContent=name;
+  document.getElementById('user-avatar').textContent=name.substring(0,2).toUpperCase();
+  toast('✓ Paramètres enregistrés !','success');
 }
 
 function handleFileSelect(file,type){
@@ -534,9 +609,30 @@ async function saveProduit(){
     const{error:ue}=await sb.storage.from('models').upload(path,selectedFileUsdz);
     if(!ue){const{data:ud}=sb.storage.from('models').getPublicUrl(path);modelUrlUsdz=ud.publicUrl}
   }
-  const{data,error}=await sb.from('produits').insert([{nom,reference:document.getElementById('prod-ref').value||null,prix:parseFloat(document.getElementById('prod-prix').value)||null,categorie:document.getElementById('prod-cat').value,dimensions:{largeur:parseInt(document.getElementById('dim-l').value)||null,profondeur:parseInt(document.getElementById('dim-p').value)||null,hauteur:parseInt(document.getElementById('dim-h').value)||null},model_url:modelUrl,model_url_usdz:modelUrlUsdz,actif:true}]).select();
+
+  // Récupérer le nom de l'enseigne
+  const enseigneName=document.getElementById('user-name').textContent||'—';
+
+  const{data,error}=await sb.from('products').insert([{
+    name:nom,
+    enseigne_id:currentUser.id,
+    enseigne_name:enseigneName,
+    reference:document.getElementById('prod-ref').value||null,
+    price:parseFloat(document.getElementById('prod-prix').value)||null,
+    category:document.getElementById('prod-cat').value,
+    model_glb_url:modelUrl,
+    model_usdz_url:modelUrlUsdz,
+    is_active:true
+  }]).select();
+
   if(error){toast('Erreur : '+error.message,'error')}
-  else{toast('✨ Produit créé !','success');await loadProducts();renderQRList();setTimeout(()=>showQR(data[0].id,data[0].nom),400);showPage('catalogue')}
+  else{
+    toast('✨ Produit créé !','success');
+    await loadProducts();
+    renderQRList();
+    setTimeout(()=>showQR(data[0].id,data[0].name),400);
+    showPage('catalogue');
+  }
   btn.disabled=false;btn.textContent='✨ Créer le jumeau numérique & générer le QR code';
   selectedFile=null;selectedFileUsdz=null;
   document.getElementById('upload-label-glb').textContent='Fichier GLB';
@@ -567,18 +663,14 @@ function showPage(name){
   closeSidebar();
 }
 document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
-
 function toggleSidebar(){document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar()}
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('show');document.body.style.overflow='hidden'}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow=''}
-
 async function logout(){await sb.auth.signOut();window.location.href='login.html'}
-
 function toast(msg,type){
   const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');
   setTimeout(()=>t.classList.remove('show'),2800);
 }
-
 const dz1=document.getElementById('drop-zone-glb');
 const dz2=document.getElementById('drop-zone-usdz');
 [dz1,dz2].forEach((dz,i)=>{
@@ -586,7 +678,6 @@ const dz2=document.getElementById('drop-zone-usdz');
   ['dragleave','drop'].forEach(e=>dz.addEventListener(e,()=>dz.classList.remove('drag')));
   dz.addEventListener('drop',ev=>{ev.preventDefault();handleFileSelect(ev.dataTransfer.files[0],i===0?'glb':'usdz')});
 });
-
 init();
 </script>
 </body>
