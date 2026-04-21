@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TadamHome — Créer votre compte enseigne</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --dark:#0D0820;--v1:#150D2E;
+  --accent:#7C3AED;--accent-light:#EDE9FE;
+  --pink:#EC4899;
+  --grad:linear-gradient(135deg,#7C3AED,#EC4899);
+  --border:rgba(124,58,237,.25);
+  --text:#F3F0FF;--muted:rgba(196,180,252,.65);
+  --card:rgba(255,255,255,.06);
+  --green:#10B981;
+}
+html,body{min-height:100vh;background:var(--dark);font-family:'Inter',sans-serif;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+
+/* BACKGROUND */
+.orb{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0}
+.orb1{width:400px;height:400px;background:radial-gradient(circle,rgba(124,58,237,.25),transparent 70%);top:-100px;left:-100px}
+.orb2{width:350px;height:350px;background:radial-gradient(circle,rgba(236,72,153,.18),transparent 70%);bottom:-80px;right:-80px}
+#stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;border-radius:50%;background:#fff;animation:tw var(--d,3s) ease-in-out infinite var(--dl,0s)}
+@keyframes tw{0%,100%{opacity:.08}50%{opacity:.5}}
+
+/* LAYOUT */
+.wrap{position:relative;z-index:1;width:100%;max-width:460px}
+
+/* LOGO */
+.logo-wrap{text-align:center;margin-bottom:32px}
+.logo-wrap img{height:30px;object-fit:contain;filter:brightness(0) invert(1)}
+
+/* STEPS */
+.steps-row{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:32px}
+.step-item{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--muted)}
+.step-item.active{color:var(--text)}
+.step-item.done{color:var(--green)}
+.step-num{width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(196,180,252,.3);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0;transition:all .3s}
+.step-item.active .step-num{border-color:var(--accent);background:rgba(124,58,237,.2);color:var(--text)}
+.step-item.done .step-num{border-color:var(--green);background:rgba(16,185,129,.15);color:var(--green)}
+.step-line{width:32px;height:1.5px;background:rgba(196,180,252,.15);margin:0 4px}
+.step-line.done{background:var(--green)}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;backdrop-filter:blur(12px)}
+.card-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+
+/* FIELDS */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:7px}
+.field input,.field select{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1px solid rgba(124,58,237,.25);
+  border-radius:9px;padding:12px 14px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.field input::placeholder{color:rgba(196,180,252,.3)}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+.field select option{background:#1E1245;color:#fff}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* PASSWORD STRENGTH */
+.pwd-strength{margin-top:6px;display:flex;gap:4px}
+.pwd-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s}
+.pwd-bar.weak{background:#EF4444}
+.pwd-bar.medium{background:#F59E0B}
+.pwd-bar.strong{background:var(--green)}
+.pwd-hint{font-size:11px;color:var(--muted);margin-top:5px}
+
+/* CGU */
+.cgu-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;padding:14px;background:rgba(124,58,237,.08);border:1px solid var(--border);border-radius:9px}
+.cgu-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:1px;accent-color:var(--accent);cursor:pointer}
+.cgu-row label{font-size:12px;color:var(--muted);line-height:1.5;cursor:pointer}
+.cgu-row a{color:var(--accent);text-decoration:underline}
+
+/* BUTTONS */
+.btn-submit{
+  width:100%;padding:14px;
+  background:var(--grad);color:#fff;
+  border:none;border-radius:10px;
+  font-size:15px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 20px rgba(124,58,237,.3);
+}
+.btn-submit:hover{opacity:.92}
+.btn-submit:active{transform:scale(.98)}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed}
+.btn-back{
+  width:100%;padding:12px;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--border);border-radius:10px;
+  font-size:13px;font-weight:500;font-family:'Inter',sans-serif;
+  cursor:pointer;margin-top:8px;transition:all .15s;
+}
+.btn-back:hover{background:rgba(255,255,255,.05);color:var(--text)}
+
+/* ALERTS */
+.alert{
+  padding:12px 14px;border-radius:9px;
+  font-size:13px;margin-bottom:16px;display:none;
+  line-height:1.5;
+}
+.alert.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5}
+.alert.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#6EE7B7}
+.alert.show{display:block}
+
+/* SUCCESS SCREEN */
+.success-screen{display:none;text-align:center;padding:8px 0}
+.success-icon{font-size:48px;margin-bottom:16px}
+.success-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.success-email{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:9px;padding:12px;font-size:13px;color:#6EE7B7;margin-bottom:24px}
+
+/* LOGIN LINK */
+.login-link{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
+.login-link a{color:var(--accent);text-decoration:none;font-weight:600}
+.login-link a:hover{text-decoration:underline}
+
+/* FEATURE PILLS */
+.features{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:28px}
+.feat{background:rgba(124,58,237,.1);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:11px;color:var(--accent);font-weight:500}
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="wrap">
+
+  <!-- LOGO -->
+  <div class="logo-wrap">
+    <img src="logo_blanc.png" alt="TadamHome" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+    <div style="display:none;font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#fff">✦ TadamHome</div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="features">
+    <div class="feat">✦ Modèles 3D AR</div>
+    <div class="feat">QR Codes automatiques</div>
+    <div class="feat">Analytics temps réel</div>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps-row" id="steps-row">
+    <div class="step-item active" id="step1">
+      <div class="step-num">1</div>
+      <span>Votre enseigne</span>
+    </div>
+    <div class="step-line" id="line1"></div>
+    <div class="step-item" id="step2">
+      <div class="step-num">2</div>
+      <span>Accès & sécurité</span>
+    </div>
+    <div class="step-line" id="line2"></div>
+    <div class="step-item" id="step3">
+      <div class="step-num">3</div>
+      <span>Confirmation</span>
+    </div>
+  </div>
+
+  <!-- CARD -->
+  <div class="card">
+
+    <!-- ALERT -->
+    <div class="alert" id="alert"></div>
+
+    <!-- STEP 1 — ENSEIGNE -->
+    <div id="screen-1">
+      <div class="card-title">Votre enseigne</div>
+      <div class="card-sub">Dites-nous qui vous êtes pour personnaliser votre expérience.</div>
+      <div class="field">
+        <label>Nom de l'enseigne *</label>
+        <input type="text" id="s1-enseigne" placeholder="ex. Maisons du Monde" autocomplete="organization"/>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Prénom *</label>
+          <input type="text" id="s1-prenom" placeholder="Marie" autocomplete="given-name"/>
+        </div>
+        <div class="field">
+          <label>Nom *</label>
+          <input type="text" id="s1-nom" placeholder="Martin" autocomplete="family-name"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Secteur</label>
+        <select id="s1-secteur">
+          <option value="">Choisissez votre secteur</option>
+          <option value="ameublement">Ameublement</option>
+          <option value="literie">Literie</option>
+          <option value="cuisine">Cuisine équipée</option>
+          <option value="decoration">Décoration</option>
+          <option value="outdoor">Mobilier extérieur</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Nombre de magasins</label>
+        <select id="s1-magasins">
+          <option value="">Sélectionnez</option>
+          <option value="1">1 magasin</option>
+          <option value="2-5">2 à 5 magasins</option>
+          <option value="6-20">6 à 20 magasins</option>
+          <option value="21-50">21 à 50 magasins</option>
+          <option value="50+">Plus de 50 magasins</option>
+        </select>
+      </div>
+      <button class="btn-submit" onclick="nextStep1()">
+        Continuer →
+      </button>
+    </div>
+
+    <!-- STEP 2 — COMPTE -->
+    <div id="screen-2" style="display:none">
+      <div class="card-title">Accès & sécurité</div>
+      <div class="card-sub">Créez vos identifiants de connexion au dashboard TadamHome.</div>
+      <div class="field">
+        <label>Email professionnel *</label>
+        <input type="email" id="s2-email" placeholder="contact@votreenseigne.fr" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Mot de passe *</label>
+        <input type="password" id="s2-pwd" placeholder="Minimum 8 caractères" oninput="checkPwd(this.value)"/>
+        <div class="pwd-strength">
+          <div class="pwd-bar" id="pb1"></div>
+          <div class="pwd-bar" id="pb2"></div>
+          <div class="pwd-bar" id="pb3"></div>
+          <div class="pwd-bar" id="pb4"></div>
+        </div>
+        <div class="pwd-hint" id="pwd-hint">Utilisez lettres, chiffres et symboles</div>
+      </div>
+      <div class="field">
+        <label>Confirmer le mot de passe *</label>
+        <input type="password" id="s2-pwd2" placeholder="Répétez votre mot de passe"/>
+      </div>
+      <div class="cgu-row">
+        <input type="checkbox" id="cgu" />
+        <label for="cgu">J'accepte les <a href="#" onclick="return false">conditions d'utilisation</a> et la <a href="#" onclick="return false">politique de confidentialité</a> de TadamHome.</label>
+      </div>
+      <button class="btn-submit" id="btn-create" onclick="createAccount()">
+        ✦ Créer mon compte gratuitement
+      </button>
+      <button class="btn-back" onclick="showScreen(1)">← Retour</button>
+    </div>
+
+    <!-- STEP 3 — CONFIRMATION -->
+    <div id="screen-3" style="display:none">
+      <div class="success-screen" style="display:block">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">Compte créé !</div>
+        <div class="success-sub">Vérifiez votre boîte email — un lien de confirmation vous a été envoyé. Cliquez dessus pour activer votre compte.</div>
+        <div class="success-email" id="confirm-email"></div>
+        <button class="btn-submit" onclick="window.location.href='/login'">
+          Aller à la connexion →
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LOGIN LINK -->
+  <div class="login-link">
+    Déjà un compte ? <a href="/login">Se connecter</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SB = supabase.createClient(
+  'https://wbunwfxecvxngypuehop.supabase.co',
+  'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P'
+);
+
+// STARS
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<50;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=Math.random()*1.5+.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${2+Math.random()*4}s;--dl:${Math.random()*3}s`;
+    c.appendChild(s);
+  }
+})();
+
+let formData = {};
+
+function showScreen(n) {
+  [1,2,3].forEach(i => document.getElementById('screen-'+i).style.display = i===n ? 'block' : 'none');
+  hideAlert();
+  updateSteps(n);
+}
+
+function updateSteps(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.className = 'step-item' + (i < n ? ' done' : i === n ? ' active' : '');
+  });
+  [1,2].forEach(i => {
+    const line = document.getElementById('line'+i);
+    if(line) line.className = 'step-line' + (i < n ? ' done' : '');
+  });
+}
+
+function showAlert(msg, type='error') {
+  const a = document.getElementById('alert');
+  a.textContent = msg;
+  a.className = 'alert ' + type + ' show';
+}
+function hideAlert() {
+  document.getElementById('alert').className = 'alert';
+}
+
+// STEP 1 — Validation enseigne
+function nextStep1() {
+  const enseigne = document.getElementById('s1-enseigne').value.trim();
+  const prenom = document.getElementById('s1-prenom').value.trim();
+  const nom = document.getElementById('s1-nom').value.trim();
+  if(!enseigne) return showAlert('Veuillez indiquer le nom de votre enseigne.');
+  if(!prenom || !nom) return showAlert('Veuillez renseigner votre prénom et nom.');
+  formData.enseigne = enseigne;
+  formData.prenom = prenom;
+  formData.nom = nom;
+  formData.secteur = document.getElementById('s1-secteur').value;
+  formData.magasins = document.getElementById('s1-magasins').value;
+  showScreen(2);
+}
+
+// PASSWORD STRENGTH
+function checkPwd(v) {
+  const bars = [document.getElementById('pb1'), document.getElementById('pb2'), document.getElementById('pb3'), document.getElementById('pb4')];
+  const hint = document.getElementById('pwd-hint');
+  bars.forEach(b => b.className = 'pwd-bar');
+  if(!v) return;
+  let score = 0;
+  if(v.length >= 8) score++;
+  if(/[A-Z]/.test(v)) score++;
+  if(/[0-9]/.test(v)) score++;
+  if(/[^A-Za-z0-9]/.test(v)) score++;
+  const cls = score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'medium' : 'strong';
+  const labels = ['', 'Faible', 'Moyen', 'Bon', 'Excellent'];
+  for(let i=0;i<score;i++) bars[i].classList.add(cls);
+  hint.textContent = labels[score] || 'Utilisez lettres, chiffres et symboles';
+}
+
+// STEP 2 — Création compte
+async function createAccount() {
+  const email = document.getElementById('s2-email').value.trim();
+  const pwd = document.getElementById('s2-pwd').value;
+  const pwd2 = document.getElementById('s2-pwd2').value;
+  const cgu = document.getElementById('cgu').checked;
+
+  if(!email || !email.includes('@')) return showAlert('Veuillez saisir un email valide.');
+  if(pwd.length < 8) return showAlert('Le mot de passe doit contenir au moins 8 caractères.');
+  if(pwd !== pwd2) return showAlert('Les mots de passe ne correspondent pas.');
+  if(!cgu) return showAlert('Veuillez accepter les conditions d\'utilisation.');
+
+  const btn = document.getElementById('btn-create');
+  btn.disabled = true;
+  btn.textContent = 'Création en cours…';
+  hideAlert();
+
+  try {
+    // Créer le compte Supabase Auth
+    const { data, error } = await SB.auth.signUp({
+      email,
+      password: pwd,
+      options: {
+        data: {
+          enseigne_name: formData.enseigne,
+          first_name: formData.prenom,
+          last_name: formData.nom,
+          secteur: formData.secteur,
+          nb_magasins: formData.magasins,
+        }
+      }
+    });
+
+    if(error) throw error;
+
+    // Enregistrer l'enseigne dans la table enseignes
+    if(data.user) {
+      await SB.from('enseignes').insert({
+        id: data.user.id,
+        name: formData.enseigne,
+        secteur: formData.secteur,
+        nb_magasins: formData.magasins,
+      }).single();
+    }
+
+    // Afficher la confirmation
+    document.getElementById('confirm-email').textContent = '📧 Email envoyé à : ' + email;
+    showScreen(3);
+
+  } catch(err) {
+    let msg = err.message || 'Une erreur est survenue.';
+    if(msg.includes('already registered')) msg = 'Cet email est déjà utilisé. Essayez de vous connecter.';
+    if(msg.includes('invalid email')) msg = 'Format d\'email invalide.';
+    if(msg.includes('weak password')) msg = 'Mot de passe trop faible.';
+    showAlert(msg);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ Créer mon compte gratuitement';
+  }
+}
+
+// Init
+showScreen(1);
+</script>
+</body>
+</html>
