@@ -1,219 +1,697 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Voir en AR — Tadam Home</title>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --purple: #8B5CF6; --pink: #EC4899;
-      --grad: linear-gradient(135deg, #8B5CF6, #EC4899);
-      --dark: #09090B; --surface: #111113;
-      --border: rgba(255,255,255,0.08);
-    }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: var(--dark); color: #fff;
-      font-family: 'DM Sans', sans-serif;
-      display: flex; flex-direction: column;
-      max-width: 430px; margin: 0 auto;
-    }
-    /* Loader */
-    #loader {
-      position: absolute; inset: 0; z-index: 100;
-      background: var(--dark); display: flex;
-      flex-direction: column; align-items: center;
-      justify-content: center; gap: 16px;
-      transition: opacity .5s ease;
-    }
-    .loader-ring {
-      width: 44px; height: 44px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.06);
-      border-top: 2px solid #8B5CF6;
-      animation: spin .75s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader-text { font-size: 13px; color: rgba(255,255,255,0.35); font-weight: 300; }
-    /* Header */
-    .header {
-      padding: 16px 20px; display: flex;
-      align-items: center; justify-content: space-between;
-      flex-shrink: 0; position: relative; z-index: 10;
-    }
-    .logo {
-      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px;
-      background: var(--grad); -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .badge {
-      font-size: 10px; letter-spacing: .05em;
-      color: rgba(255,255,255,0.35);
-      background: var(--surface); border: 1px solid var(--border);
-      padding: 4px 10px; border-radius: 100px;
-    }
-    /* Model viewer */
-    model-viewer {
-      width: 100%; flex: 1; background: transparent;
-      --progress-bar-color: transparent;
-      opacity: 0; transition: opacity .7s ease;
-    }
-    model-viewer.visible { opacity: 1; }
-    /* Bottom */
-    .bottom { padding: 0 20px 28px; flex-shrink: 0; }
-    .product-info { margin-bottom: 16px; opacity: 0; transition: opacity .4s ease; }
-    .product-info.visible { opacity: 1; }
-    .enseigne-tag {
-      font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
-      color: rgba(255,255,255,0.3); margin-bottom: 4px;
-    }
-    .product-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; }
-    .ar-btn {
-      width: 100%; padding: 16px;
-      background: var(--grad); border: none; border-radius: 14px;
-      color: #fff; font-family: 'DM Sans', sans-serif;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: transform .15s; opacity: 0;
-    }
-    .ar-btn.visible { opacity: 1; }
-    .ar-btn:active { transform: scale(.98); }
-    .hint {
-      text-align: center; font-size: 11px; margin-top: 12px;
-      color: rgba(255,255,255,0.2); font-style: italic;
-    }
-    /* Error state */
-    .error {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      height: 100%; gap: 12px; color: rgba(255,255,255,0.4);
-      font-size: 14px; text-align: center; padding: 40px;
-    }
-    .error-icon { font-size: 40px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>TadamHome — Configurateur</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F4F5F7;
+  --white:#FFFFFF;
+  --dark:#0F0E1A;
+  --dark2:#1A1A2E;
+  --text:#1A1A2E;
+  --mid:#6B7280;
+  --light:#F0F0F5;
+  --border:#E5E7EB;
+  --accent:#7C3AED;
+  --accent-light:#EDE9FE;
+  --accent-mid:#8B5CF6;
+  --pink:#EC4899;
+  --grad:linear-gradient(135deg,#7C3AED,#EC4899);
+  --green:#10B981;
+  --green-light:#ECFDF5;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.05);
+  --radius:12px;
+}
+html,body{min-height:100vh;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:var(--dark);
+  padding:0 16px;
+  height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{
+  width:28px;height:28px;border-radius:7px;
+  background:var(--grad);
+  display:grid;place-items:center;
+  font-size:14px;
+}
+.logo-name{
+  font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px;
+}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.enseigne-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:100px;padding:5px 10px;
+}
+.enseigne-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.enseigne-pill span{font-size:11px;font-weight:500;color:rgba(255,255,255,.75)}
+.wallet-btn{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  width:34px;height:34px;
+  display:grid;place-items:center;
+  cursor:pointer;color:#fff;position:relative;
+}
+.wbadge{
+  position:absolute;top:-4px;right:-4px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--grad);
+  font-size:9px;font-weight:700;color:#fff;
+  display:none;place-items:center;
+  border:2px solid var(--dark);
+}
+.wbadge.on{display:grid}
+
+/* PRODUCT HEADER */
+.prod-header{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:16px 16px 14px;
+}
+.breadcrumb{
+  font-size:11px;color:var(--mid);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:4px;
+}
+.breadcrumb .sep{color:var(--border)}
+.prod-title{
+  font-size:22px;font-weight:800;
+  color:var(--text);letter-spacing:-.4px;line-height:1.15;
+}
+.prod-subtitle{
+  display:flex;align-items:center;gap:8px;margin-top:5px;
+}
+.prod-ref{font-size:12px;color:var(--mid)}
+.status-pill{
+  background:var(--green-light);color:var(--green);
+  border:1px solid rgba(16,185,129,.2);
+  font-size:10px;font-weight:600;
+  border-radius:100px;padding:2px 8px;
+  display:flex;align-items:center;gap:4px;
+}
+.status-dot{width:4px;height:4px;border-radius:50%;background:var(--green)}
+
+/* VIEWER TABS */
+.viewer-tabs{
+  display:flex;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;
+}
+.vtab{
+  flex:0 0 auto;padding:12px 16px;
+  font-size:13px;font-weight:500;
+  color:var(--mid);border:none;background:transparent;
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .2s;font-family:'Inter',sans-serif;
+  margin-bottom:-1px;
+}
+.vtab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* VIEWER */
+.viewer-wrap{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+model-viewer{
+  width:100%;height:52vw;min-height:210px;max-height:280px;
+  background:transparent;--poster-color:transparent;
+}
+.viewer-ph{
+  width:100%;height:240px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.viewer-ph svg{opacity:.15;color:var(--accent)}
+.viewer-ph p{font-size:13px;color:var(--mid);text-align:center;max-width:180px;line-height:1.5}
+
+.ar-chip{
+  position:absolute;top:10px;left:10px;
+  background:rgba(255,255,255,.95);
+  border:1px solid var(--border);
+  border-radius:100px;padding:6px 12px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;color:var(--accent);
+  cursor:pointer;box-shadow:var(--shadow);
+}
+.ar-chip svg{width:13px;height:13px}
+.live-chip{
+  position:absolute;top:10px;right:10px;
+  background:rgba(255,255,255,.95);
+  border:1px solid var(--border);
+  border-radius:100px;padding:5px 10px;
+  font-size:10px;font-weight:600;color:var(--green);
+  display:flex;align-items:center;gap:4px;
+  box-shadow:var(--shadow);
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* THUMBNAILS */
+.thumbs-row{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+}
+.thumbs-row::-webkit-scrollbar{display:none}
+.thumb{
+  flex:0 0 52px;height:52px;border-radius:8px;
+  border:1.5px solid var(--border);
+  background:var(--light);
+  cursor:pointer;transition:all .2s;
+  display:grid;place-items:center;
+}
+.thumb.active{border-color:var(--accent);background:var(--accent-light)}
+.thumb-360{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:8px;font-weight:700;color:var(--mid)}
+.thumb.active .thumb-360{color:var(--accent)}
+.thumb-360 svg{width:16px;height:16px}
+
+/* SECTION */
+.section{padding:14px 16px 0}
+.section-label{
+  font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.6px;
+  color:var(--mid);margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.section-label .val{
+  font-size:13px;font-weight:600;
+  text-transform:none;letter-spacing:0;color:var(--text);
+}
+
+/* COLORS */
+.colors-grid{display:flex;gap:8px;flex-wrap:wrap}
+.color-swatch{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;position:relative;transition:all .15s;
+}
+.color-swatch.active{border-color:var(--text)}
+.color-swatch.active::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1.5px solid var(--border);
+}
+
+/* INFO GRID */
+.info-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  padding:14px 16px 0;
+}
+.info-card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:10px;padding:12px;
+  box-shadow:var(--shadow);
+}
+.info-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--mid);margin-bottom:4px}
+.info-value{font-size:15px;font-weight:700;color:var(--text)}
+.info-sub{font-size:10px;color:var(--mid);margin-top:2px}
+.info-value.green{color:var(--green)}
+
+/* FEATURES */
+.features{padding:14px 16px 0;display:flex;flex-direction:column;gap:6px}
+.feature{
+  display:flex;align-items:center;gap:10px;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;
+  font-size:13px;color:var(--text);
+  box-shadow:var(--shadow);
+}
+.feature-check{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--accent-light);flex-shrink:0;
+  display:grid;place-items:center;
+}
+.feature-check svg{width:10px;height:10px;color:var(--accent)}
+
+/* INSTALL BANNER */
+.install-banner{
+  margin:14px 16px 0;
+  background:var(--dark);
+  border-radius:12px;padding:12px 14px;
+  display:none;align-items:center;gap:12px;
+}
+.install-banner.show{display:flex}
+.install-icon{width:36px;height:36px;border-radius:9px;background:var(--grad);display:grid;place-items:center;flex-shrink:0;font-size:16px}
+.install-text{flex:1}
+.install-text p{font-size:13px;font-weight:700;color:#fff}
+.install-text span{font-size:11px;color:rgba(255,255,255,.5)}
+.btn-install-sm{
+  background:var(--white);color:var(--dark);
+  border:none;border-radius:7px;
+  padding:7px 12px;font-size:12px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;
+}
+
+/* CTA */
+.cta-zone{padding:16px;margin-top:14px;border-top:1px solid var(--border)}
+.price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:14px}
+.price{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.price-note{font-size:13px;color:var(--mid)}
+.price-monthly{font-size:12px;color:var(--mid);margin-top:2px}
+
+.btn-ar{
+  width:100%;padding:14px;
+  background:var(--grad);color:#fff;
+  border:none;border-radius:10px;
+  font-size:14px;font-weight:700;
+  font-family:'Inter',sans-serif;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .15s,transform .1s;
+  margin-bottom:10px;box-shadow:0 4px 14px rgba(124,58,237,.3);
+}
+.btn-ar:active{opacity:.88;transform:scale(.98)}
+
+.btn-wallet{
+  width:100%;padding:13px;
+  background:var(--accent-light);color:var(--accent);
+  border:1.5px solid rgba(124,58,237,.2);
+  border-radius:10px;
+  font-size:14px;font-weight:600;
+  font-family:'Inter',sans-serif;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .15s;margin-bottom:10px;
+}
+.btn-wallet.hide{display:none}
+.btn-wallet:active{background:rgba(124,58,237,.2)}
+
+.added-confirm{
+  display:none;width:100%;padding:13px;
+  background:var(--green-light);color:var(--green);
+  border:1.5px solid rgba(16,185,129,.2);
+  border-radius:10px;font-size:14px;font-weight:600;
+  align-items:center;justify-content:center;gap:8px;
+  margin-bottom:10px;
+}
+.added-confirm.show{display:flex}
+.see-link{text-decoration:underline;cursor:pointer;margin-left:4px;opacity:.8}
+
+.btn-contact{
+  width:100%;padding:12px;
+  background:transparent;color:var(--mid);
+  border:1px solid var(--border);border-radius:10px;
+  font-size:13px;font-weight:500;
+  font-family:'Inter',sans-serif;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .15s;
+}
+.btn-contact:active{background:var(--light)}
+
+/* WALLET */
+.wallet-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.4);
+  display:none;align-items:flex-end;
+}
+.wallet-overlay.open{display:flex}
+.wallet-sheet{
+  width:100%;background:var(--white);
+  border-radius:18px 18px 0 0;
+  border-top:1px solid var(--border);
+  max-height:82vh;overflow-y:auto;
+  padding-bottom:40px;
+}
+.wallet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto}
+.wallet-header{
+  padding:4px 16px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.wallet-title{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.wallet-count{
+  background:var(--grad);color:#fff;
+  font-size:11px;font-weight:700;
+  border-radius:100px;padding:2px 8px;margin-left:8px;
+}
+.wallet-close{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--light);border:none;cursor:pointer;
+  color:var(--mid);font-size:13px;
+  display:grid;place-items:center;
+}
+.wallet-items{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.wallet-card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:10px;padding:12px;
+  display:flex;gap:12px;align-items:center;
+  cursor:pointer;box-shadow:var(--shadow);transition:background .15s;
+}
+.wallet-card:active{background:var(--light)}
+.wallet-card-img{
+  width:56px;height:56px;border-radius:8px;
+  background:var(--light);flex-shrink:0;
+  display:grid;place-items:center;
+  border:1px solid var(--border);
+}
+.wallet-card-name{font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wallet-card-color{font-size:12px;color:var(--mid);margin-top:3px;display:flex;align-items:center;gap:5px}
+.wallet-card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.wallet-card-badge{
+  background:var(--accent-light);color:var(--accent);
+  font-size:10px;font-weight:600;
+  border-radius:100px;padding:2px 8px;
+  display:inline-block;margin-top:5px;
+}
+.wallet-card-price{font-weight:700;font-size:14px;color:var(--text);flex-shrink:0}
+.wallet-empty{text-align:center;padding:40px 20px;color:var(--mid);font-size:14px;line-height:1.6}
+.wallet-footer{padding:12px 16px 0;display:flex;flex-direction:column;gap:8px}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:100px;left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:var(--dark);color:#fff;
+  border-radius:100px;padding:10px 18px;
+  font-size:13px;font-weight:500;
+  opacity:0;transition:all .25s;z-index:400;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
 </head>
 <body>
 
-  <div id="loader">
-    <div class="loader-ring"></div>
-    <div class="loader-text">Chargement du modèle…</div>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block"/>
   </div>
-
-  <div class="header">
-    <div class="logo">Tadam Home ✦</div>
-    <div class="badge">Réalité Augmentée</div>
-  </div>
-
-  <model-viewer
-    id="viewer"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    camera-controls
-    auto-rotate
-    auto-rotate-delay="1000"
-    rotation-per-second="20deg"
-    shadow-intensity="1"
-    exposure="1"
-  ></model-viewer>
-
-  <div class="bottom">
-    <div class="product-info" id="info">
-      <div class="enseigne-tag" id="enseigne-name"></div>
-      <div class="product-name"  id="product-name"></div>
+  <div class="topbar-right">
+    <div class="enseigne-pill">
+      <div class="enseigne-dot"></div>
+      <span id="enseigne-name">Chargement...</span>
     </div>
-    <button class="ar-btn" id="ar-btn" onclick="document.getElementById('viewer').activateAR()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-      Voir dans mon salon →
+    <button class="wallet-btn" onclick="openWallet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <div class="wbadge" id="wbadge">0</div>
     </button>
-    <div class="hint">Pointez votre caméra vers le sol pour placer le meuble</div>
+  </div>
+</div>
+
+<!-- PRODUCT HEADER -->
+<div class="prod-header">
+  <div class="breadcrumb">
+    <span id="bc-ens">—</span>
+    <span class="sep">›</span>
+    <span>Canapés</span>
+    <span class="sep">›</span>
+    <span style="color:var(--accent);font-weight:500" id="bc-prod">—</span>
+  </div>
+  <div class="prod-title" id="prod-name">Chargement...</div>
+  <div class="prod-subtitle">
+    <span class="prod-ref" id="prod-ref">Réf. —</span>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      AR actif
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="viewer-tabs">
+  <button class="vtab active" onclick="setTab(0,this)">360°</button>
+  <button class="vtab" onclick="setTab(1,this)">Photos</button>
+  <button class="vtab" onclick="setTab(2,this)">Chez moi</button>
+</div>
+
+<!-- VIEWER -->
+<div class="viewer-wrap">
+  <div id="tab-0">
+    <model-viewer id="mv" src="" alt="3D" auto-rotate camera-controls shadow-intensity="0.3" exposure="1.1" style="width:100%;height:260px;background:#F8F8FB;--poster-color:transparent"></model-viewer>
+  </div>
+  <div id="tab-1" style="display:none">
+    <div class="viewer-ph">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p>Photos disponibles après upload par l'enseigne</p>
+    </div>
+  </div>
+  <div id="tab-2" style="display:none">
+    <div class="viewer-ph">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <p>Prenez une photo de votre pièce pour visualiser le meuble</p>
+    </div>
+  </div>
+  <div class="ar-chip" onclick="launchAR()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Voir en AR
+  </div>
+  <div class="live-chip"><div class="live-dot"></div>Live</div>
+</div>
+
+<!-- THUMBNAILS -->
+<div class="thumbs-row">
+  <div class="thumb active">
+    <div class="thumb-360">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
+      360°
+    </div>
+  </div>
+  <div class="thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+  <div class="thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+</div>
+
+<!-- COLORIS -->
+<div class="section" style="margin-top:14px">
+  <div class="section-label">
+    Coloris
+    <span class="val" id="col-name">—</span>
+  </div>
+  <div class="colors-grid" id="colors-grid"></div>
+</div>
+
+<!-- INFOS -->
+<div class="info-grid">
+  <div class="info-card">
+    <div class="info-label">Dimensions</div>
+    <div class="info-value" id="dim">—</div>
+    <div class="info-sub">L × P × H (cm)</div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">Livraison</div>
+    <div class="info-value">4 – 6 sem.</div>
+    <div class="info-sub">À domicile</div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">Garantie</div>
+    <div class="info-value">2 ans</div>
+    <div class="info-sub">Pièces & main d'œuvre</div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">Disponibilité</div>
+    <div class="info-value green">En stock</div>
+    <div class="info-sub">Prêt à commander</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+  <div class="feature">
+    <div class="feature-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    Structure bois massif certifié FSC
+  </div>
+  <div class="feature">
+    <div class="feature-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    Rembourrage haute densité 35 kg/m³
+  </div>
+  <div class="feature">
+    <div class="feature-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <span id="mensualite">—</span>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="install-banner">
+  <div class="install-icon">🏠</div>
+  <div class="install-text">
+    <p>Retrouver ma sélection</p>
+    <span>Ajouter à l'écran d'accueil</span>
+  </div>
+  <button class="btn-install-sm" onclick="installPWA()">Installer</button>
+</div>
+
+<!-- CTA -->
+<div class="cta-zone">
+  <div class="price-row">
+    <div class="price" id="prod-price">—</div>
+    <div class="price-note" id="prod-price-note">€ TTC</div>
+  </div>
+  <div class="price-monthly" id="mensualite-row"></div>
+
+  <div style="height:14px"></div>
+
+  <button class="btn-ar" onclick="launchAR()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Voir dans mon salon en AR
+  </button>
+
+  <button class="btn-wallet" id="btn-add" onclick="addToWallet()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/><line x1="12" y1="12" x2="20" y2="4"/><polyline points="16 4 20 4 20 8"/></svg>
+    Ajouter à ma sélection
+  </button>
+
+  <div class="added-confirm" id="added-confirm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Ajouté à votre sélection
+    <span class="see-link" onclick="openWallet()">Voir</span>
   </div>
 
-  <script type="module">
-    // ── CONFIG — remplacer par tes vraies valeurs ──────────────
-    const SUPABASE_URL = 'https://VOTRE_PROJET.supabase.co';
-    const SUPABASE_KEY = 'VOTRE_ANON_KEY';             // clé publique, safe côté client
-    // ──────────────────────────────────────────────────────────
+  <button class="btn-contact" onclick="contactVendeur()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Contacter le vendeur
+  </button>
+</div>
 
-    const params    = new URLSearchParams(window.location.search);
-    const productId = params.get('id');
+<!-- WALLET -->
+<div class="wallet-overlay" id="wallet-overlay" onclick="closeWalletOutside(event)">
+  <div class="wallet-sheet">
+    <div class="wallet-handle"></div>
+    <div class="wallet-header">
+      <div style="display:flex;align-items:center">
+        <span class="wallet-title">Ma sélection</span>
+        <span class="wallet-count" id="wallet-count">0</span>
+      </div>
+      <button class="wallet-close" onclick="closeWallet()">✕</button>
+    </div>
+    <div class="wallet-items" id="wallet-items">
+      <div class="wallet-empty">
+        <div style="font-size:30px;margin-bottom:10px">🛋️</div>
+        Scannez des meubles pour les retrouver ici
+      </div>
+    </div>
+    <div class="wallet-footer">
+      <button class="btn-ar" style="margin-bottom:0" onclick="envoyerSelection()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Recevoir ma sélection par email
+      </button>
+      <button class="btn-contact" onclick="closeWallet()">Continuer à explorer</button>
+    </div>
+  </div>
+</div>
 
-    if (!productId) {
-      showError('QR code invalide ou expiré.');
-    } else {
-      loadProduct(productId);
-    }
+<div class="toast" id="toast"></div>
 
-    async function loadProduct(id) {
-      try {
-        const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=name,enseigne_name,model_glb_url,model_usdz_url&is_active=eq.true`,
-          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-        );
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SB=supabase.createClient('https://wbunwfxecvxngypuehop.supabase.co','sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P');
+let sid=localStorage.getItem('tadam_sid');if(!sid){sid=crypto.randomUUID();localStorage.setItem('tadam_sid',sid)}
+let prod=null,col=null,dpi=null;
+const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dimensions:'240 × 95 × 82',enseigne_name:'Démonstration',model_url:'https://modelviewer.dev/shared-assets/models/Astronaut.glb',colors:[{name:'Velours Ocre',hex:'#C8853A'},{name:'Velours Taupe',hex:'#9E8E7E'},{name:'Velours Vert',hex:'#5A7A5C'},{name:'Velours Bleu',hex:'#3A5F8A'},{name:'Velours Anthracite',hex:'#3D3D3D'},{name:'Velours Rose',hex:'#C4858A'},{name:'Velours Bordeaux',hex:'#8B3A3A'},{name:'Velours Ciel',hex:'#6B9DBF'}]};
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+async function loadProduct(){
+  const id=new URLSearchParams(location.search).get('product');
+  if(!id){render(DEMO);return}
+  try{
+    const{data,error}=await SB.from('products').select('*,enseignes(name)').eq('id',id).single();
+    if(error||!data){render(DEMO);return}
+    render({id:data.id,name:data.name,ref:data.id.substring(0,8).toUpperCase(),price:data.price,dimensions:data.dimensions?`${data.dimensions.l}×${data.dimensions.p}×${data.dimensions.h}`:'—',enseigne_name:data.enseignes?.name||'—',model_url:data.model_url,colors:data.colors||DEMO.colors});
+    track(data.id);
+  }catch(e){render(DEMO)}
+}
 
-        const [product] = await res.json();
-        if (!product) { showError('Produit introuvable.'); return; }
+function render(p){
+  prod=p;
+  document.getElementById('prod-name').textContent=p.name;
+  document.getElementById('prod-ref').textContent='Réf. '+p.ref;
+  document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
+  document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
+  const m=p.price?`À partir de ${Math.round(p.price/36).toLocaleString('fr-FR')} €/mois en 36×`:'';
+  document.getElementById('mensualite').textContent=m;
+  document.getElementById('mensualite-row').textContent=m;
+  document.getElementById('dim').textContent=p.dimensions||'—';
+  document.getElementById('enseigne-name').textContent=p.enseigne_name;
+  document.getElementById('bc-ens').textContent=p.enseigne_name;
+  document.getElementById('bc-prod').textContent=p.name;
+  if(p.model_url)document.getElementById('mv').setAttribute('src',p.model_url);
+  renderColors(p.colors);checkAdded();
+}
 
-        renderModel(product);
-        trackScan(id);   // fire & forget
+function renderColors(colors){
+  const g=document.getElementById('colors-grid');g.innerHTML='';
+  if(!colors||!colors.length)return;
+  col=colors[0];document.getElementById('col-name').textContent=colors[0].name;
+  colors.forEach((c,i)=>{
+    const s=document.createElement('div');s.className='color-swatch'+(i===0?' active':'');
+    s.style.background=c.hex;s.title=c.name;
+    s.onclick=()=>{document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));s.classList.add('active');col=c;document.getElementById('col-name').textContent=c.name;toast('Coloris : '+c.name)};
+    g.appendChild(s);
+  });
+}
 
-      } catch (e) {
-        showError('Erreur de connexion. Vérifiez votre réseau.');
-        console.error(e);
-      }
-    }
+function setTab(i,el){['tab-0','tab-1','tab-2'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'block':'none');document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
+function launchAR(){const mv=document.getElementById('mv');if(mv&&mv.canActivateAR)mv.activateAR();else toast('AR disponible sur mobile iOS/Android')}
 
-    function renderModel(product) {
-      const viewer = document.getElementById('viewer');
-      viewer.src   = product.model_glb_url;
-      if (product.model_usdz_url) viewer.setAttribute('ios-src', product.model_usdz_url);
-      viewer.alt   = product.name;
-      viewer.classList.add('visible');
+function getW(){return JSON.parse(localStorage.getItem('tadam_wallet')||'[]')}
+function setW(w){localStorage.setItem('tadam_wallet',JSON.stringify(w))}
 
-      document.getElementById('product-name').textContent  = product.name;
-      document.getElementById('enseigne-name').textContent = product.enseigne_name;
+function addToWallet(){
+  if(!prod)return;
+  const w=getW();const ex=w.find(i=>i.id===prod.id);
+  if(ex){ex.color=col;setW(w)}else{w.push({id:prod.id,name:prod.name,price:prod.price,enseigne:prod.enseigne_name,color:col,model_url:prod.model_url,added_at:new Date().toISOString()});setW(w)}
+  updateWalletUI();
+  document.getElementById('btn-add').classList.add('hide');
+  document.getElementById('added-confirm').classList.add('show');
+  toast('Ajouté à votre sélection');
+  if(getW().length>=1)document.getElementById('install-banner').classList.add('show');
+}
 
-      hideLoader();
+function checkAdded(){if(!prod)return;if(getW().find(i=>i.id===prod.id)){document.getElementById('btn-add').classList.add('hide');document.getElementById('added-confirm').classList.add('show')}}
 
-      setTimeout(() => {
-        document.getElementById('info').classList.add('visible');
-        document.getElementById('ar-btn').classList.add('visible');
-      }, 300);
-    }
+function updateWalletUI(){
+  const w=getW(),n=w.length;
+  const b=document.getElementById('wbadge');b.textContent=n;b.className='wbadge'+(n>0?' on':'');
+  document.getElementById('wallet-count').textContent=n;
+  const l=document.getElementById('wallet-items');
+  if(!n){l.innerHTML='<div class="wallet-empty"><div style="font-size:30px;margin-bottom:10px">🛋️</div>Scannez des meubles pour les retrouver ici</div>';return}
+  l.innerHTML=w.map(item=>`
+    <div class="wallet-card" onclick="goTo('${item.id}')">
+      <div class="wallet-card-img">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5"><path d="M2 18v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M2 14h20"/><path d="M7 22v-4"/><path d="M17 22v-4"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="wallet-card-name">${item.name}</div>
+        <div class="wallet-card-color">
+          <div class="wallet-card-dot" style="background:${item.color?.hex||'#ccc'}"></div>
+          ${item.color?.name||'—'}
+        </div>
+        <div class="wallet-card-badge">AR disponible</div>
+      </div>
+      <div class="wallet-card-price">${item.price?item.price.toLocaleString('fr-FR')+'€':'—'}</div>
+    </div>
+  `).join('');
+}
 
-    function trackScan(id) {
-      // Incrémenter scan_count via la RPC Supabase (sans auth)
-      fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_scan_count`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ product_id: id })
-      }).catch(() => {});  // silencieux, pas critique
-    }
+function openWallet(){updateWalletUI();document.getElementById('wallet-overlay').classList.add('open')}
+function closeWallet(){document.getElementById('wallet-overlay').classList.remove('open')}
+function closeWalletOutside(e){if(e.target===document.getElementById('wallet-overlay'))closeWallet()}
+function goTo(id){closeWallet();if(id!==prod?.id)location.href='?product='+id}
+function envoyerSelection(){closeWallet();toast('Fonctionnalité disponible en production')}
+function contactVendeur(){toast('Le vendeur a été notifié')}
 
-    function hideLoader() {
-      const loader = document.getElementById('loader');
-      loader.style.opacity = '0';
-      loader.style.pointerEvents = 'none';
-      setTimeout(() => loader.remove(), 600);
-    }
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dpi=e});
+function installPWA(){if(dpi){dpi.prompt();dpi.userChoice.then(r=>{if(r.outcome==='accepted')toast('TadamHome ajouté à votre écran !');dpi=null;document.getElementById('install-banner').classList.remove('show')})}else toast('Ajoutez cette page via le menu partage de votre navigateur')}
 
-    function showError(msg) {
-      hideLoader();
-      document.body.innerHTML += `
-        <div class="error">
-          <div class="error-icon">⚠️</div>
-          <div>${msg}</div>
-        </div>`;
-    }
-  </script>
+async function track(pid){try{await SB.from('scans').insert({product_id:pid,session_id:sid,selected_color:col?.name||null})}catch(e){}}
+
+let tt;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
+
+loadProduct();updateWalletUI();
+</script>
 </body>
 </html>
