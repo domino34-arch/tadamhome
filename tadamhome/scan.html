@@ -314,14 +314,16 @@ async function loadProduct(){
   const id=new URLSearchParams(location.search).get('id') || new URLSearchParams(location.search).get('product');
   if(!id){render(DEMO);return}
   try{
-    const{data,error}=await SB.from('products').select('*,enseignes(name)').eq('id',id).single();
+    console.log('Loading product id:', id);
+    const{data,error}=await SB.from('products').select('*').eq('id',id).single();
+    console.log('Product data:', data, 'Error:', error);
     if(error||!data){render(DEMO);return}
     render({
       id:data.id,name:data.name,
       ref:data.id.substring(0,8).toUpperCase(),
       price:data.price,
       dimensions:data.dimensions?`${data.dimensions.l} × ${data.dimensions.p} × ${data.dimensions.h}`:'—',
-      enseigne_name:data.enseignes?.name||'—',
+      enseigne_name:data.enseigne_name||'—',
       model_url:data.model_glb_url||data.model_url,
       usdz_url:data.model_usdz_url||null,
       colors:data.colors||DEMO.colors
