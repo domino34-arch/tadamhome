@@ -116,6 +116,21 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 .hideable{transition:all .2s}
 .hideable.hidden{display:none !important}
 
+/* VIEWER AGRANDI quand les infos sont masquées */
+.viewer-expanded{
+  position:fixed !important;
+  top:48px !important; /* hauteur topbar */
+  left:0;right:0;
+  height:calc(100vh - 48px - 170px) !important; /* 170px = hauteur CTA */
+  z-index:10;
+  border-radius:0 !important;
+  border:none !important;
+}
+.viewer-expanded model-viewer{
+  height:100% !important;
+  max-height:none !important;
+}
+
 /* CTA */
 .cta-zone{padding:10px 16px 16px;border-top:1px solid var(--border);margin-top:8px}
 .price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
@@ -191,7 +206,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- VIEWER -->
-<div class="viewer-wrap">
+<div class="viewer-wrap" id="viewer-wrap">
   <div id="tab-0">
     <model-viewer id="mv" src="" alt="3D"
       auto-rotate camera-controls
@@ -336,6 +351,7 @@ function toggleInfo(){
   const btn = document.getElementById('btn-toggle');
   const label = document.getElementById('toggle-label');
   const icon = document.getElementById('toggle-icon');
+  const viewer = document.getElementById('viewer-wrap');
 
   HIDEABLE.forEach(id=>{
     const el = document.getElementById(id);
@@ -345,13 +361,21 @@ function toggleInfo(){
   });
 
   if(!infoVisible){
+    // Mode focus : agrandir le viewer
+    viewer.classList.add('viewer-expanded');
     btn.classList.add('hidden-mode');
     label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    // Ancrer le CTA en bas
+    document.querySelector('.cta-zone').style.cssText='position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);padding:10px 16px 20px;z-index:20;';
   } else {
+    // Mode normal : réduire le viewer
+    viewer.classList.remove('viewer-expanded');
     btn.classList.remove('hidden-mode');
     label.textContent = 'Masquer les informations';
     icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
+    // Remettre le CTA en position normale
+    document.querySelector('.cta-zone').style.cssText='';
   }
 }
 
