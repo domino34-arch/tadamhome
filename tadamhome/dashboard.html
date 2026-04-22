@@ -491,13 +491,15 @@ async function loadData(){
 }
 
 async function loadProducts(){
-  // Essayer d'abord la table 'products', sinon 'produits'
-  let{data,error}=await sb.from('products').select('*').eq('enseigne_id',currentUser.id).order('created_at',{ascending:false});
-  if(error){
-    // Fallback sur l'ancienne table
-    const res=await sb.from('produits').select('*').order('created_at',{ascending:false});
-    data=res.data;
-  }
+  // Charger depuis les deux tables et fusionner
+  let allProducts = [];
+  const{data:p1}=await sb.from('products').select('*').eq('enseigne_id',currentUser.id).order('created_at',{ascending:false});
+  if(p1&&p1.length) allProducts = [...allProducts, ...p1];
+  const{data:p2}=await sb.from('produits').select('*').order('created_at',{ascending:false});
+  if(p2&&p2.length) allProducts = [...allProducts, ...p2];
+  // Dédupliquer par ID
+  const seen = new Set();
+  let data = allProducts.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
   products=data||[];
   document.getElementById('prod-count').textContent=products.length;
   document.getElementById('donut-total').textContent=products.length;
@@ -533,7 +535,25 @@ function renderProducts(){
   const getCat=p=>p.category||p.categorie||'';
   const getRef=p=>p.reference||p.ref||'';
   const getActive=p=>p.is_active!==undefined?p.is_active:(p.actif!==undefined?p.actif:true);
-  const html=products.map(p=>`<div class="prod-row"><div class="col-1"><div class="prod-ico">${icons[getCat(p)]||'📦'}</div><div><div class="prod-name">${getName(p)}</div><div class="prod-cat">${getCat(p)} ${getRef(p)?'· '+getRef(p):''}</div></div></div><div class="col-2" style="display:flex;justify-content:center"><span class="badge ${getActive(p)?'badge-green':'badge-muted'}">${getActive(p)?'● AR actif':'Inactif'}</span></div><div class="col-3" style="text-align:center"><div class="prod-scans">—</div></div><div class="col-3" style="text-align:center"><div class="prod-conv">—</div></div><div class="col-4"><button class="row-btn" onclick="showQR('${p.id}','${getName(p)}')">🔲 QR</button><button class="row-btn" onclick="window.open('scan?id=${p.id}','_blank')">👁️ AR</button></div></div>`).join('')||'<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun produit — importez votre premier meuble !</div>';
+  const getGlbUrl=p=>p.model_glb_url||p.model_url||null;
+  const html=products.map(p=>`<div class="prod-row">
+    <div class="col-1">
+      <div class="prod-ico">${icons[getCat(p)]||'📦'}</div>
+      <div>
+        <div class="prod-name">${getName(p)}</div>
+        <div class="prod-cat">${getCat(p)} ${getRef(p)?'· '+getRef(p):''}</div>
+      </div>
+    </div>
+    <div class="col-2" style="display:flex;justify-content:center">
+      <span class="badge ${getGlbUrl(p)?'badge-green':'badge-amber'}">${getGlbUrl(p)?'● AR actif':'⚠ Sans modèle'}</span>
+    </div>
+    <div class="col-3" style="text-align:center"><div class="prod-scans">—</div></div>
+    <div class="col-3" style="text-align:center"><div class="prod-conv">—</div></div>
+    <div class="col-4">
+      <button class="row-btn" onclick="showQR('${p.id}','${getName(p).replace(/'/g,'')}')" style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-color:transparent">🔲 QR</button>
+      <button class="row-btn" onclick="window.open('https://tadamhome.fr/scan?id=${p.id}','_blank')">👁️ AR</button>
+    </div>
+  </div>`).join('')||'<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun produit — importez votre premier meuble !</div>';
   document.getElementById('overview-products').innerHTML=html;
   document.getElementById('catalogue-list').innerHTML=html;
 }
@@ -633,11 +653,11 @@ async function saveProduit(){
 
   if(error){toast('Erreur : '+error.message,'error')}
   else{
-    toast('✨ Produit créé !','success');
+    toast('✨ Produit créé ! QR Code généré.','success');
     await loadProducts();
     renderQRList();
-    setTimeout(()=>showQR(data[0].id,data[0].name),400);
-    showPage('catalogue');
+    // Afficher le QR immédiatement sans changer de page
+    showQR(data[0].id, data[0].name);
   }
   btn.disabled=false;btn.textContent='✨ Créer le jumeau numérique & générer le QR code';
   selectedFile=null;selectedFileUsdz=null;
