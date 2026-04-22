@@ -92,6 +92,30 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 .install-text span{font-size:10px;color:rgba(255,255,255,.5)}
 .btn-install-sm{background:var(--white);color:var(--dark);border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
 
+/* TOGGLE INFOS BUTTON */
+.btn-toggle-info{
+  width:100%;padding:9px 14px;
+  margin-bottom:10px;
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:12px;font-weight:600;
+  font-family:'Inter',sans-serif;
+  color:var(--mid);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .2s;
+}
+.btn-toggle-info:active{background:var(--accent-light);color:var(--accent)}
+.btn-toggle-info.hidden-mode{
+  background:var(--accent-light);
+  color:var(--accent);
+  border-color:rgba(124,58,237,.2);
+}
+
+/* HIDEABLE — LA RÈGLE MAGIQUE */
+.hideable{transition:all .2s}
+.hideable.hidden{display:none !important}
+
 /* CTA */
 .cta-zone{padding:10px 16px 16px;border-top:1px solid var(--border);margin-top:8px}
 .price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
@@ -132,8 +156,6 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 /* TOAST */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--dark);color:#fff;border-radius:100px;padding:9px 16px;font-size:12px;font-weight:500;opacity:0;transition:all .25s;z-index:400;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-
 </style>
 </head>
 <body>
@@ -150,14 +172,6 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
       <div class="wbadge" id="wbadge">0</div>
     </button>
-    <button class="burger-topbar" id="burger-topbar" onclick="toggleInfo()" title="Masquer les infos">
-      <svg id="burger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    </button>
-
   </div>
 </div>
 
@@ -214,35 +228,16 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 
 <!-- COLORIS -->
 <div class="section hideable" id="s-colors" style="margin-top:8px">
-  <div class="section-label">
-    Coloris
-    <span class="val" id="col-name">—</span>
-  </div>
+  <div class="section-label">Coloris<span class="val" id="col-name">—</span></div>
   <div class="colors-grid" id="colors-grid"></div>
 </div>
 
 <!-- INFOS -->
 <div class="info-grid hideable" id="s-infos">
-  <div class="info-card">
-    <div class="info-label">Dimensions</div>
-    <div class="info-value" id="dim">—</div>
-    <div class="info-sub">L × P × H (cm)</div>
-  </div>
-  <div class="info-card">
-    <div class="info-label">Livraison</div>
-    <div class="info-value">4 – 6 sem.</div>
-    <div class="info-sub">À domicile</div>
-  </div>
-  <div class="info-card">
-    <div class="info-label">Garantie</div>
-    <div class="info-value">2 ans</div>
-    <div class="info-sub">Pièces & main d'œuvre</div>
-  </div>
-  <div class="info-card">
-    <div class="info-label">Disponibilité</div>
-    <div class="info-value green">En stock</div>
-    <div class="info-sub">Prêt à commander</div>
-  </div>
+  <div class="info-card"><div class="info-label">Dimensions</div><div class="info-value" id="dim">—</div><div class="info-sub">L × P × H (cm)</div></div>
+  <div class="info-card"><div class="info-label">Livraison</div><div class="info-value">4 – 6 sem.</div><div class="info-sub">À domicile</div></div>
+  <div class="info-card"><div class="info-label">Garantie</div><div class="info-value">2 ans</div><div class="info-sub">Pièces & main d'œuvre</div></div>
+  <div class="info-card"><div class="info-label">Disponibilité</div><div class="info-value green">En stock</div><div class="info-sub">Prêt à commander</div></div>
 </div>
 
 <!-- FEATURES -->
@@ -253,34 +248,46 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- INSTALL BANNER -->
-<div class="install-banner hideable" id="s-install" id="install-banner">
+<div class="install-banner hideable" id="s-install">
   <div class="install-icon">🏠</div>
-  <div class="install-text">
-    <p>Retrouver ma sélection</p>
-    <span>Ajouter à l'écran d'accueil</span>
-  </div>
+  <div class="install-text"><p>Retrouver ma sélection</p><span>Ajouter à l'écran d'accueil</span></div>
   <button class="btn-install-sm" onclick="installPWA()">Installer</button>
 </div>
 
 <!-- CTA -->
 <div class="cta-zone">
+
+  <!-- BOUTON TOGGLE — juste au dessus de "Voir dans mon salon" -->
+  <button class="btn-toggle-info" id="btn-toggle" onclick="toggleInfo()">
+    <svg id="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+    <span id="toggle-label">Masquer les informations</span>
+  </button>
+
   <div class="price-row">
     <div class="price" id="prod-price">—</div>
     <div class="price-note" id="prod-price-note">€ TTC</div>
   </div>
+
   <button class="btn-ar" onclick="launchAR()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
     Voir dans mon salon en AR
   </button>
+
   <button class="btn-wallet" id="btn-add" onclick="addToWallet()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/><line x1="12" y1="12" x2="20" y2="4"/><polyline points="16 4 20 4 20 8"/></svg>
     Ajouter à ma sélection
   </button>
+
   <div class="added-confirm" id="added-confirm">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
     Ajouté à votre sélection
     <span class="see-link" onclick="openWallet()">Voir</span>
   </div>
+
   <button class="btn-contact" onclick="contactVendeur()">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Contacter le vendeur
@@ -320,39 +327,52 @@ let sid=localStorage.getItem('tadam_sid');if(!sid){sid=crypto.randomUUID();local
 let prod=null,col=null,dpi=null;
 const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dimensions:'240 × 95 × 82',enseigne_name:'Démonstration',model_url:'https://modelviewer.dev/shared-assets/models/Astronaut.glb',colors:[{name:'Velours Ocre',hex:'#C8853A'},{name:'Velours Taupe',hex:'#9E8E7E'},{name:'Velours Vert',hex:'#5A7A5C'},{name:'Velours Bleu',hex:'#3A5F8A'},{name:'Velours Anthracite',hex:'#3D3D3D'},{name:'Velours Rose',hex:'#C4858A'},{name:'Velours Bordeaux',hex:'#8B3A3A'},{name:'Velours Ciel',hex:'#6B9DBF'}]};
 
+// ── TOGGLE INFOS ──────────────────────────────────────────────
+let infoVisible = true;
+const HIDEABLE = ['s-header','s-tabs','s-thumbs','s-colors','s-infos','s-features','s-install'];
 
-// AUTO-ADD au wallet dès l'ouverture de la page scan
+function toggleInfo(){
+  infoVisible = !infoVisible;
+  const btn = document.getElementById('btn-toggle');
+  const label = document.getElementById('toggle-label');
+  const icon = document.getElementById('toggle-icon');
+
+  HIDEABLE.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(!infoVisible) el.classList.add('hidden');
+    else el.classList.remove('hidden');
+  });
+
+  if(!infoVisible){
+    btn.classList.add('hidden-mode');
+    label.textContent = 'Afficher les informations';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  } else {
+    btn.classList.remove('hidden-mode');
+    label.textContent = 'Masquer les informations';
+    icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
+  }
+}
+
+// ── AUTO-ADD WALLET ───────────────────────────────────────────
 function autoAddToWallet(p){
   const w=getW();
   const exists=w.find(i=>i.id===p.id);
-  if(exists){
-    // Mettre à jour le coloris si changé
-    exists.color=col;setW(w);
-    return;
-  }
-  // Premier scan — ajout silencieux
-  w.push({
-    id:p.id,name:p.name,price:p.price,
-    enseigne:p.enseigne_name,color:col,
-    model_url:p.model_url,
-    added_at:new Date().toISOString()
-  });
-  setW(w);
-  updateWalletUI();
-  // Masquer le bouton "Ajouter" et afficher "Voir ma sélection"
+  if(exists){exists.color=col;setW(w);return;}
+  w.push({id:p.id,name:p.name,price:p.price,enseigne:p.enseigne_name,color:col,model_url:p.model_url,added_at:new Date().toISOString()});
+  setW(w);updateWalletUI();
   document.getElementById('btn-add').classList.add('hide');
   document.getElementById('added-confirm').classList.add('show');
-  // Toast discret
-  setTimeout(()=>toast('✦ Ajouté à votre sélection TadamHome'), 800);
+  setTimeout(()=>toast('✦ Ajouté à votre sélection TadamHome'),800);
 }
 
+// ── LOAD PRODUCT ─────────────────────────────────────────────
 async function loadProduct(){
-  const id=new URLSearchParams(location.search).get('id') || new URLSearchParams(location.search).get('product');
+  const id=new URLSearchParams(location.search).get('id')||new URLSearchParams(location.search).get('product');
   if(!id){render(DEMO);return}
   try{
-    console.log('Loading product id:', id);
     const{data,error}=await SB.from('products').select('*').eq('id',id).single();
-    console.log('Product data:', data, 'Error:', error);
     if(error||!data){render(DEMO);return}
     render({
       id:data.id,name:data.name,
@@ -380,8 +400,7 @@ function render(p){
   if(p.usdz_url)document.getElementById('mv').setAttribute('ios-src',p.usdz_url);
   renderColors(p.colors);
   checkAdded();
-  // Ajout automatique au wallet dès le scan
-  if(p.id !== 'demo-001') autoAddToWallet(p);
+  if(p.id!=='demo-001')autoAddToWallet(p);
 }
 
 function renderColors(colors){
@@ -398,7 +417,6 @@ function renderColors(colors){
       s.classList.add('active');col=c;
       document.getElementById('col-name').textContent=c.name;
       toast('Coloris : '+c.name);
-      // Mettre à jour le coloris dans le wallet
       const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
       if(ex){ex.color=c;setW(w2);}
     };
@@ -414,7 +432,7 @@ function setTab(i,el){
 
 function launchAR(){
   const mv=document.getElementById('mv');
-  if(!mv){toast('Modèle 3D non chargé');return}
+  if(!mv)return;
   if(mv.canActivateAR){mv.activateAR();}
   else{
     const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -437,7 +455,7 @@ function addToWallet(){
   document.getElementById('btn-add').classList.add('hide');
   document.getElementById('added-confirm').classList.add('show');
   toast('Ajouté à votre sélection');
-  if(getW().length>=1)document.getElementById('install-banner').classList.add('show');
+  if(getW().length>=1)document.getElementById('s-install').classList.add('show');
 }
 
 function checkAdded(){
@@ -469,13 +487,13 @@ function updateWalletUI(){
 function openWallet(){window.location.href='wallet.html'}
 function closeWallet(){document.getElementById('wallet-overlay').classList.remove('open')}
 function closeWalletOutside(e){if(e.target===document.getElementById('wallet-overlay'))closeWallet()}
-function goTo(id){closeWallet();if(id!==prod?.id)location.href='?product='+id}
+function goTo(id){closeWallet();if(id!==prod?.id)location.href='?id='+id}
 function envoyerSelection(){closeWallet();toast('Fonctionnalité disponible en production')}
 function contactVendeur(){toast('Le vendeur a été notifié')}
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dpi=e});
 function installPWA(){
-  if(dpi){dpi.prompt();dpi.userChoice.then(r=>{if(r.outcome==='accepted')toast('TadamHome ajouté à votre écran !');dpi=null;document.getElementById('install-banner').classList.remove('show')})}
+  if(dpi){dpi.prompt();dpi.userChoice.then(r=>{if(r.outcome==='accepted')toast('TadamHome ajouté à votre écran !');dpi=null;})}
   else toast('Ajoutez cette page via le menu partage de votre navigateur');
 }
 
@@ -485,34 +503,6 @@ let tt;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
 
 loadProduct();updateWalletUI();
-
-// TOGGLE INFO
-let infoVisible = true;
-const hideableIds = ['s-header','s-tabs','s-thumbs','s-colors','s-infos','s-features','s-install'];
-
-function toggleInfo(){
-  infoVisible = !infoVisible;
-  const btn = document.getElementById('burger-topbar');
-  const icon = document.getElementById('burger-icon');
-
-  hideableIds.forEach(id=>{
-    const el = document.getElementById(id);
-    if(el){
-      if(!infoVisible) el.classList.add('hidden');
-      else el.classList.remove('hidden');
-    }
-  });
-
-  if(!infoVisible){
-    btn.classList.add('active');
-    btn.title = 'Afficher les informations';
-    icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
-  } else {
-    btn.classList.remove('active');
-    btn.title = 'Masquer les informations';
-    icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
-  }
-}
 </script>
 </body>
 </html>
