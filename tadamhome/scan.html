@@ -133,52 +133,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--dark);color:#fff;border-radius:100px;padding:9px 16px;font-size:12px;font-weight:500;opacity:0;transition:all .25s;z-index:400;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* BURGER */
-.burger-btn{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;width:34px;height:34px;
-  display:grid;place-items:center;
-  cursor:pointer;color:#fff;
-  transition:background .15s;
-}
-.burger-btn:active{background:rgba(255,255,255,.2)}
-.burger-btn.active{background:rgba(124,58,237,.3);border-color:rgba(124,58,237,.5)}
 
-/* COLLAPSIBLE INFO */
-.info-collapsible{transition:all .35s ease;overflow:hidden}
-.info-collapsible.hidden{display:none}
-
-/* FOCUS MODE — seul le viewer et CTA sont visibles */
-.focus-mode .prod-header{display:none}
-.focus-mode .viewer-tabs{display:none}
-.focus-mode .thumbs-row{display:none}
-.focus-mode .section{display:none}
-.focus-mode .info-grid{display:none}
-.focus-mode .features{display:none}
-.focus-mode .install-banner{display:none}
-.focus-mode .viewer-wrap{margin:0;border-radius:0;border-left:none;border-right:none;border-top:none}
-.focus-mode model-viewer{height:calc(100vh - 48px - 160px)!important;max-height:none!important}
-
-/* FOCUS MODE CTA compact */
-.focus-mode .cta-zone{
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--white);
-  border-top:1px solid var(--border);
-  padding:10px 14px 20px;
-  z-index:50;
-}
-
-/* TOGGLE LABEL */
-.toggle-hint{
-  position:fixed;top:60px;right:16px;
-  background:rgba(26,26,46,.85);color:#fff;
-  font-size:11px;font-weight:500;
-  border-radius:100px;padding:5px 12px;
-  z-index:99;opacity:0;
-  transition:opacity .3s;pointer-events:none;
-}
-.toggle-hint.show{opacity:1}
 </style>
 </head>
 <body>
@@ -195,14 +150,19 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
       <div class="wbadge" id="wbadge">0</div>
     </button>
-    <button class="burger-btn" id="burger-btn" onclick="toggleInfo()" title="Masquer les infos">
-      <svg id="burger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="burger-topbar" id="burger-topbar" onclick="toggleInfo()" title="Masquer les infos">
+      <svg id="burger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
     </button>
+
   </div>
 </div>
 
 <!-- PRODUCT HEADER -->
-<div class="prod-header">
+<div class="prod-header hideable" id="s-header">
   <div class="prod-title" id="prod-name">Chargement...</div>
   <div class="prod-subtitle">
     <span class="prod-ref" id="prod-ref">Réf. —</span>
@@ -211,7 +171,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- TABS -->
-<div class="viewer-tabs">
+<div class="viewer-tabs hideable" id="s-tabs">
   <button class="vtab active" onclick="setTab(0,this)">360°</button>
   <button class="vtab" onclick="setTab(1,this)">Photos</button>
 </div>
@@ -241,7 +201,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- THUMBNAILS -->
-<div class="thumbs-row">
+<div class="thumbs-row hideable" id="s-thumbs">
   <div class="thumb active">
     <div class="thumb-360">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
@@ -253,7 +213,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- COLORIS -->
-<div class="section" style="margin-top:8px">
+<div class="section hideable" id="s-colors" style="margin-top:8px">
   <div class="section-label">
     Coloris
     <span class="val" id="col-name">—</span>
@@ -262,7 +222,7 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- INFOS -->
-<div class="info-grid">
+<div class="info-grid hideable" id="s-infos">
   <div class="info-card">
     <div class="info-label">Dimensions</div>
     <div class="info-value" id="dim">—</div>
@@ -286,14 +246,14 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
 </div>
 
 <!-- FEATURES -->
-<div class="features">
+<div class="features hideable" id="s-features">
   <div class="feature"><div class="feature-dash"></div>Structure bois massif certifié FSC</div>
   <div class="feature"><div class="feature-dash"></div>Rembourrage haute densité 35 kg/m³</div>
   <div class="feature"><div class="feature-dash"></div>Garantie fabricant 2 ans</div>
 </div>
 
 <!-- INSTALL BANNER -->
-<div class="install-banner" id="install-banner">
+<div class="install-banner hideable" id="s-install" id="install-banner">
   <div class="install-icon">🏠</div>
   <div class="install-text">
     <p>Retrouver ma sélection</p>
@@ -351,7 +311,6 @@ model-viewer{width:100%;height:200px;background:#F8F8FB;--poster-color:transpare
   </div>
 </div>
 
-<div class="toggle-hint" id="toggle-hint">Appuyez à nouveau pour tout afficher</div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -527,27 +486,31 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 loadProduct();updateWalletUI();
 
-// BURGER — Toggle info mode
+// TOGGLE INFO
 let infoVisible = true;
+const hideableIds = ['s-header','s-tabs','s-thumbs','s-colors','s-infos','s-features','s-install'];
+
 function toggleInfo(){
   infoVisible = !infoVisible;
-  const body = document.body;
-  const btn = document.getElementById('burger-btn');
-  const hint = document.getElementById('toggle-hint');
+  const btn = document.getElementById('burger-topbar');
+  const icon = document.getElementById('burger-icon');
+
+  hideableIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+      if(!infoVisible) el.classList.add('hidden');
+      else el.classList.remove('hidden');
+    }
+  });
 
   if(!infoVisible){
-    body.classList.add('focus-mode');
     btn.classList.add('active');
-    btn.title = 'Afficher les infos';
-    // Changer l'icône en X
-    document.getElementById('burger-icon').innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
-    // Montrer hint
-    if(hint){hint.classList.add('show');setTimeout(()=>hint.classList.remove('show'),2000);}
+    btn.title = 'Afficher les informations';
+    icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
   } else {
-    body.classList.remove('focus-mode');
     btn.classList.remove('active');
-    btn.title = 'Masquer les infos';
-    document.getElementById('burger-icon').innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
+    btn.title = 'Masquer les informations';
+    icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
   }
 }
 </script>
