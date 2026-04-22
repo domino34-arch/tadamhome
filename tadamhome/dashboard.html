@@ -792,6 +792,39 @@ const dz2=document.getElementById('drop-zone-usdz');
   ['dragleave','drop'].forEach(e=>dz.addEventListener(e,()=>dz.classList.remove('drag')));
   dz.addEventListener('drop',ev=>{ev.preventDefault();handleFileSelect(ev.dataTransfer.files[0],i===0?'glb':'usdz')});
 });
+// ── SUPPRIMER UN PRODUIT ─────────────────────────────────────
+function confirmDelete(id, name, table){
+  if(!confirm('Supprimer "'+name+'" ? Cette action est irréversible.')) return;
+  deleteProduct(id, name, table);
+}
+
+async function deleteProduct(id, name, table){
+  // Supprimer aussi les fichiers storage si possible
+  try{
+    const{data:prod}=await sb.from(table).select('model_glb_url,model_usdz_url,model_url,model_url_usdz').eq('id',id).single();
+    // Extraire les paths storage et supprimer
+    [prod?.model_glb_url,prod?.model_usdz_url,prod?.model_url,prod?.model_url_usdz].forEach(async url=>{
+      if(!url) return;
+      const path=url.split('/models/')[1];
+      if(path) await sb.storage.from('models').remove([path]);
+    });
+  }catch(e){console.log('Storage cleanup:',e)}
+
+  // Supprimer les scans associés
+  await sb.from('scans').delete().eq('product_id',id);
+
+  // Supprimer le produit
+  const{error}=await sb.from(table).delete().eq('id',id);
+
+  if(error){
+    toast('Erreur : '+error.message,'error');
+    return;
+  }
+  toast('✓ "'+name+'" supprimé','success');
+  await loadProducts();
+  renderQRList();
+}
+
 init();
 </script>
 </body>
