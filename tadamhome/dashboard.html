@@ -563,7 +563,20 @@ function renderQRList(){
   if(!products.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Aucun produit</div>';return}
   const getName=p=>p.name||p.nom||'—';
   const getRef=p=>p.reference||p.ref||'';
-  el.innerHTML=products.map(p=>`<div class="qr-card" onclick="showQR('${p.id}','${getName(p)}')"><div class="qr-box">🔲</div><div class="qr-name">${getName(p)}</div><div class="qr-scans">${getRef(p)||'Sans référence'}</div><button class="btn btn-primary btn-sm" style="width:100%;justify-content:center">Générer QR</button></div>`).join('');
+  el.innerHTML=products.map((p,i)=>`
+    <div class="qr-card" onclick="showQR('${p.id}','${getName(p).replace(/'/g,'')}')">
+      <div class="qr-box" style="background:#fff;padding:4px">
+        <canvas id="qr-mini-${i}" width="64" height="64"></canvas>
+      </div>
+      <div class="qr-name">${getName(p)}</div>
+      <div class="qr-scans">${getRef(p)||'Sans référence'}</div>
+      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="event.stopPropagation();showQR('${p.id}','${getName(p).replace(/'/g,'')}')">🔲 Voir & télécharger</button>
+    </div>`).join('');
+  // Générer les mini QR dans les cartes
+  products.forEach((p,i)=>{
+    const url='https://tadamhome.fr/scan?id='+p.id;
+    QRCode.toCanvas(document.getElementById('qr-mini-'+i),url,{width:64,margin:1,color:{dark:'#111827',light:'#ffffff'}},function(err){if(err)console.error(err)});
+  });
 }
 
 function renderBars(){
@@ -667,14 +680,32 @@ async function saveProduit(){
 }
 
 function showQR(id,name){
-  const url=`https://tadamhome.fr/scan?id=${id}`;
-  document.getElementById('qr-product-name').textContent=name;
-  QRCode.toCanvas(document.getElementById('qr-canvas'),url,{width:220,margin:2,color:{dark:'#111827',light:'#ffffff'}});
+  const url='https://tadamhome.fr/scan?id='+id;
+  document.getElementById('qr-product-name').textContent=name||'Produit';
+  // Utilise toDataURL plus fiable que toCanvas
+  QRCode.toDataURL(url,{
+    width:220,margin:2,
+    color:{dark:'#111827',light:'#ffffff'}
+  },function(err,dataUrl){
+    if(err){console.error('QR error:',err);return;}
+    const canvas=document.getElementById('qr-canvas');
+    const ctx=canvas.getContext('2d');
+    canvas.width=220;canvas.height=220;
+    const img=new Image();
+    img.onload=function(){ctx.drawImage(img,0,0);};
+    img.src=dataUrl;
+    // Aussi stocker pour le téléchargement
+    canvas.dataset.url=dataUrl;
+  });
   document.getElementById('qr-modal').classList.add('show');
 }
 function closeModal(){document.getElementById('qr-modal').classList.remove('show')}
 function downloadQR(){
-  const a=document.createElement('a');a.download='qr-'+Date.now()+'.png';a.href=document.getElementById('qr-canvas').toDataURL();a.click();
+  const canvas=document.getElementById('qr-canvas');
+  const url=canvas.dataset.url||canvas.toDataURL();
+  const a=document.createElement('a');
+  a.download='qr-tadam-'+Date.now()+'.png';
+  a.href=url;a.click();
   toast('QR code téléchargé !','success');
 }
 
