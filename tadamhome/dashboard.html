@@ -560,22 +560,76 @@ function renderProducts(){
 
 function renderQRList(){
   const el=document.getElementById('qr-list');
-  if(!products.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Aucun produit</div>';return}
+  if(!products.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center">Aucun produit — importez votre premier meuble !</div>';return}
   const getName=p=>p.name||p.nom||'—';
   const getRef=p=>p.reference||p.ref||'';
+  // Créer les cartes avec img tag (plus fiable que canvas)
   el.innerHTML=products.map((p,i)=>`
-    <div class="qr-card" onclick="showQR('${p.id}','${getName(p).replace(/'/g,'')}')">
-      <div class="qr-box" style="background:#fff;padding:4px">
-        <canvas id="qr-mini-${i}" width="64" height="64"></canvas>
+    <div class="qr-card" id="qr-card-${i}">
+      <div style="width:120px;height:120px;margin:0 auto 12px;background:#f9fafb;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;">
+        <img id="qr-img-${i}" src="" width="110" height="110" style="border-radius:8px"/>
       </div>
       <div class="qr-name">${getName(p)}</div>
       <div class="qr-scans">${getRef(p)||'Sans référence'}</div>
-      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="event.stopPropagation();showQR('${p.id}','${getName(p).replace(/'/g,'')}')">🔲 Voir & télécharger</button>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="showQR('${p.id}','${getName(p).replace(/'/g,'').replace(/"/g,'')}')">🔲 Agrandir</button>
+        <button class="btn btn-outline btn-sm" onclick="printQR('${p.id}','${getName(p).replace(/'/g,'').replace(/"/g,'')}')" title="Imprimer">🖨️</button>
+        <button class="btn btn-outline btn-sm" onclick="dlQR('${p.id}','${getName(p).replace(/'/g,'').replace(/"/g,'')}')" title="Télécharger">⬇</button>
+      </div>
     </div>`).join('');
-  // Générer les mini QR dans les cartes
+  // Générer les QR avec toDataURL (fiable)
   products.forEach((p,i)=>{
     const url='https://tadamhome.fr/scan?id='+p.id;
-    QRCode.toCanvas(document.getElementById('qr-mini-'+i),url,{width:64,margin:1,color:{dark:'#111827',light:'#ffffff'}},function(err){if(err)console.error(err)});
+    QRCode.toDataURL(url,{width:220,margin:2,color:{dark:'#111827',light:'#ffffff'}},function(err,dataUrl){
+      if(err){console.error('QR error:',err);return;}
+      const img=document.getElementById('qr-img-'+i);
+      if(img){img.src=dataUrl;img.dataset.url=dataUrl;img.dataset.name=getName(p);}
+    });
+  });
+}
+
+function dlQR(id, name){
+  const url='https://tadamhome.fr/scan?id='+id;
+  QRCode.toDataURL(url,{width:400,margin:3,color:{dark:'#111827',light:'#ffffff'}},function(err,dataUrl){
+    if(err)return;
+    const a=document.createElement('a');
+    a.download='QR-TadamHome-'+name+'.png';
+    a.href=dataUrl;a.click();
+    toast('QR téléchargé !','success');
+  });
+}
+
+function printQR(id, name){
+  const url='https://tadamhome.fr/scan?id='+id;
+  QRCode.toDataURL(url,{width:600,margin:4,color:{dark:'#111827',light:'#ffffff'}},function(err,dataUrl){
+    if(err)return;
+    const win=window.open('','_blank');
+    win.document.write(`
+      <!DOCTYPE html><html><head>
+      <title>QR Code — ${name}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#fff;padding:20px}
+        .card{border:2px solid #e5e7eb;border-radius:16px;padding:24px;text-align:center;max-width:300px;width:100%}
+        img{width:220px;height:220px;margin-bottom:16px}
+        h2{font-size:18px;font-weight:800;color:#111;margin-bottom:6px}
+        p{font-size:12px;color:#6b7280;margin-bottom:4px}
+        .powered{font-size:10px;color:#9ca3af;margin-top:16px;border-top:1px solid #f3f4f6;padding-top:12px}
+        @media print{body{margin:0}.card{border:2px solid #000}}
+      </style>
+      </head><body>
+        <div class="card">
+          <img src="${dataUrl}" alt="QR Code"/>
+          <h2>${name}</h2>
+          <p>Scannez pour voir ce meuble</p>
+          <p>en réalité augmentée 📱</p>
+          <div class="powered">✦ Powered by TadamHome</div>
+        </div>
+        <script>window.onload=()=>{window.print();}<\/script>
+      </body></html>
+    `);
+    win.document.close();
+    toast('Impression lancée !','success');
   });
 }
 
@@ -682,29 +736,32 @@ async function saveProduit(){
 function showQR(id,name){
   const url='https://tadamhome.fr/scan?id='+id;
   document.getElementById('qr-product-name').textContent=name||'Produit';
-  // Utilise toDataURL plus fiable que toCanvas
-  QRCode.toDataURL(url,{
-    width:220,margin:2,
-    color:{dark:'#111827',light:'#ffffff'}
-  },function(err,dataUrl){
+  QRCode.toDataURL(url,{width:220,margin:2,color:{dark:'#111827',light:'#ffffff'}},function(err,dataUrl){
     if(err){console.error('QR error:',err);return;}
-    const canvas=document.getElementById('qr-canvas');
-    const ctx=canvas.getContext('2d');
-    canvas.width=220;canvas.height=220;
-    const img=new Image();
-    img.onload=function(){ctx.drawImage(img,0,0);};
-    img.src=dataUrl;
-    // Aussi stocker pour le téléchargement
-    canvas.dataset.url=dataUrl;
+    // Remplacer le canvas par une image dans la modale
+    const modalCard=document.querySelector('#qr-modal .modal-card');
+    let qrDisplay=document.getElementById('qr-display');
+    if(!qrDisplay){
+      qrDisplay=document.createElement('img');
+      qrDisplay.id='qr-display';
+      qrDisplay.style='width:220px;height:220px;border-radius:12px;border:1px solid var(--border);display:block;margin:0 auto';
+      const canvas=document.getElementById('qr-canvas');
+      canvas.parentNode.replaceChild(qrDisplay, canvas);
+    }
+    qrDisplay.src=dataUrl;
+    qrDisplay.dataset.url=dataUrl;
+    qrDisplay.dataset.name=name;
   });
   document.getElementById('qr-modal').classList.add('show');
 }
 function closeModal(){document.getElementById('qr-modal').classList.remove('show')}
 function downloadQR(){
-  const canvas=document.getElementById('qr-canvas');
-  const url=canvas.dataset.url||canvas.toDataURL();
+  const qrDisplay=document.getElementById('qr-display')||document.getElementById('qr-canvas');
+  const url=qrDisplay?.dataset?.url||qrDisplay?.src||qrDisplay?.toDataURL?.();
+  if(!url){toast('QR non disponible','error');return;}
+  const name=qrDisplay.dataset.name||'produit';
   const a=document.createElement('a');
-  a.download='qr-tadam-'+Date.now()+'.png';
+  a.download='QR-TadamHome-'+name+'.png';
   a.href=url;a.click();
   toast('QR code téléchargé !','success');
 }
