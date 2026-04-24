@@ -511,13 +511,12 @@ function closeConfirm(){
 }
 
 async function deleteProduct(){
-  closeConfirm();
-  if(!pendingDeleteId&&!arguments[0]){return}
+  // Sauvegarder AVANT de fermer la modale (closeConfirm remet à null)
   const id=pendingDeleteId;
   const name=pendingDeleteName;
   const table=pendingDeleteTable||'produits';
-  // Stocker avant de reset
-  pendingDeleteId=null;pendingDeleteName=null;pendingDeleteTable=null;
+  closeConfirm();
+  if(!id){return;}
 
   toast('Suppression en cours...','');
 
