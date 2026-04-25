@@ -298,6 +298,20 @@ model-viewer {
 @keyframes rpulse { 0%,100%{opacity:.4;transform:translateX(-50%) scaleX(1)} 50%{opacity:.85;transform:translateX(-50%) scaleX(1.1)} }
 @keyframes spin   { to{transform:rotate(360deg)} }
 @keyframes fin    { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 480px) {
+  .topbar { padding: 0 14px; }
+  .topbar-logo { font-size: 16px; }
+  .tb-tag { display: none; }
+  .prod-name { font-size: 22px; }
+  .sheet-inner { padding: 0 14px 20px; }
+  .sw { width: 26px; height: 26px; }
+  .mat-pill { font-size: 10px; padding: 6px 11px; }
+  .size-opt { font-size: 10px; padding: 5px 11px; }
+  .btn-ar { font-size: 10px; letter-spacing: .1em; }
+  .cta-bar { padding: 10px 14px; }
+}
 </style>
 </head>
 <body>
