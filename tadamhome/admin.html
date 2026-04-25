@@ -590,18 +590,17 @@ async function uploadFile(fileInput, progEl, barEl, doneEl, urlInput) {
   progEl.style.display = 'block';
   barEl.style.width = '20%';
 
-  const { data, error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  let uploadData, uploadError;
+  try {
+    const result = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    uploadData = result.data; uploadError = result.error;
+  } catch(e) { uploadError = { message: e.message }; }
   barEl.style.width = '100%';
 
-  if (error) {
-    const msg = error.message.includes('row-level') || error.message.includes('policy')
-      ? 'Bucket Supabase : vérifiez que le bucket "models" existe et est public.'
-      : error.message.includes('not found')
-      ? 'Bucket "models" introuvable — créez-le dans Supabase Storage.'
-      : 'Erreur upload : ' + error.message;
-    showToast(msg);
-    showMsg(msg, 'err');
+  if (uploadError) {
+    console.warn('Upload storage echoue:', uploadError.message);
     progEl.style.display = 'none';
+    showToast('Upload storage indisponible — utilisez une URL directe', '');
     return null;
   }
 
