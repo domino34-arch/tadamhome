@@ -1,793 +1,716 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TadamHome — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:    #F5F2EC;
-  --bg2:   #EDEAE2;
-  --bg3:   #E4E0D6;
-  --ink:   #1C1B18;
-  --ink2:  #4A4840;
-  --ink3:  #8A8880;
-  --accent:#B8986A;
-  --acc2:  #D4B896;
-  --acc3:  #A07A4A;
-  --white: #FAFAF8;
-  --err:   #C0392B;
-  --ok:    #27704A;
-  --serif: 'Cormorant Garamond', Georgia, serif;
-  --sans:  'Outfit', sans-serif;
-  --ease:  cubic-bezier(.25,.1,.25,1);
-  --sidebar: 240px;
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f5f7;--sidebar:#0f0c1e;--white:#ffffff;
+  --p:#7c3aed;--pk:#ec4899;--grad:linear-gradient(135deg,#7c3aed,#ec4899);
+  --border:#e8eaed;--text:#111827;--muted:#6b7280;--light:#f9fafb;
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;--acc:#7c3aed;
 }
-html, body { height: 100%; font-family: var(--sans); background: var(--bg2); color: var(--ink); font-weight: 300; overflow: hidden; }
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;-webkit-font-smoothing:antialiased}
+.sidebar{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;transition:transform .25s;z-index:100}
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+.nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;padding:14px 12px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(124,58,237,.2);color:#fff;border:1px solid rgba(124,58,237,.3)}
+.nav-item .ico{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--grad);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:100px}
+.sidebar-bottom{padding:14px 10px;border-top:1px solid rgba(255,255,255,.06)}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.user-name{font-size:12px;font-weight:700;color:#fff}
+.user-email{font-size:10px;color:rgba(255,255,255,.4)}
+.btn-logout{width:100%;margin-top:8px;padding:9px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center}
+.btn-logout:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);color:#fca5a5}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.sidebar-overlay.show{display:block}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;background:var(--bg);min-width:0}
+.topbar{padding:0 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--white);height:60px;gap:12px}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.topbar h1{font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.topbar p{font-size:11px;color:var(--muted);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;flex-direction:column;gap:4px;flex-shrink:0}
+.hamburger span{display:block;width:20px;height:2px;background:var(--text);border-radius:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .18s;font-family:inherit}
+.btn-outline{background:var(--white);border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:#c4b5fd;color:var(--p)}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25)}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+.btn-danger:hover{background:#fee2e2}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.page{display:none}
+.page.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px 20px;transition:box-shadow .2s}
+.metric:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.metric-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ico-purple{background:#f3f0ff}.ico-green{background:#f0fdf4}.ico-blue{background:#eff6ff}.ico-pink{background:#fdf2f8}
+.metric-trend{font-size:11px;font-weight:700;color:var(--green);background:#f0fdf4;padding:3px 8px;border-radius:100px}
+.metric-val{font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:3px;color:var(--text)}
+.metric-label{font-size:11px;color:var(--muted);font-weight:500}
+.card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--text)}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.chip{background:#f3f0ff;border:1px solid #e9d5ff;border-radius:100px;padding:4px 10px;font-size:10px;color:var(--p);font-weight:700}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:20px}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px}
+.bw{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.br{width:100%;border-radius:5px 5px 0 0;background:#f3f0ff;transition:all .2s}
+.br.hi{background:var(--grad)}
+.bl{font-size:9px;color:var(--muted)}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+.donut-legend{width:100%;display:flex;flex-direction:column;gap:8px}
+.dl-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl-label{color:var(--muted);flex:1;font-size:11px}
+.dl-val{font-weight:700;font-size:12px;color:var(--text)}
+.table-wrap{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-head{display:flex;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--light);gap:10px;min-width:520px}
+.th{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.prod-row{display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);gap:10px;transition:background .15s;min-width:520px}
+.prod-row:last-child{border-bottom:none}
+.prod-row:hover{background:var(--light)}
+.prod-ico{width:40px;height:40px;border-radius:10px;background:#f3f0ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.prod-name{font-size:13px;font-weight:700;color:var(--text)}
+.prod-cat{font-size:11px;color:var(--muted)}
+.badge{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700}
+.badge-green{background:#f0fdf4;color:#059669;border:1px solid #a7f3d0}
+.badge-amber{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+.badge-muted{background:var(--light);color:var(--muted);border:1px solid var(--border)}
+.col-1{flex:2;min-width:0;display:flex;align-items:center;gap:10px}
+.col-2,.col-3{flex:1;text-align:center}
+.col-4{flex:1;display:flex;justify-content:flex-end;gap:5px}
+.row-btn{background:var(--light);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;color:var(--text);transition:all .15s;font-family:inherit;white-space:nowrap}
+.row-btn:hover{background:#f3f0ff;border-color:#c4b5fd;color:var(--p)}
+.row-btn-del{background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;color:var(--red);transition:all .15s;font-family:inherit}
+.row-btn-del:hover{background:#fee2e2}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.upload-zone{background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--p);background:#faf8ff}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-ico{font-size:32px;margin-bottom:10px}
+.upload-title{font-size:14px;font-weight:700;margin-bottom:5px;color:var(--text)}
+.upload-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.formats{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.fmt{background:#f3f0ff;border:1px solid #e9d5ff;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;color:var(--p)}
+.form-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.field input,.field select{background:var(--light);border:1px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);font-family:inherit;outline:none;transition:all .2s}
+.field input:focus,.field select:focus{border-color:var(--p);background:var(--white);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
+.field.full{grid-column:1/-1}
+.upload-progress{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;display:none;align-items:center;gap:12px}
+.upload-progress.show{display:flex}
+.prog-bar{background:var(--light);border-radius:100px;height:4px;overflow:hidden;flex:1}
+.prog-fill{height:100%;border-radius:100px;background:var(--grad);transition:width .1s}
+.prog-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px}
+.prog-pct{font-size:12px;font-weight:700;color:var(--p)}
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.qr-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;transition:all .2s}
+.qr-card:hover{border-color:#c4b5fd;box-shadow:0 8px 24px rgba(124,58,237,.1)}
+.qr-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+.qr-scans{font-size:11px;color:var(--muted);margin-bottom:12px}
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.top-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.top-item{display:flex;align-items:center;gap:10px}
+.top-rank{font-size:11px;font-weight:800;color:var(--muted);width:16px;flex-shrink:0}
+.top-bar-bg{background:var(--light);border-radius:100px;height:5px;overflow:hidden;flex:1}
+.top-bar-fill{height:100%;border-radius:100px;background:var(--grad)}
+.top-name{font-size:12px;font-weight:600;margin-bottom:3px;color:var(--text)}
+.top-val{font-size:11px;font-weight:700;color:var(--p);flex-shrink:0}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.scard{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px}
+.scard h3{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.scard p{font-size:12px;color:var(--muted);margin-bottom:18px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:13px;font-weight:600;color:var(--text)}
+.toggle-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.toggle{width:38px;height:21px;border-radius:100px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.toggle.on{background:var(--p)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(17px)}
+.plan-box{background:#faf8ff;border:1px solid #e9d5ff;border-radius:12px;padding:16px;margin-bottom:16px}
+.integration-row{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--light);border-radius:10px;border:1px solid var(--border);margin-bottom:8px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.modal.show{opacity:1;pointer-events:all}
+.modal-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:32px;text-align:center;max-width:320px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-card h3{font-size:17px;font-weight:800;margin-bottom:4px;color:var(--text)}
+.modal-card p{font-size:13px;color:var(--muted);margin-bottom:20px}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
 
-/* ── LAYOUT ── */
-.app { display: flex; height: 100vh; overflow: hidden; }
+/* MODAL CONFIRMATION SUPPRESSION */
+.confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.confirm-modal.show{opacity:1;pointer-events:all}
+.confirm-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:300px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center}
+.confirm-card .icon{font-size:36px;margin-bottom:12px}
+.confirm-card h3{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px}
+.confirm-card p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:8px}
 
-/* ── SIDEBAR ── */
-.sidebar {
-  width: var(--sidebar); flex-shrink: 0;
-  background: var(--ink);
-  display: flex; flex-direction: column;
-  padding: 0;
-  position: relative; overflow: hidden;
-}
-.sidebar::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(184,152,106,.06) 0%, transparent 60%);
-  pointer-events: none;
-}
-.sidebar-logo {
-  padding: 28px 24px 24px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-  margin-bottom: 8px;
-}
-.sidebar-logo a {
-  font-family: var(--serif);
-  font-size: 20px; font-weight: 500; letter-spacing: .02em;
-  color: var(--white); text-decoration: none;
-}
-.sidebar-logo a span { color: var(--accent); }
-.sidebar-tag {
-  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
-  color: rgba(255,255,255,.25); margin-top: 5px;
-}
-
-.nav-section { padding: 8px 12px; margin-bottom: 2px; }
-.nav-section-lbl {
-  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
-  color: rgba(255,255,255,.2); padding: 0 12px; margin-bottom: 6px;
-}
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 0;
-  color: rgba(255,255,255,.45); font-size: 12px; font-weight: 400;
-  cursor: pointer; transition: all .2s; text-decoration: none;
-  letter-spacing: .02em; width: 100%;
-  background: transparent; border: none; font-family: var(--sans);
-  text-align: left;
-}
-.nav-item:hover { color: var(--white); background: rgba(255,255,255,.05); }
-.nav-item.act  { color: var(--accent); background: rgba(184,152,106,.1); border-left: 2px solid var(--accent); }
-.nav-item svg  { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-
-.sidebar-footer {
-  margin-top: auto;
-  padding: 16px 12px;
-  border-top: 1px solid rgba(255,255,255,.07);
-}
-.user-row {
-  display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 6px;
-}
-.user-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: rgba(184,152,106,.2); border: 1px solid rgba(184,152,106,.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; color: var(--accent); flex-shrink: 0;
-}
-.user-info { flex: 1; overflow: hidden; }
-.user-name  { font-size: 11px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-email { font-size: 10px; color: rgba(255,255,255,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.btn-logout {
-  width: 100%; padding: 9px 12px;
-  background: transparent; border: none;
-  color: rgba(255,255,255,.3); font-family: var(--sans); font-size: 11px;
-  letter-spacing: .06em; text-align: left; cursor: pointer; transition: color .2s;
-  display: flex; align-items: center; gap: 8px;
-}
-.btn-logout:hover { color: var(--err); }
-.btn-logout svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
-
-/* ── MAIN ── */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-/* topbar */
-.topbar {
-  height: 56px; flex-shrink: 0;
-  background: rgba(245,242,236,.95); backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(184,152,106,.12);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 32px;
-}
-.topbar-title { font-family: var(--serif); font-size: 20px; font-weight: 400; color: var(--ink); }
-.topbar-title em { font-style: italic; color: var(--accent); }
-.topbar-right { display: flex; gap: 10px; align-items: center; }
-.topbar-btn {
-  font-size: 10px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase;
-  padding: 8px 18px; border: 1px solid rgba(28,27,24,.14);
-  background: transparent; color: var(--ink2);
-  cursor: pointer; font-family: var(--sans); transition: all .2s; text-decoration: none;
-}
-.topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
-.topbar-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
-.topbar-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
-
-/* content area */
-.content { flex: 1; overflow-y: auto; padding: 28px 32px 48px; }
-
-/* ── PANELS ── */
-.panel { display: none; }
-.panel.act { display: block; }
-
-/* ── STATS ROW ── */
-.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; background: rgba(28,27,24,.07); margin-bottom: 28px; border: 1px solid rgba(28,27,24,.07); }
-.stat-card { background: var(--white); padding: 22px 24px; }
-.stat-n { font-family: var(--serif); font-size: 34px; font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 5px; }
-.stat-n span { color: var(--accent); }
-.stat-l { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); }
-
-/* ── SECTION HEADERS ── */
-.sec-eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
-.sec-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--accent); }
-.sec-h2 { font-family: var(--serif); font-size: 28px; font-weight: 300; margin-bottom: 22px; }
-.sec-h2 em { font-style: italic; color: var(--accent); }
-
-/* ── UPLOAD FORM ── */
-.form-card { background: var(--white); border: 1px solid rgba(28,27,24,.07); margin-bottom: 28px; }
-.form-card-head { padding: 18px 24px; border-bottom: 1px solid rgba(28,27,24,.06); display: flex; align-items: center; justify-content: space-between; }
-.form-card-head h3 { font-family: var(--serif); font-size: 20px; font-weight: 400; }
-.form-card-body { padding: 24px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
-.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field.full { grid-column: 1/-1; }
-.field label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); }
-.field input, .field select {
-  padding: 11px 14px; border: 1px solid rgba(28,27,24,.13);
-  background: var(--bg); color: var(--ink);
-  font-family: var(--sans); font-size: 13px; font-weight: 300;
-  outline: none; transition: border-color .2s;
-}
-.field input:focus, .field select:focus { border-color: var(--accent); background: var(--white); }
-.field input::placeholder { color: var(--ink3); }
-.field select { cursor: pointer; }
-
-/* upload zones */
-.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-.upload-zone {
-  border: 1px dashed rgba(184,152,106,.4); background: rgba(184,152,106,.03);
-  padding: 24px; text-align: center; cursor: pointer; transition: all .25s;
-  position: relative;
-}
-.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(184,152,106,.06); }
-.upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.upload-icon { font-size: 20px; margin-bottom: 6px; }
-.upload-txt { font-size: 12px; color: var(--ink3); line-height: 1.6; }
-.upload-txt strong { color: var(--accent); }
-.upload-progress { height: 2px; background: rgba(184,152,106,.15); margin-top: 12px; display: none; }
-.upload-bar { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
-.upload-done { font-size: 11px; color: var(--ok); margin-top: 6px; display: none; }
-.upload-url { margin-top: 8px; }
-.upload-url input { width: 100%; padding: 9px 12px; border: 1px solid rgba(28,27,24,.1); background: var(--bg2); font-family: var(--sans); font-size: 12px; color: var(--ink); outline: none; }
-.upload-url input:focus { border-color: var(--accent); }
-.upload-url input::placeholder { color: var(--ink3); }
-
-/* form actions */
-.form-actions { display: flex; gap: 10px; align-items: center; padding-top: 18px; border-top: 1px solid rgba(28,27,24,.07); }
-.btn-submit {
-  padding: 12px 30px; background: var(--ink); color: var(--white);
-  border: none; font-family: var(--sans); font-size: 11px; font-weight: 500;
-  letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .3s;
-  display: flex; align-items: center; gap: 8px;
-}
-.btn-submit:hover { background: var(--accent); }
-.btn-submit:disabled { background: var(--ink3); cursor: wait; }
-.btn-cancel {
-  padding: 12px 22px; background: transparent; color: var(--ink2);
-  border: 1px solid rgba(28,27,24,.14); font-family: var(--sans); font-size: 11px;
-  letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .2s;
-}
-.btn-cancel:hover { border-color: var(--accent); color: var(--accent); }
-.spin { width: 13px; height: 13px; border: 1.5px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .8s linear infinite; display: none; }
-.form-msg { font-size: 12px; }
-.form-msg.ok  { color: var(--ok); }
-.form-msg.err { color: var(--err); }
-
-/* ── CATALOGUE TABLE ── */
-.table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-.search-wrap { display: flex; gap: 8px; }
-.search-input {
-  padding: 9px 14px; border: 1px solid rgba(28,27,24,.12);
-  background: var(--white); font-family: var(--sans); font-size: 12px;
-  color: var(--ink); outline: none; width: 220px; transition: border-color .2s;
-}
-.search-input:focus { border-color: var(--accent); }
-.search-input::placeholder { color: var(--ink3); }
-.refresh-btn {
-  padding: 9px 16px; border: 1px solid rgba(28,27,24,.12);
-  background: transparent; font-family: var(--sans); font-size: 11px;
-  color: var(--ink3); cursor: pointer; transition: all .2s; letter-spacing: .06em;
-}
-.refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-.table-wrap { background: var(--white); border: 1px solid rgba(28,27,24,.07); overflow: hidden; }
-.table-bar { height: 38px; background: var(--ink); display: flex; align-items: center; padding: 0 16px; gap: 6px; }
-.tbar-dot { width: 8px; height: 8px; border-radius: 50%; }
-.tbar-lbl { font-size: 10px; color: rgba(255,255,255,.25); margin-left: auto; letter-spacing: .06em; }
-table { width: 100%; border-collapse: collapse; }
-thead tr { border-bottom: 1px solid rgba(28,27,24,.08); }
-th { padding: 11px 16px; text-align: left; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); font-weight: 400; white-space: nowrap; }
-td { padding: 13px 16px; font-size: 12px; color: var(--ink2); border-bottom: 1px solid rgba(28,27,24,.05); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(245,242,236,.6); }
-.td-brand { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
-.td-name { font-family: var(--serif); font-size: 15px; font-weight: 400; color: var(--ink); }
-.td-badge { display: inline-block; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border: 1px solid rgba(184,152,106,.25); color: var(--acc3); }
-.td-badge.ok { border-color: rgba(39,112,74,.3); color: var(--ok); }
-.td-badge.no { border-color: rgba(192,57,43,.2); color: rgba(192,57,43,.7); }
-.row-actions { display: flex; gap: 5px; }
-.row-btn { padding: 5px 11px; border: 1px solid rgba(28,27,24,.1); background: transparent; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); cursor: pointer; font-family: var(--sans); transition: all .2s; white-space: nowrap; }
-.row-btn:hover { border-color: var(--accent); color: var(--accent); }
-.row-btn.del:hover { border-color: var(--err); color: var(--err); }
-
-.empty-state { padding: 52px; text-align: center; }
-.empty-icon { font-size: 28px; margin-bottom: 10px; }
-.empty-h { font-family: var(--serif); font-size: 20px; font-weight: 300; margin-bottom: 6px; }
-.empty-p { font-size: 12px; color: var(--ink3); }
-
-/* ── QR MODAL ── */
-.modal-bg { position: fixed; inset: 0; background: rgba(28,27,24,.55); z-index: 500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.modal-bg.show { display: flex; }
-.modal { background: var(--white); padding: 36px; max-width: 320px; width: 90%; text-align: center; animation: popin .3s var(--ease); }
-.modal h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; margin-bottom: 5px; }
-.modal-sub { font-size: 11px; color: var(--ink3); margin-bottom: 22px; word-break: break-all; }
-#qrCanvas { margin: 0 auto 20px; display: block; }
-.modal-btns { display: flex; gap: 8px; }
-.modal-btn { flex: 1; padding: 11px; border: 1px solid rgba(28,27,24,.14); background: transparent; font-family: var(--sans); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); cursor: pointer; transition: all .2s; }
-.modal-btn:hover { border-color: var(--accent); color: var(--accent); }
-.modal-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
-.modal-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
-
-/* ── CONFIRM DELETE ── */
-.confirm-bg { position: fixed; inset: 0; background: rgba(28,27,24,.5); z-index: 600; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.confirm-bg.show { display: flex; }
-.confirm-box { background: var(--white); padding: 32px; max-width: 340px; width: 90%; text-align: center; animation: popin .3s var(--ease); }
-.confirm-box h4 { font-family: var(--serif); font-size: 22px; font-weight: 300; margin-bottom: 10px; }
-.confirm-box p { font-size: 13px; color: var(--ink3); margin-bottom: 24px; line-height: 1.7; }
-.confirm-btns { display: flex; gap: 8px; }
-.confirm-btn { flex: 1; padding: 12px; font-family: var(--sans); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; border: 1px solid rgba(28,27,24,.14); background: transparent; color: var(--ink2); transition: all .2s; }
-.confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
-.confirm-btn.danger { background: var(--err); color: var(--white); border-color: var(--err); }
-.confirm-btn.danger:hover { background: #a93226; }
-
-/* ── TOAST ── */
-.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--white); font-size: 12px; letter-spacing: .04em; padding: 10px 20px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 999; white-space: nowrap; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.ok { background: var(--ok); }
-
-/* ── SETTINGS PANEL ── */
-.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.setting-card { background: var(--white); border: 1px solid rgba(28,27,24,.07); padding: 22px 24px; }
-.setting-card h4 { font-family: var(--serif); font-size: 18px; font-weight: 400; margin-bottom: 6px; }
-.setting-card p { font-size: 12px; color: var(--ink3); line-height: 1.7; margin-bottom: 18px; }
-.setting-val { font-size: 13px; color: var(--ink2); padding: 10px 14px; background: var(--bg2); border-left: 2px solid var(--accent); word-break: break-all; }
-
-/* ── MOBILE ── */
-@media (max-width: 768px) {
-  .sidebar { display: none; }
-  .content { padding: 20px 18px 40px; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .form-grid.three { grid-template-columns: 1fr; }
-  .upload-grid { grid-template-columns: 1fr; }
-  .settings-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 0 18px; }
-  th:nth-child(3), td:nth-child(3),
-  th:nth-child(4), td:nth-child(4) { display: none; }
-}
-
-/* ── KEYFRAMES ── */
-@keyframes spin   { to { transform: rotate(360deg); } }
-@keyframes popin  { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
-@keyframes fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 20px;border-radius:100px;font-size:13px;font-weight:700;opacity:0;transition:all .3s;z-index:400;transform:translateY(8px)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:100px}
+@media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}.charts-row{grid-template-columns:1fr}.an-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:1}}
+@media(max-width:768px){.sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.3)}.sidebar.open{transform:translateX(0)}.hamburger{display:flex}.topbar{padding:0 16px;height:56px}.topbar p{display:none}.btn-outline{display:none}.content{padding:14px}.metrics{grid-template-columns:repeat(2,1fr);gap:10px}.metric{padding:14px}.metric-val{font-size:22px}.upload-grid{grid-template-columns:1fr}.qr-grid{grid-template-columns:repeat(2,1fr)}.toast{bottom:16px;right:16px;left:16px;text-align:center;border-radius:12px}}
 </style>
 </head>
 <body>
 
-<div class="app">
-
-  <!-- ── SIDEBAR ── -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <a href="index.html">Tadam<span>Home</span></a>
-      <div class="sidebar-tag">Espace administration</div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-section-lbl">Navigation</div>
-      <button class="nav-item act" onclick="showPanel('overview')">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        Vue d'ensemble
-      </button>
-      <button class="nav-item" onclick="showPanel('upload')">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Importer un modèle
-      </button>
-      <button class="nav-item" onclick="showPanel('catalogue')">
-        <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Catalogue
-      </button>
-      <button class="nav-item" onclick="showPanel('settings')">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Paramètres
-      </button>
-    </div>
-
-    <div class="nav-section" style="margin-top:8px">
-      <div class="nav-section-lbl">Liens rapides</div>
-      <a href="index.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Voir le site
-      </a>
-      <a href="scan.html" class="nav-item" target="_blank">
-        <svg viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/></svg>
-        Viewer AR
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="user-row">
-        <div class="user-avatar" id="avatarLetter">T</div>
-        <div class="user-info">
-          <div class="user-name" id="userName">—</div>
-          <div class="user-email" id="userEmail">—</div>
-        </div>
-      </div>
-      <button class="btn-logout" onclick="logout()">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Déconnexion
-      </button>
-    </div>
-  </aside>
-
-  <!-- ── MAIN ── -->
-  <div class="main">
-
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="topbar-title" id="topbarTitle">Vue d'<em>ensemble</em></div>
-      <div class="topbar-right">
-        <button class="topbar-btn" onclick="showPanel('catalogue')">Catalogue</button>
-        <button class="topbar-btn primary" onclick="showPanel('upload')">+ Importer</button>
-      </div>
-    </div>
-
-    <!-- CONTENT -->
-    <div class="content">
-
-      <!-- ══ OVERVIEW ══ -->
-      <div class="panel act" id="panelOverview">
-        <div class="stats-row">
-          <div class="stat-card"><div class="stat-n" id="stTotal">—</div><div class="stat-l">Produits total</div></div>
-          <div class="stat-card"><div class="stat-n" id="stGlb">—</div><div class="stat-l">Modèles GLB</div></div>
-          <div class="stat-card"><div class="stat-n" id="stUsdz">—</div><div class="stat-l">Fichiers USDZ</div></div>
-          <div class="stat-card"><div class="stat-n">AR<span>×3D</span></div><div class="stat-l">Jumeaux numériques</div></div>
-        </div>
-
-        <div class="sec-eyebrow">Derniers ajouts</div>
-        <h2 class="sec-h2">Vos <em>modèles récents</em></h2>
-        <div class="table-wrap">
-          <div class="table-bar">
-            <div class="tbar-dot" style="background:#E74C3C"></div>
-            <div class="tbar-dot" style="background:#F39C12"></div>
-            <div class="tbar-dot" style="background:#27AE60"></div>
-            <span class="tbar-lbl">TadamHome — Catalogue</span>
-          </div>
-          <div id="overviewTable"></div>
-        </div>
-      </div>
-
-      <!-- ══ UPLOAD ══ -->
-      <div class="panel" id="panelUpload">
-        <div class="sec-eyebrow">Nouveau modèle</div>
-        <h2 class="sec-h2">Importer un <em>modèle 3D</em></h2>
-
-        <div class="form-card">
-          <div class="form-card-head">
-            <h3>Informations produit</h3>
-            <span style="font-size:11px;color:var(--ink3)">* champs requis</span>
-          </div>
-          <div class="form-card-body">
-            <div class="form-grid">
-              <div class="field"><label>Nom *</label><input type="text" id="fNom" placeholder="ex. Canapé Mags"></div>
-              <div class="field"><label>Marque *</label><input type="text" id="fMarque" placeholder="ex. Hay"></div>
-              <div class="field"><label>Catégorie *</label>
-                <select id="fCat">
-                  <option value="">Choisir…</option>
-                  <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
-                  <option>Table basse</option><option>Table à manger</option>
-                  <option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option>
-                </select>
-              </div>
-              <div class="field"><label>Prix (€)</label><input type="number" id="fPrix" placeholder="ex. 1290"></div>
-            </div>
-            <div class="form-grid three">
-              <div class="field"><label>Matière</label><input type="text" id="fMat" placeholder="Tissu, Cuir…"></div>
-              <div class="field"><label>Couleur</label><input type="text" id="fCol" placeholder="Gris chiné"></div>
-              <div class="field"><label>Référence</label><input type="text" id="fRef" placeholder="HAY-MG-001"></div>
-            </div>
-            <div class="form-grid three">
-              <div class="field"><label>Largeur (cm)</label><input type="number" id="fLarg" placeholder="220"></div>
-              <div class="field"><label>Hauteur (cm)</label><input type="number" id="fHaut" placeholder="75"></div>
-              <div class="field"><label>Profondeur (cm)</label><input type="number" id="fProf" placeholder="95"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-card">
-          <div class="form-card-head"><h3>Fichiers 3D</h3></div>
-          <div class="form-card-body">
-            <div class="upload-grid">
-              <!-- GLB -->
-              <div>
-                <div class="upload-zone" id="zoneGlb">
-                  <input type="file" id="fileGlb" accept=".glb">
-                  <div class="upload-icon">◈</div>
-                  <div class="upload-txt">Glissez votre <strong>.glb</strong> ici<br>ou cliquez pour parcourir</div>
-                  <div class="upload-progress" id="progGlb"><div class="upload-bar" id="barGlb"></div></div>
-                  <div class="upload-done" id="doneGlb">✓ Fichier uploadé</div>
-                </div>
-                <div class="upload-url"><input type="text" id="fGlbUrl" placeholder="…ou collez une URL GLB"></div>
-              </div>
-              <!-- USDZ -->
-              <div>
-                <div class="upload-zone" id="zoneUsdz">
-                  <input type="file" id="fileUsdz" accept=".usdz">
-                  <div class="upload-icon">◇</div>
-                  <div class="upload-txt">Glissez votre <strong>.usdz</strong> ici<br>ou cliquez pour parcourir</div>
-                  <div class="upload-progress" id="progUsdz"><div class="upload-bar" id="barUsdz"></div></div>
-                  <div class="upload-done" id="doneUsdz">✓ Fichier uploadé</div>
-                </div>
-                <div class="upload-url"><input type="text" id="fUsdzUrl" placeholder="…ou collez une URL USDZ"></div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn-submit" id="btnAdd" onclick="addProduct()">
-                <div class="spin" id="spinAdd"></div>
-                <span id="lblAdd">Ajouter au catalogue</span>
-              </button>
-              <button class="btn-cancel" onclick="resetForm()">Réinitialiser</button>
-              <span class="form-msg" id="formMsg"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ CATALOGUE ══ -->
-      <div class="panel" id="panelCatalogue">
-        <div class="sec-eyebrow">Catalogue complet</div>
-        <h2 class="sec-h2">Vos <em>modèles</em></h2>
-        <div class="table-head">
-          <div class="search-wrap">
-            <input class="search-input" id="searchInput" placeholder="Rechercher…" oninput="filterTable()">
-            <button class="refresh-btn" onclick="loadProducts()">↺ Actualiser</button>
-          </div>
-          <button class="topbar-btn primary" onclick="showPanel('upload')">+ Importer</button>
-        </div>
-        <div class="table-wrap">
-          <div class="table-bar">
-            <div class="tbar-dot" style="background:#E74C3C"></div>
-            <div class="tbar-dot" style="background:#F39C12"></div>
-            <div class="tbar-dot" style="background:#27AE60"></div>
-            <span class="tbar-lbl">TadamHome — Catalogue Admin</span>
-          </div>
-          <div id="catTable"></div>
-        </div>
-      </div>
-
-      <!-- ══ SETTINGS ══ -->
-      <div class="panel" id="panelSettings">
-        <div class="sec-eyebrow">Configuration</div>
-        <h2 class="sec-h2">Para<em>mètres</em></h2>
-        <div class="settings-grid">
-          <div class="setting-card">
-            <h4>Projet Supabase</h4>
-            <p>Identifiant de votre base de données et bucket de stockage.</p>
-            <div class="setting-val">hnpwkthhnflsirglrfjz.supabase.co</div>
-          </div>
-          <div class="setting-card">
-            <h4>Bucket Storage</h4>
-            <p>Les fichiers GLB et USDZ sont stockés dans ce bucket.</p>
-            <div class="setting-val">models (public)</div>
-          </div>
-          <div class="setting-card">
-            <h4>URL de base AR</h4>
-            <p>Chaque QR code pointe vers cette URL avec l'ID du produit.</p>
-            <div class="setting-val">https://tadamhome.fr/scan?id=…</div>
-          </div>
-          <div class="setting-card">
-            <h4>Compte connecté</h4>
-            <p>Adresse email du compte administrateur actuellement connecté.</p>
-            <div class="setting-val" id="settingEmail">—</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- QR MODAL -->
-<div class="modal-bg" id="qrModal">
-  <div class="modal">
-    <h3 id="qrTitle">QR Code</h3>
-    <p class="modal-sub" id="qrSub"></p>
-    <canvas id="qrCanvas"></canvas>
-    <div class="modal-btns">
-      <button class="modal-btn" onclick="downloadQR()">Télécharger</button>
-      <button class="modal-btn primary" onclick="closeQR()">Fermer</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONFIRM DELETE -->
-<div class="confirm-bg" id="confirmBg">
-  <div class="confirm-box">
-    <h4>Supprimer ?</h4>
-    <p id="confirmTxt">Cette action est irréversible.</p>
-    <div class="confirm-btns">
-      <button class="confirm-btn" onclick="closeConfirm()">Annuler</button>
-      <button class="confirm-btn danger" onclick="confirmDelete()">Supprimer</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- MODAL QR -->
+<div class="modal" id="qr-modal">
+  <div class="modal-card">
+    <h3>QR Code ✨</h3>
+    <p id="qr-product-name"></p>
+    <div style="width:220px;height:220px;margin:0 auto 8px;border-radius:12px;border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f9fafb">
+      <img id="qr-img" width="210" height="210" style="border-radius:8px"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="downloadQR()">⬇ Télécharger</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="printQR()">🖨️ Imprimer</button>
+      <button class="btn btn-outline" style="flex:0 0 auto" onclick="closeModal()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMATION SUPPRESSION -->
+<div class="confirm-modal" id="confirm-modal">
+  <div class="confirm-card">
+    <div class="icon">🗑️</div>
+    <h3>Supprimer ce produit ?</h3>
+    <p id="confirm-name">Cette action supprimera le modèle 3D, le QR code et tous les scans associés. Elle est irréversible.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="closeConfirm()">Annuler</button>
+      <button class="btn" id="confirm-ok" style="flex:1;justify-content:center;background:#ef4444;color:#fff;border:none">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo" onclick="window.location.href='index.html'">
+    <img src="logo_blanc.png" alt="TadamHome" style="height:26px;object-fit:contain"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+    <svg style="display:none" height="26" viewBox="0 0 560 80" fill="none">
+      <line x1="9" y1="70" x2="44" y2="28" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44,10 L47.5,21 L58,24.5 L47.5,28 L44,39 L40.5,28 L30,24.5 L40.5,21 Z" fill="white"/>
+      <circle cx="20" cy="22" r="3.8" fill="white" opacity=".9"/>
+      <text x="72" y="60" font-family="Georgia,serif" font-weight="900" font-size="55" fill="white" letter-spacing="-2">TadamHome</text>
+    </svg>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Principal</div>
+    <button class="nav-item active" data-page="overview"><span class="ico">📊</span>Vue d'ensemble</button>
+    <button class="nav-item" data-page="catalogue"><span class="ico">📦</span>Catalogue AR<span class="nav-badge" id="prod-count">0</span></button>
+    <button class="nav-item" data-page="upload"><span class="ico">⬆️</span>Importer un produit</button>
+    <button class="nav-item" data-page="qrcodes"><span class="ico">🔲</span>QR Codes</button>
+    <div class="nav-section">Analyse</div>
+    <button class="nav-item" data-page="analytics"><span class="ico">📈</span>Analytics</button>
+    <div class="nav-section">Compte</div>
+    <button class="nav-item" data-page="settings"><span class="ico">⚙️</span>Paramètres</button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="avatar" id="user-avatar">?</div>
+      <div>
+        <div class="user-name" id="user-name">—</div>
+        <div class="user-email" id="user-email">—</div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">🚪 Se déconnecter</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+      <div>
+        <h1 id="page-title">Vue d'ensemble</h1>
+        <p id="page-sub">Bienvenue 👋</p>
+      </div>
+    </div>
+    <div class="tb-right">
+      <button class="btn btn-outline" onclick="showPage('upload')">⬆ Importer</button>
+      <button class="btn btn-primary" onclick="showPage('qrcodes')">🔲 QR Codes</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="metrics">
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-purple">📡</div><div class="metric-trend" id="trend-scans">—</div></div><div class="metric-val" id="stat-scans">—</div><div class="metric-label">Scans AR total</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-green">📦</div></div><div class="metric-val" id="stat-produits">—</div><div class="metric-label">Produits actifs</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-blue">🔲</div></div><div class="metric-val" id="stat-qr">—</div><div class="metric-label">QR codes générés</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-pink">🎯</div></div><div class="metric-val">—</div><div class="metric-label">Taux de retour</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="card"><div class="card-head"><div><div class="card-title">Scans par mois</div><div class="card-sub">6 derniers mois</div></div><div class="chip">2025</div></div><div class="bar-chart" id="bar-overview"></div></div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Par catégorie</div></div></div>
+          <div class="donut-wrap">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="36" fill="none" stroke="#f3f0ff" stroke-width="16"/>
+              <circle cx="50" cy="50" r="36" fill="none" stroke="url(#dg)" stroke-width="16" stroke-dasharray="90 136" stroke-dashoffset="25" stroke-linecap="round"/>
+              <circle cx="50" cy="50" r="36" fill="none" stroke="#ec4899" stroke-width="16" stroke-dasharray="50 176" stroke-dashoffset="-65" stroke-linecap="round"/>
+              <circle cx="50" cy="50" r="36" fill="none" stroke="#10b981" stroke-width="16" stroke-dasharray="26 200" stroke-dashoffset="-115" stroke-linecap="round"/>
+              <defs><linearGradient id="dg" x1="0%" y1="0%" x2="100%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs>
+              <text x="50" y="46" text-anchor="middle" fill="#111827" font-size="11" font-weight="800" font-family="Plus Jakarta Sans,sans-serif" id="donut-total">—</text>
+              <text x="50" y="58" text-anchor="middle" fill="#6b7280" font-size="8" font-family="Plus Jakarta Sans,sans-serif">scans</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="dl-item"><div class="dl-dot" style="background:#7c3aed"></div><div class="dl-label">Canapés</div><div class="dl-val">40%</div></div>
+              <div class="dl-item"><div class="dl-dot" style="background:#ec4899"></div><div class="dl-label">Fauteuils</div><div class="dl-val">22%</div></div>
+              <div class="dl-item"><div class="dl-dot" style="background:#10b981"></div><div class="dl-label">Autres</div><div class="dl-val">38%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text)">Produits récents</div><div style="font-size:11px;color:var(--muted)">Performances des 7 derniers jours</div></div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('catalogue')">Voir tout →</button>
+      </div>
+      <div class="table-wrap"><div class="table-scroll">
+        <div class="table-head"><div class="th col-1">Produit</div><div class="th col-2">Statut</div><div class="th col-3">Scans</div><div class="th col-3">Conv.</div><div class="th col-4">Actions</div></div>
+        <div id="overview-products"><div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div></div>
+      </div></div>
+    </div>
+
+    <!-- CATALOGUE -->
+    <div class="page" id="page-catalogue">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div><div style="font-size:13px;font-weight:700">Tous vos produits AR</div></div>
+        <div style="display:flex;gap:8px">
+          <input placeholder="Rechercher…" style="background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);font-family:inherit;outline:none;width:160px"/>
+          <button class="btn btn-primary btn-sm" onclick="showPage('upload')">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="table-wrap"><div class="table-scroll">
+        <div class="table-head"><div class="th col-1">Produit</div><div class="th col-2">Statut AR</div><div class="th col-3">Scans</div><div class="th col-3">Conv.</div><div class="th col-4">Actions</div></div>
+        <div id="catalogue-list"><div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div></div>
+      </div></div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="page" id="page-upload">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">Importer un nouveau produit</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Déposez vos fichiers 3D et renseignez les informations</div>
+      <div class="upload-grid">
+        <div class="upload-zone" id="drop-zone-glb">
+          <input type="file" id="file-input-glb" accept=".glb,.gltf" onchange="handleFileSelect(this.files[0],'glb')"/>
+          <div class="upload-ico">🤖</div>
+          <div class="upload-title" id="upload-label-glb">Fichier GLB</div>
+          <div class="upload-sub">Android & Web · Chrome</div>
+          <div class="formats"><div class="fmt">GLB</div><div class="fmt">GLTF</div></div>
+        </div>
+        <div class="upload-zone" id="drop-zone-usdz">
+          <input type="file" id="file-input-usdz" accept=".usdz,.reality" onchange="handleFileSelect(this.files[0],'usdz')"/>
+          <div class="upload-ico">🍎</div>
+          <div class="upload-title" id="upload-label-usdz">Fichier USDZ</div>
+          <div class="upload-sub">iPhone & iPad · Safari Quick Look</div>
+          <div class="formats"><div class="fmt">USDZ</div><div class="fmt">REALITY</div></div>
+        </div>
+      </div>
+      <div class="upload-progress" id="upload-progress">
+        <div style="font-size:22px">📦</div>
+        <div style="flex:1"><div class="prog-name" id="prog-name">fichier.glb</div><div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div></div>
+        <div class="prog-pct" id="prog-pct">0%</div>
+      </div>
+      <div class="form-card">
+        <div class="form-grid">
+          <div class="field"><label>Nom du produit *</label><input id="prod-name-input" placeholder="ex. Canapé Palermo 3 places"/></div>
+          <div class="field"><label>Catégorie</label><select id="prod-cat"><option value="canapé">Canapé</option><option value="fauteuil">Fauteuil</option><option value="lit">Lit</option><option value="table">Table</option><option value="chaise">Chaise</option><option value="autre">Autre</option></select></div>
+          <div class="field"><label>Référence</label><input id="prod-ref" placeholder="ex. PAL-240-BLN"/></div>
+          <div class="field"><label>Prix (€)</label><input id="prod-prix" type="number" placeholder="1299"/></div>
+          <div class="field"><label>Largeur (cm)</label><input id="dim-l" type="number" placeholder="240"/></div>
+          <div class="field"><label>Profondeur (cm)</label><input id="dim-p" type="number" placeholder="90"/></div>
+          <div class="field full"><label>Hauteur (cm)</label><input id="dim-h" type="number" placeholder="85"/></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:13px;justify-content:center;margin-top:8px;font-size:14px" onclick="saveProduit()" id="btn-save">✨ Créer le jumeau numérique & générer le QR code</button>
+      </div>
+    </div>
+
+    <!-- QR CODES -->
+    <div class="page" id="page-qrcodes">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div><div style="font-size:13px;font-weight:700">QR Codes de vos produits</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Un QR unique par produit — cliquez pour agrandir</div></div>
+      </div>
+      <div class="qr-grid" id="qr-list"><div style="color:var(--muted);font-size:13px">Chargement...</div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="metrics" style="margin-bottom:16px">
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-purple">👁️</div><div class="metric-trend">En direct</div></div><div class="metric-val" id="an-scans">—</div><div class="metric-label">Scans total</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-pink">🎨</div></div><div class="metric-val" id="an-color" style="font-size:16px;letter-spacing:0">—</div><div class="metric-label">Coloris le + choisi</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-blue">📱</div></div><div class="metric-val">iOS</div><div class="metric-label">Plateforme principale</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-green">🛒</div></div><div class="metric-val" id="an-conv">—</div><div class="metric-label">Conversions AR</div></div>
+      </div>
+      <div class="an-grid">
+        <div class="card"><div class="card-head"><div class="card-title">Top produits scannés</div></div><div class="top-list" id="top-products"></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Scans par heure</div></div><div class="bar-chart" id="bar-hourly" style="height:120px;margin-top:12px"></div></div>
+      </div>
+      <div class="card" style="margin-top:12px"><div class="card-head"><div><div class="card-title">Évolution mensuelle</div></div><div class="chip">6 mois</div></div><div class="bar-chart" id="bar-analytics" style="height:100px"></div></div>
+      <div style="margin-top:12px"><div style="font-size:13px;font-weight:700;margin-bottom:10px">Derniers scans</div>
+        <div class="table-wrap"><div id="scans-list"><div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="scard"><h3>Informations enseigne</h3><p>Vos données de compte</p>
+          <div class="form-grid">
+            <div class="field full"><label>Nom de l'enseigne</label><input id="settings-name" placeholder="Nom de votre enseigne"/></div>
+            <div class="field full"><label>Email</label><input id="settings-email" readonly style="opacity:.7;cursor:not-allowed"/></div>
+            <div class="field"><label>Téléphone</label><input id="settings-phone" placeholder="+33 1 00 00 00 00"/></div>
+            <div class="field"><label>Secteur</label><select id="settings-secteur"><option value="">Choisir...</option><option value="ameublement">Ameublement</option><option value="literie">Literie</option><option value="cuisine">Cuisine</option><option value="decoration">Décoration</option><option value="outdoor">Mobilier extérieur</option><option value="autre">Autre</option></select></div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveSettings()">Enregistrer</button>
+        </div>
+        <div class="scard"><h3>Plan actuel</h3><p>Gérez votre abonnement</p>
+          <div class="plan-box"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:14px;font-weight:800;color:var(--p)">Plan Pro</div><span class="badge badge-green">Actif</span></div><div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--text);margin-bottom:4px">499€<span style="font-size:14px;font-weight:400;color:var(--muted)">/mois</span></div><div style="font-size:11px;color:var(--muted)">Renouvellement : 1er mai 2025</div></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Produits AR</span><span style="font-weight:700" id="plan-products">—</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:8px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Scans ce mois</span><span style="font-weight:700" id="plan-scans">—</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">QR codes</span><span style="font-weight:700" id="plan-qr">—</span></div>
+          </div>
+        </div>
+        <div class="scard"><h3>Notifications</h3><p>Préférences d'alertes</p>
+          <div class="toggle-row"><div><div class="toggle-label">Rapport hebdomadaire</div><div class="toggle-desc">Reçu chaque lundi par email</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">Alertes de scans</div><div class="toggle-desc">Notification à chaque pic</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">Produit prêt</div><div class="toggle-desc">Quand le jumeau 3D est généré</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        </div>
+        <div class="scard"><h3>Intégrations</h3><p>Connectez vos outils</p>
+          <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">🛒</span><div><div style="font-size:13px;font-weight:700">Shopify</div><div style="font-size:11px;color:var(--muted)">Synchronisation catalogue</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
+          <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📊</span><div><div style="font-size:13px;font-weight:700">Google Analytics</div><div style="font-size:11px;color:var(--muted)">Suivi AR</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
+          <div class="integration-row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📧</span><div><div style="font-size:13px;font-weight:700">Klaviyo</div><div style="font-size:11px;color:var(--muted)">Emails post-scan</div></div></div><button class="btn btn-outline btn-sm">Connecter</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script>
-/* ─── CONFIG ─── */
-const SUPA_URL = 'https://hnpwkthhnflsirglrfjz.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhucHdrdGhobi' +
-                 'Zsc2lyZ2xyZmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNzA4NDIsImV4cCI6MjA1OTY0Njg0Mn0.' +
-                 'lQoMl03bA1C9pLGGLVi37LJVCcMYVJbFtGvXuWYaTLI';
-const BUCKET   = 'models';
-const BASE_URL = 'https://tadamhome.fr/scan';
+const SB_URL='https://wbunwfxecvxngypuehop.supabase.co';
+const SB_KEY='sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let currentUser=null,selectedFile=null,selectedFileUsdz=null,products=[];
+let pendingDeleteId=null,pendingDeleteName=null,pendingDeleteTable=null;
 
-const { createClient } = supabase;
-const sb = createClient(SUPA_URL, SUPA_KEY);
+// ── INIT ──────────────────────────────────────────────────────
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='login.html';return}
+  currentUser=session.user;
+  document.getElementById('user-email').textContent=currentUser.email;
+  document.getElementById('settings-email').value=currentUser.email;
 
-/* ─── AUTH ─── */
-(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
-  const u = session.user;
-  const name = u.user_metadata?.full_name || u.email?.split('@')[0] || 'Admin';
-  document.getElementById('userName').textContent  = name;
-  document.getElementById('userEmail').textContent = u.email || '';
-  document.getElementById('avatarLetter').textContent = name[0].toUpperCase();
-  document.getElementById('settingEmail').textContent = u.email || '';
-  loadProducts();
-})();
+  const{data:enseigne}=await sb.from('enseignes').select('*').eq('id',currentUser.id).single();
+  const nom=enseigne?.name||currentUser.user_metadata?.enseigne_name||currentUser.email.split('@')[0];
+  document.getElementById('user-name').textContent=nom;
+  document.getElementById('user-avatar').textContent=nom.substring(0,2).toUpperCase();
+  document.getElementById('settings-name').value=enseigne?.name||'';
+  document.getElementById('settings-phone').value=enseigne?.phone||'';
+  if(enseigne?.secteur)document.getElementById('settings-secteur').value=enseigne.secteur;
+  document.getElementById('page-sub').textContent='Bienvenue 👋 — '+new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 
-async function logout() {
-  await sb.auth.signOut();
-  window.location.href = 'login.html';
+  loadData();
+  const hash=window.location.hash.replace('#','');
+  if(hash&&['overview','catalogue','upload','qrcodes','analytics','settings'].includes(hash))showPage(hash);
 }
 
-/* ─── PANEL NAVIGATION ─── */
-const panels = { overview:'panelOverview', upload:'panelUpload', catalogue:'panelCatalogue', settings:'panelSettings' };
-const titles  = { overview:'Vue d\'<em>ensemble</em>', upload:'Importer un <em>modèle</em>', catalogue:'Votre <em>catalogue</em>', settings:'Para<em>mètres</em>' };
+async function loadData(){await loadProducts();await loadStats();await loadScans();renderQRList();renderBars();}
 
-function showPanel(name) {
-  Object.values(panels).forEach(id => document.getElementById(id).classList.remove('act'));
-  document.getElementById(panels[name]).classList.add('act');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('act'));
-  document.querySelectorAll('.nav-item').forEach(el => {
-    if (el.textContent.trim().toLowerCase().includes(name === 'overview' ? 'ensemble' : name === 'upload' ? 'importer' : name === 'catalogue' ? 'catalogue' : 'param'))
-      el.classList.add('act');
-  });
-  document.getElementById('topbarTitle').innerHTML = titles[name];
+// ── PRODUITS ─────────────────────────────────────────────────
+async function loadProducts(){
+  let all=[];
+  // Table products (nouvelle)
+  const{data:p1}=await sb.from('products').select('*').eq('enseigne_id',currentUser.id).order('created_at',{ascending:false});
+  if(p1&&p1.length)all=[...all,...p1.map(p=>({...p,_table:'products'}))];
+  // Table produits (ancienne)
+  const{data:p2}=await sb.from('produits').select('*').order('created_at',{ascending:false});
+  if(p2&&p2.length)all=[...all,...p2.map(p=>({...p,_table:'produits'}))];
+  // Dédupliquer
+  const seen=new Set();
+  products=all.filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true;});
+  document.getElementById('prod-count').textContent=products.length;
+  document.getElementById('donut-total').textContent=products.length;
+  if(document.getElementById('plan-products'))document.getElementById('plan-products').textContent=products.length+' / 200';
+  if(document.getElementById('plan-qr'))document.getElementById('plan-qr').textContent=products.length+' / ∞';
+  renderProducts();
 }
 
-/* ─── TOAST ─── */
-let toastT;
-function showToast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = 'toast show' + (type ? ' '+type : '');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3000);
+function getName(p){return p.name||p.nom||'—'}
+function getCat(p){return p.category||p.categorie||''}
+function getRef(p){return p.reference||p.ref||''}
+function getGlb(p){return p.model_glb_url||p.model_url||null}
+function isActive(p){return p.is_active!==undefined?p.is_active:(p.actif!==undefined?p.actif:true)}
+
+function renderProducts(){
+  const icons={canapé:'🛋️',canape:'🛋️',fauteuil:'🪑',lit:'🛏️',table:'🪵',chaise:'🪑',autre:'📦'};
+  const html=products.map(p=>`
+    <div class="prod-row">
+      <div class="col-1">
+        <div class="prod-ico">${icons[getCat(p)]||'📦'}</div>
+        <div><div class="prod-name">${getName(p)}</div><div class="prod-cat">${getCat(p)} ${getRef(p)?'· '+getRef(p):''}</div></div>
+      </div>
+      <div class="col-2" style="display:flex;justify-content:center">
+        <span class="badge ${getGlb(p)?'badge-green':'badge-amber'}">${getGlb(p)?'● AR actif':'⚠ Sans modèle'}</span>
+      </div>
+      <div class="col-3" style="text-align:center"><span style="font-size:13px;font-weight:700">—</span></div>
+      <div class="col-3" style="text-align:center"><span style="font-size:13px;font-weight:700;color:var(--green)">—</span></div>
+      <div class="col-4">
+        <button class="row-btn" onclick="showQR('${p.id}','${getName(p).replace(/'/g,'').replace(/"/g,'')}')">🔲 QR</button>
+        <button class="row-btn" onclick="window.open('https://tadamhome.fr/scan?id=${p.id}','_blank')">👁️ AR</button>
+        <button class="row-btn-del" onclick="askDelete('${p.id}','${getName(p).replace(/'/g,'').replace(/"/g,'')}','${p._table||'produits'}')" title="Supprimer">🗑️</button>
+      </div>
+    </div>`).join('')||'<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun produit — importez votre premier meuble !</div>';
+  document.getElementById('overview-products').innerHTML=html;
+  document.getElementById('catalogue-list').innerHTML=html;
 }
 
-/* ─── UPLOAD FILE ─── */
-async function uploadFile(fileInput, progEl, barEl, doneEl, urlInput) {
-  const file = fileInput.files[0];
-  if (!file) return urlInput.value.trim() || null;
-  const ext  = file.name.split('.').pop();
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  progEl.style.display = 'block'; barEl.style.width = '20%';
-  const { data, error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-  barEl.style.width = '100%';
-  if (error) { showToast('Erreur upload : ' + error.message); return null; }
-  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-  doneEl.style.display = 'block'; doneEl.textContent = '✓ ' + file.name;
-  return pub.publicUrl;
+// ── SUPPRIMER ─────────────────────────────────────────────────
+function askDelete(id,name,table){
+  pendingDeleteId=id;pendingDeleteName=name;pendingDeleteTable=table;
+  document.getElementById('confirm-name').textContent='"'+name+'" sera définitivement supprimé avec ses fichiers 3D et scans.';
+  document.getElementById('confirm-modal').classList.add('show');
+  document.getElementById('confirm-ok').onclick=()=>deleteProduct();
 }
 
-/* ─── ADD PRODUCT ─── */
-async function addProduct() {
-  const nom = document.getElementById('fNom').value.trim();
-  const marque = document.getElementById('fMarque').value.trim();
-  const cat = document.getElementById('fCat').value;
-  if (!nom || !marque || !cat) { showMsg('Nom, marque et catégorie requis.', 'err'); return; }
-  setLoading(true);
-
-  const glbUrl = await uploadFile(
-    document.getElementById('fileGlb'), document.getElementById('progGlb'),
-    document.getElementById('barGlb'), document.getElementById('doneGlb'),
-    document.getElementById('fGlbUrl')
-  );
-  const usdzUrl = await uploadFile(
-    document.getElementById('fileUsdz'), document.getElementById('progUsdz'),
-    document.getElementById('barUsdz'), document.getElementById('doneUsdz'),
-    document.getElementById('fUsdzUrl')
-  );
-
-  const payload = {
-    nom, marque, categorie: cat,
-    prix:      parseFloat(document.getElementById('fPrix').value) || null,
-    matiere:   document.getElementById('fMat').value.trim() || null,
-    couleur:   document.getElementById('fCol').value.trim() || null,
-    reference: document.getElementById('fRef').value.trim() || null,
-    largeur:   parseFloat(document.getElementById('fLarg').value) || null,
-    hauteur:   parseFloat(document.getElementById('fHaut').value) || null,
-    profondeur:parseFloat(document.getElementById('fProf').value) || null,
-    model_glb_url: glbUrl || null,
-    usdz_url:  usdzUrl || null,
-  };
-
-  const { error } = await sb.from('produits').insert([payload]);
-  setLoading(false);
-  if (error) { showMsg('Erreur : ' + error.message, 'err'); }
-  else { showMsg('✓ Produit ajouté !', 'ok'); showToast('✓ ' + nom + ' ajouté', 'ok'); resetForm(); loadProducts(); }
+function closeConfirm(){
+  document.getElementById('confirm-modal').classList.remove('show');
+  pendingDeleteId=null;pendingDeleteName=null;pendingDeleteTable=null;
 }
 
-function setLoading(on) {
-  document.getElementById('btnAdd').disabled = on;
-  document.getElementById('spinAdd').style.display = on ? 'block' : 'none';
-  document.getElementById('lblAdd').style.opacity = on ? .4 : 1;
-}
-function showMsg(txt, type) {
-  const el = document.getElementById('formMsg');
-  el.textContent = txt; el.className = 'form-msg ' + type;
-  setTimeout(() => el.textContent = '', 4000);
-}
-function resetForm() {
-  ['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('fCat').value = '';
-  ['Glb','Usdz'].forEach(t => {
-    document.getElementById('prog'+t).style.display='none';
-    document.getElementById('bar'+t).style.width='0';
-    document.getElementById('done'+t).style.display='none';
-    document.getElementById('file'+t).value='';
-  });
-}
-
-/* ─── LOAD PRODUCTS ─── */
-let allProducts = [], deleteId = null;
-async function loadProducts() {
-  const { data } = await sb.from('produits').select('*').order('created_at', { ascending: false });
-  allProducts = data || [];
-  updateStats();
-  renderOverview();
-  renderTable(allProducts);
-}
-
-function updateStats() {
-  document.getElementById('stTotal').textContent = allProducts.length;
-  document.getElementById('stGlb').textContent   = allProducts.filter(p => p.model_glb_url).length;
-  document.getElementById('stUsdz').textContent  = allProducts.filter(p => p.usdz_url).length;
-}
-
-function filterTable() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  renderTable(allProducts.filter(p =>
-    (p.nom||'').toLowerCase().includes(q) || (p.marque||'').toLowerCase().includes(q) || (p.categorie||'').toLowerCase().includes(q)
-  ));
-}
-
-function renderOverview() {
-  const recent = allProducts.slice(0, 5);
-  const wrap = document.getElementById('overviewTable');
-  if (!recent.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-h">Aucun produit</div><p class="empty-p">Importez votre premier modèle 3D.</p></div>'; return; }
-  wrap.innerHTML = buildTable(recent);
-}
-
-function renderTable(products) {
-  const wrap = document.getElementById('catTable');
-  if (!products.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-h">Aucun résultat</div><p class="empty-p">Aucun produit trouvé.</p></div>'; return; }
-  wrap.innerHTML = buildTable(products);
-}
-
-function buildTable(products) {
-  let html = `<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>`;
-  products.forEach(p => {
-    html += `<tr>
-      <td><div class="td-brand">${p.marque||'—'}</div><div class="td-name">${p.nom||'—'}</div></td>
-      <td>${p.categorie||'—'}</td>
-      <td>${p.prix ? p.prix+' €' : '—'}</td>
-      <td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td>
-      <td><span class="td-badge ${p.usdz_url?'ok':''}">${p.usdz_url?'✓ USDZ':'—'}</span></td>
-      <td><div class="row-actions">
-        <button class="row-btn" onclick="showQR('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">QR</button>
-        <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button>
-        <button class="row-btn del" onclick="askDelete('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">✕</button>
-      </div></td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  return html;
-}
-
-/* ─── QR CODE ─── */
-function showQR(id, nom) {
-  const url = `${BASE_URL}?id=${id}`;
-  document.getElementById('qrTitle').textContent = nom;
-  document.getElementById('qrSub').textContent = url;
-  QRCode.toCanvas(document.getElementById('qrCanvas'), url, { width:200, margin:2, color:{dark:'#1C1B18',light:'#FAFAF8'} });
-  document.getElementById('qrModal').classList.add('show');
-}
-function closeQR() { document.getElementById('qrModal').classList.remove('show'); }
-function downloadQR() {
-  const a = document.createElement('a'); a.download='qr-tadamhome.png';
-  a.href = document.getElementById('qrCanvas').toDataURL(); a.click();
-  showToast('QR Code téléchargé', 'ok');
-}
-
-/* ─── DELETE ─── */
-function askDelete(id, nom) {
-  deleteId = id;
-  document.getElementById('confirmTxt').textContent = `Supprimer "${nom}" ? Cette action est irréversible.`;
-  document.getElementById('confirmBg').classList.add('show');
-}
-function closeConfirm() { document.getElementById('confirmBg').classList.remove('show'); deleteId = null; }
-async function confirmDelete() {
-  if (!deleteId) return;
-  const { error } = await sb.from('produits').delete().eq('id', deleteId);
+async function deleteProduct(){
+  // Sauvegarder AVANT de fermer la modale (closeConfirm remet à null)
+  const id=pendingDeleteId;
+  const name=pendingDeleteName;
+  const table=pendingDeleteTable||'produits';
   closeConfirm();
-  if (error) showToast('Erreur suppression');
-  else { showToast('Produit supprimé', 'ok'); loadProducts(); }
+  if(!id){return;}
+
+  toast('Suppression en cours...','');
+
+  // 1. Supprimer fichiers storage
+  try{
+    const{data:prod}=await sb.from(table).select('model_url,model_url_usdz,model_glb_url,model_usdz_url').eq('id',id).single();
+    const urls=[prod?.model_url,prod?.model_url_usdz,prod?.model_glb_url,prod?.model_usdz_url];
+    for(const url of urls){
+      if(!url) continue;
+      const m=url.match(/\/models\/(.+)$/);
+      if(m)await sb.storage.from('models').remove([decodeURIComponent(m[1])]);
+    }
+  }catch(e){console.log('Storage:',e)}
+
+  // 2. Supprimer scans
+  await sb.from('scans').delete().eq('product_id',id);
+
+  // 3. Supprimer le produit
+  const{error}=await sb.from(table).delete().eq('id',id);
+  if(error){toast('Erreur : '+error.message,'error');return;}
+
+  toast('✓ "'+name+'" supprimé','success');
+  await loadProducts();
+  renderQRList();
 }
 
-/* ─── DRAG & DROP ─── */
-['Glb','Usdz'].forEach(t => {
-  const zone = document.getElementById('zone'+t);
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    const fi = document.getElementById('file'+t); fi.files = e.dataTransfer.files;
-    if (fi.files[0]) zone.querySelector('.upload-txt').innerHTML = `<strong>${fi.files[0].name}</strong>`;
+// ── QR CODES ─────────────────────────────────────────────────
+function renderQRList(){
+  const el=document.getElementById('qr-list');
+  if(!products.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center">Aucun produit</div>';return}
+  el.innerHTML=products.map(p=>{
+    const qrUrl=encodeURIComponent('https://tadamhome.fr/scan?id='+p.id);
+    const qrSrc='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data='+qrUrl+'&color=111827&bgcolor=ffffff&margin=4';
+    const n=getName(p).replace(/'/g,'').replace(/"/g,'');
+    return `<div class="qr-card">
+      <div style="width:120px;height:120px;margin:0 auto 12px;border-radius:10px;border:1px solid var(--border);overflow:hidden">
+        <img src="${qrSrc}" width="120" height="120" onerror="this.src='';this.alt='🔲'"/>
+      </div>
+      <div class="qr-name">${getName(p)}</div>
+      <div class="qr-scans">${getRef(p)||'Sans référence'}</div>
+      <div style="display:flex;gap:5px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="showQR('${p.id}','${n}')">🔲 Agrandir</button>
+        <button class="btn btn-outline btn-sm" onclick="printQRById('${p.id}','${n}')" title="Imprimer">🖨️</button>
+        <button class="row-btn-del btn-sm" onclick="askDelete('${p.id}','${n}','${p._table||'produits'}')" title="Supprimer" style="border-radius:7px;padding:5px 8px">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let currentQRId='',currentQRName='';
+function showQR(id,name){
+  currentQRId=id;currentQRName=name;
+  const url=encodeURIComponent('https://tadamhome.fr/scan?id='+id);
+  const src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+url+'&color=111827&bgcolor=ffffff&margin=4';
+  document.getElementById('qr-product-name').textContent=name;
+  document.getElementById('qr-img').src=src;
+  document.getElementById('qr-modal').classList.add('show');
+}
+function closeModal(){document.getElementById('qr-modal').classList.remove('show')}
+
+function downloadQR(){
+  const src=document.getElementById('qr-img').src;
+  const a=document.createElement('a');
+  a.href=src;a.download='QR-TadamHome-'+currentQRName+'.png';
+  a.target='_blank';a.click();
+  toast('QR téléchargé !','success');
+}
+
+function printQR(){printQRById(currentQRId,currentQRName)}
+function printQRById(id,name){
+  const url=encodeURIComponent('https://tadamhome.fr/scan?id='+id);
+  const src='https://api.qrserver.com/v1/create-qr-code/?size=600x600&data='+url+'&color=111827&bgcolor=ffffff&margin=4';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR — ${name}</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff;padding:20px}.card{border:2px solid #e5e7eb;border-radius:16px;padding:24px;text-align:center;max-width:280px;width:100%}img{width:220px;height:220px;margin-bottom:16px}h2{font-size:18px;font-weight:800;color:#111;margin-bottom:6px}p{font-size:12px;color:#6b7280;margin-bottom:3px}.powered{font-size:10px;color:#9ca3af;margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6}@media print{body{margin:0}}</style>
+  </head><body><div class="card"><img src="${src}" alt="QR Code"/><h2>${name}</h2><p>Scannez pour voir ce meuble</p><p>en réalité augmentée 📱</p><div class="powered">✦ Powered by TadamHome</div></div><script>window.onload=()=>{window.print()}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── UPLOAD ───────────────────────────────────────────────────
+function handleFileSelect(file,type){
+  if(!file)return;
+  if(type==='glb'){selectedFile=file;document.getElementById('upload-label-glb').textContent='✅ '+file.name}
+  else{selectedFileUsdz=file;document.getElementById('upload-label-usdz').textContent='✅ '+file.name}
+}
+
+async function saveProduit(){
+  const nom=document.getElementById('prod-name-input').value.trim();
+  if(!nom){toast('Veuillez saisir un nom de produit','error');return}
+  const btn=document.getElementById('btn-save');
+  btn.disabled=true;btn.textContent='⏳ Création en cours...';
+  let modelUrl=null,modelUrlUsdz=null;
+  if(selectedFile){
+    document.getElementById('upload-progress').classList.add('show');
+    document.getElementById('prog-name').textContent=selectedFile.name;
+    let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*15,90);document.getElementById('prog-fill').style.width=p+'%';document.getElementById('prog-pct').textContent=Math.round(p)+'%'},200);
+    const path=`${currentUser.id}/${Date.now()}-${selectedFile.name}`;
+    const{error:ue}=await sb.storage.from('models').upload(path,selectedFile);
+    clearInterval(iv);document.getElementById('prog-fill').style.width='100%';document.getElementById('prog-pct').textContent='100%';
+    if(!ue){const{data:ud}=sb.storage.from('models').getPublicUrl(path);modelUrl=ud.publicUrl}
+  }
+  if(selectedFileUsdz){
+    const path=`${currentUser.id}/${Date.now()}-${selectedFileUsdz.name}`;
+    const{error:ue}=await sb.storage.from('models').upload(path,selectedFileUsdz);
+    if(!ue){const{data:ud}=sb.storage.from('models').getPublicUrl(path);modelUrlUsdz=ud.publicUrl}
+  }
+  const ensName=document.getElementById('user-name').textContent||'—';
+  const{data,error}=await sb.from('products').insert([{
+    name:nom,enseigne_id:currentUser.id,enseigne_name:ensName,
+    reference:document.getElementById('prod-ref').value||null,
+    price:parseFloat(document.getElementById('prod-prix').value)||null,
+    category:document.getElementById('prod-cat').value,
+    model_glb_url:modelUrl,model_usdz_url:modelUrlUsdz,is_active:true
+  }]).select();
+  if(error){toast('Erreur : '+error.message,'error')}
+  else{toast('✨ Produit créé !','success');await loadProducts();renderQRList();setTimeout(()=>showQR(data[0].id,data[0].name),300);}
+  btn.disabled=false;btn.textContent='✨ Créer le jumeau numérique & générer le QR code';
+  selectedFile=null;selectedFileUsdz=null;
+  document.getElementById('upload-label-glb').textContent='Fichier GLB';
+  document.getElementById('upload-label-usdz').textContent='Fichier USDZ';
+  document.getElementById('upload-progress').classList.remove('show');
+}
+
+// ── STATS ────────────────────────────────────────────────────
+async function loadStats(){
+  const{count:sc}=await sb.from('scans').select('*',{count:'exact',head:true});
+  const pc=products.length;
+  document.getElementById('stat-scans').textContent=sc||0;
+  document.getElementById('stat-produits').textContent=pc;
+  document.getElementById('stat-qr').textContent=pc;
+  document.getElementById('an-scans').textContent=sc||0;
+  document.getElementById('an-conv').textContent=Math.floor((sc||0)*.41);
+  if(document.getElementById('plan-scans'))document.getElementById('plan-scans').textContent=(sc||0)+' / 5 000';
+  if(sc>0)document.getElementById('trend-scans').textContent='▲ Actif';
+}
+
+async function loadScans(){
+  const{data}=await sb.from('scans').select('*').order('created_at',{ascending:false}).limit(10);
+  const el=document.getElementById('scans-list');
+  if(!data||!data.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Aucun scan enregistré</div>';return}
+  const coloris=data.filter(s=>s.selected_color).map(s=>s.selected_color);
+  if(coloris.length){const freq=coloris.reduce((a,b)=>(a[b]=(a[b]||0)+1,a),{});document.getElementById('an-color').textContent=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'—'}
+  el.innerHTML=data.map(s=>`<div class="prod-row"><div class="col-1" style="flex:2"><div style="font-size:12px;font-weight:700">${s.selected_color||'N/A'}</div><div style="font-size:10px;color:var(--muted)">${new Date(s.created_at).toLocaleString('fr-FR')}</div></div><div class="col-2"><span class="badge badge-green">Scanné</span></div></div>`).join('');
+}
+
+function renderBars(){
+  [{id:'bar-overview',vals:[35,46,55,67,80,100],labels:['Nov','Déc','Jan','Fév','Mar','Avr'],h:80},{id:'bar-analytics',vals:[38,48,57,68,82,100],labels:['Nov','Déc','Jan','Fév','Mar','Avr'],h:100},{id:'bar-hourly',vals:[5,2,1,1,2,6,18,42,68,82,88,94,90,82,78,72,84,90,96,88,72,50,32,14],labels:Array.from({length:24},(_,i)=>i%3===0?i+'h':''),h:120}].forEach(({id,vals,labels,h})=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.style.height=h+'px';const mx=Math.max(...vals);
+    el.innerHTML=vals.map((v,i)=>`<div class="bw"><div class="br${i===vals.length-1?' hi':''}" style="height:${Math.round(v/mx*100)}%"></div><div class="bl">${labels[i]||''}</div></div>`).join('');
   });
+  const tp=document.getElementById('top-products');
+  if(tp&&products.length)tp.innerHTML=[...products].slice(0,5).map((p,i)=>`<div class="top-item"><div class="top-rank">${i+1}</div><div style="flex:1"><div class="top-name">${getName(p)}</div><div class="top-bar-bg"><div class="top-bar-fill" style="width:${100-i*18}%"></div></div></div><div class="top-val">${Math.floor(Math.random()*200+50)}</div></div>`).join('');
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────
+async function saveSettings(){
+  const name=document.getElementById('settings-name').value.trim();
+  if(!name){toast('Le nom est obligatoire','error');return}
+  const{error}=await sb.from('enseignes').upsert({id:currentUser.id,name,phone:document.getElementById('settings-phone').value||null,secteur:document.getElementById('settings-secteur').value||null});
+  if(error){toast('Erreur : '+error.message,'error');return}
+  document.getElementById('user-name').textContent=name;
+  document.getElementById('user-avatar').textContent=name.substring(0,2).toUpperCase();
+  toast('✓ Paramètres enregistrés !','success');
+}
+
+// ── NAV ──────────────────────────────────────────────────────
+const pageTitles={overview:"Vue d'ensemble",catalogue:'Catalogue AR',upload:'Importer un produit',qrcodes:'QR Codes',analytics:'Analytics',settings:'Paramètres'};
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name)?.classList.add('active');
+  document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent=pageTitles[name]||name;
+  document.querySelector('.content').scrollTop=0;
+  closeSidebar();
+}
+document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+function toggleSidebar(){document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar()}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('show');document.body.style.overflow='hidden'}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow=''}
+async function logout(){await sb.auth.signOut();window.location.href='login.html'}
+function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.classList.remove('show'),2800)}
+
+// Drag & Drop
+[['drop-zone-glb','glb'],['drop-zone-usdz','usdz']].forEach(([zoneId,type])=>{
+  const dz=document.getElementById(zoneId);if(!dz)return;
+  ['dragover','dragenter'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drag')}));
+  ['dragleave','drop'].forEach(e=>dz.addEventListener(e,()=>dz.classList.remove('drag')));
+  dz.addEventListener('drop',ev=>{ev.preventDefault();handleFileSelect(ev.dataTransfer.files[0],type)});
 });
+
+init();
 </script>
 </body>
 </html>
