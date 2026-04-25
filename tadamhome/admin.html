@@ -468,10 +468,8 @@ tr:hover td{background:rgba(237,234,226,.5)}
 
 <script>
 /* ─── CONFIG ─── */
-const SUPA_URL = 'https://hnpwkthhnflsirglrfjz.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhucHdrdGhobi' +
-                 'Zsc2lyZ2xyZmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNzA4NDIsImV4cCI6MjA1OTY0Njg0Mn0.' +
-                 'lQoMl03bA1C9pLGGLVi37LJVCcMYVJbFtGvXuWYaTLI';
+const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
 const ADMIN_PW = 'tadam2025'; // ← change ce mot de passe
 const BUCKET   = 'models';
 const BASE_URL = 'https://tadamhome.fr/scan';
@@ -588,7 +586,7 @@ async function addProduct() {
     usdz_url:      usdzUrl || null,
   };
 
-  const { error } = await sb.from('produits').insert([payload]);
+  const { error } = await sb.from('products').insert([{ name: payload.nom, enseigne_id: null, enseigne_name: payload.marque, reference: payload.reference, price: payload.prix, category: payload.categorie, model_glb_url: payload.model_glb_url, model_usdz_url: payload.usdz_url, is_active: true }]);
   setLoading(false);
   if (error) { showMsg('Erreur : ' + error.message, 'err'); }
   else { showMsg('✓ Produit ajouté !', 'ok'); showToast('✓ ' + nom + ' ajouté', 'ok'); resetForm(); loadProducts(); }
@@ -621,7 +619,7 @@ function resetForm() {
 let allProducts = [], deleteId = null;
 
 async function loadProducts() {
-  const { data, error } = await sb.from('produits').select('*').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('products').select('*').order('created_at', { ascending: false });
   allProducts = data || [];
   updateStats();
   renderOverview();
@@ -668,7 +666,7 @@ function buildTable(products) {
     html += `<tr>
       <td><div class="td-brand">${p.marque||'—'}</div><div class="td-name">${p.nom||'—'}</div></td>
       <td>${p.categorie||'—'}</td>
-      <td>${p.prix ? p.prix+'€' : '—'}</td>
+      <td>${p.price||p.prix ? (p.price||p.prix)+'€' : '—'}</td>
       <td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td>
       <td><span class="td-badge ${p.usdz_url?'ok':''}">${p.usdz_url?'✓ USDZ':'—'}</span></td>
       <td><div class="row-actions">
@@ -711,7 +709,7 @@ function askDelete(id, nom) {
 function closeConfirm() { document.getElementById('confirmBg').classList.remove('show'); deleteId = null; }
 async function confirmDelete() {
   if (!deleteId) return;
-  const { error } = await sb.from('produits').delete().eq('id', deleteId);
+  const { error } = await sb.from('products').delete().eq('id', deleteId);
   closeConfirm();
   if (error) showToast('Erreur : ' + error.message, 'err');
   else { showToast('Produit supprimé', 'ok'); loadProducts(); }
