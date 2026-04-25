@@ -327,6 +327,107 @@ footer { background: var(--ink); padding: 76px 52px 36px; }
 .reveal.vis { opacity: 1; transform: none; }
 .rd1 { transition-delay: .1s; } .rd2 { transition-delay: .2s; } .rd3 { transition-delay: .3s; }
 
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 768px) {
+  /* hide custom cursor on touch */
+  .cur, .cur-r { display: none; }
+  body { cursor: auto; }
+
+  /* NAV */
+  nav { padding: 16px 20px; }
+  nav.sc { padding: 12px 20px; }
+  .nav-links { display: none; }
+  .nav-cta { padding: 8px 16px; font-size: 10px; }
+
+  /* HERO — single column */
+  .hero { grid-template-columns: 1fr; height: auto; min-height: 100svh; }
+  .hero-l { padding: 100px 24px 40px; justify-content: center; }
+  .hero-h1 { font-size: clamp(38px, 10vw, 56px); margin-bottom: 18px; }
+  .hero-sub { font-size: 13px; margin-bottom: 32px; max-width: 100%; }
+  .hero-btns { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .btn-dark { width: 100%; text-align: center; padding: 16px; }
+  .hero-r { height: 280px; }
+  .ar-badge { bottom: 16px; left: 16px; }
+  .hero-scroll { display: none; }
+
+  /* QR SECTION */
+  .qr-section { grid-template-columns: 1fr; }
+  .qr-l { padding: 52px 24px; }
+  .qr-r { padding: 40px 24px; }
+  .qr-phone { width: 180px; }
+
+  /* STATS BAR */
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+  .stat-it { padding: 24px 20px; border-right: 1px solid rgba(28,27,24,.08); border-bottom: 1px solid rgba(28,27,24,.08); }
+  .stat-n { font-size: 32px; }
+
+  /* HOW IT WORKS */
+  .sec { padding: 64px 24px; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .step { padding: 36px 28px; }
+
+  /* CATALOG */
+  .cat-sec { padding: 0 24px 64px; }
+  .cat-head { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .cat-filters { flex-wrap: wrap; }
+  .cat-grid { grid-template-columns: 1fr 1fr; }
+  .p-card.feat { grid-row: span 1; }
+  .p-card.feat .p-img { aspect-ratio: 4/3; height: auto; }
+  .p-ar-btn { opacity: 1; transform: none; }
+
+  /* CONFIGURATOR */
+  .config-sec { padding: 64px 24px; }
+  .config-grid { grid-template-columns: 1fr; gap: 36px; }
+
+  /* AR MULTI SCENE */
+  .ar-sec { padding: 64px 24px; }
+  .ar-2col { grid-template-columns: 1fr; gap: 40px; }
+
+  /* DASHBOARD */
+  .dash-sec { padding: 64px 24px; }
+  .dash-grid { grid-template-columns: 1fr; gap: 36px; }
+  .dash-metrics { grid-template-columns: 1fr 1fr; }
+  .dash-charts { grid-template-columns: 1fr; }
+
+  /* RETURNS */
+  .returns-sec { padding: 64px 24px; }
+  .returns-grid { grid-template-columns: 1fr; gap: 36px; }
+  .ret-stats { grid-template-columns: 1fr 1fr; }
+  .ret-stat-n { font-size: 36px; }
+
+  /* AUDIENCE */
+  .audience { grid-template-columns: 1fr; }
+  .aud-panel { padding: 52px 24px; border-right: none; border-bottom: 1px solid rgba(28,27,24,.08); }
+  .aud-panel:last-child { border-bottom: none; }
+  .aud-n { display: none; }
+
+  /* PRICING */
+  .pricing-sec { padding: 64px 24px; }
+  .pricing-grid { grid-template-columns: 1fr; }
+
+  /* NEWSLETTER */
+  .nl-sec { padding: 64px 24px; }
+  .nl-form { flex-direction: column; }
+  .nl-form input { border-right: 1px solid rgba(28,27,24,.15); border-bottom: none; }
+  .nl-form button { padding: 14px; }
+
+  /* EDITORIAL */
+  .editorial { padding: 64px 24px; }
+
+  /* FOOTER */
+  footer { padding: 52px 24px 28px; }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .footer-bot { flex-direction: column; gap: 12px; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .cat-grid { grid-template-columns: 1fr; }
+  .ret-stats { grid-template-columns: 1fr; }
+  .dash-metrics { grid-template-columns: 1fr 1fr; }
+  .footer-top { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+}
+
 /* KEYFRAMES */
 @keyframes fup { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
 @keyframes fin { from { opacity: 0; } to { opacity: 1; } }
