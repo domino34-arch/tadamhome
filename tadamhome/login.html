@@ -252,7 +252,7 @@ async function login() {
   }
   suc.textContent = '✓ Connecté ! Redirection...';
   suc.classList.add('show');
-  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+  setTimeout(() => { window.location.href = 'catalogue.html'; }, 1200);
 }
 
 /* ── SIGNUP ── */
@@ -305,7 +305,7 @@ document.addEventListener('keydown', e => {
 
 /* ── SESSION CHECK ── (V1 intact) */
 sb.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.href = 'dashboard.html';
+  if (data.session) window.location.href = 'catalogue.html';
 });
 </script>
 </body>
