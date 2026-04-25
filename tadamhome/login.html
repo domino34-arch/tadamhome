@@ -296,10 +296,17 @@ body::after {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .page { grid-template-columns: 1fr; }
+  .page { grid-template-columns: 1fr; min-height: 100svh; }
   .left-panel { display: none; }
-  .right-panel { padding: 48px 28px; }
-  .back-site { top: 20px; right: 20px; }
+  .right-panel { padding: 80px 24px 40px; justify-content: flex-start; }
+  .form-wrap { max-width: 100%; }
+  .back-site { top: 18px; right: 18px; font-size: 10px; }
+  .form-title { font-size: 34px; }
+  .tabs { margin-bottom: 28px; }
+  .btn-submit { padding: 16px; }
+}
+@media (max-width: 400px) {
+  .right-panel { padding: 72px 18px 32px; }
 }
 </style>
 </head>
