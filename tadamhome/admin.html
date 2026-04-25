@@ -593,7 +593,17 @@ async function uploadFile(fileInput, progEl, barEl, doneEl, urlInput) {
   const { data, error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
   barEl.style.width = '100%';
 
-  if (error) { showToast('Erreur upload : ' + error.message, ''); return null; }
+  if (error) {
+    const msg = error.message.includes('row-level') || error.message.includes('policy')
+      ? 'Bucket Supabase : vérifiez que le bucket "models" existe et est public.'
+      : error.message.includes('not found')
+      ? 'Bucket "models" introuvable — créez-le dans Supabase Storage.'
+      : 'Erreur upload : ' + error.message;
+    showToast(msg);
+    showMsg(msg, 'err');
+    progEl.style.display = 'none';
+    return null;
+  }
 
   const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
   doneEl.style.display = 'block';
