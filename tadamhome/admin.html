@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TadamHome — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:    #F5F2EC;
+  --bg2:   #EDEAE2;
+  --bg3:   #E4E0D6;
+  --ink:   #1C1B18;
+  --ink2:  #4A4840;
+  --ink3:  #8A8880;
+  --accent:#B8986A;
+  --acc2:  #D4B896;
+  --acc3:  #A07A4A;
+  --white: #FAFAF8;
+  --err:   #C0392B;
+  --ok:    #27704A;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'Outfit', sans-serif;
+  --ease:  cubic-bezier(.25,.1,.25,1);
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-weight: 300; min-height: 100vh; }
+
+/* ── LOCK SCREEN ── */
+#lockScreen {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.lock-box {
+  width: 100%; max-width: 360px; padding: 0 28px;
+  text-align: center;
+}
+.lock-logo {
+  font-family: var(--serif); font-size: 26px; font-weight: 400;
+  color: var(--white); margin-bottom: 8px; letter-spacing: .02em;
+}
+.lock-logo span { color: var(--accent); }
+.lock-sub { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.3); margin-bottom: 36px; }
+.lock-field { margin-bottom: 14px; }
+.lock-field input {
+  width: 100%; padding: 14px 18px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  color: var(--white); font-family: var(--sans); font-size: 14px;
+  outline: none; text-align: center; letter-spacing: .06em;
+  transition: border-color .2s;
+}
+.lock-field input:focus { border-color: var(--accent); }
+.lock-field input::placeholder { color: rgba(255,255,255,.25); letter-spacing: .1em; }
+.lock-btn {
+  width: 100%; padding: 14px;
+  background: var(--accent); color: var(--white); border: none;
+  font-family: var(--sans); font-size: 11px; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
+  transition: background .3s; margin-bottom: 12px;
+}
+.lock-btn:hover { background: var(--acc3); }
+.lock-err { font-size: 12px; color: rgba(192,57,43,.9); min-height: 18px; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(245,242,236,.95); backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(184,152,106,.15);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 40px;
+}
+.nav-logo { font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--ink); text-decoration: none; }
+.nav-logo span { color: var(--accent); }
+.nav-tag {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  padding: 5px 12px; border: 1px solid rgba(184,152,106,.35); color: var(--accent);
+}
+.nav-right { display: flex; gap: 12px; align-items: center; }
+.nav-btn {
+  font-size: 11px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase;
+  padding: 9px 20px; border: 1px solid rgba(28,27,24,.14); background: transparent;
+  color: var(--ink2); cursor: pointer; font-family: var(--sans); transition: all .2s;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nav-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.nav-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+/* ── LAYOUT ── */
+.wrap { max-width: 1100px; margin: 0 auto; padding: 40px 40px 80px; }
+
+/* ── SECTION TITLE ── */
+.sec-eyebrow {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent); }
+.sec-h2 { font-family: var(--serif); font-size: 36px; font-weight: 300; margin-bottom: 32px; }
+.sec-h2 em { font-style: italic; color: var(--accent); }
+
+/* ── STATS ROW ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 2px; background: rgba(28,27,24,.07);
+  margin-bottom: 48px;
+  border: 1px solid rgba(28,27,24,.07);
+}
+.stat-card { background: var(--bg); padding: 28px 32px; }
+.stat-n { font-family: var(--serif); font-size: 38px; font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 5px; }
+.stat-n span { color: var(--accent); }
+.stat-l { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); }
+
+/* ── ADD FORM ── */
+.add-section {
+  background: var(--white);
+  border: 1px solid rgba(28,27,24,.08);
+  margin-bottom: 48px;
+}
+.add-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(28,27,24,.07);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.add-header h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; }
+.add-body { padding: 32px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field.full { grid-column: 1 / -1; }
+.field label {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3);
+}
+.field input, .field select, .field textarea {
+  padding: 12px 14px;
+  border: 1px solid rgba(28,27,24,.13);
+  background: var(--bg);
+  color: var(--ink); font-family: var(--sans); font-size: 13px; font-weight: 300;
+  outline: none; transition: border-color .2s; resize: vertical;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); background: var(--white); }
+.field input::placeholder, .field textarea::placeholder { color: var(--ink3); }
+.field select { cursor: pointer; }
+
+/* upload zone */
+.upload-zone {
+  border: 1px dashed rgba(184,152,106,.4);
+  background: rgba(184,152,106,.03);
+  padding: 28px; text-align: center; cursor: pointer;
+  transition: all .25s; position: relative;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(184,152,106,.06); }
+.upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-icon { font-size: 24px; margin-bottom: 8px; }
+.upload-txt { font-size: 12px; color: var(--ink3); line-height: 1.6; }
+.upload-txt strong { color: var(--accent); font-weight: 500; }
+.upload-progress {
+  height: 2px; background: rgba(184,152,106,.15); margin-top: 14px;
+  display: none;
+}
+.upload-progress-bar { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.upload-done { font-size: 11px; color: var(--ok); margin-top: 8px; display: none; }
+
+/* form actions */
+.form-actions { display: flex; gap: 12px; align-items: center; padding-top: 24px; border-top: 1px solid rgba(28,27,24,.07); }
+.btn-add {
+  padding: 14px 36px; background: var(--ink); color: var(--white);
+  border: none; font-family: var(--sans); font-size: 11px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .3s;
+  display: flex; align-items: center; gap: 8px;
+}
+.btn-add:hover { background: var(--accent); }
+.btn-add:disabled { background: var(--ink3); cursor: wait; }
+.btn-reset {
+  padding: 14px 24px; background: transparent; color: var(--ink2);
+  border: 1px solid rgba(28,27,24,.14); font-family: var(--sans); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .2s;
+}
+.btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+.form-msg { font-size: 12px; margin-left: 4px; }
+.form-msg.ok  { color: var(--ok);  }
+.form-msg.err { color: var(--err); }
+.spin {
+  width: 13px; height: 13px; border: 1.5px solid rgba(255,255,255,.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin .8s linear infinite; display: none;
+}
+
+/* ── CATALOGUE TABLE ── */
+.catalogue-section { }
+.table-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.search-bar {
+  display: flex; gap: 8px;
+}
+.search-input {
+  padding: 10px 16px; border: 1px solid rgba(28,27,24,.13);
+  background: var(--white); font-family: var(--sans); font-size: 13px;
+  color: var(--ink); outline: none; width: 240px; transition: border-color .2s;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--ink3); }
+
+.table-wrap { border: 1px solid rgba(28,27,24,.08); overflow: hidden; }
+.table-top-bar {
+  background: var(--ink); padding: 12px 20px;
+  display: flex; gap: 6px; align-items: center;
+}
+.tbar-dot { width: 8px; height: 8px; border-radius: 50%; }
+.tbar-title { font-size: 11px; color: rgba(255,255,255,.3); margin-left: auto; letter-spacing: .06em; }
+
+table { width: 100%; border-collapse: collapse; background: var(--white); }
+thead tr { border-bottom: 1px solid rgba(28,27,24,.08); }
+th {
+  padding: 13px 18px; text-align: left;
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink3); font-weight: 400; white-space: nowrap;
+}
+td { padding: 14px 18px; font-size: 12px; color: var(--ink2); border-bottom: 1px solid rgba(28,27,24,.05); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(245,242,236,.7); }
+.td-name { font-family: var(--serif); font-size: 15px; font-weight: 400; color: var(--ink); }
+.td-brand { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.td-badge {
+  display: inline-block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 9px; border: 1px solid rgba(184,152,106,.3); color: var(--acc3);
+}
+.td-badge.ok { border-color: rgba(39,112,74,.3); color: var(--ok); }
+
+/* row actions */
+.row-actions { display: flex; gap: 6px; }
+.row-btn {
+  padding: 6px 12px; border: 1px solid rgba(28,27,24,.12); background: transparent;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink3); cursor: pointer; font-family: var(--sans); transition: all .2s; white-space: nowrap;
+}
+.row-btn:hover { border-color: var(--accent); color: var(--accent); }
+.row-btn.del:hover { border-color: var(--err); color: var(--err); }
+
+/* QR modal */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(28,27,24,.6); z-index: 500;
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--white); padding: 40px; max-width: 340px; width: 90%;
+  text-align: center; animation: popin .3s var(--ease);
+}
+.modal h3 { font-family: var(--serif); font-size: 24px; font-weight: 400; margin-bottom: 6px; }
+.modal p { font-size: 12px; color: var(--ink3); margin-bottom: 24px; }
+#qrCanvas { margin: 0 auto 20px; display: block; }
+.modal-btns { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 12px; border: 1px solid rgba(28,27,24,.15); background: transparent;
+  font-family: var(--sans); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink2); cursor: pointer; transition: all .2s;
+}
+.modal-btn:hover { border-color: var(--accent); color: var(--accent); }
+.modal-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.modal-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+/* empty state */
+.empty-state { padding: 60px; text-align: center; background: var(--white); }
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+.empty-h { font-family: var(--serif); font-size: 22px; font-weight: 300; margin-bottom: 8px; color: var(--ink); }
+.empty-p { font-size: 13px; color: var(--ink3); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--ink); color: var(--white); font-size: 12px; letter-spacing: .04em;
+  padding: 11px 22px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 999;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok   { background: var(--ok); }
+
+/* confirm delete modal */
+.confirm-modal {
+  position: fixed; inset: 0; background: rgba(28,27,24,.55); z-index: 600;
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.confirm-modal.show { display: flex; }
+.confirm-box { background: var(--white); padding: 36px; max-width: 360px; width: 90%; text-align: center; }
+.confirm-box h4 { font-family: var(--serif); font-size: 22px; font-weight: 400; margin-bottom: 10px; }
+.confirm-box p  { font-size: 13px; color: var(--ink3); margin-bottom: 28px; line-height: 1.7; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btn {
+  flex: 1; padding: 13px; font-family: var(--sans); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; cursor: pointer; border: 1px solid rgba(28,27,24,.15);
+  background: transparent; color: var(--ink2); transition: all .2s;
+}
+.confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.confirm-btn.danger { background: var(--err); color: var(--white); border-color: var(--err); }
+.confirm-btn.danger:hover { background: #a93226; border-color: #a93226; }
+
+@keyframes spin   { to { transform: rotate(360deg); } }
+@keyframes popin  { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:none; } }
+@keyframes fadein { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+
+<!-- ── LOCK SCREEN ── -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-logo">Tadam<span>Home</span></div>
+    <div class="lock-sub">Espace administration</div>
+    <div class="lock-field">
+      <input type="password" id="lockPw" placeholder="Mot de passe admin" autocomplete="off">
+    </div>
+    <button class="lock-btn" onclick="unlock()">Accéder →</button>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="index.html" class="nav-logo">Tadam<span>Home</span></a>
+  <div class="nav-right">
+    <div class="nav-tag">Admin</div>
+    <a href="index.html" class="nav-btn">← Site</a>
+    <button class="nav-btn primary" onclick="scrollTo({top:0,behavior:'smooth'})">+ Ajouter</button>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="wrap">
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-n" id="statTotal">—</div><div class="stat-l">Produits total</div></div>
+    <div class="stat-card"><div class="stat-n" id="statGlb">—</div><div class="stat-l">Modèles GLB</div></div>
+    <div class="stat-card"><div class="stat-n" id="statUsdz">—</div><div class="stat-l">Fichiers USDZ</div></div>
+    <div class="stat-card"><div class="stat-n">AR<span>×3D</span></div><div class="stat-l">Jumeaux numériques</div></div>
+  </div>
+
+  <!-- Add form -->
+  <div class="add-section">
+    <div class="add-header">
+      <h3>Ajouter un <em style="font-family:var(--serif);font-style:italic;color:var(--accent)">nouveau modèle</em></h3>
+      <span style="font-size:11px;color:var(--ink3)">Tous les champs marqués * sont requis</span>
+    </div>
+    <div class="add-body">
+
+      <!-- Infos produit -->
+      <div class="sec-eyebrow" style="margin-bottom:16px">Informations produit</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nom du produit *</label>
+          <input type="text" id="fNom" placeholder="ex. Canapé Mags">
+        </div>
+        <div class="field">
+          <label>Marque *</label>
+          <input type="text" id="fMarque" placeholder="ex. Hay">
+        </div>
+        <div class="field">
+          <label>Catégorie *</label>
+          <select id="fCategorie">
+            <option value="">Choisir…</option>
+            <option>Sofa</option>
+            <option>Fauteuil</option>
+            <option>Chaise</option>
+            <option>Table basse</option>
+            <option>Table à manger</option>
+            <option>Bureau</option>
+            <option>Luminaire</option>
+            <option>Rangement</option>
+            <option>Lit</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Prix (€)</label>
+          <input type="number" id="fPrix" placeholder="ex. 1290">
+        </div>
+      </div>
+
+      <div class="form-grid three" style="margin-bottom:24px">
+        <div class="field">
+          <label>Matière</label>
+          <input type="text" id="fMatiere" placeholder="ex. Tissu, Cuir…">
+        </div>
+        <div class="field">
+          <label>Couleur principale</label>
+          <input type="text" id="fCouleur" placeholder="ex. Gris chiné">
+        </div>
+        <div class="field">
+          <label>Référence</label>
+          <input type="text" id="fRef" placeholder="ex. HAY-MG-001">
+        </div>
+      </div>
+
+      <!-- Dimensions -->
+      <div class="sec-eyebrow" style="margin-bottom:16px">Dimensions (cm)</div>
+      <div class="form-grid three" style="margin-bottom:28px">
+        <div class="field">
+          <label>Largeur</label>
+          <input type="number" id="fL" placeholder="ex. 220">
+        </div>
+        <div class="field">
+          <label>Hauteur</label>
+          <input type="number" id="fH" placeholder="ex. 75">
+        </div>
+        <div class="field">
+          <label>Profondeur</label>
+          <input type="number" id="fP" placeholder="ex. 95">
+        </div>
+      </div>
+
+      <!-- Fichiers 3D -->
+      <div class="sec-eyebrow" style="margin-bottom:16px">Fichiers 3D</div>
+      <div class="form-grid" style="margin-bottom:28px">
+        <div class="field">
+          <label>Fichier GLB * (Android / Web)</label>
+          <div class="upload-zone" id="zoneGlb">
+            <input type="file" id="fileGlb" accept=".glb">
+            <div class="upload-icon">◈</div>
+            <div class="upload-txt">Glissez votre <strong>.glb</strong> ici<br>ou cliquez pour parcourir</div>
+            <div class="upload-progress" id="progGlb"><div class="upload-progress-bar" id="barGlb"></div></div>
+            <div class="upload-done" id="doneGlb">✓ Fichier uploadé</div>
+          </div>
+          <input type="text" id="fGlbUrl" placeholder="…ou collez une URL GLB directement" style="margin-top:8px">
+        </div>
+        <div class="field">
+          <label>Fichier USDZ (iPhone AR)</label>
+          <div class="upload-zone" id="zoneUsdz">
+            <input type="file" id="fileUsdz" accept=".usdz">
+            <div class="upload-icon">◇</div>
+            <div class="upload-txt">Glissez votre <strong>.usdz</strong> ici<br>ou cliquez pour parcourir</div>
+            <div class="upload-progress" id="progUsdz"><div class="upload-progress-bar" id="barUsdz"></div></div>
+            <div class="upload-done" id="doneUsdz">✓ Fichier uploadé</div>
+          </div>
+          <input type="text" id="fUsdzUrl" placeholder="…ou collez une URL USDZ directement" style="margin-top:8px">
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button class="btn-add" id="btnAdd" onclick="addProduct()">
+          <div class="spin" id="spinAdd"></div>
+          <span id="lblAdd">Ajouter au catalogue</span>
+        </button>
+        <button class="btn-reset" onclick="resetForm()">Réinitialiser</button>
+        <span class="form-msg" id="formMsg"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catalogue -->
+  <div class="catalogue-section">
+    <div class="table-header">
+      <div>
+        <div class="sec-eyebrow">Catalogue</div>
+        <h2 class="sec-h2" style="margin-bottom:0">Vos <em>modèles</em></h2>
+      </div>
+      <div class="search-bar">
+        <input class="search-input" id="searchInput" placeholder="Rechercher un produit…" oninput="filterTable()">
+        <button class="nav-btn" onclick="loadProducts()">↺ Actualiser</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-top-bar">
+        <div class="tbar-dot" style="background:#E74C3C"></div>
+        <div class="tbar-dot" style="background:#F39C12"></div>
+        <div class="tbar-dot" style="background:#27AE60"></div>
+        <span class="tbar-title">TadamHome — Catalogue Admin</span>
+      </div>
+      <div id="tableWrap">
+        <div class="empty-state">
+          <div class="load-ring" style="width:28px;height:28px;border:1.5px solid rgba(184,152,106,.25);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div>
+          <div style="font-size:12px;color:var(--ink3)">Chargement du catalogue…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-bg" id="qrModal">
+  <div class="modal">
+    <h3 id="qrTitle">QR Code</h3>
+    <p id="qrSub">Scannez pour voir en AR</p>
+    <canvas id="qrCanvas"></canvas>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="downloadQR()">Télécharger</button>
+      <button class="modal-btn primary" onclick="closeQR()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="confirm-box">
+    <h4>Supprimer ce produit ?</h4>
+    <p id="confirmTxt">Cette action est irréversible. Le produit sera supprimé du catalogue et son QR code ne fonctionnera plus.</p>
+    <div class="confirm-btns">
+      <button class="confirm-btn" onclick="closeConfirm()">Annuler</button>
+      <button class="confirm-btn danger" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── CONFIG ─── */
+const SUPA_URL  = 'https://hnpwkthhnflsirglrfjz.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhucHdrdGhobi' +
+                  'Zsc2lyZ2xyZmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNzA4NDIsImV4cCI6MjA1OTY0Njg0Mn0.' +
+                  'lQoMl03bA1C9pLGGLVi37LJVCcMYVJbFtGvXuWYaTLI';
+const ADMIN_PW  = 'tadam2025'; // ← change ce mot de passe
+const BUCKET    = 'models';
+const BASE_URL  = 'https://tadamhome.fr/scan';
+
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+/* ─── LOCK ─── */
+function unlock() {
+  const pw = document.getElementById('lockPw').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('lockScreen').style.display = 'none';
+    loadProducts();
+  } else {
+    document.getElementById('lockErr').textContent = 'Mot de passe incorrect.';
+    setTimeout(() => document.getElementById('lockErr').textContent = '', 2000);
+  }
+}
+document.getElementById('lockPw').addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
+
+/* ─── TOAST ─── */
+let toastT;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ─── UPLOAD ─── */
+async function uploadFile(fileInput, progEl, barEl, doneEl, urlInput) {
+  const file = fileInput.files[0];
+  if (!file) return urlInput.value || null;
+
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+  progEl.style.display = 'block';
+  barEl.style.width = '20%';
+
+  const { data, error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  barEl.style.width = '100%';
+
+  if (error) { showToast('Erreur upload : ' + error.message, ''); return null; }
+
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  doneEl.style.display = 'block';
+  doneEl.textContent   = '✓ ' + file.name;
+  return pub.publicUrl;
+}
+
+/* ─── ADD PRODUCT ─── */
+async function addProduct() {
+  const nom      = document.getElementById('fNom').value.trim();
+  const marque   = document.getElementById('fMarque').value.trim();
+  const categorie= document.getElementById('fCategorie').value;
+
+  if (!nom || !marque || !categorie) {
+    showMsg('Nom, marque et catégorie sont requis.', 'err');
+    return;
+  }
+
+  setLoading(true);
+
+  // Upload GLB
+  const glbUrl = await uploadFile(
+    document.getElementById('fileGlb'),
+    document.getElementById('progGlb'),
+    document.getElementById('barGlb'),
+    document.getElementById('doneGlb'),
+    document.getElementById('fGlbUrl')
+  ) || document.getElementById('fGlbUrl').value.trim();
+
+  // Upload USDZ
+  const usdzUrl = await uploadFile(
+    document.getElementById('fileUsdz'),
+    document.getElementById('progUsdz'),
+    document.getElementById('barUsdz'),
+    document.getElementById('doneUsdz'),
+    document.getElementById('fUsdzUrl')
+  ) || document.getElementById('fUsdzUrl').value.trim();
+
+  const payload = {
+    nom, marque, categorie,
+    prix:         parseFloat(document.getElementById('fPrix').value)    || null,
+    matiere:      document.getElementById('fMatiere').value.trim()      || null,
+    couleur:      document.getElementById('fCouleur').value.trim()      || null,
+    reference:    document.getElementById('fRef').value.trim()          || null,
+    largeur:      parseFloat(document.getElementById('fL').value)       || null,
+    hauteur:      parseFloat(document.getElementById('fH').value)       || null,
+    profondeur:   parseFloat(document.getElementById('fP').value)       || null,
+    model_glb_url: glbUrl  || null,
+    usdz_url:      usdzUrl || null,
+  };
+
+  const { data, error } = await sb.from('produits').insert([payload]).select();
+  setLoading(false);
+
+  if (error) {
+    showMsg('Erreur : ' + error.message, 'err');
+  } else {
+    showMsg('✓ Produit ajouté avec succès !', 'ok');
+    showToast('✓ ' + nom + ' ajouté au catalogue', 'ok');
+    resetForm();
+    loadProducts();
+  }
+}
+
+function setLoading(on) {
+  const btn  = document.getElementById('btnAdd');
+  const spin = document.getElementById('spinAdd');
+  const lbl  = document.getElementById('lblAdd');
+  btn.disabled       = on;
+  spin.style.display = on ? 'block' : 'none';
+  lbl.style.opacity  = on ? .4 : 1;
+}
+
+function showMsg(txt, type) {
+  const el = document.getElementById('formMsg');
+  el.textContent  = txt;
+  el.className    = 'form-msg ' + type;
+  setTimeout(() => el.textContent = '', 4000);
+}
+
+function resetForm() {
+  ['fNom','fMarque','fPrix','fMatiere','fCouleur','fRef','fL','fH','fP','fGlbUrl','fUsdzUrl']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fCategorie').value = '';
+  ['Glb','Usdz'].forEach(t => {
+    document.getElementById('prog'+t).style.display = 'none';
+    document.getElementById('bar'+t).style.width = '0';
+    document.getElementById('done'+t).style.display = 'none';
+    document.getElementById('file'+t).value = '';
+  });
+  document.getElementById('formMsg').textContent = '';
+}
+
+/* ─── LOAD PRODUCTS ─── */
+let allProducts = [];
+let deleteId    = null;
+
+async function loadProducts() {
+  const { data, error } = await sb.from('produits').select('*').order('created_at', { ascending: false });
+
+  if (error) { showToast('Erreur chargement : ' + error.message); return; }
+
+  allProducts = data || [];
+  updateStats();
+  renderTable(allProducts);
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = allProducts.length;
+  document.getElementById('statGlb').textContent   = allProducts.filter(p => p.model_glb_url).length;
+  document.getElementById('statUsdz').textContent  = allProducts.filter(p => p.usdz_url).length;
+}
+
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allProducts.filter(p =>
+    (p.nom     || '').toLowerCase().includes(q) ||
+    (p.marque  || '').toLowerCase().includes(q) ||
+    (p.categorie||'').toLowerCase().includes(q)
+  );
+  renderTable(filtered);
+}
+
+function renderTable(products) {
+  const wrap = document.getElementById('tableWrap');
+
+  if (!products.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">◇</div>
+        <div class="empty-h">Aucun produit</div>
+        <p class="empty-p">Ajoutez votre premier modèle 3D ci-dessus.</p>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Catégorie</th>
+          <th>Prix</th>
+          <th>GLB</th>
+          <th>USDZ</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>`;
+
+  const tbody = document.getElementById('tbody');
+  products.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.style.animation = 'fadein .3s ease';
+    tr.innerHTML = `
+      <td>
+        <div class="td-brand">${p.marque || '—'}</div>
+        <div class="td-name">${p.nom || '—'}</div>
+      </td>
+      <td>${p.categorie || '—'}</td>
+      <td>${p.prix ? p.prix + ' €' : '—'}</td>
+      <td><span class="td-badge ${p.model_glb_url ? 'ok' : ''}">${p.model_glb_url ? '✓ GLB' : '✗ Manquant'}</span></td>
+      <td><span class="td-badge ${p.usdz_url ? 'ok' : ''}">${p.usdz_url ? '✓ USDZ' : '—'}</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="row-btn" onclick="showQR('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">QR Code</button>
+          <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">Voir AR</button>
+          <button class="row-btn del" onclick="askDelete('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">Supprimer</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ─── QR CODE ─── */
+function showQR(id, nom) {
+  const url = `${BASE_URL}?id=${id}`;
+  document.getElementById('qrTitle').textContent = nom;
+  document.getElementById('qrSub').textContent   = url;
+  QRCode.toCanvas(document.getElementById('qrCanvas'), url, {
+    width: 200, margin: 2,
+    color: { dark: '#1C1B18', light: '#FAFAF8' }
+  });
+  document.getElementById('qrModal').classList.add('show');
+}
+function closeQR() { document.getElementById('qrModal').classList.remove('show'); }
+function downloadQR() {
+  const canvas = document.getElementById('qrCanvas');
+  const a = document.createElement('a');
+  a.download = 'qr-tadamhome.png';
+  a.href = canvas.toDataURL();
+  a.click();
+  showToast('QR Code téléchargé', 'ok');
+}
+
+/* ─── DELETE ─── */
+function askDelete(id, nom) {
+  deleteId = id;
+  document.getElementById('confirmTxt').textContent =
+    `Vous allez supprimer "${nom}". Cette action est irréversible et le QR code associé ne fonctionnera plus.`;
+  document.getElementById('confirmModal').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('show');
+  deleteId = null;
+}
+async function confirmDelete() {
+  if (!deleteId) return;
+  const { error } = await sb.from('produits').delete().eq('id', deleteId);
+  closeConfirm();
+  if (error) { showToast('Erreur suppression : ' + error.message); }
+  else        { showToast('Produit supprimé', 'ok'); loadProducts(); }
+}
+
+/* ─── DRAG & DROP ─── */
+['Glb','Usdz'].forEach(t => {
+  const zone = document.getElementById('zone'+t);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('file'+t);
+    fi.files = e.dataTransfer.files;
+    const name = fi.files[0]?.name;
+    if (name) zone.querySelector('.upload-txt').innerHTML = `<strong>${name}</strong>`;
+  });
+});
+</script>
+</body>
+</html>
