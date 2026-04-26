@@ -235,6 +235,37 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .btn-add-color{padding:9px 18px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s}
 .btn-add-color:hover{background:var(--accent)}
 .colors-empty{padding:20px;text-align:center;font-size:12px;color:var(--muted);font-family:var(--sans);border:1px dashed var(--border)}
+
+/* EDIT MODAL */
+.edit-modal-bg{position:fixed;inset:0;background:rgba(28,27,24,.55);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px}
+.edit-modal-bg.show{display:flex}
+.edit-modal{background:var(--white);width:100%;max-width:620px;max-height:90vh;overflow-y:auto;animation:popin .3s ease}
+.edit-modal-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
+.edit-modal-head h3{font-family:var(--serif);font-size:22px;font-weight:400}
+.edit-modal-close{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.edit-modal-close:hover{border-color:var(--red);color:var(--red)}
+.edit-modal-body{padding:22px 24px}
+.edit-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.edit-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.edit-section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px;font-family:var(--sans)}
+.edit-section-title::before{content:'';width:16px;height:1px;background:var(--accent)}
+.edit-file-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:12px;background:var(--bg2);border:1px solid var(--border)}
+.edit-file-info{flex:1;min-width:0}
+.edit-file-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:var(--sans)}
+.edit-file-url{font-size:11px;color:var(--acc3);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edit-file-url.none{color:var(--muted);font-style:italic;font-family:var(--sans)}
+.edit-upload-zone{border:1px dashed rgba(184,152,106,.35);padding:14px;text-align:center;cursor:pointer;position:relative;transition:all .2s;margin-top:6px}
+.edit-upload-zone:hover,.edit-upload-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.edit-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.edit-upload-zone-txt{font-size:12px;color:var(--muted);font-family:var(--sans)}
+.edit-progress{height:2px;background:rgba(184,152,106,.15);margin-top:8px;display:none}
+.edit-progress-bar{height:100%;background:var(--accent);width:0;transition:width .3s}
+.edit-done{font-size:11px;color:var(--green);margin-top:5px;display:none;font-family:var(--sans)}
+.edit-modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--white)}
+.btn-edit-save{padding:12px 28px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;gap:8px}
+.btn-edit-save:hover{background:var(--accent)}
+.btn-edit-cancel{padding:12px 20px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-edit-cancel:hover{border-color:var(--accent);color:var(--accent)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -276,6 +307,87 @@ tr:hover td{background:rgba(237,234,226,.5)}
     <div class="confirm-btns">
       <button class="confirm-btn" onclick="closeConfirm()">Annuler</button>
       <button class="confirm-btn danger" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- EDIT MODAL -->
+<div class="edit-modal-bg" id="editModal">
+  <div class="edit-modal">
+    <div class="edit-modal-head">
+      <h3 id="editModalTitle">Modifier le produit</h3>
+      <button class="edit-modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="edit-modal-body">
+
+      <!-- Infos générales -->
+      <div class="edit-section">
+        <div class="edit-section-title">Informations</div>
+        <div class="form-grid">
+          <div class="field"><label>Nom</label><input type="text" id="eName"/></div>
+          <div class="field"><label>Marque</label><input type="text" id="eMarque"/></div>
+          <div class="field"><label>Catégorie</label>
+            <select id="eCat">
+              <option value="">Choisir…</option>
+              <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
+              <option>Table basse</option><option>Table à manger</option>
+              <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
+              <option>Lit</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="field"><label>Prix (€)</label><input type="number" id="ePrix"/></div>
+        </div>
+        <div class="form-grid three" style="margin-top:12px">
+          <div class="field"><label>Largeur (cm)</label><input type="number" id="eLarg"/></div>
+          <div class="field"><label>Hauteur (cm)</label><input type="number" id="eHaut"/></div>
+          <div class="field"><label>Profondeur (cm)</label><input type="number" id="eProf"/></div>
+        </div>
+      </div>
+
+      <!-- Fichier GLB -->
+      <div class="edit-section">
+        <div class="edit-section-title">Fichier GLB — Android & Web</div>
+        <div class="edit-file-row">
+          <div class="edit-file-info">
+            <div class="edit-file-label">Fichier actuel</div>
+            <div class="edit-file-url" id="eGlbCurrent">—</div>
+          </div>
+        </div>
+        <div class="edit-upload-zone" id="eZoneGlb">
+          <input type="file" id="eFileGlb" accept=".glb,.gltf" onchange="handleEditFile(this,'eGlb')"/>
+          <div class="edit-upload-zone-txt" id="eLblGlb">Glissez un nouveau fichier GLB pour remplacer · ou cliquez</div>
+          <div class="edit-progress" id="eProgGlb"><div class="edit-progress-bar" id="eBarGlb"></div></div>
+          <div class="edit-done" id="eDoneGlb"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" id="eGlbUrl" placeholder="…ou collez une URL GLB directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
+      </div>
+
+      <!-- Fichier USDZ -->
+      <div class="edit-section">
+        <div class="edit-section-title">Fichier USDZ — iPhone & iPad</div>
+        <div class="edit-file-row">
+          <div class="edit-file-info">
+            <div class="edit-file-label">Fichier actuel</div>
+            <div class="edit-file-url" id="eUsdzCurrent">—</div>
+          </div>
+        </div>
+        <div class="edit-upload-zone" id="eZoneUsdz">
+          <input type="file" id="eFileUsdz" accept=".usdz" onchange="handleEditFile(this,'eUsdz')"/>
+          <div class="edit-upload-zone-txt" id="eLblUsdz">Glissez un nouveau fichier USDZ pour remplacer · ou cliquez</div>
+          <div class="edit-progress" id="eProgUsdz"><div class="edit-progress-bar" id="eBarUsdz"></div></div>
+          <div class="edit-done" id="eDoneUsdz"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" id="eUsdzUrl" placeholder="…ou collez une URL USDZ directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
+      </div>
+
+    </div>
+    <div class="edit-modal-footer">
+      <button class="btn-edit-cancel" onclick="closeEdit()">Annuler</button>
+      <button class="btn-edit-save" id="btnEditSave" onclick="saveEdit()">
+        <div class="spin" id="spinEdit"></div>
+        <span id="lblEditSave">Enregistrer les modifications</span>
+      </button>
     </div>
   </div>
 </div>
@@ -405,11 +517,31 @@ tr:hover td{background:rgba(237,234,226,.5)}
               <div class="field" style="margin:0"><input type="text" id="uColorName" placeholder="ex. Jaune Kvadrat" style="height:44px"/></div>
               <div class="field" style="margin:0"><input type="text" id="uColorMat" placeholder="ex. Tissu, Cuir…" style="height:44px"/></div>
             </div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;font-family:var(--sans)">Texture (aperçu swatch)</div>
             <div class="texture-drop" id="uTextureZone">
               <input type="file" id="uTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'u')"/>
               <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture ici · JPG, PNG</div>
               <img id="uTexturePreview" class="texture-preview"/>
               <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="uTextureName">ou cliquez pour parcourir</div>
+            </div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;font-family:var(--sans)">Modèle 3D de ce coloris</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+              <div>
+                <div class="texture-drop" id="uGlbZone" style="padding:12px">
+                  <input type="file" id="uGlbFile" accept=".glb,.gltf" onchange="handleColorFile(this,'u','glb')"/>
+                  <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB — Android & Web</div>
+                  <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="uGlbFileName">cliquez ou glissez</div>
+                </div>
+                <input type="text" id="uGlbColorUrl" placeholder="ou URL GLB directe…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+              </div>
+              <div>
+                <div class="texture-drop" id="uUsdzZone" style="padding:12px">
+                  <input type="file" id="uUsdzFile" accept=".usdz" onchange="handleColorFile(this,'u','usdz')"/>
+                  <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ — iPhone AR</div>
+                  <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="uUsdzFileName">cliquez ou glissez</div>
+                </div>
+                <input type="text" id="uUsdzColorUrl" placeholder="ou URL USDZ directe…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+              </div>
             </div>
             <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
               <button class="btn-add-color" onclick="addUploadColor()">+ Ajouter ce coloris</button>
@@ -483,9 +615,28 @@ tr:hover td{background:rgba(237,234,226,.5)}
               </div>
               <div class="texture-drop" id="mTextureZone">
                 <input type="file" id="mTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'m')"/>
-                <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture ici</div>
+                <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture JPG ici</div>
                 <img id="mTexturePreview" class="texture-preview"/>
                 <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="mTextureName">ou cliquez pour parcourir</div>
+              </div>
+              <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 8px;font-family:var(--sans)">Modèle 3D associé à ce coloris</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div>
+                  <div class="texture-drop" id="mGlbZone" style="padding:12px">
+                    <input type="file" id="mGlbFile" accept=".glb,.gltf" onchange="handleColorFile(this,'m','glb')"/>
+                    <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB (Android)</div>
+                    <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="mGlbFileName">ou cliquez</div>
+                  </div>
+                  <input type="text" id="mGlbUrl" placeholder="ou URL GLB…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+                </div>
+                <div>
+                  <div class="texture-drop" id="mUsdzZone" style="padding:12px">
+                    <input type="file" id="mUsdzFile" accept=".usdz" onchange="handleColorFile(this,'m','usdz')"/>
+                    <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ (iPhone)</div>
+                    <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="mUsdzFileName">ou cliquez</div>
+                  </div>
+                  <input type="text" id="mUsdzUrl" placeholder="ou URL USDZ…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+                </div>
               </div>
               <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
                 <button class="btn-add-color" onclick="addMeshyColor()">+ Ajouter ce coloris</button>
@@ -646,7 +797,7 @@ function renderTable(products,targetId){
   const el=document.getElementById(targetId);
   if(!products.length){el.innerHTML='<div class="empty-state"><div class="empty-h">Aucun produit</div><p class="empty-p">Ajoutez votre premier modèle 3D.</p></div>';return;}
   let html='<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
-  products.forEach(p=>{html+=`<tr><td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td><td>${p.category||'—'}</td><td>${p.price?p.price+'€':'—'}</td><td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td><td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td><td><div class="row-actions"><button class="row-btn" onclick="showQR('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">QR</button><button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button><button class="row-btn del" onclick="askDelete('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">✕</button></div></td></tr>`;});
+  products.forEach(p=>{html+=`<tr><td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td><td>${p.category||'—'}</td><td>${p.price?p.price+'€':'—'}</td><td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td><td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td><td><div class="row-actions"><button class="row-btn" onclick="openEdit('${p.id}')">✏ Éditer</button><button class="row-btn" onclick="showQR('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">QR</button><button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button><button class="row-btn del" onclick="askDelete('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">✕</button></div></td></tr>`;});
   html+='</tbody></table>';el.innerHTML=html;
 }
 
@@ -844,6 +995,155 @@ async function saveMeshyProduct(){
   meshyGlbUrl=null;meshyUsdzUrl=null;
 }
 
+
+/* ── EDIT PRODUCT ── */
+let editProductId = null;
+let editGlbUrl = null;
+let editUsdzUrl = null;
+
+function openEdit(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (!p) return;
+  editProductId = id;
+  editGlbUrl = null;
+  editUsdzUrl = null;
+
+  // Fill form
+  document.getElementById('editModalTitle').textContent = 'Modifier — ' + (p.name || '');
+  document.getElementById('eName').value   = p.name  || '';
+  document.getElementById('eMarque').value = p.enseigne_name || '';
+  document.getElementById('eCat').value    = p.category || '';
+  document.getElementById('ePrix').value   = p.price || '';
+  document.getElementById('eLarg').value   = p.dimensions?.l || '';
+  document.getElementById('eHaut').value   = p.dimensions?.h || '';
+  document.getElementById('eProf').value   = p.dimensions?.p || '';
+
+  // Show current files
+  const glbEl = document.getElementById('eGlbCurrent');
+  const usdzEl = document.getElementById('eUsdzCurrent');
+  if (p.model_glb_url) {
+    glbEl.textContent = p.model_glb_url.split('/').pop();
+    glbEl.classList.remove('none');
+  } else {
+    glbEl.textContent = 'Aucun fichier GLB';
+    glbEl.classList.add('none');
+  }
+  if (p.model_usdz_url) {
+    usdzEl.textContent = p.model_usdz_url.split('/').pop();
+    usdzEl.classList.remove('none');
+  } else {
+    usdzEl.textContent = 'Aucun fichier USDZ';
+    usdzEl.classList.add('none');
+  }
+
+  // Reset upload zones
+  ['Glb','Usdz'].forEach(t => {
+    document.getElementById('eFile'+t).value = '';
+    document.getElementById('eLbl'+t).textContent = 'Glissez un nouveau fichier pour remplacer · ou cliquez';
+    document.getElementById('eProg'+t).style.display = 'none';
+    document.getElementById('eBar'+t).style.width = '0';
+    document.getElementById('eDone'+t).style.display = 'none';
+    document.getElementById('e'+t+'Url').value = '';
+  });
+
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('show');
+  editProductId = null; editGlbUrl = null; editUsdzUrl = null;
+}
+
+async function handleEditFile(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const progEl = document.getElementById(prefix + 'Prog' + (prefix === 'eGlb' ? '' : ''));
+
+  // Determine correct IDs
+  const isGlb = prefix === 'eGlb';
+  const progId = isGlb ? 'eProgGlb' : 'eProgUsdz';
+  const barId  = isGlb ? 'eBarGlb'  : 'eBarUsdz';
+  const doneId = isGlb ? 'eDoneGlb' : 'eDoneUsdz';
+  const lblId  = isGlb ? 'eLblGlb'  : 'eLblUsdz';
+
+  document.getElementById(progId).style.display = 'block';
+  document.getElementById(barId).style.width = '20%';
+  document.getElementById(lblId).textContent = '⏳ Upload en cours…';
+
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  document.getElementById(barId).style.width = '100%';
+
+  if (error) {
+    document.getElementById(lblId).textContent = '✗ Erreur upload — collez une URL directement';
+    return;
+  }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (isGlb) editGlbUrl = url;
+  else editUsdzUrl = url;
+
+  document.getElementById(doneId).style.display = 'block';
+  document.getElementById(doneId).textContent = '✓ ' + file.name;
+  document.getElementById(lblId).textContent = 'Fichier prêt';
+}
+
+async function saveEdit() {
+  if (!editProductId) return;
+  const nom = document.getElementById('eName').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
+
+  document.getElementById('btnEditSave').disabled = true;
+  document.getElementById('spinEdit').style.display = 'block';
+  document.getElementById('lblEditSave').style.opacity = .4;
+
+  // Build update payload
+  const larg = parseFloat(document.getElementById('eLarg').value) || null;
+  const haut = parseFloat(document.getElementById('eHaut').value) || null;
+  const prof = parseFloat(document.getElementById('eProf').value) || null;
+
+  const payload = {
+    name:         nom,
+    enseigne_name:document.getElementById('eMarque').value.trim() || null,
+    category:     document.getElementById('eCat').value || null,
+    price:        parseFloat(document.getElementById('ePrix').value) || null,
+    dimensions:   (larg||haut||prof) ? {l:larg,h:haut,p:prof} : null,
+  };
+
+  // Override files if new ones uploaded or URL provided
+  const glbUrl  = editGlbUrl  || document.getElementById('eGlbUrl').value.trim()  || undefined;
+  const usdzUrl = editUsdzUrl || document.getElementById('eUsdzUrl').value.trim() || undefined;
+  if (glbUrl)  payload.model_glb_url  = glbUrl;
+  if (usdzUrl) payload.model_usdz_url = usdzUrl;
+
+  const { error } = await sb.from('products').update(payload).eq('id', editProductId);
+
+  document.getElementById('btnEditSave').disabled = false;
+  document.getElementById('spinEdit').style.display = 'none';
+  document.getElementById('lblEditSave').style.opacity = 1;
+
+  if (error) { showToast('Erreur : ' + error.message, 'err'); return; }
+
+  showToast('✓ ' + nom + ' mis à jour !', 'ok');
+  closeEdit();
+  loadProducts();
+}
+
+// Drag & drop on edit zones
+['Glb','Usdz'].forEach(t => {
+  const zone = document.getElementById('eZone'+t);
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('eFile'+t);
+    fi.files = e.dataTransfer.files;
+    if (fi.files[0]) handleEditFile(fi, 'e'+t);
+  });
+});
+
 /* ── COLORS MANAGER ── */
 let uploadColors = [];   // colors for manual upload panel
 let meshyColors  = [];   // colors for meshy panel
@@ -855,14 +1155,10 @@ async function handleTextureUpload(input, prefix) {
   if (!file) return;
   const previewEl = document.getElementById(prefix + 'TexturePreview');
   const nameEl    = document.getElementById(prefix + 'TextureName');
-
-  // Show local preview immediately
   const reader = new FileReader();
   reader.onload = e => { previewEl.src = e.target.result; previewEl.style.display = 'block'; };
   reader.readAsDataURL(file);
   nameEl.textContent = '⏳ Upload en cours…';
-
-  // Upload to Supabase storage
   const ext  = file.name.split('.').pop();
   const path = `textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
   const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
@@ -874,21 +1170,50 @@ async function handleTextureUpload(input, prefix) {
   nameEl.textContent = '✓ ' + file.name;
 }
 
+// Track per-color GLB/USDZ uploads
+let uColorGlbUrl = null, uColorUsdzUrl = null;
+let mColorGlbUrl = null, mColorUsdzUrl = null;
+
+async function handleColorFile(input, prefix, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const isU = prefix === 'u';
+  const fnId = prefix + (type === 'glb' ? 'GlbFileName' : 'UsdzFileName');
+  document.getElementById(fnId).textContent = '⏳ Upload…';
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { document.getElementById(fnId).textContent = '✗ Erreur'; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (isU) { if(type==='glb') uColorGlbUrl=url; else uColorUsdzUrl=url; }
+  else      { if(type==='glb') mColorGlbUrl=url; else mColorUsdzUrl=url; }
+  document.getElementById(fnId).textContent = '✓ ' + file.name;
+}
+
 function addUploadColor() {
   const name = document.getElementById('uColorName').value.trim();
   const hex  = document.getElementById('uColorHex').value;
   const mat  = document.getElementById('uColorMat').value.trim();
   if (!name) { document.getElementById('uColorMsg').textContent = 'Nom requis'; return; }
-  uploadColors.push({ name, hex, mat: mat || null, texture: uTextureUrl || null });
+  const glb  = uColorGlbUrl  || document.getElementById('uGlbColorUrl').value.trim()  || null;
+  const usdz = uColorUsdzUrl || document.getElementById('uUsdzColorUrl').value.trim() || null;
+  uploadColors.push({ name, hex, mat: mat||null, texture: uTextureUrl||null, glb, usdz });
   renderColorsList('upload');
   // Reset
   document.getElementById('uColorName').value = '';
   document.getElementById('uColorMat').value  = '';
+  document.getElementById('uGlbColorUrl').value = '';
+  document.getElementById('uUsdzColorUrl').value = '';
   document.getElementById('uTexturePreview').style.display = 'none';
   document.getElementById('uTextureName').textContent = 'ou cliquez pour parcourir';
   document.getElementById('uTextureFile').value = '';
+  document.getElementById('uGlbFile').value = '';
+  document.getElementById('uUsdzFile').value = '';
+  document.getElementById('uGlbFileName').textContent = 'cliquez ou glissez';
+  document.getElementById('uUsdzFileName').textContent = 'cliquez ou glissez';
   document.getElementById('uColorMsg').textContent = '';
-  uTextureUrl = null;
+  uTextureUrl = null; uColorGlbUrl = null; uColorUsdzUrl = null;
 }
 
 function addMeshyColor() {
@@ -896,15 +1221,23 @@ function addMeshyColor() {
   const hex  = document.getElementById('mColorHex').value;
   const mat  = document.getElementById('mColorMat').value.trim();
   if (!name) { document.getElementById('mColorMsg').textContent = 'Nom requis'; return; }
-  meshyColors.push({ name, hex, mat: mat || null, texture: mTextureUrl || null });
+  const glb  = mColorGlbUrl  || document.getElementById('mGlbUrl').value.trim()  || null;
+  const usdz = mColorUsdzUrl || document.getElementById('mUsdzUrl').value.trim() || null;
+  meshyColors.push({ name, hex, mat: mat||null, texture: mTextureUrl||null, glb, usdz });
   renderColorsList('meshy');
   document.getElementById('mColorName').value = '';
   document.getElementById('mColorMat').value  = '';
+  document.getElementById('mGlbUrl').value = '';
+  document.getElementById('mUsdzUrl').value = '';
   document.getElementById('mTexturePreview').style.display = 'none';
   document.getElementById('mTextureName').textContent = 'ou cliquez pour parcourir';
   document.getElementById('mTextureFile').value = '';
+  document.getElementById('mGlbFile').value = '';
+  document.getElementById('mUsdzFile').value = '';
+  document.getElementById('mGlbFileName').textContent = 'ou cliquez';
+  document.getElementById('mUsdzFileName').textContent = 'ou cliquez';
   document.getElementById('mColorMsg').textContent = '';
-  mTextureUrl = null;
+  mTextureUrl = null; mColorGlbUrl = null; mColorUsdzUrl = null;
 }
 
 function renderColorsList(panel) {
@@ -916,10 +1249,14 @@ function renderColorsList(panel) {
   }
   listEl.innerHTML = colors.map((c, i) => `
     <div class="color-row">
-      <div class="color-swatch-preview" style="background:${c.hex}" title="${c.name}"></div>
+      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}" title="${c.name}"></div>
       <div class="color-row-info">
         <div class="color-row-name">${c.name}${c.mat ? ' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>' : ''}</div>
-        <div class="color-row-url">${c.texture ? '✓ Texture : ' + c.texture.split('/').pop() : '⚠ Pas de texture'}</div>
+        <div class="color-row-url">${[
+          c.texture ? '✓ Texture' : '⚠ Sans texture',
+          c.glb     ? '✓ GLB'    : '⚠ Sans GLB',
+          c.usdz    ? '✓ USDZ'   : ''
+        ].filter(Boolean).join(' · ')}</div>
       </div>
       <button class="color-row-del" onclick="removeColor('${panel}',${i})">✕</button>
     </div>`).join('');
