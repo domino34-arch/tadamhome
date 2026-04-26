@@ -241,9 +241,9 @@ model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#
 </div>
 
 <!-- PRODUCT HEADER -->
-<div class="prod-header hideable" id="s-header">
+<div class="prod-header" id="s-header">
   <div class="prod-title" id="prod-name">Chargement...</div>
-  <div class="prod-subtitle">
+  <div class="prod-subtitle" id="s-header-sub">
     <span class="prod-ref" id="prod-ref">Réf. —</span>
     <div class="status-pill"><div class="status-dot"></div>AR actif</div>
   </div>
@@ -292,7 +292,7 @@ model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#
 </div>
 
 <!-- COLORIS -->
-<div class="section hideable" id="s-colors" style="margin-top:10px">
+<div class="section" id="s-colors" style="margin-top:10px">
   <div class="section-label">Coloris<span class="val" id="col-name">—</span></div>
   <div class="colors-grid" id="colors-grid"></div>
 </div>
@@ -387,7 +387,7 @@ let prod=null,col=null,dpi=null;
 const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dimensions:'240 × 95 × 82',enseigne_name:'Démonstration',model_url:'https://modelviewer.dev/shared-assets/models/Astronaut.glb',colors:[{name:'Velours Ocre',hex:'#C8853A'},{name:'Velours Taupe',hex:'#9E8E7E'},{name:'Velours Vert',hex:'#5A7A5C'},{name:'Velours Bleu',hex:'#3A5F8A'},{name:'Velours Anthracite',hex:'#3D3D3D'},{name:'Velours Rose',hex:'#C4858A'},{name:'Velours Bordeaux',hex:'#8B3A3A'},{name:'Velours Ciel',hex:'#6B9DBF'}]};
 
 let infoVisible = true;
-const HIDEABLE = ['s-header','s-tabs','s-thumbs','s-colors','s-infos','s-features','s-install'];
+const HIDEABLE = ['s-tabs','s-thumbs','s-infos','s-features','s-install'];
 
 function toggleInfo(){
   infoVisible = !infoVisible;
@@ -396,17 +396,24 @@ function toggleInfo(){
   const icon = document.getElementById('toggle-icon');
   const mv = document.getElementById('mv');
   const cta = document.querySelector('.cta-zone');
+  const sub = document.getElementById('s-header-sub'); // ref + statut
   HIDEABLE.forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     if(!infoVisible) el.classList.add('hidden');
     else el.classList.remove('hidden');
   });
+  // Masquer ref/statut mais garder le nom + coloris visibles
+  if(sub) sub.style.display = infoVisible ? '' : 'none';
   if(!infoVisible){
     const ctaHeight = cta.offsetHeight + 20;
     const topbarHeight = 52;
-    const newH = window.innerHeight - topbarHeight - ctaHeight;
-    mv.style.height = newH + 'px';
+    // Calculer la hauteur en tenant compte du header nom + coloris
+    const header = document.getElementById('s-header');
+    const colors = document.getElementById('s-colors');
+    const headerH = (header?.offsetHeight||0) + (colors?.offsetHeight||0);
+    const newH = window.innerHeight - topbarHeight - ctaHeight - headerH - 12;
+    mv.style.height = Math.max(newH, 200) + 'px';
     mv.style.maxHeight = 'none';
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
@@ -420,7 +427,7 @@ function toggleInfo(){
     label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   } else {
-    mv.style.height = '220px';
+    mv.style.height = '260px';
     mv.style.maxHeight = '';
     cta.style.position = '';
     cta.style.bottom = '';
