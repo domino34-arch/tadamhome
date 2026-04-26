@@ -469,23 +469,65 @@ function render(p){
 
 function renderColors(colors){
   const g=document.getElementById('colors-grid');g.innerHTML='';
-  if(!colors||!colors.length)return;
+  const sect=document.getElementById('s-colors');
+  if(!colors||!colors.length){sect.style.display='none';return;}
+  sect.style.display='block';
   col=colors[0];
   document.getElementById('col-name').textContent=colors[0].name;
   colors.forEach((c,i)=>{
     const s=document.createElement('div');
     s.className='color-swatch'+(i===0?' active':'');
-    s.style.background=c.hex;s.title=c.name;
-    s.onclick=()=>{
+
+    // Si texture disponible → miniature texture, sinon couleur pleine
+    if(c.texture){
+      s.style.backgroundImage=`url(${c.texture})`;
+      s.style.backgroundSize='cover';
+      s.style.backgroundPosition='center';
+    } else {
+      s.style.background=c.hex||'#ccc';
+    }
+    s.title=c.name+(c.mat?' · '+c.mat:'');
+
+    s.onclick=async()=>{
       document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
-      s.classList.add('active');col=c;
-      document.getElementById('col-name').textContent=c.name;
-      toast('Coloris : '+c.name);
+      s.classList.add('active');
+      col=c;
+      document.getElementById('col-name').textContent=c.name+(c.mat?' · '+c.mat:'');
+
+      // Appliquer texture sur le GLB dans model-viewer (pas en AR)
+      const mv=document.getElementById('mv');
+      if(c.texture && mv.model){
+        try{
+          const texture=await mv.createTexture(c.texture);
+          mv.model.materials.forEach(mat=>{
+            try{ mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); }catch(e){}
+          });
+          toast('Coloris : '+c.name);
+        }catch(e){ toast('Coloris : '+c.name); }
+      } else {
+        toast('Coloris : '+c.name);
+      }
+
+      // Sauvegarder dans le wallet
       const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
       if(ex){ex.color=c;setW(w2);}
     };
     g.appendChild(s);
   });
+
+  // Appliquer le premier coloris automatiquement au chargement
+  if(colors[0].texture){
+    const mv=document.getElementById('mv');
+    mv.addEventListener('load',async()=>{
+      if(!colors[0].texture||!mv.model)return;
+      try{
+        const texture=await mv.createTexture(colors[0].texture);
+        mv.model.materials.forEach(mat=>{
+          try{ mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); }catch(e){}
+        });
+      }catch(e){}
+    },{once:true});
+  }
 }
 
 function setTab(i,el){
