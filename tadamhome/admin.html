@@ -5,8 +5,460 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TadamHome — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+/* ── MESHY AI ── */
+const MESHY_API = 'https://api.meshy.ai';
+let meshyTaskId = null;
+let meshyPollInterval = null;
+let meshyGlbUrl = null;
+let meshyUsdzUrl = null;
+
+function saveMeshyKey() {
+  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
+}
+
+async function testMeshyKey() {
+  const key = document.getElementById('meshyApiKey').value.trim();
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  try {
+    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
+    const d = await r.json();
+    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
+    else showToast('Clé invalide', 'err');
+  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
+}
+
+function handleMeshyImage(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('meshyPreview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewMeshyUrl() {
+  const url = document.getElementById('meshyImgUrl').value.trim();
+  if (!url) return;
+  const prev = document.getElementById('meshyPreview');
+  prev.src = url;
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
+}
+
+async function getImageUrl() {
+  const file = document.getElementById('meshyFileInput').files[0];
+  const urlInput = document.getElementById('meshyImgUrl').value.trim();
+
+  if (file) {
+    // Convert to base64 data URL for Meshy API
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  } else if (urlInput) {
+    return urlInput;
+  }
+  return null;
+}
+
+async function generateMeshy() {
+  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  document.getElementById('meshyApiKey').value = key;
+
+  const imgUrl = await getImageUrl();
+  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
+
+  const nom = document.getElementById('mNom').value.trim();
+  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
+
+  // UI state
+  setGenLoading(true);
+  document.getElementById('genStatus').style.display = 'block';
+  document.getElementById('genProgressBar').style.width = '5%';
+  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
+  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
+  document.getElementById('genUrls').style.display = 'none';
+  document.getElementById('genActions').style.display = 'none';
+  document.getElementById('genPreviewImg').style.display = 'none';
+  document.getElementById('genIcon').textContent = '⏳';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+
+  try {
+    // Call Meshy Image to 3D API
+    const prompt = document.getElementById('meshyPrompt').value.trim();
+    const body = {
+      image_url: imgUrl,
+      ai_model: 'meshy-4',
+      topology: 'quad',
+      target_polycount: 30000,
+      enable_pbr: true,
+    };
+    if (prompt) body.prompt = prompt;
+
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
+
+    meshyTaskId = data.result;
+    document.getElementById('genProgressBar').style.width = '15%';
+    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
+    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
+
+    // Poll for result
+    clearInterval(meshyPollInterval);
+    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
+
+  } catch(e) {
+    setGenLoading(false);
+    document.getElementById('genIcon').textContent = '✕';
+    document.getElementById('genStatusTitle').textContent = 'Erreur';
+    document.getElementById('genStatusSub').textContent = e.message;
+    showToast('Erreur : ' + e.message, 'err');
+  }
+}
+
+async function pollMeshy(key, taskId) {
+  try {
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
+      headers: { Authorization: `Bearer ${key}` }
+    });
+    const data = await res.json();
+    const pct = data.progress || 0;
+
+    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
+    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
+
+    if (data.status === 'SUCCEEDED') {
+      clearInterval(meshyPollInterval);
+      meshyGlbUrl  = data.model_urls?.glb  || null;
+      meshyUsdzUrl = data.model_urls?.usdz || null;
+
+      document.getElementById('genProgressBar').style.width = '100%';
+      document.getElementById('genIcon').textContent = '✓';
+      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
+      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
+
+      if (data.thumbnail_url) {
+        const img = document.getElementById('genPreviewImg');
+        img.src = data.thumbnail_url;
+        img.style.display = 'block';
+      }
+
+      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
+      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
+      document.getElementById('genUrls').style.display    = 'flex';
+      document.getElementById('genActions').style.display = 'flex';
+
+      setGenLoading(false);
+      showToast('✓ Modèle 3D généré avec succès !', 'ok');
+
+    } else if (data.status === 'FAILED') {
+      clearInterval(meshyPollInterval);
+      document.getElementById('genIcon').textContent = '✕';
+      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
+      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
+      setGenLoading(false);
+      showToast('Génération échouée — essayez une autre image', 'err');
+    }
+  } catch(e) {
+    console.error('Poll error:', e);
+  }
+}
+
+async function saveMeshyProduct() {
+  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
+  const nom    = document.getElementById('mNom').value.trim();
+  const marque = document.getElementById('mMarque').value.trim();
+  const cat    = document.getElementById('mCat').value;
+  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
+  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
+
+  const { error } = await sb.from('products').insert([{
+    name: nom, enseigne_name: marque, category: cat || null, price: prix,
+    model_glb_url:  meshyGlbUrl,
+    model_usdz_url: meshyUsdzUrl || null,
+    is_active: true
+  }]);
+
+  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
+
+  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
+  loadProducts();
+
+  // Reset
+  document.getElementById('mNom').value = '';
+  document.getElementById('mMarque').value = '';
+  document.getElementById('mPrix').value = '';
+  document.getElementById('mCat').value = '';
+  document.getElementById('meshyPrompt').value = '';
+  document.getElementById('meshyPreview').style.display = 'none';
+  document.getElementById('genStatus').style.display = 'none';
+  document.getElementById('meshyFileInput').value = '';
+  document.getElementById('meshyImgUrl').value = '';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+}
+
+function setGenLoading(on) {
+  document.getElementById('btnGenerate').disabled = on;
+  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
+  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
+}
+
+// Init — restore API key
+(function() {
+  const savedKey = localStorage.getItem('meshy_api_key');
+  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
+  // Drag & drop on Meshy zone
+  const zone = document.getElementById('meshyDropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('meshyFileInput');
+    fi.files = e.dataTransfer.files;
+    if (fi.files[0]) handleMeshyImage(fi.files[0]);
+  });
+})();
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js">
+/* ── MESHY AI ── */
+const MESHY_API = 'https://api.meshy.ai';
+let meshyTaskId = null;
+let meshyPollInterval = null;
+let meshyGlbUrl = null;
+let meshyUsdzUrl = null;
+
+function saveMeshyKey() {
+  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
+}
+
+async function testMeshyKey() {
+  const key = document.getElementById('meshyApiKey').value.trim();
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  try {
+    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
+    const d = await r.json();
+    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
+    else showToast('Clé invalide', 'err');
+  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
+}
+
+function handleMeshyImage(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('meshyPreview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewMeshyUrl() {
+  const url = document.getElementById('meshyImgUrl').value.trim();
+  if (!url) return;
+  const prev = document.getElementById('meshyPreview');
+  prev.src = url;
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
+}
+
+async function getImageUrl() {
+  const file = document.getElementById('meshyFileInput').files[0];
+  const urlInput = document.getElementById('meshyImgUrl').value.trim();
+
+  if (file) {
+    // Convert to base64 data URL for Meshy API
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  } else if (urlInput) {
+    return urlInput;
+  }
+  return null;
+}
+
+async function generateMeshy() {
+  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  document.getElementById('meshyApiKey').value = key;
+
+  const imgUrl = await getImageUrl();
+  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
+
+  const nom = document.getElementById('mNom').value.trim();
+  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
+
+  // UI state
+  setGenLoading(true);
+  document.getElementById('genStatus').style.display = 'block';
+  document.getElementById('genProgressBar').style.width = '5%';
+  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
+  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
+  document.getElementById('genUrls').style.display = 'none';
+  document.getElementById('genActions').style.display = 'none';
+  document.getElementById('genPreviewImg').style.display = 'none';
+  document.getElementById('genIcon').textContent = '⏳';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+
+  try {
+    // Call Meshy Image to 3D API
+    const prompt = document.getElementById('meshyPrompt').value.trim();
+    const body = {
+      image_url: imgUrl,
+      ai_model: 'meshy-4',
+      topology: 'quad',
+      target_polycount: 30000,
+      enable_pbr: true,
+    };
+    if (prompt) body.prompt = prompt;
+
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
+
+    meshyTaskId = data.result;
+    document.getElementById('genProgressBar').style.width = '15%';
+    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
+    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
+
+    // Poll for result
+    clearInterval(meshyPollInterval);
+    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
+
+  } catch(e) {
+    setGenLoading(false);
+    document.getElementById('genIcon').textContent = '✕';
+    document.getElementById('genStatusTitle').textContent = 'Erreur';
+    document.getElementById('genStatusSub').textContent = e.message;
+    showToast('Erreur : ' + e.message, 'err');
+  }
+}
+
+async function pollMeshy(key, taskId) {
+  try {
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
+      headers: { Authorization: `Bearer ${key}` }
+    });
+    const data = await res.json();
+    const pct = data.progress || 0;
+
+    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
+    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
+
+    if (data.status === 'SUCCEEDED') {
+      clearInterval(meshyPollInterval);
+      meshyGlbUrl  = data.model_urls?.glb  || null;
+      meshyUsdzUrl = data.model_urls?.usdz || null;
+
+      document.getElementById('genProgressBar').style.width = '100%';
+      document.getElementById('genIcon').textContent = '✓';
+      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
+      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
+
+      if (data.thumbnail_url) {
+        const img = document.getElementById('genPreviewImg');
+        img.src = data.thumbnail_url;
+        img.style.display = 'block';
+      }
+
+      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
+      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
+      document.getElementById('genUrls').style.display    = 'flex';
+      document.getElementById('genActions').style.display = 'flex';
+
+      setGenLoading(false);
+      showToast('✓ Modèle 3D généré avec succès !', 'ok');
+
+    } else if (data.status === 'FAILED') {
+      clearInterval(meshyPollInterval);
+      document.getElementById('genIcon').textContent = '✕';
+      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
+      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
+      setGenLoading(false);
+      showToast('Génération échouée — essayez une autre image', 'err');
+    }
+  } catch(e) {
+    console.error('Poll error:', e);
+  }
+}
+
+async function saveMeshyProduct() {
+  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
+  const nom    = document.getElementById('mNom').value.trim();
+  const marque = document.getElementById('mMarque').value.trim();
+  const cat    = document.getElementById('mCat').value;
+  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
+  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
+
+  const { error } = await sb.from('products').insert([{
+    name: nom, enseigne_name: marque, category: cat || null, price: prix,
+    model_glb_url:  meshyGlbUrl,
+    model_usdz_url: meshyUsdzUrl || null,
+    is_active: true
+  }]);
+
+  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
+
+  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
+  loadProducts();
+
+  // Reset
+  document.getElementById('mNom').value = '';
+  document.getElementById('mMarque').value = '';
+  document.getElementById('mPrix').value = '';
+  document.getElementById('mCat').value = '';
+  document.getElementById('meshyPrompt').value = '';
+  document.getElementById('meshyPreview').style.display = 'none';
+  document.getElementById('genStatus').style.display = 'none';
+  document.getElementById('meshyFileInput').value = '';
+  document.getElementById('meshyImgUrl').value = '';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+}
+
+function setGenLoading(on) {
+  document.getElementById('btnGenerate').disabled = on;
+  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
+  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
+}
+
+// Init — restore API key
+(function() {
+  const savedKey = localStorage.getItem('meshy_api_key');
+  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
+  // Drag & drop on Meshy zone
+  const zone = document.getElementById('meshyDropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('meshyFileInput');
+    fi.files = e.dataTransfer.files;
+    if (fi.files[0]) handleMeshyImage(fi.files[0]);
+  });
+})();
+
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -246,6 +698,45 @@ tr:hover td{background:rgba(237,234,226,.5)}
   th:nth-child(3),td:nth-child(3),th:nth-child(4),td:nth-child(4){display:none}
 }
 
+
+/* ── MESHY AI PANEL ── */
+.meshy-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; background: var(--border); margin-bottom: 24px; border: 1px solid var(--border); }
+.meshy-step { background: var(--white); padding: 20px; }
+.meshy-step-n { font-family: var(--serif); font-size: 28px; font-weight: 300; color: rgba(184,152,106,.3); margin-bottom: 8px; }
+.meshy-step-t { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; letter-spacing: .02em; }
+.meshy-step-p { font-size: 11px; color: var(--muted); line-height: 1.6; }
+.meshy-card { background: var(--white); border: 1px solid var(--border); margin-bottom: 2px; }
+.meshy-card-head { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.meshy-card-head h3 { font-family: var(--serif); font-size: 18px; font-weight: 400; }
+.meshy-card-body { padding: 22px 24px; }
+.api-key-row { display: flex; gap: 8px; align-items: center; }
+.api-key-row input { flex: 1; padding: 10px 13px; border: 1px solid var(--border); background: var(--bg2); font-family: var(--sans); font-size: 12px; color: var(--text); outline: none; transition: border-color .2s; font-weight: 300; }
+.api-key-row input:focus { border-color: var(--accent); }
+.api-key-row a { font-size: 11px; color: var(--accent); text-decoration: none; white-space: nowrap; letter-spacing: .04em; }
+.img-drop-zone { border: 1px dashed rgba(184,152,106,.4); padding: 32px; text-align: center; cursor: pointer; transition: all .2s; position: relative; margin-bottom: 8px; }
+.img-drop-zone:hover, .img-drop-zone.drag { border-color: var(--accent); background: rgba(184,152,106,.03); }
+.img-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.img-preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 12px; display: none; border: 1px solid var(--border); }
+.generation-status { background: var(--bg2); border: 1px solid var(--border); padding: 20px; margin-top: 12px; display: none; }
+.gen-status-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.gen-status-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(184,152,106,.1); border: 1px solid rgba(184,152,106,.25); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.gen-status-txt h4 { font-family: var(--serif); font-size: 18px; font-weight: 400; color: var(--text); }
+.gen-status-txt p { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--sans); }
+.gen-progress { height: 2px; background: rgba(184,152,106,.15); margin-bottom: 14px; overflow: hidden; }
+.gen-progress-bar { height: 100%; background: var(--accent); transition: width 1s ease; width: 0; }
+.gen-preview-img { width: 100%; max-height: 160px; object-fit: contain; border: 1px solid var(--border); margin-bottom: 12px; display: none; }
+.gen-result-urls { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.gen-url-row { display: flex; align-items: center; gap: 8px; }
+.gen-url-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 50px; font-family: var(--sans); }
+.gen-url-val { flex: 1; font-size: 11px; color: var(--acc3); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--bg3); padding: 5px 8px; }
+.gen-actions { display: flex; gap: 8px; }
+.btn-save-to-cat { padding: 12px 24px; background: var(--text); color: var(--white); border: none; font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background .3s; flex: 1; }
+.btn-save-to-cat:hover { background: var(--accent); }
+.btn-regen { padding: 12px 18px; background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: var(--sans); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .2s; }
+.btn-regen:hover { border-color: var(--accent); color: var(--accent); }
+.meshy-link { font-size: 11px; color: var(--muted); font-family: var(--sans); }
+.meshy-link a { color: var(--accent); }
+
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes popin{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
 </style>
@@ -306,6 +797,9 @@ tr:hover td{background:rgba(237,234,226,.5)}
     </button>
     <button class="nav-item" onclick="showPanel('upload')">
       <span class="ico">↑</span>Ajouter un modèle
+    </button>
+    <button class="nav-item" onclick="showPanel('meshy')">
+      <span class="ico">✦</span>Générer avec IA
     </button>
     <button class="nav-item" onclick="showPanel('catalogue')">
       <span class="ico">◫</span>Catalogue<span class="nav-badge" id="navBadge">0</span>
@@ -441,6 +935,111 @@ tr:hover td{background:rgba(237,234,226,.5)}
       </div>
     </div>
 
+
+    <!-- ══ MESHY AI ══ -->
+    <div class="page" id="panelMeshy">
+      <div class="sec-eyebrow">Intelligence artificielle</div>
+      <h2 class="sec-h2">Générer un <em>modèle 3D avec l'IA</em></h2>
+
+      <!-- Steps -->
+      <div class="meshy-steps">
+        <div class="meshy-step"><div class="meshy-step-n">01</div><div class="meshy-step-t">Photo du meuble</div><div class="meshy-step-p">Uploadez une photo claire du produit sur fond neutre</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">02</div><div class="meshy-step-t">Génération IA</div><div class="meshy-step-p">Meshy AI convertit l'image en modèle GLB + USDZ en ~1 min</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">03</div><div class="meshy-step-t">Ajout au catalogue</div><div class="meshy-step-p">Les fichiers sont sauvegardés dans Supabase automatiquement</div></div>
+      </div>
+
+      <!-- API Key -->
+      <div class="meshy-card" style="margin-bottom:2px">
+        <div class="meshy-card-head">
+          <h3>Clé API Meshy</h3>
+          <a href="https://www.meshy.ai/api" target="_blank" class="meshy-link">Obtenir une clé → meshy.ai</a>
+        </div>
+        <div class="meshy-card-body">
+          <div class="api-key-row">
+            <input type="password" id="meshyApiKey" placeholder="msy_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="saveMeshyKey()"/>
+            <button class="btn-reset" onclick="testMeshyKey()" style="white-space:nowrap">Tester la clé</button>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--sans)">Votre clé est sauvegardée localement. 100 crédits gratuits/mois sur le plan free — chaque génération coûte 15 crédits.</p>
+        </div>
+      </div>
+
+      <!-- Image upload -->
+      <div class="meshy-card" style="margin-bottom:2px">
+        <div class="meshy-card-head">
+          <h3>Image source</h3>
+          <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">JPG, PNG — fond blanc de préférence</span>
+        </div>
+        <div class="meshy-card-body">
+          <div class="img-drop-zone" id="meshyDropZone">
+            <input type="file" id="meshyFileInput" accept=".jpg,.jpeg,.png,.webp" onchange="handleMeshyImage(this.files[0])"/>
+            <div style="font-size:24px;margin-bottom:8px">◈</div>
+            <div style="font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px">Glissez une photo ici</div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">ou cliquez pour parcourir · JPG, PNG, WebP max 20Mo</div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--sans)">ou</div>
+          <div class="field">
+            <label>URL directe de l'image</label>
+            <input type="url" id="meshyImgUrl" placeholder="https://exemple.com/photo-meuble.jpg" onchange="previewMeshyUrl()"/>
+          </div>
+          <img id="meshyPreview" class="img-preview"/>
+        </div>
+      </div>
+
+      <!-- Infos produit -->
+      <div class="meshy-card" style="margin-bottom:2px">
+        <div class="meshy-card-head"><h3>Informations produit</h3></div>
+        <div class="meshy-card-body">
+          <div class="form-grid">
+            <div class="field"><label>Nom *</label><input type="text" id="mNom" placeholder="ex. Canapé Mags"/></div>
+            <div class="field"><label>Marque *</label><input type="text" id="mMarque" placeholder="ex. Hay"/></div>
+            <div class="field"><label>Catégorie</label>
+              <select id="mCat">
+                <option value="">Choisir…</option>
+                <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
+                <option>Table basse</option><option>Table à manger</option>
+                <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
+                <option>Lit</option><option>Autre</option>
+              </select>
+            </div>
+            <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
+          </div>
+          <div class="field" style="margin-top:2px">
+            <label>Prompt IA (optionnel)</label>
+            <input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric texture, clean design — pour guider la génération"/>
+          </div>
+          <div class="form-actions" style="margin-top:20px">
+            <button class="btn-add" id="btnGenerate" onclick="generateMeshy()">
+              <div class="spin" id="spinGenerate"></div>
+              <span id="lblGenerate">✦ Générer le modèle 3D</span>
+            </button>
+            <span class="form-msg" id="meshyMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="generation-status" id="genStatus">
+        <div class="gen-status-head">
+          <div class="gen-status-icon" id="genIcon">⏳</div>
+          <div class="gen-status-txt">
+            <h4 id="genStatusTitle">Génération en cours…</h4>
+            <p id="genStatusSub">Meshy AI analyse votre image</p>
+          </div>
+        </div>
+        <div class="gen-progress"><div class="gen-progress-bar" id="genProgressBar"></div></div>
+        <img id="genPreviewImg" class="gen-preview-img"/>
+        <div class="gen-result-urls" id="genUrls" style="display:none">
+          <div class="gen-url-row"><span class="gen-url-label">GLB</span><div class="gen-url-val" id="genGlbUrl">—</div></div>
+          <div class="gen-url-row"><span class="gen-url-label">USDZ</span><div class="gen-url-val" id="genUsdzUrl">—</div></div>
+        </div>
+        <div class="gen-actions" id="genActions" style="display:none">
+          <button class="btn-save-to-cat" onclick="saveMeshyProduct()">↓ Sauvegarder dans le catalogue</button>
+          <button class="btn-regen" onclick="generateMeshy()">↺ Regénérer</button>
+        </div>
+      </div>
+
+    </div>
+
     <!-- ══ CATALOGUE ══ -->
     <div class="page" id="panelCatalogue">
       <div class="sec-eyebrow">Catalogue complet</div>
@@ -500,7 +1099,8 @@ function doLogout() {
 const titles = {
   overview: 'Vue d\'<em style="font-style:italic;color:var(--accent)">ensemble</em>',
   upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
-  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>'
+  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
+  meshy:'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>'
 };
 function showPanel(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -729,6 +1329,232 @@ async function confirmDelete() {
     if (e.target.files[0]) document.getElementById('lbl'+t).textContent = '✓ ' + e.target.files[0].name;
   });
 });
+
+/* ── MESHY AI ── */
+const MESHY_API = 'https://api.meshy.ai';
+let meshyTaskId = null;
+let meshyPollInterval = null;
+let meshyGlbUrl = null;
+let meshyUsdzUrl = null;
+
+function saveMeshyKey() {
+  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
+}
+
+async function testMeshyKey() {
+  const key = document.getElementById('meshyApiKey').value.trim();
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  try {
+    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
+    const d = await r.json();
+    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
+    else showToast('Clé invalide', 'err');
+  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
+}
+
+function handleMeshyImage(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('meshyPreview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewMeshyUrl() {
+  const url = document.getElementById('meshyImgUrl').value.trim();
+  if (!url) return;
+  const prev = document.getElementById('meshyPreview');
+  prev.src = url;
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
+}
+
+async function getImageUrl() {
+  const file = document.getElementById('meshyFileInput').files[0];
+  const urlInput = document.getElementById('meshyImgUrl').value.trim();
+
+  if (file) {
+    // Convert to base64 data URL for Meshy API
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  } else if (urlInput) {
+    return urlInput;
+  }
+  return null;
+}
+
+async function generateMeshy() {
+  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
+  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
+  document.getElementById('meshyApiKey').value = key;
+
+  const imgUrl = await getImageUrl();
+  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
+
+  const nom = document.getElementById('mNom').value.trim();
+  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
+
+  // UI state
+  setGenLoading(true);
+  document.getElementById('genStatus').style.display = 'block';
+  document.getElementById('genProgressBar').style.width = '5%';
+  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
+  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
+  document.getElementById('genUrls').style.display = 'none';
+  document.getElementById('genActions').style.display = 'none';
+  document.getElementById('genPreviewImg').style.display = 'none';
+  document.getElementById('genIcon').textContent = '⏳';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+
+  try {
+    // Call Meshy Image to 3D API
+    const prompt = document.getElementById('meshyPrompt').value.trim();
+    const body = {
+      image_url: imgUrl,
+      ai_model: 'meshy-4',
+      topology: 'quad',
+      target_polycount: 30000,
+      enable_pbr: true,
+    };
+    if (prompt) body.prompt = prompt;
+
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
+
+    meshyTaskId = data.result;
+    document.getElementById('genProgressBar').style.width = '15%';
+    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
+    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
+
+    // Poll for result
+    clearInterval(meshyPollInterval);
+    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
+
+  } catch(e) {
+    setGenLoading(false);
+    document.getElementById('genIcon').textContent = '✕';
+    document.getElementById('genStatusTitle').textContent = 'Erreur';
+    document.getElementById('genStatusSub').textContent = e.message;
+    showToast('Erreur : ' + e.message, 'err');
+  }
+}
+
+async function pollMeshy(key, taskId) {
+  try {
+    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
+      headers: { Authorization: `Bearer ${key}` }
+    });
+    const data = await res.json();
+    const pct = data.progress || 0;
+
+    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
+    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
+
+    if (data.status === 'SUCCEEDED') {
+      clearInterval(meshyPollInterval);
+      meshyGlbUrl  = data.model_urls?.glb  || null;
+      meshyUsdzUrl = data.model_urls?.usdz || null;
+
+      document.getElementById('genProgressBar').style.width = '100%';
+      document.getElementById('genIcon').textContent = '✓';
+      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
+      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
+
+      if (data.thumbnail_url) {
+        const img = document.getElementById('genPreviewImg');
+        img.src = data.thumbnail_url;
+        img.style.display = 'block';
+      }
+
+      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
+      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
+      document.getElementById('genUrls').style.display    = 'flex';
+      document.getElementById('genActions').style.display = 'flex';
+
+      setGenLoading(false);
+      showToast('✓ Modèle 3D généré avec succès !', 'ok');
+
+    } else if (data.status === 'FAILED') {
+      clearInterval(meshyPollInterval);
+      document.getElementById('genIcon').textContent = '✕';
+      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
+      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
+      setGenLoading(false);
+      showToast('Génération échouée — essayez une autre image', 'err');
+    }
+  } catch(e) {
+    console.error('Poll error:', e);
+  }
+}
+
+async function saveMeshyProduct() {
+  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
+  const nom    = document.getElementById('mNom').value.trim();
+  const marque = document.getElementById('mMarque').value.trim();
+  const cat    = document.getElementById('mCat').value;
+  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
+  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
+
+  const { error } = await sb.from('products').insert([{
+    name: nom, enseigne_name: marque, category: cat || null, price: prix,
+    model_glb_url:  meshyGlbUrl,
+    model_usdz_url: meshyUsdzUrl || null,
+    is_active: true
+  }]);
+
+  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
+
+  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
+  loadProducts();
+
+  // Reset
+  document.getElementById('mNom').value = '';
+  document.getElementById('mMarque').value = '';
+  document.getElementById('mPrix').value = '';
+  document.getElementById('mCat').value = '';
+  document.getElementById('meshyPrompt').value = '';
+  document.getElementById('meshyPreview').style.display = 'none';
+  document.getElementById('genStatus').style.display = 'none';
+  document.getElementById('meshyFileInput').value = '';
+  document.getElementById('meshyImgUrl').value = '';
+  meshyGlbUrl = null; meshyUsdzUrl = null;
+}
+
+function setGenLoading(on) {
+  document.getElementById('btnGenerate').disabled = on;
+  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
+  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
+}
+
+// Init — restore API key
+(function() {
+  const savedKey = localStorage.getItem('meshy_api_key');
+  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
+  // Drag & drop on Meshy zone
+  const zone = document.getElementById('meshyDropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('meshyFileInput');
+    fi.files = e.dataTransfer.files;
+    if (fi.files[0]) handleMeshyImage(fi.files[0]);
+  });
+})();
+
 </script>
 </body>
 </html>
