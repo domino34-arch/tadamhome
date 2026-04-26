@@ -638,9 +638,9 @@ async function generateMeshy(){
   meshyGlbUrl=null;meshyUsdzUrl=null;
   try{
     const prompt=document.getElementById('meshyPrompt').value.trim();
-    const body={image_url:imgUrl,ai_model:'meshy-4',topology:'quad',target_polycount:30000,enable_pbr:true};
+    const body={image_url:imgUrl,ai_model:'meshy-6',topology:'quad',target_polycount:30000,enable_pbr:true};
     if(prompt)body.prompt=prompt;
-    const res=await fetch(`${MESHY_API}/openapi/v2/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
     if(!res.ok)throw new Error(data.message||'Erreur API Meshy');
     meshyTaskId=data.result;
@@ -654,7 +654,7 @@ async function generateMeshy(){
 
 async function pollMeshy(key,taskId){
   try{
-    const res=await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`,{headers:{Authorization:`Bearer ${key}`}});
+    const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d/${taskId}`,{headers:{Authorization:`Bearer ${key}`}});
     const data=await res.json();
     const pct=data.progress||0;
     document.getElementById('genBar').style.width=Math.max(15,pct)+'%';
