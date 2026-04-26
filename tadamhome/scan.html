@@ -397,6 +397,7 @@ async function loadProduct(){
       id:data.id,name:data.name,
       ref:data.id.substring(0,8).toUpperCase(),
       price:data.price,
+      category:data.category||data.categorie||'',
       dimensions:data.dimensions?`${data.dimensions.l} × ${data.dimensions.p} × ${data.dimensions.h}`:'—',
       enseigne_name:data.enseigne_name||'—',
       model_url:data.model_glb_url||data.model_url,
@@ -415,7 +416,46 @@ function render(p){
   document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
   document.getElementById('dim').textContent=p.dimensions||'—';
   document.getElementById('enseigne-name').textContent=p.enseigne_name;
-  if(p.model_url)document.getElementById('mv').setAttribute('src',p.model_url);
+  if(p.model_url){
+    const mv = document.getElementById('mv');
+    mv.setAttribute('src', p.model_url);
+
+    // Correction d'échelle par catégorie (hauteurs réelles en mètres)
+    // model-viewer utilise l'unité mètre — on corrige si auto_size Meshy n'est pas fiable
+    const scaleMap = {
+      'sofa':1,'canapé':1,'canape':1,           // auto_size Meshy gère
+      'fauteuil':1,'chaise':1,                   // auto_size Meshy gère
+      'table basse':1,'table à manger':1,
+      'bureau':1,'luminaire':1,
+      'rangement':1,'lit':1,'autre':1
+    };
+    const cat = (p.category || p.categorie || '').toLowerCase();
+    const scaleFactor = scaleMap[cat] || 1;
+
+    // Appliquer correction après chargement du modèle
+    mv.addEventListener('load', () => {
+      const dim = mv.getDimensions();
+      if (!dim) return;
+
+      // Hauteurs cibles par catégorie (en mètres)
+      const targetH = {
+        'sofa':0.85,'canapé':0.85,'canape':0.85,
+        'fauteuil':0.90,'chaise':0.90,
+        'table basse':0.45,'table à manger':0.75,
+        'bureau':0.75,'luminaire':1.80,
+        'rangement':1.20,'lit':0.60,'autre':0.90
+      };
+      const target = targetH[cat];
+      if (!target || dim.y <= 0) return;
+
+      // Si la hauteur du modèle s'écarte de +/- 50% de la cible → on corrige
+      const ratio = target / dim.y;
+      if (ratio < 0.5 || ratio > 2.0) {
+        const s = ratio.toFixed(4);
+        mv.setAttribute('scale', `${s} ${s} ${s}`);
+      }
+    }, { once: true });
+  }
   if(p.usdz_url)document.getElementById('mv').setAttribute('ios-src',p.usdz_url);
   renderColors(p.colors);
   checkAdded();
