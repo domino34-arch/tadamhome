@@ -51,8 +51,8 @@ html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:va
 
 /* VIEWER */
 .viewer-wrap{background:var(--light);border-bottom:1px solid var(--border);position:relative}
-model-viewer{width:100%;height:220px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent}
-.viewer-ph{width:100%;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent}
+.viewer-ph{width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
 .viewer-ph svg{opacity:.2;color:var(--accent)}
 .viewer-ph p{font-size:12px;color:var(--mid);text-align:center;max-width:160px;line-height:1.5;font-family:var(--sans)}
 .ar-chip{position:absolute;top:12px;left:12px;background:rgba(250,250,248,.95);border:1px solid rgba(184,152,106,.3);padding:6px 12px;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--accent);cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
@@ -161,6 +161,66 @@ model-viewer{width:100%;height:220px;background:linear-gradient(160deg,#EAE6DE,#
 /* TOAST */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--dark);color:var(--white);padding:10px 18px;font-size:12px;font-weight:400;opacity:0;transition:all .25s;z-index:400;white-space:nowrap;letter-spacing:.04em;font-family:var(--sans)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── MOBILE OPTIMISATIONS ── */
+@media (max-width: 430px) {
+  /* Viewer plus grand sur mobile */
+  model-viewer { height: 280px; }
+  .viewer-ph { height: 280px; }
+
+  /* Titre produit plus lisible */
+  .prod-title { font-size: 22px; }
+
+  /* Coloris — swatches plus grands et tactiles */
+  .color-swatch { width: 36px; height: 36px; border-width: 2.5px; }
+  .colors-grid { gap: 10px; }
+
+  /* Info grid pleine largeur */
+  .info-grid { grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px 14px 0; }
+  .info-card { padding: 10px 12px; }
+  .info-value { font-size: 15px; }
+
+  /* CTA buttons plus grands (zone tactile) */
+  .btn-ar { padding: 16px; font-size: 12px; }
+  .btn-wallet { padding: 14px; }
+  .btn-contact { padding: 13px; }
+  .price { font-size: 30px; }
+  .cta-zone { padding: 14px 14px 32px; }
+
+  /* Section padding réduit */
+  .section { padding: 12px 14px 0; }
+  .features { padding: 10px 14px 0; }
+  .prod-header { padding: 12px 14px 10px; }
+  .viewer-tabs { padding: 0 14px; }
+  .thumbs-row { padding: 8px 14px; }
+
+  /* AR chip plus visible */
+  .ar-chip { padding: 8px 14px; font-size: 11px; }
+
+  /* Wallet sheet */
+  .wallet-items { padding: 10px 14px; }
+  .wallet-header { padding: 4px 14px 12px; }
+  .wallet-footer { padding: 10px 14px 0; }
+  .wallet-card-name { font-size: 14px; }
+
+  /* Toast plus bas (évite bottom bar iPhone) */
+  .toast { bottom: 100px; }
+}
+
+/* Très petits écrans */
+@media (max-width: 375px) {
+  .prod-title { font-size: 20px; }
+  model-viewer { height: 240px; }
+  .viewer-ph { height: 240px; }
+  .info-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Safe area iPhone (notch + home bar) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .cta-zone { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .topbar { padding-top: env(safe-area-inset-top, 0); }
+}
 </style>
 </head>
 <body>
