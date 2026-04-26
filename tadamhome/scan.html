@@ -398,7 +398,8 @@ async function loadProduct(){
       ref:data.id.substring(0,8).toUpperCase(),
       price:data.price,
       category:data.category||data.categorie||'',
-      dimensions:data.dimensions?`${data.dimensions.l} × ${data.dimensions.p} × ${data.dimensions.h}`:'—',
+      dimensions:data.dimensions||null,
+      dim_label:data.dimensions?`${data.dimensions.l||'—'} × ${data.dimensions.p||'—'} × ${data.dimensions.h||'—'} cm`:'—',
       enseigne_name:data.enseigne_name||'—',
       model_url:data.model_glb_url||data.model_url,
       usdz_url:data.model_usdz_url||null,
@@ -414,7 +415,7 @@ function render(p){
   document.getElementById('prod-ref').textContent='Réf. '+p.ref;
   document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
   document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
-  document.getElementById('dim').textContent=p.dimensions||'—';
+  document.getElementById('dim').textContent=p.dim_label||p.dimensions||'—';
   document.getElementById('enseigne-name').textContent=p.enseigne_name;
   if(p.model_url){
     const mv = document.getElementById('mv');
@@ -432,12 +433,15 @@ function render(p){
     const cat = (p.category || p.categorie || '').toLowerCase();
     const scaleFactor = scaleMap[cat] || 1;
 
-    // Appliquer correction après chargement du modèle
+    // Correction d'échelle après chargement
     mv.addEventListener('load', () => {
       const dim = mv.getDimensions();
-      if (!dim) return;
+      if (!dim || dim.y <= 0) return;
 
-      // Hauteurs cibles par catégorie (en mètres)
+      // Priorité 1 : vraie hauteur stockée dans Supabase (en cm → mètres)
+      const realH = p.dimensions?.h ? p.dimensions.h / 100 : null;
+
+      // Priorité 2 : hauteur estimée par catégorie
       const targetH = {
         'sofa':0.85,'canapé':0.85,'canape':0.85,
         'fauteuil':0.90,'chaise':0.90,
@@ -445,14 +449,15 @@ function render(p){
         'bureau':0.75,'luminaire':1.80,
         'rangement':1.20,'lit':0.60,'autre':0.90
       };
-      const target = targetH[cat];
-      if (!target || dim.y <= 0) return;
+      const target = realH || targetH[cat] || null;
+      if (!target) return;
 
-      // Si la hauteur du modèle s'écarte de +/- 50% de la cible → on corrige
       const ratio = target / dim.y;
-      if (ratio < 0.5 || ratio > 2.0) {
+      // Appliquer uniquement si l'écart est significatif (> 20%)
+      if (ratio < 0.8 || ratio > 1.2) {
         const s = ratio.toFixed(4);
         mv.setAttribute('scale', `${s} ${s} ${s}`);
+        console.log(`[TadamHome AR] Scale corrigé ×${s} (modèle: ${dim.y.toFixed(2)}m → cible: ${target}m)`);
       }
     }, { once: true });
   }
