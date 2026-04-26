@@ -6,7 +6,7 @@
 <title>TadamHome — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -192,7 +192,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .modal{background:var(--white);padding:36px;max-width:320px;width:90%;text-align:center}
 .modal h3{font-family:var(--serif);font-size:22px;font-weight:400;margin-bottom:5px}
 .modal-sub{font-size:11px;color:var(--muted);margin-bottom:22px;word-break:break-all;font-family:var(--sans)}
-#qrCanvas{margin:0 auto 20px;display:block}
+
 .modal-btns{display:flex;gap:8px}
 .modal-btn{flex:1;padding:11px;border:1px solid var(--border);background:transparent;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s}
 .modal-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -260,7 +260,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
   <div class="modal">
     <h3 id="qrTitle">QR Code</h3>
     <p class="modal-sub" id="qrSub"></p>
-    <canvas id="qrCanvas"></canvas>
+    <div id="qrContainer" style="width:200px;height:200px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center"></div>
     <div class="modal-btns">
       <button class="modal-btn" onclick="downloadQR()">Télécharger</button>
       <button class="modal-btn primary" onclick="closeQR()">Fermer</button>
@@ -651,9 +651,33 @@ function renderTable(products,targetId){
 }
 
 /* ── QR ── */
-function showQR(id,nom){const url=`${BASE_URL}?id=${id}`;document.getElementById('qrTitle').textContent=nom;document.getElementById('qrSub').textContent=url;QRCode.toCanvas(document.getElementById('qrCanvas'),url,{width:200,margin:2,color:{dark:'#1C1B18',light:'#FAFAF8'}});document.getElementById('qrModal').classList.add('show');}
+function showQR(id,nom){
+  const url=BASE_URL+'?id='+id;
+  document.getElementById('qrTitle').textContent=nom;
+  document.getElementById('qrSub').textContent=url;
+  // Clear previous QR
+  const container=document.getElementById('qrContainer');
+  container.innerHTML='';
+  try{
+    new QRCode(container,{text:url,width:200,height:200,colorDark:'#1C1B18',colorLight:'#FAFAF8',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){
+    // Fallback: use QR server API
+    container.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(url)+'&color=1C1B18&bgcolor=FAFAF8" width="200" height="200"/>';
+  }
+  document.getElementById('qrModal').classList.add('show');
+}
 function closeQR(){document.getElementById('qrModal').classList.remove('show');}
-function downloadQR(){const a=document.createElement('a');a.download='qr-tadamhome.png';a.href=document.getElementById('qrCanvas').toDataURL();a.click();showToast('QR Code téléchargé','ok');}
+function downloadQR(){
+  const container=document.getElementById('qrContainer');
+  const canvas=container.querySelector('canvas');
+  const img=container.querySelector('img');
+  const a=document.createElement('a');
+  a.download='qr-tadamhome.png';
+  if(canvas) a.href=canvas.toDataURL();
+  else if(img) a.href=img.src;
+  else return;
+  a.click();showToast('QR Code téléchargé','ok');
+}
 
 /* ── DELETE ── */
 function askDelete(id,nom){deleteId=id;document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Le QR code ne fonctionnera plus.`;document.getElementById('confirmBg').classList.add('show');}
