@@ -533,16 +533,16 @@ function renderColors(colors){
   if(!colors||!colors.length){sect.style.display='none';return;}
   sect.style.display='block';
   col=colors[0];
-  document.getElementById('col-name').textContent=colors[0].name;
+  document.getElementById('col-name').textContent=colors[0].name+(colors[0].mat?' · '+colors[0].mat:'');
+
   colors.forEach((c,i)=>{
     const s=document.createElement('div');
     s.className='color-swatch'+(i===0?' active':'');
-
-    // Si texture disponible → miniature texture, sinon couleur pleine
     if(c.texture){
       s.style.backgroundImage=`url(${c.texture})`;
       s.style.backgroundSize='cover';
       s.style.backgroundPosition='center';
+      s.style.borderRadius='4px';
     } else {
       s.style.background=c.hex||'#ccc';
     }
@@ -553,10 +553,15 @@ function renderColors(colors){
       s.classList.add('active');
       col=c;
       document.getElementById('col-name').textContent=c.name+(c.mat?' · '+c.mat:'');
-
-      // Appliquer texture sur le GLB dans model-viewer (pas en AR)
       const mv=document.getElementById('mv');
-      if(c.texture && mv.model){
+
+      if(c.glb){
+        // Coloris avec son propre GLB → on change le modèle entier
+        mv.setAttribute('src', c.glb);
+        if(c.usdz) mv.setAttribute('ios-src', c.usdz);
+        toast('Coloris : '+c.name);
+      } else if(c.texture && mv.model){
+        // Pas de GLB propre → on applique la texture sur le modèle actuel
         try{
           const texture=await mv.createTexture(c.texture);
           mv.model.materials.forEach(mat=>{
@@ -568,16 +573,18 @@ function renderColors(colors){
         toast('Coloris : '+c.name);
       }
 
-      // Sauvegarder dans le wallet
       const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
       if(ex){ex.color=c;setW(w2);}
     };
     g.appendChild(s);
   });
 
-  // Appliquer le premier coloris automatiquement au chargement
-  if(colors[0].texture){
-    const mv=document.getElementById('mv');
+  // Premier coloris : s'assurer que le bon GLB/USDZ est chargé
+  const mv=document.getElementById('mv');
+  if(colors[0].glb && mv.getAttribute('src') !== colors[0].glb){
+    mv.setAttribute('src', colors[0].glb);
+    if(colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
+  } else if(colors[0].texture && !colors[0].glb){
     mv.addEventListener('load',async()=>{
       if(!colors[0].texture||!mv.model)return;
       try{
@@ -589,6 +596,7 @@ function renderColors(colors){
     },{once:true});
   }
 }
+
 
 function setTab(i,el){
   ['tab-0','tab-1'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'block':'none');
