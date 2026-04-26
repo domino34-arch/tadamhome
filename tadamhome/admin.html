@@ -381,6 +381,53 @@ tr:hover td{background:rgba(237,234,226,.5)}
         <div style="margin-top:8px"><input type="text" id="eUsdzUrl" placeholder="…ou collez une URL USDZ directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
       </div>
 
+      <!-- Coloris & textures -->
+      <div class="edit-section">
+        <div class="edit-section-title">Coloris & textures</div>
+        <div id="eColorsList" style="margin-bottom:12px"></div>
+
+        <!-- Ajouter / remplacer un coloris -->
+        <div style="background:var(--bg2);border:1px solid var(--border);padding:14px">
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--sans)">Ajouter ou remplacer un coloris</div>
+          <div style="display:grid;grid-template-columns:44px 1fr 1fr;gap:8px;margin-bottom:10px;align-items:center">
+            <input type="color" id="eColorHex" value="#B8986A" style="width:44px;height:44px;border:1px solid var(--border);padding:2px;cursor:pointer"/>
+            <input type="text" id="eColorName" placeholder="ex. Noir Kvadrat" style="padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none"/>
+            <input type="text" id="eColorMat" placeholder="ex. Tissu, Cuir…" style="padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none"/>
+          </div>
+          <!-- Texture -->
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase">Texture (swatch)</div>
+          <div class="edit-upload-zone" id="eColorTextureZone" style="margin-bottom:10px">
+            <input type="file" id="eColorTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleEditColorTexture(this)"/>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="eColorTextureLbl">Glissez la texture JPG ici · ou cliquez</div>
+            <img id="eColorTexturePreview" style="width:100%;max-height:60px;object-fit:cover;margin-top:8px;display:none;border:1px solid var(--border)"/>
+          </div>
+          <!-- GLB + USDZ -->
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase">Modèle 3D associé</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div>
+              <div class="edit-upload-zone" id="eColorGlbZone" style="padding:10px">
+                <input type="file" id="eColorGlbFile" accept=".glb,.gltf" onchange="handleEditColorFile(this,'glb')"/>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB — Android</div>
+                <div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eColorGlbLbl">cliquez ou glissez</div>
+              </div>
+              <input type="text" id="eColorGlbUrl" placeholder="ou URL GLB…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+            </div>
+            <div>
+              <div class="edit-upload-zone" id="eColorUsdzZone" style="padding:10px">
+                <input type="file" id="eColorUsdzFile" accept=".usdz" onchange="handleEditColorFile(this,'usdz')"/>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ — iPhone</div>
+                <div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eColorUsdzLbl">cliquez ou glissez</div>
+              </div>
+              <input type="text" id="eColorUsdzUrl" placeholder="ou URL USDZ…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-add-color" onclick="addEditColor()">+ Ajouter ce coloris</button>
+            <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="eColorMsg"></span>
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="edit-modal-footer">
       <button class="btn-edit-cancel" onclick="closeEdit()">Annuler</button>
@@ -1046,6 +1093,11 @@ function openEdit(id) {
     document.getElementById('e'+t+'Url').value = '';
   });
 
+  // Load existing colors
+  editColors = JSON.parse(JSON.stringify(p.colors || []));
+  renderEditColors();
+  // Reset add-color form
+  resetEditColorForm();
   document.getElementById('editModal').classList.add('show');
 }
 
@@ -1116,6 +1168,9 @@ async function saveEdit() {
   const usdzUrl = editUsdzUrl || document.getElementById('eUsdzUrl').value.trim() || undefined;
   if (glbUrl)  payload.model_glb_url  = glbUrl;
   if (usdzUrl) payload.model_usdz_url = usdzUrl;
+
+  // Include updated colors
+  payload.colors = editColors.length ? editColors : null;
 
   const { error } = await sb.from('products').update(payload).eq('id', editProductId);
 
