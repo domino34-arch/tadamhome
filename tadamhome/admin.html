@@ -1043,6 +1043,106 @@ async function saveMeshyProduct(){
 }
 
 
+/* ── EDIT COLORS ── */
+let editColors = [];
+let eColorTextureUrl = null;
+let eColorGlbUrl_new = null;
+let eColorUsdzUrl_new = null;
+
+function renderEditColors() {
+  const el = document.getElementById('eColorsList');
+  if (!el) return;
+  if (!editColors.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:var(--sans);padding:12px;border:1px dashed var(--border);text-align:center;margin-bottom:10px">Aucun coloris — ajoutez-en ci-dessous</div>';
+    return;
+  }
+  el.innerHTML = editColors.map((c, i) => `
+    <div class="color-row" style="margin-bottom:2px">
+      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+(c.hex||'#ccc')}"></div>
+      <div class="color-row-info">
+        <div class="color-row-name">${c.name||'—'}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
+        <div class="color-row-url">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="row-btn" onclick="editExistingColor(${i})" style="font-size:9px">✏</button>
+        <button class="color-row-del" onclick="removeEditColor(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function removeEditColor(idx) { editColors.splice(idx,1); renderEditColors(); }
+
+function editExistingColor(idx) {
+  const c = editColors[idx];
+  document.getElementById('eColorHex').value  = c.hex  || '#B8986A';
+  document.getElementById('eColorName').value = c.name || '';
+  document.getElementById('eColorMat').value  = c.mat  || '';
+  document.getElementById('eColorGlbUrl').value  = c.glb  || '';
+  document.getElementById('eColorUsdzUrl').value = c.usdz || '';
+  if (c.texture) {
+    const prev = document.getElementById('eColorTexturePreview');
+    prev.src = c.texture; prev.style.display = 'block';
+    document.getElementById('eColorTextureLbl').textContent = '✓ Texture actuelle';
+    eColorTextureUrl = c.texture;
+  }
+  removeEditColor(idx);
+  document.getElementById('eColorMsg').textContent = 'Modifiez puis cliquez + Ajouter';
+}
+
+async function handleEditColorTexture(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { const p=document.getElementById('eColorTexturePreview');p.src=e.target.result;p.style.display='block'; };
+  reader.readAsDataURL(file);
+  document.getElementById('eColorTextureLbl').textContent = '⏳ Upload…';
+  const ext=file.name.split('.').pop();
+  const path=`textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const{error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+  if(error){document.getElementById('eColorTextureLbl').textContent='✗ Erreur';return;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  eColorTextureUrl=pub.publicUrl;
+  document.getElementById('eColorTextureLbl').textContent='✓ '+file.name;
+}
+
+async function handleEditColorFile(input, type) {
+  const file=input.files[0];if(!file)return;
+  const lblId=type==='glb'?'eColorGlbLbl':'eColorUsdzLbl';
+  document.getElementById(lblId).textContent='⏳ Upload…';
+  const ext=file.name.split('.').pop();
+  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const{error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+  if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  if(type==='glb')eColorGlbUrl_new=pub.publicUrl;
+  else eColorUsdzUrl_new=pub.publicUrl;
+  document.getElementById(lblId).textContent='✓ '+file.name;
+}
+
+function addEditColor() {
+  const name=document.getElementById('eColorName').value.trim();
+  if(!name){document.getElementById('eColorMsg').textContent='Nom requis';return;}
+  const hex=document.getElementById('eColorHex').value;
+  const mat=document.getElementById('eColorMat').value.trim();
+  const glb=eColorGlbUrl_new||document.getElementById('eColorGlbUrl').value.trim()||null;
+  const usdz=eColorUsdzUrl_new||document.getElementById('eColorUsdzUrl').value.trim()||null;
+  editColors.push({name,hex,mat:mat||null,texture:eColorTextureUrl||null,glb,usdz});
+  renderEditColors();
+  resetEditColorForm();
+  document.getElementById('eColorMsg').textContent='✓ Coloris ajouté';
+  setTimeout(()=>document.getElementById('eColorMsg').textContent='',2000);
+}
+
+function resetEditColorForm() {
+  ['eColorName','eColorMat','eColorGlbUrl','eColorUsdzUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('eColorHex').value='#B8986A';
+  ['eColorTextureFile','eColorGlbFile','eColorUsdzFile'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const prev=document.getElementById('eColorTexturePreview');if(prev)prev.style.display='none';
+  document.getElementById('eColorTextureLbl').textContent='Glissez la texture JPG ici · ou cliquez';
+  document.getElementById('eColorGlbLbl').textContent='cliquez ou glissez';
+  document.getElementById('eColorUsdzLbl').textContent='cliquez ou glissez';
+  eColorTextureUrl=null;eColorGlbUrl_new=null;eColorUsdzUrl_new=null;
+}
+
 /* ── EDIT PRODUCT ── */
 let editProductId = null;
 let editGlbUrl = null;
@@ -1199,140 +1299,6 @@ async function saveEdit() {
   });
 });
 
-/* ── COLORS MANAGER ── */
-let uploadColors = [];   // colors for manual upload panel
-let meshyColors  = [];   // colors for meshy panel
-let uTextureUrl  = null; // current texture url (upload)
-let mTextureUrl  = null; // current texture url (meshy)
-
-async function handleTextureUpload(input, prefix) {
-  const file = input.files[0];
-  if (!file) return;
-  const previewEl = document.getElementById(prefix + 'TexturePreview');
-  const nameEl    = document.getElementById(prefix + 'TextureName');
-  const reader = new FileReader();
-  reader.onload = e => { previewEl.src = e.target.result; previewEl.style.display = 'block'; };
-  reader.readAsDataURL(file);
-  nameEl.textContent = '⏳ Upload en cours…';
-  const ext  = file.name.split('.').pop();
-  const path = `textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-  if (error) { nameEl.textContent = '✗ Erreur upload'; return; }
-  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl;
-  if (prefix === 'u') uTextureUrl = url;
-  else mTextureUrl = url;
-  nameEl.textContent = '✓ ' + file.name;
-}
-
-// Track per-color GLB/USDZ uploads
-let uColorGlbUrl = null, uColorUsdzUrl = null;
-let mColorGlbUrl = null, mColorUsdzUrl = null;
-
-async function handleColorFile(input, prefix, type) {
-  const file = input.files[0];
-  if (!file) return;
-  const isU = prefix === 'u';
-  const fnId = prefix + (type === 'glb' ? 'GlbFileName' : 'UsdzFileName');
-  document.getElementById(fnId).textContent = '⏳ Upload…';
-  const ext  = file.name.split('.').pop();
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-  if (error) { document.getElementById(fnId).textContent = '✗ Erreur'; return; }
-  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl;
-  if (isU) { if(type==='glb') uColorGlbUrl=url; else uColorUsdzUrl=url; }
-  else      { if(type==='glb') mColorGlbUrl=url; else mColorUsdzUrl=url; }
-  document.getElementById(fnId).textContent = '✓ ' + file.name;
-}
-
-function addUploadColor() {
-  const name = document.getElementById('uColorName').value.trim();
-  const hex  = document.getElementById('uColorHex').value;
-  const mat  = document.getElementById('uColorMat').value.trim();
-  if (!name) { document.getElementById('uColorMsg').textContent = 'Nom requis'; return; }
-  const glb  = uColorGlbUrl  || document.getElementById('uGlbColorUrl').value.trim()  || null;
-  const usdz = uColorUsdzUrl || document.getElementById('uUsdzColorUrl').value.trim() || null;
-  uploadColors.push({ name, hex, mat: mat||null, texture: uTextureUrl||null, glb, usdz });
-  renderColorsList('upload');
-  // Reset
-  document.getElementById('uColorName').value = '';
-  document.getElementById('uColorMat').value  = '';
-  document.getElementById('uGlbColorUrl').value = '';
-  document.getElementById('uUsdzColorUrl').value = '';
-  document.getElementById('uTexturePreview').style.display = 'none';
-  document.getElementById('uTextureName').textContent = 'ou cliquez pour parcourir';
-  document.getElementById('uTextureFile').value = '';
-  document.getElementById('uGlbFile').value = '';
-  document.getElementById('uUsdzFile').value = '';
-  document.getElementById('uGlbFileName').textContent = 'cliquez ou glissez';
-  document.getElementById('uUsdzFileName').textContent = 'cliquez ou glissez';
-  document.getElementById('uColorMsg').textContent = '';
-  uTextureUrl = null; uColorGlbUrl = null; uColorUsdzUrl = null;
-}
-
-function addMeshyColor() {
-  const name = document.getElementById('mColorName').value.trim();
-  const hex  = document.getElementById('mColorHex').value;
-  const mat  = document.getElementById('mColorMat').value.trim();
-  if (!name) { document.getElementById('mColorMsg').textContent = 'Nom requis'; return; }
-  const glb  = mColorGlbUrl  || document.getElementById('mGlbUrl').value.trim()  || null;
-  const usdz = mColorUsdzUrl || document.getElementById('mUsdzUrl').value.trim() || null;
-  meshyColors.push({ name, hex, mat: mat||null, texture: mTextureUrl||null, glb, usdz });
-  renderColorsList('meshy');
-  document.getElementById('mColorName').value = '';
-  document.getElementById('mColorMat').value  = '';
-  document.getElementById('mGlbUrl').value = '';
-  document.getElementById('mUsdzUrl').value = '';
-  document.getElementById('mTexturePreview').style.display = 'none';
-  document.getElementById('mTextureName').textContent = 'ou cliquez pour parcourir';
-  document.getElementById('mTextureFile').value = '';
-  document.getElementById('mGlbFile').value = '';
-  document.getElementById('mUsdzFile').value = '';
-  document.getElementById('mGlbFileName').textContent = 'ou cliquez';
-  document.getElementById('mUsdzFileName').textContent = 'ou cliquez';
-  document.getElementById('mColorMsg').textContent = '';
-  mTextureUrl = null; mColorGlbUrl = null; mColorUsdzUrl = null;
-}
-
-function renderColorsList(panel) {
-  const colors = panel === 'upload' ? uploadColors : meshyColors;
-  const listEl = document.getElementById(panel === 'upload' ? 'uploadColorsList' : 'meshyColorsList');
-  if (!colors.length) {
-    listEl.innerHTML = '<div class="colors-empty">Aucun coloris ajouté</div>';
-    return;
-  }
-  listEl.innerHTML = colors.map((c, i) => `
-    <div class="color-row">
-      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}" title="${c.name}"></div>
-      <div class="color-row-info">
-        <div class="color-row-name">${c.name}${c.mat ? ' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>' : ''}</div>
-        <div class="color-row-url">${[
-          c.texture ? '✓ Texture' : '⚠ Sans texture',
-          c.glb     ? '✓ GLB'    : '⚠ Sans GLB',
-          c.usdz    ? '✓ USDZ'   : ''
-        ].filter(Boolean).join(' · ')}</div>
-      </div>
-      <button class="color-row-del" onclick="removeColor('${panel}',${i})">✕</button>
-    </div>`).join('');
-}
-
-function removeColor(panel, idx) {
-  if (panel === 'upload') { uploadColors.splice(idx, 1); renderColorsList('upload'); }
-  else { meshyColors.splice(idx, 1); renderColorsList('meshy'); }
-}
-
-
-const mzone=document.getElementById('meshyDropZone');
-mzone.addEventListener('dragover',e=>{e.preventDefault();mzone.classList.add('drag');});
-mzone.addEventListener('dragleave',()=>mzone.classList.remove('drag'));
-mzone.addEventListener('drop',e=>{e.preventDefault();mzone.classList.remove('drag');const fi=document.getElementById('meshyFileInput');fi.files=e.dataTransfer.files;if(fi.files[0])handleMeshyImage(fi.files[0]);});
-
-/* ── INIT ── */
-(function(){
-  const k=localStorage.getItem('meshy_api_key');
-  if(k)document.getElementById('meshyApiKey').value=k;
-})();
 </script>
 </body>
 </html>
