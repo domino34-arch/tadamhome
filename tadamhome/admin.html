@@ -5,542 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TadamHome — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-/* ── MESHY AI ── */
-const MESHY_API = 'https://api.meshy.ai';
-let meshyTaskId = null;
-let meshyPollInterval = null;
-let meshyGlbUrl = null;
-let meshyUsdzUrl = null;
-
-function saveMeshyKey() {
-  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
-}
-
-async function testMeshyKey() {
-  const key = document.getElementById('meshyApiKey').value.trim();
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  try {
-    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
-    const d = await r.json();
-    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
-    else showToast('Clé invalide', 'err');
-  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
-}
-
-function handleMeshyImage(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const prev = document.getElementById('meshyPreview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
-}
-
-function previewMeshyUrl() {
-  const url = document.getElementById('meshyImgUrl').value.trim();
-  if (!url) return;
-  const prev = document.getElementById('meshyPreview');
-  prev.src = url;
-  prev.style.display = 'block';
-  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
-}
-
-async function getImageUrl() {
-  const file = document.getElementById('meshyFileInput').files[0];
-  const urlInput = document.getElementById('meshyImgUrl').value.trim();
-
-  if (file) {
-    // Convert to base64 data URL for Meshy API
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  } else if (urlInput) {
-    return urlInput;
-  }
-  return null;
-}
-
-async function generateMeshy() {
-  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  document.getElementById('meshyApiKey').value = key;
-
-  const imgUrl = await getImageUrl();
-  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
-
-  const nom = document.getElementById('mNom').value.trim();
-  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
-
-  // UI state
-  setGenLoading(true);
-  document.getElementById('genStatus').style.display = 'block';
-  document.getElementById('genProgressBar').style.width = '5%';
-  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
-  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
-  document.getElementById('genUrls').style.display = 'none';
-  document.getElementById('genActions').style.display = 'none';
-  document.getElementById('genPreviewImg').style.display = 'none';
-  document.getElementById('genIcon').textContent = '⏳';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
-
-  try {
-    // Call Meshy Image to 3D API
-    const prompt = document.getElementById('meshyPrompt').value.trim();
-    const body = {
-      image_url: imgUrl,
-      ai_model: 'meshy-4',
-      topology: 'quad',
-      target_polycount: 30000,
-      enable_pbr: true,
-    };
-    if (prompt) body.prompt = prompt;
-
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
-
-    meshyTaskId = data.result;
-    document.getElementById('genProgressBar').style.width = '15%';
-    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
-    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
-
-    // Poll for result
-    clearInterval(meshyPollInterval);
-    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
-
-  } catch(e) {
-    setGenLoading(false);
-    document.getElementById('genIcon').textContent = '✕';
-    document.getElementById('genStatusTitle').textContent = 'Erreur';
-    document.getElementById('genStatusSub').textContent = e.message;
-    showToast('Erreur : ' + e.message, 'err');
-  }
-}
-
-async function pollMeshy(key, taskId) {
-  try {
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
-      headers: { Authorization: `Bearer ${key}` }
-    });
-    const data = await res.json();
-    const pct = data.progress || 0;
-
-    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
-    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
-
-    if (data.status === 'SUCCEEDED') {
-      clearInterval(meshyPollInterval);
-      meshyGlbUrl  = data.model_urls?.glb  || null;
-      meshyUsdzUrl = data.model_urls?.usdz || null;
-
-      document.getElementById('genProgressBar').style.width = '100%';
-      document.getElementById('genIcon').textContent = '✓';
-      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
-      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
-
-      if (data.thumbnail_url) {
-        const img = document.getElementById('genPreviewImg');
-        img.src = data.thumbnail_url;
-        img.style.display = 'block';
-      }
-
-      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
-      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
-      document.getElementById('genUrls').style.display    = 'flex';
-      document.getElementById('genActions').style.display = 'flex';
-
-      setGenLoading(false);
-      showToast('✓ Modèle 3D généré avec succès !', 'ok');
-
-    } else if (data.status === 'FAILED') {
-      clearInterval(meshyPollInterval);
-      document.getElementById('genIcon').textContent = '✕';
-      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
-      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
-      setGenLoading(false);
-      showToast('Génération échouée — essayez une autre image', 'err');
-    }
-  } catch(e) {
-    console.error('Poll error:', e);
-  }
-}
-
-async function saveMeshyProduct() {
-  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
-  const nom    = document.getElementById('mNom').value.trim();
-  const marque = document.getElementById('mMarque').value.trim();
-  const cat    = document.getElementById('mCat').value;
-  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
-  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
-
-  const { error } = await sb.from('products').insert([{
-    name: nom, enseigne_name: marque, category: cat || null, price: prix,
-    model_glb_url:  meshyGlbUrl,
-    model_usdz_url: meshyUsdzUrl || null,
-    is_active: true
-  }]);
-
-  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
-
-  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
-  loadProducts();
-
-  // Reset
-  document.getElementById('mNom').value = '';
-  document.getElementById('mMarque').value = '';
-  document.getElementById('mPrix').value = '';
-  document.getElementById('mCat').value = '';
-  document.getElementById('meshyPrompt').value = '';
-  document.getElementById('meshyPreview').style.display = 'none';
-  document.getElementById('genStatus').style.display = 'none';
-  document.getElementById('meshyFileInput').value = '';
-  document.getElementById('meshyImgUrl').value = '';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
-}
-
-function setGenLoading(on) {
-  document.getElementById('btnGenerate').disabled = on;
-  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
-  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
-}
-
-// Init — restore API key
-(function() {
-  const savedKey = localStorage.getItem('meshy_api_key');
-  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
-  // Drag & drop on Meshy zone
-  const zone = document.getElementById('meshyDropZone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    const fi = document.getElementById('meshyFileInput');
-    fi.files = e.dataTransfer.files;
-    if (fi.files[0]) handleMeshyImage(fi.files[0]);
-  });
-})();
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js">
-/* ── MESHY AI ── */
-const MESHY_API = 'https://api.meshy.ai';
-let meshyTaskId = null;
-let meshyPollInterval = null;
-let meshyGlbUrl = null;
-let meshyUsdzUrl = null;
-
-function saveMeshyKey() {
-  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
-}
-
-async function testMeshyKey() {
-  const key = document.getElementById('meshyApiKey').value.trim();
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  try {
-    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
-    const d = await r.json();
-    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
-    else showToast('Clé invalide', 'err');
-  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
-}
-
-function handleMeshyImage(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const prev = document.getElementById('meshyPreview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
-}
-
-function previewMeshyUrl() {
-  const url = document.getElementById('meshyImgUrl').value.trim();
-  if (!url) return;
-  const prev = document.getElementById('meshyPreview');
-  prev.src = url;
-  prev.style.display = 'block';
-  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
-}
-
-async function getImageUrl() {
-  const file = document.getElementById('meshyFileInput').files[0];
-  const urlInput = document.getElementById('meshyImgUrl').value.trim();
-
-  if (file) {
-    // Convert to base64 data URL for Meshy API
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  } else if (urlInput) {
-    return urlInput;
-  }
-  return null;
-}
-
-async function generateMeshy() {
-  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  document.getElementById('meshyApiKey').value = key;
-
-  const imgUrl = await getImageUrl();
-  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
-
-  const nom = document.getElementById('mNom').value.trim();
-  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
-
-  // UI state
-  setGenLoading(true);
-  document.getElementById('genStatus').style.display = 'block';
-  document.getElementById('genProgressBar').style.width = '5%';
-  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
-  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
-  document.getElementById('genUrls').style.display = 'none';
-  document.getElementById('genActions').style.display = 'none';
-  document.getElementById('genPreviewImg').style.display = 'none';
-  document.getElementById('genIcon').textContent = '⏳';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
-
-  try {
-    // Call Meshy Image to 3D API
-    const prompt = document.getElementById('meshyPrompt').value.trim();
-    const body = {
-      image_url: imgUrl,
-      ai_model: 'meshy-4',
-      topology: 'quad',
-      target_polycount: 30000,
-      enable_pbr: true,
-    };
-    if (prompt) body.prompt = prompt;
-
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
-
-    meshyTaskId = data.result;
-    document.getElementById('genProgressBar').style.width = '15%';
-    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
-    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
-
-    // Poll for result
-    clearInterval(meshyPollInterval);
-    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
-
-  } catch(e) {
-    setGenLoading(false);
-    document.getElementById('genIcon').textContent = '✕';
-    document.getElementById('genStatusTitle').textContent = 'Erreur';
-    document.getElementById('genStatusSub').textContent = e.message;
-    showToast('Erreur : ' + e.message, 'err');
-  }
-}
-
-async function pollMeshy(key, taskId) {
-  try {
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
-      headers: { Authorization: `Bearer ${key}` }
-    });
-    const data = await res.json();
-    const pct = data.progress || 0;
-
-    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
-    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
-
-    if (data.status === 'SUCCEEDED') {
-      clearInterval(meshyPollInterval);
-      meshyGlbUrl  = data.model_urls?.glb  || null;
-      meshyUsdzUrl = data.model_urls?.usdz || null;
-
-      document.getElementById('genProgressBar').style.width = '100%';
-      document.getElementById('genIcon').textContent = '✓';
-      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
-      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
-
-      if (data.thumbnail_url) {
-        const img = document.getElementById('genPreviewImg');
-        img.src = data.thumbnail_url;
-        img.style.display = 'block';
-      }
-
-      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
-      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
-      document.getElementById('genUrls').style.display    = 'flex';
-      document.getElementById('genActions').style.display = 'flex';
-
-      setGenLoading(false);
-      showToast('✓ Modèle 3D généré avec succès !', 'ok');
-
-    } else if (data.status === 'FAILED') {
-      clearInterval(meshyPollInterval);
-      document.getElementById('genIcon').textContent = '✕';
-      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
-      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
-      setGenLoading(false);
-      showToast('Génération échouée — essayez une autre image', 'err');
-    }
-  } catch(e) {
-    console.error('Poll error:', e);
-  }
-}
-
-async function saveMeshyProduct() {
-  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
-  const nom    = document.getElementById('mNom').value.trim();
-  const marque = document.getElementById('mMarque').value.trim();
-  const cat    = document.getElementById('mCat').value;
-  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
-  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
-
-  const { error } = await sb.from('products').insert([{
-    name: nom, enseigne_name: marque, category: cat || null, price: prix,
-    model_glb_url:  meshyGlbUrl,
-    model_usdz_url: meshyUsdzUrl || null,
-    is_active: true
-  }]);
-
-  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
-
-  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
-  loadProducts();
-
-  // Reset
-  document.getElementById('mNom').value = '';
-  document.getElementById('mMarque').value = '';
-  document.getElementById('mPrix').value = '';
-  document.getElementById('mCat').value = '';
-  document.getElementById('meshyPrompt').value = '';
-  document.getElementById('meshyPreview').style.display = 'none';
-  document.getElementById('genStatus').style.display = 'none';
-  document.getElementById('meshyFileInput').value = '';
-  document.getElementById('meshyImgUrl').value = '';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
-}
-
-function setGenLoading(on) {
-  document.getElementById('btnGenerate').disabled = on;
-  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
-  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
-}
-
-// Init — restore API key
-(function() {
-  const savedKey = localStorage.getItem('meshy_api_key');
-  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
-  // Drag & drop on Meshy zone
-  const zone = document.getElementById('meshyDropZone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    const fi = document.getElementById('meshyFileInput');
-    fi.files = e.dataTransfer.files;
-    if (fi.files[0]) handleMeshyImage(fi.files[0]);
-  });
-})();
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#F5F2EC; --bg2:#EDEAE2; --bg3:#E4E0D6;
-  --sidebar:#1C1B18;
-  --white:#FAFAF8;
-  --accent:#B8986A; --acc2:#D4B896; --acc3:#A07A4A;
-  --border:rgba(28,27,24,.1);
-  --text:#1C1B18; --muted:#8A8880;
-  --light:#EDEAE2;
-  --green:#27704A; --amber:#B8986A; --red:#C0392B;
-  --serif:'Cormorant Garamond',Georgia,serif;
-  --sans:'Outfit',sans-serif;
+  --bg:#F5F2EC;--bg2:#EDEAE2;--bg3:#E4E0D6;--sidebar:#1C1B18;--white:#FAFAF8;
+  --accent:#B8986A;--acc2:#D4B896;--acc3:#A07A4A;--border:rgba(28,27,24,.1);
+  --text:#1C1B18;--muted:#8A8880;--light:#EDEAE2;--green:#27704A;--red:#C0392B;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Outfit',sans-serif;
 }
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex;-webkit-font-smoothing:antialiased}
 
-/* ── LOCK SCREEN ── */
-#lockScreen{
-  position:fixed;inset:0;z-index:999;
-  background:var(--sidebar);
-  display:flex;align-items:center;justify-content:center;
-}
-#lockScreen::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(184,152,106,.07) 0%,transparent 60%);
-  pointer-events:none;
-}
+/* LOCK */
+#lockScreen{position:fixed;inset:0;z-index:999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
+#lockScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(184,152,106,.07) 0%,transparent 60%);pointer-events:none}
 .lock-box{width:100%;max-width:360px;padding:0 28px;text-align:center;position:relative;z-index:1}
-.lock-logo{font-family:var(--serif);font-size:26px;font-weight:400;color:var(--white);margin-bottom:6px;letter-spacing:.02em}
-.lock-logo span{color:var(--accent)}
+.lock-logo{margin-bottom:6px}
 .lock-sub{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:40px;font-family:var(--sans)}
-.lock-field{margin-bottom:12px}
-.lock-field input{
-  width:100%;padding:14px 18px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(184,152,106,.2);
-  color:var(--white);font-family:var(--sans);font-size:13px;
-  outline:none;text-align:center;letter-spacing:.06em;transition:border-color .2s;
-}
+.lock-field input{width:100%;padding:14px 18px;background:rgba(255,255,255,.05);border:1px solid rgba(184,152,106,.2);color:var(--white);font-family:var(--sans);font-size:13px;outline:none;text-align:center;letter-spacing:.06em;transition:border-color .2s;margin-bottom:12px}
 .lock-field input:focus{border-color:var(--accent)}
-.lock-field input::placeholder{color:rgba(255,255,255,.2);letter-spacing:.08em}
-.lock-btn{
-  width:100%;padding:14px;
-  background:var(--accent);color:var(--white);border:none;
-  font-family:var(--sans);font-size:11px;font-weight:500;
-  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s;margin-bottom:10px;
-}
+.lock-field input::placeholder{color:rgba(255,255,255,.2)}
+.lock-btn{width:100%;padding:14px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s;margin-bottom:10px}
 .lock-btn:hover{background:var(--acc3)}
 .lock-err{font-size:12px;color:rgba(192,57,43,.8);min-height:18px;font-family:var(--sans)}
 
-/* ── SIDEBAR ── */
+/* SIDEBAR */
 .sidebar{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;transition:transform .25s;z-index:100}
 .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer}
-.sidebar-logo a{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--white);text-decoration:none;letter-spacing:.02em}
-.sidebar-logo a span{color:var(--accent)}
 .sidebar-tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-top:5px;font-family:var(--sans)}
 .nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
-.nav-section{font-size:9px;font-weight:400;color:rgba(255,255,255,.2);letter-spacing:.16em;text-transform:uppercase;padding:14px 12px 6px;font-family:var(--sans)}
-.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:12px;font-weight:400;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--sans);letter-spacing:.02em;border-left:2px solid transparent}
+.nav-section{font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.16em;text-transform:uppercase;padding:14px 12px 6px;font-family:var(--sans)}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:12px;font-weight:400;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--sans);letter-spacing:.02em;border-left:2px solid transparent;text-decoration:none}
 .nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.75)}
 .nav-item.active{background:rgba(184,152,106,.1);color:var(--accent);border-left-color:var(--accent)}
-.nav-item .ico{width:18px;text-align:center;font-size:13px;flex-shrink:0}
-.nav-badge{margin-left:auto;background:var(--accent);color:var(--white);font-size:9px;font-weight:500;padding:2px 7px;letter-spacing:.06em;font-family:var(--sans)}
+.nav-badge{margin-left:auto;background:var(--accent);color:var(--white);font-size:9px;font-weight:500;padding:2px 7px;font-family:var(--sans)}
 .sidebar-bottom{padding:14px 10px;border-top:1px solid rgba(255,255,255,.07)}
-.sidebar-bottom-info{padding:10px 12px;margin-bottom:6px}
-.sb-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);font-family:var(--sans);margin-bottom:4px}
-.sb-val{font-size:12px;color:rgba(255,255,255,.5);font-family:var(--sans)}
-.btn-logout{width:100%;padding:9px 12px;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:11px;font-weight:400;cursor:pointer;font-family:var(--sans);transition:color .2s;text-align:left;display:flex;align-items:center;gap:8px;letter-spacing:.04em}
+.sb-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);font-family:var(--sans);margin-bottom:4px;padding:10px 12px 0}
+.sb-val{font-size:12px;color:rgba(255,255,255,.5);font-family:var(--sans);padding:0 12px 10px}
+.btn-logout{width:100%;padding:9px 12px;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:var(--sans);transition:color .2s;text-align:left;display:flex;align-items:center;gap:8px}
 .btn-logout:hover{color:rgba(192,57,43,.7)}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99}
 .sidebar-overlay.show{display:block}
 
-/* ── MAIN ── */
+/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
 .topbar{padding:0 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(245,242,236,.95);backdrop-filter:blur(12px);height:56px;gap:12px}
 .topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
-.topbar h1{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text);letter-spacing:-.01em}
-.topbar p{font-size:11px;color:var(--muted);margin-top:1px;font-family:var(--sans)}
+.topbar h1{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text)}
+.topbar p{font-size:11px;color:var(--muted);font-family:var(--sans)}
 .tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:4px;flex-shrink:0}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:4px}
 .hamburger span{display:block;width:18px;height:1.5px;background:var(--text)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:11px;font-weight:400;cursor:pointer;border:none;transition:all .18s;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:11px;cursor:pointer;border:none;transition:all .18s;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 .btn-primary{background:var(--text);color:var(--white);border:1px solid var(--text)}
@@ -550,36 +68,32 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex
 .page{display:none}
 .page.active{display:block}
 
-/* ── STATS ROW ── */
+/* METRICS */
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:24px;border:1px solid var(--border)}
-.metric{background:var(--white);padding:20px 22px;transition:background .2s}
-.metric:hover{background:var(--bg)}
+.metric{background:var(--white);padding:20px 22px}
 .metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .metric-ico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--bg2);border:1px solid var(--border)}
-.ico-purple{background:rgba(184,152,106,.08);border-color:rgba(184,152,106,.2)}
-.ico-green{background:rgba(39,112,74,.06);border-color:rgba(39,112,74,.15)}
-.ico-blue{background:rgba(28,27,24,.04);border-color:var(--border)}
-.ico-pink{background:rgba(184,152,106,.08);border-color:rgba(184,152,106,.2)}
-.metric-val{font-family:var(--serif);font-size:32px;font-weight:300;letter-spacing:-.02em;margin-bottom:4px;color:var(--text)}
-.metric-label{font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
+.ico-a{background:rgba(184,152,106,.08);border-color:rgba(184,152,106,.2)}
+.ico-b{background:rgba(39,112,74,.06);border-color:rgba(39,112,74,.15)}
+.ico-c{background:rgba(28,27,24,.04);border-color:var(--border)}
+.metric-val{font-family:var(--serif);font-size:32px;font-weight:300;margin-bottom:4px;color:var(--text)}
+.metric-label{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
 
-/* ── SECTION HEADERS ── */
+/* SECTION */
 .sec-eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:10px;font-family:var(--sans)}
 .sec-eyebrow::before{content:'';width:20px;height:1px;background:var(--accent)}
 .sec-h2{font-family:var(--serif);font-size:28px;font-weight:300;margin-bottom:22px}
 .sec-h2 em{font-style:italic;color:var(--accent)}
 
-/* ── FORM CARD ── */
+/* FORM CARD */
 .form-card{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
 .form-card-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .form-card-head h3{font-family:var(--serif);font-size:20px;font-weight:400}
 .form-card-head span{font-size:11px;color:var(--muted);font-family:var(--sans)}
 .form-card-body{padding:24px}
-
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .form-grid.three{grid-template-columns:1fr 1fr 1fr}
 .field{display:flex;flex-direction:column;gap:7px}
-.field.full{grid-column:1/-1}
 .field label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
 .field input,.field select{padding:11px 14px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:300;outline:none;transition:border-color .2s}
 .field input:focus,.field select:focus{border-color:var(--accent);background:var(--white)}
@@ -593,7 +107,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex
 .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .upload-icon{font-size:24px;margin-bottom:8px}
 .upload-title{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px;color:var(--text)}
-.upload-sub{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--sans);letter-spacing:.04em}
+.upload-sub{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--sans)}
 .formats{display:flex;gap:6px;justify-content:center}
 .fmt{background:rgba(184,152,106,.08);border:1px solid rgba(184,152,106,.2);padding:3px 8px;font-size:10px;color:var(--accent);letter-spacing:.1em;font-family:var(--sans)}
 .upload-url{margin-top:8px}
@@ -622,7 +136,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex
 .search-input{padding:9px 14px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none;width:220px;transition:border-color .2s}
 .search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--muted)}
-.refresh-btn{padding:9px 14px;border:1px solid var(--border);background:transparent;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;letter-spacing:.06em}
+.refresh-btn{padding:9px 14px;border:1px solid var(--border);background:transparent;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
 .table-wrap{background:var(--white);border:1px solid var(--border);overflow:hidden}
 .table-bar{height:38px;background:var(--text);display:flex;align-items:center;padding:0 16px;gap:6px}
@@ -630,7 +144,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex
 .tbar-lbl{font-size:10px;color:rgba(255,255,255,.25);margin-left:auto;letter-spacing:.06em;font-family:var(--sans)}
 table{width:100%;border-collapse:collapse}
 thead tr{border-bottom:1px solid var(--border)}
-th{padding:11px 16px;text-align:left;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400;white-space:nowrap;font-family:var(--sans)}
+th{padding:11px 16px;text-align:left;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400;font-family:var(--sans)}
 td{padding:13px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid rgba(28,27,24,.05);vertical-align:middle;font-family:var(--sans)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(237,234,226,.5)}
@@ -643,11 +157,39 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .row-btn{padding:5px 11px;border:1px solid var(--border);background:transparent;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap}
 .row-btn:hover{border-color:var(--accent);color:var(--accent)}
 .row-btn.del:hover{border-color:var(--red);color:var(--red)}
+.empty-state{padding:52px;text-align:center}
+.empty-h{font-family:var(--serif);font-size:20px;font-weight:300;margin-bottom:6px}
+.empty-p{font-size:12px;color:var(--muted);font-family:var(--sans)}
 
-/* QR MODAL */
+/* MESHY */
+.meshy-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);margin-bottom:24px;border:1px solid var(--border)}
+.meshy-step{background:var(--white);padding:20px}
+.meshy-step-n{font-family:var(--serif);font-size:28px;font-weight:300;color:rgba(184,152,106,.3);margin-bottom:8px}
+.meshy-step-t{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px}
+.meshy-step-p{font-size:11px;color:var(--muted);line-height:1.6}
+.img-drop-zone{border:1px dashed rgba(184,152,106,.4);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:8px}
+.img-drop-zone:hover,.img-drop-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.img-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-preview{width:100%;max-height:200px;object-fit:contain;margin-top:12px;display:none;border:1px solid var(--border)}
+.generation-status{background:var(--bg2);border:1px solid var(--border);padding:20px;margin-top:12px;display:none}
+.gen-status-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.gen-icon{width:36px;height:36px;background:rgba(184,152,106,.1);border:1px solid rgba(184,152,106,.25);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.gen-txt h4{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--text)}
+.gen-txt p{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--sans)}
+.gen-progress{height:2px;background:rgba(184,152,106,.15);margin-bottom:14px;overflow:hidden}
+.gen-progress-bar{height:100%;background:var(--accent);transition:width 1s ease;width:0}
+.gen-preview-img{width:100%;max-height:160px;object-fit:contain;border:1px solid var(--border);margin-bottom:12px;display:none}
+.gen-url-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.gen-url-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:50px;font-family:var(--sans)}
+.gen-url-val{flex:1;font-size:11px;color:var(--acc3);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--bg3);padding:5px 8px}
+.gen-actions{display:flex;gap:8px;margin-top:12px}
+.btn-save-cat{padding:12px 24px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s;flex:1}
+.btn-save-cat:hover{background:var(--accent)}
+
+/* MODALS */
 .modal-bg{position:fixed;inset:0;background:rgba(28,27,24,.5);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-bg.show{display:flex}
-.modal{background:var(--white);padding:36px;max-width:320px;width:90%;text-align:center;animation:popin .3s ease}
+.modal{background:var(--white);padding:36px;max-width:320px;width:90%;text-align:center}
 .modal h3{font-family:var(--serif);font-size:22px;font-weight:400;margin-bottom:5px}
 .modal-sub{font-size:11px;color:var(--muted);margin-bottom:22px;word-break:break-all;font-family:var(--sans)}
 #qrCanvas{margin:0 auto 20px;display:block}
@@ -656,89 +198,22 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .modal-btn:hover{border-color:var(--accent);color:var(--accent)}
 .modal-btn.primary{background:var(--text);color:var(--white);border-color:var(--text)}
 .modal-btn.primary:hover{background:var(--accent);border-color:var(--accent)}
-
-/* CONFIRM DELETE */
 .confirm-bg{position:fixed;inset:0;background:rgba(28,27,24,.5);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .confirm-bg.show{display:flex}
-.confirm-box{background:var(--white);padding:32px;max-width:340px;width:90%;text-align:center;animation:popin .3s ease}
+.confirm-box{background:var(--white);padding:32px;max-width:340px;width:90%;text-align:center}
 .confirm-box h4{font-family:var(--serif);font-size:22px;font-weight:300;margin-bottom:10px}
 .confirm-box p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.7;font-family:var(--sans)}
 .confirm-btns{display:flex;gap:8px}
 .confirm-btn{flex:1;padding:12px;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
 .confirm-btn:hover{border-color:var(--accent);color:var(--accent)}
 .confirm-btn.danger{background:var(--red);color:var(--white);border-color:var(--red)}
-.confirm-btn.danger:hover{background:#a93226}
-
-/* EMPTY STATE */
-.empty-state{padding:52px;text-align:center}
-.empty-icon{font-size:28px;margin-bottom:10px}
-.empty-h{font-family:var(--serif);font-size:20px;font-weight:300;margin-bottom:6px}
-.empty-p{font-size:12px;color:var(--muted);font-family:var(--sans)}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--white);padding:11px 20px;font-size:12px;font-weight:400;opacity:0;transition:all .3s;z-index:999;transform:translateY(8px);letter-spacing:.04em;font-family:var(--sans)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--white);padding:11px 20px;font-size:12px;opacity:0;transition:all .3s;z-index:999;transform:translateY(8px);font-family:var(--sans)}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.ok{background:var(--green)}
 .toast.err{background:var(--red)}
 
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
-  .sidebar.open{transform:translateX(0)}
-  .hamburger{display:flex}
-  .topbar{padding:0 16px;height:52px}
-  .content{padding:16px}
-  .metrics{grid-template-columns:1fr 1fr}
-  .form-grid{grid-template-columns:1fr}
-  .form-grid.three{grid-template-columns:1fr}
-  .upload-grid{grid-template-columns:1fr}
-  .table-head-row{flex-direction:column;align-items:flex-start;gap:12px}
-  .search-wrap{width:100%}
-  .search-input{flex:1;width:auto}
-  th:nth-child(3),td:nth-child(3),th:nth-child(4),td:nth-child(4){display:none}
-}
-
-
-/* ── MESHY AI PANEL ── */
-.meshy-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; background: var(--border); margin-bottom: 24px; border: 1px solid var(--border); }
-.meshy-step { background: var(--white); padding: 20px; }
-.meshy-step-n { font-family: var(--serif); font-size: 28px; font-weight: 300; color: rgba(184,152,106,.3); margin-bottom: 8px; }
-.meshy-step-t { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; letter-spacing: .02em; }
-.meshy-step-p { font-size: 11px; color: var(--muted); line-height: 1.6; }
-.meshy-card { background: var(--white); border: 1px solid var(--border); margin-bottom: 2px; }
-.meshy-card-head { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.meshy-card-head h3 { font-family: var(--serif); font-size: 18px; font-weight: 400; }
-.meshy-card-body { padding: 22px 24px; }
-.api-key-row { display: flex; gap: 8px; align-items: center; }
-.api-key-row input { flex: 1; padding: 10px 13px; border: 1px solid var(--border); background: var(--bg2); font-family: var(--sans); font-size: 12px; color: var(--text); outline: none; transition: border-color .2s; font-weight: 300; }
-.api-key-row input:focus { border-color: var(--accent); }
-.api-key-row a { font-size: 11px; color: var(--accent); text-decoration: none; white-space: nowrap; letter-spacing: .04em; }
-.img-drop-zone { border: 1px dashed rgba(184,152,106,.4); padding: 32px; text-align: center; cursor: pointer; transition: all .2s; position: relative; margin-bottom: 8px; }
-.img-drop-zone:hover, .img-drop-zone.drag { border-color: var(--accent); background: rgba(184,152,106,.03); }
-.img-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.img-preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 12px; display: none; border: 1px solid var(--border); }
-.generation-status { background: var(--bg2); border: 1px solid var(--border); padding: 20px; margin-top: 12px; display: none; }
-.gen-status-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.gen-status-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(184,152,106,.1); border: 1px solid rgba(184,152,106,.25); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-.gen-status-txt h4 { font-family: var(--serif); font-size: 18px; font-weight: 400; color: var(--text); }
-.gen-status-txt p { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--sans); }
-.gen-progress { height: 2px; background: rgba(184,152,106,.15); margin-bottom: 14px; overflow: hidden; }
-.gen-progress-bar { height: 100%; background: var(--accent); transition: width 1s ease; width: 0; }
-.gen-preview-img { width: 100%; max-height: 160px; object-fit: contain; border: 1px solid var(--border); margin-bottom: 12px; display: none; }
-.gen-result-urls { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.gen-url-row { display: flex; align-items: center; gap: 8px; }
-.gen-url-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); min-width: 50px; font-family: var(--sans); }
-.gen-url-val { flex: 1; font-size: 11px; color: var(--acc3); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--bg3); padding: 5px 8px; }
-.gen-actions { display: flex; gap: 8px; }
-.btn-save-to-cat { padding: 12px 24px; background: var(--text); color: var(--white); border: none; font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background .3s; flex: 1; }
-.btn-save-to-cat:hover { background: var(--accent); }
-.btn-regen { padding: 12px 18px; background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: var(--sans); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .2s; }
-.btn-regen:hover { border-color: var(--accent); color: var(--accent); }
-.meshy-link { font-size: 11px; color: var(--muted); font-family: var(--sans); }
-.meshy-link a { color: var(--accent); }
-
+@media(max-width:768px){.sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.hamburger{display:flex}.topbar{padding:0 16px;height:52px}.content{padding:16px}.metrics{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.form-grid.three{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}.meshy-steps{grid-template-columns:1fr}.table-head-row{flex-direction:column;align-items:flex-start;gap:12px}.search-wrap{width:100%}.search-input{flex:1;width:auto}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes popin{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -746,7 +221,9 @@ tr:hover td{background:rgba(237,234,226,.5)}
 <!-- LOCK SCREEN -->
 <div id="lockScreen">
   <div class="lock-box">
-    <div class="lock-logo"><img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block;margin:0 auto 6px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/><span style="display:none">Tadam<span style='color:var(--accent)'>Home</span></span></div>
+    <div class="lock-logo">
+      <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block;margin:0 auto 6px" onerror="this.style.display='none'"/>
+    </div>
     <div class="lock-sub">Espace administration</div>
     <div class="lock-field">
       <input type="password" id="lockPw" placeholder="Mot de passe admin" autocomplete="off"/>
@@ -787,32 +264,24 @@ tr:hover td{background:rgba(237,234,226,.5)}
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <a href="index.html"><img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/><span style="display:none;font-family:var(--serif);font-size:20px;font-weight:400;color:var(--white)">Tadam<span style='color:var(--accent)'>Home</span></span></a>
+    <a href="index.html" style="display:block">
+      <img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block" onerror="this.style.display='none'"/>
+    </a>
     <div class="sidebar-tag">Administration</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Gestion</div>
-    <button class="nav-item active" onclick="showPanel('overview')">
-      <span class="ico">◈</span>Vue d'ensemble
-    </button>
-    <button class="nav-item" onclick="showPanel('upload')">
-      <span class="ico">↑</span>Ajouter un modèle
-    </button>
-    <button class="nav-item" onclick="showPanel('meshy')">
-      <span class="ico">✦</span>Générer avec IA
-    </button>
-    <button class="nav-item" onclick="showPanel('catalogue')">
-      <span class="ico">◫</span>Catalogue<span class="nav-badge" id="navBadge">0</span>
-    </button>
+    <button class="nav-item active" onclick="showPanel('overview')"><span>◈</span>Vue d'ensemble</button>
+    <button class="nav-item" onclick="showPanel('upload')"><span>↑</span>Ajouter un modèle</button>
+    <button class="nav-item" onclick="showPanel('meshy')"><span>✦</span>Générer avec IA</button>
+    <button class="nav-item" onclick="showPanel('catalogue')"><span>◫</span>Catalogue<span class="nav-badge" id="navBadge">0</span></button>
     <div class="nav-section">Liens</div>
-    <a href="index.html" class="nav-item"><span class="ico">←</span>Retour au site</a>
-    <a href="dashboard.html" class="nav-item"><span class="ico">◎</span>Dashboard</a>
+    <a href="index.html" class="nav-item"><span>←</span>Retour au site</a>
+    <a href="dashboard.html" class="nav-item"><span>◎</span>Dashboard</a>
   </nav>
   <div class="sidebar-bottom">
-    <div class="sidebar-bottom-info">
-      <div class="sb-label">Accès</div>
-      <div class="sb-val">Administrateur</div>
-    </div>
+    <div class="sb-label">Accès</div>
+    <div class="sb-val">Administrateur</div>
     <button class="btn-logout" onclick="doLogout()">← Verrouiller</button>
   </div>
 </aside>
@@ -824,7 +293,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
       <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
       <div>
         <h1 id="topbarTitle">Vue d'<em style="font-style:italic;color:var(--accent)">ensemble</em></h1>
-        <p id="topbarSub">Gestion du catalogue TadamHome</p>
+        <p>Gestion du catalogue TadamHome</p>
       </div>
     </div>
     <div class="tb-right">
@@ -835,49 +304,34 @@ tr:hover td{background:rgba(237,234,226,.5)}
 
   <div class="content">
 
-    <!-- ══ OVERVIEW ══ -->
+    <!-- OVERVIEW -->
     <div class="page active" id="panelOverview">
       <div class="metrics">
-        <div class="metric"><div class="metric-top"><div class="metric-ico ico-purple">◈</div></div><div class="metric-val" id="stTotal">—</div><div class="metric-label">Produits total</div></div>
-        <div class="metric"><div class="metric-top"><div class="metric-ico ico-green">◫</div></div><div class="metric-val" id="stGlb">—</div><div class="metric-label">Modèles GLB</div></div>
-        <div class="metric"><div class="metric-top"><div class="metric-ico ico-blue">◇</div></div><div class="metric-val" id="stUsdz">—</div><div class="metric-label">Fichiers USDZ</div></div>
-        <div class="metric"><div class="metric-top"><div class="metric-ico ico-pink">⊞</div></div><div class="metric-val" id="stQr">—</div><div class="metric-label">QR codes actifs</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-a">◈</div></div><div class="metric-val" id="stTotal">—</div><div class="metric-label">Produits total</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-b">◫</div></div><div class="metric-val" id="stGlb">—</div><div class="metric-label">Modèles GLB</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-c">◇</div></div><div class="metric-val" id="stUsdz">—</div><div class="metric-label">Fichiers USDZ</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-a">⊞</div></div><div class="metric-val" id="stQr">—</div><div class="metric-label">QR codes actifs</div></div>
       </div>
       <div class="sec-eyebrow">Derniers ajouts</div>
       <h2 class="sec-h2">Vos <em>modèles récents</em></h2>
       <div class="table-wrap">
-        <div class="table-bar">
-          <div class="tbar-dot" style="background:#E74C3C"></div>
-          <div class="tbar-dot" style="background:#F39C12"></div>
-          <div class="tbar-dot" style="background:#27AE60"></div>
-          <span class="tbar-lbl">TadamHome — Catalogue Admin</span>
-        </div>
+        <div class="table-bar"><div class="tbar-dot" style="background:#E74C3C"></div><div class="tbar-dot" style="background:#F39C12"></div><div class="tbar-dot" style="background:#27AE60"></div><span class="tbar-lbl">TadamHome — Catalogue Admin</span></div>
         <div id="overviewTable"></div>
       </div>
     </div>
 
-    <!-- ══ UPLOAD ══ -->
+    <!-- UPLOAD -->
     <div class="page" id="panelUpload">
       <div class="sec-eyebrow">Nouveau modèle</div>
       <h2 class="sec-h2">Ajouter au <em>catalogue</em></h2>
-
       <div class="form-card">
-        <div class="form-card-head">
-          <h3>Informations produit</h3>
-          <span>* champs requis</span>
-        </div>
+        <div class="form-card-head"><h3>Informations produit</h3><span>* champs requis</span></div>
         <div class="form-card-body">
           <div class="form-grid">
             <div class="field"><label>Nom *</label><input type="text" id="fNom" placeholder="ex. Canapé Mags"/></div>
             <div class="field"><label>Marque *</label><input type="text" id="fMarque" placeholder="ex. Hay"/></div>
             <div class="field"><label>Catégorie *</label>
-              <select id="fCat">
-                <option value="">Choisir…</option>
-                <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
-                <option>Table basse</option><option>Table à manger</option>
-                <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                <option>Lit</option><option>Autre</option>
-              </select>
+              <select id="fCat"><option value="">Choisir…</option><option>Sofa</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
             </div>
             <div class="field"><label>Prix (€)</label><input type="number" id="fPrix" placeholder="ex. 1290"/></div>
           </div>
@@ -893,41 +347,20 @@ tr:hover td{background:rgba(237,234,226,.5)}
           </div>
         </div>
       </div>
-
       <div class="upload-grid">
         <div>
-          <div class="upload-zone" id="zoneGlb">
-            <input type="file" id="fileGlb" accept=".glb">
-            <div class="upload-icon">◈</div>
-            <div class="upload-title" id="lblGlb">Fichier GLB</div>
-            <div class="upload-sub">Android & Web · Chrome</div>
-            <div class="formats"><div class="fmt">GLB</div><div class="fmt">GLTF</div></div>
-            <div class="upload-progress" id="progGlb"><div class="upload-bar" id="barGlb"></div></div>
-            <div class="upload-done" id="doneGlb">✓ Uploadé</div>
-          </div>
+          <div class="upload-zone" id="zoneGlb"><input type="file" id="fileGlb" accept=".glb"><div class="upload-icon">◈</div><div class="upload-title" id="lblGlb">Fichier GLB</div><div class="upload-sub">Android & Web · Chrome</div><div class="formats"><div class="fmt">GLB</div><div class="fmt">GLTF</div></div><div class="upload-progress" id="progGlb"><div class="upload-bar" id="barGlb"></div></div><div class="upload-done" id="doneGlb">✓ Uploadé</div></div>
           <div class="upload-url"><input type="text" id="fGlbUrl" placeholder="…ou collez une URL GLB directement"/></div>
         </div>
         <div>
-          <div class="upload-zone" id="zoneUsdz">
-            <input type="file" id="fileUsdz" accept=".usdz">
-            <div class="upload-icon">◇</div>
-            <div class="upload-title" id="lblUsdz">Fichier USDZ</div>
-            <div class="upload-sub">iPhone & iPad · Safari Quick Look</div>
-            <div class="formats"><div class="fmt">USDZ</div></div>
-            <div class="upload-progress" id="progUsdz"><div class="upload-bar" id="barUsdz"></div></div>
-            <div class="upload-done" id="doneUsdz">✓ Uploadé</div>
-          </div>
+          <div class="upload-zone" id="zoneUsdz"><input type="file" id="fileUsdz" accept=".usdz"><div class="upload-icon">◇</div><div class="upload-title" id="lblUsdz">Fichier USDZ</div><div class="upload-sub">iPhone & iPad · Safari</div><div class="formats"><div class="fmt">USDZ</div></div><div class="upload-progress" id="progUsdz"><div class="upload-bar" id="barUsdz"></div></div><div class="upload-done" id="doneUsdz">✓ Uploadé</div></div>
           <div class="upload-url"><input type="text" id="fUsdzUrl" placeholder="…ou collez une URL USDZ directement"/></div>
         </div>
       </div>
-
       <div class="form-card" style="margin-top:2px">
         <div class="form-card-body">
           <div class="form-actions">
-            <button class="btn-add" id="btnAdd" onclick="addProduct()">
-              <div class="spin" id="spinAdd"></div>
-              <span id="lblAdd">Ajouter au catalogue</span>
-            </button>
+            <button class="btn-add" id="btnAdd" onclick="addProduct()"><div class="spin" id="spinAdd"></div><span id="lblAdd">Ajouter au catalogue</span></button>
             <button class="btn-reset" onclick="resetForm()">Réinitialiser</button>
             <span class="form-msg" id="formMsg"></span>
           </div>
@@ -935,112 +368,76 @@ tr:hover td{background:rgba(237,234,226,.5)}
       </div>
     </div>
 
-
-    <!-- ══ MESHY AI ══ -->
+    <!-- MESHY AI -->
     <div class="page" id="panelMeshy">
       <div class="sec-eyebrow">Intelligence artificielle</div>
-      <h2 class="sec-h2">Générer un <em>modèle 3D avec l'IA</em></h2>
-
-      <!-- Steps -->
+      <h2 class="sec-h2">Générer un <em>modèle 3D avec IA</em></h2>
       <div class="meshy-steps">
-        <div class="meshy-step"><div class="meshy-step-n">01</div><div class="meshy-step-t">Photo du meuble</div><div class="meshy-step-p">Uploadez une photo claire du produit sur fond neutre</div></div>
-        <div class="meshy-step"><div class="meshy-step-n">02</div><div class="meshy-step-t">Génération IA</div><div class="meshy-step-p">Meshy AI convertit l'image en modèle GLB + USDZ en ~1 min</div></div>
-        <div class="meshy-step"><div class="meshy-step-n">03</div><div class="meshy-step-t">Ajout au catalogue</div><div class="meshy-step-p">Les fichiers sont sauvegardés dans Supabase automatiquement</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">01</div><div class="meshy-step-t">Photo du meuble</div><div class="meshy-step-p">Uploadez une photo claire sur fond neutre</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">02</div><div class="meshy-step-t">Génération IA</div><div class="meshy-step-p">Meshy convertit l'image en GLB + USDZ en ~1 min</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">03</div><div class="meshy-step-t">Ajout au catalogue</div><div class="meshy-step-p">Sauvegarde automatique dans Supabase</div></div>
       </div>
-
-      <!-- API Key -->
-      <div class="meshy-card" style="margin-bottom:2px">
-        <div class="meshy-card-head">
-          <h3>Clé API Meshy</h3>
-          <a href="https://www.meshy.ai/api" target="_blank" class="meshy-link">Obtenir une clé → meshy.ai</a>
-        </div>
-        <div class="meshy-card-body">
-          <div class="api-key-row">
-            <input type="password" id="meshyApiKey" placeholder="msy_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" oninput="saveMeshyKey()"/>
-            <button class="btn-reset" onclick="testMeshyKey()" style="white-space:nowrap">Tester la clé</button>
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Clé API Meshy</h3><a href="https://www.meshy.ai/api" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">Obtenir une clé →</a></div>
+        <div class="form-card-body">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="password" id="meshyApiKey" placeholder="msy_xxxxxxxxxxxxxxxx" style="flex:1;padding:10px 13px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" oninput="localStorage.setItem('meshy_api_key',this.value)"/>
+            <button class="btn-reset" onclick="testMeshyKey()">Tester</button>
           </div>
-          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--sans)">Votre clé est sauvegardée localement. 100 crédits gratuits/mois sur le plan free — chaque génération coûte 15 crédits.</p>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--sans)">100 crédits gratuits/mois · 15 crédits par génération · Clé sauvegardée localement</p>
         </div>
       </div>
-
-      <!-- Image upload -->
-      <div class="meshy-card" style="margin-bottom:2px">
-        <div class="meshy-card-head">
-          <h3>Image source</h3>
-          <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">JPG, PNG — fond blanc de préférence</span>
-        </div>
-        <div class="meshy-card-body">
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Image source</h3><span>JPG, PNG — fond blanc de préférence</span></div>
+        <div class="form-card-body">
           <div class="img-drop-zone" id="meshyDropZone">
             <input type="file" id="meshyFileInput" accept=".jpg,.jpeg,.png,.webp" onchange="handleMeshyImage(this.files[0])"/>
             <div style="font-size:24px;margin-bottom:8px">◈</div>
-            <div style="font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px">Glissez une photo ici</div>
-            <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">ou cliquez pour parcourir · JPG, PNG, WebP max 20Mo</div>
+            <div style="font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px" id="meshyDropLabel">Glissez une photo ici</div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">ou cliquez pour parcourir · JPG, PNG, WebP</div>
           </div>
-          <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--sans)">ou</div>
-          <div class="field">
-            <label>URL directe de l'image</label>
-            <input type="url" id="meshyImgUrl" placeholder="https://exemple.com/photo-meuble.jpg" onchange="previewMeshyUrl()"/>
-          </div>
+          <div style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0;font-family:var(--sans)">ou</div>
+          <div class="field"><label>URL directe de l'image</label><input type="url" id="meshyImgUrl" placeholder="https://exemple.com/photo.jpg" oninput="previewMeshyUrl(this.value)"/></div>
           <img id="meshyPreview" class="img-preview"/>
         </div>
       </div>
-
-      <!-- Infos produit -->
-      <div class="meshy-card" style="margin-bottom:2px">
-        <div class="meshy-card-head"><h3>Informations produit</h3></div>
-        <div class="meshy-card-body">
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Informations produit</h3></div>
+        <div class="form-card-body">
           <div class="form-grid">
             <div class="field"><label>Nom *</label><input type="text" id="mNom" placeholder="ex. Canapé Mags"/></div>
             <div class="field"><label>Marque *</label><input type="text" id="mMarque" placeholder="ex. Hay"/></div>
             <div class="field"><label>Catégorie</label>
-              <select id="mCat">
-                <option value="">Choisir…</option>
-                <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
-                <option>Table basse</option><option>Table à manger</option>
-                <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                <option>Lit</option><option>Autre</option>
-              </select>
+              <select id="mCat"><option value="">Choisir…</option><option>Sofa</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
             </div>
             <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
           </div>
-          <div class="field" style="margin-top:2px">
-            <label>Prompt IA (optionnel)</label>
-            <input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric texture, clean design — pour guider la génération"/>
-          </div>
-          <div class="form-actions" style="margin-top:20px">
-            <button class="btn-add" id="btnGenerate" onclick="generateMeshy()">
-              <div class="spin" id="spinGenerate"></div>
-              <span id="lblGenerate">✦ Générer le modèle 3D</span>
-            </button>
+          <div class="field" style="margin-top:4px"><label>Prompt IA (optionnel)</label><input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric, clean design"/></div>
+          <div class="form-actions">
+            <button class="btn-add" id="btnGenerate" onclick="generateMeshy()"><div class="spin" id="spinGenerate"></div><span id="lblGenerate">✦ Générer le modèle 3D</span></button>
             <span class="form-msg" id="meshyMsg"></span>
           </div>
         </div>
       </div>
-
-      <!-- Result -->
       <div class="generation-status" id="genStatus">
         <div class="gen-status-head">
-          <div class="gen-status-icon" id="genIcon">⏳</div>
-          <div class="gen-status-txt">
-            <h4 id="genStatusTitle">Génération en cours…</h4>
-            <p id="genStatusSub">Meshy AI analyse votre image</p>
-          </div>
+          <div class="gen-icon" id="genIcon">⏳</div>
+          <div class="gen-txt"><h4 id="genTitle">Génération en cours…</h4><p id="genSub">Meshy AI analyse votre image</p></div>
         </div>
-        <div class="gen-progress"><div class="gen-progress-bar" id="genProgressBar"></div></div>
-        <img id="genPreviewImg" class="gen-preview-img"/>
-        <div class="gen-result-urls" id="genUrls" style="display:none">
+        <div class="gen-progress"><div class="gen-progress-bar" id="genBar"></div></div>
+        <img id="genPreview" class="gen-preview-img"/>
+        <div id="genUrls" style="display:none">
           <div class="gen-url-row"><span class="gen-url-label">GLB</span><div class="gen-url-val" id="genGlbUrl">—</div></div>
           <div class="gen-url-row"><span class="gen-url-label">USDZ</span><div class="gen-url-val" id="genUsdzUrl">—</div></div>
         </div>
         <div class="gen-actions" id="genActions" style="display:none">
-          <button class="btn-save-to-cat" onclick="saveMeshyProduct()">↓ Sauvegarder dans le catalogue</button>
-          <button class="btn-regen" onclick="generateMeshy()">↺ Regénérer</button>
+          <button class="btn-save-cat" onclick="saveMeshyProduct()">↓ Sauvegarder dans le catalogue</button>
+          <button class="btn-reset" onclick="generateMeshy()">↺ Regénérer</button>
         </div>
       </div>
-
     </div>
 
-    <!-- ══ CATALOGUE ══ -->
+    <!-- CATALOGUE -->
     <div class="page" id="panelCatalogue">
       <div class="sec-eyebrow">Catalogue complet</div>
       <h2 class="sec-h2">Vos <em>modèles</em></h2>
@@ -1052,12 +449,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
         <button class="btn btn-primary btn-sm" onclick="showPanel('upload')">+ Ajouter</button>
       </div>
       <div class="table-wrap">
-        <div class="table-bar">
-          <div class="tbar-dot" style="background:#E74C3C"></div>
-          <div class="tbar-dot" style="background:#F39C12"></div>
-          <div class="tbar-dot" style="background:#27AE60"></div>
-          <span class="tbar-lbl">TadamHome — Catalogue Admin</span>
-        </div>
+        <div class="table-bar"><div class="tbar-dot" style="background:#E74C3C"></div><div class="tbar-dot" style="background:#F39C12"></div><div class="tbar-dot" style="background:#27AE60"></div><span class="tbar-lbl">TadamHome — Catalogue Admin</span></div>
         <div id="catTable"></div>
       </div>
     </div>
@@ -1066,17 +458,18 @@ tr:hover td{background:rgba(237,234,226,.5)}
 </div>
 
 <script>
-/* ─── CONFIG ─── */
+/* ── CONFIG ── */
 const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
 const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
-const ADMIN_PW = 'tadam2025'; // ← change ce mot de passe
+const ADMIN_PW = 'tadam2025';
 const BUCKET   = 'models';
 const BASE_URL = 'https://tadamhome.fr/scan';
+const MESHY_API= 'https://api.meshy.ai';
 
 const { createClient } = supabase;
 const sb = createClient(SUPA_URL, SUPA_KEY);
 
-/* ─── LOCK ─── */
+/* ── LOCK ── */
 function unlock() {
   const pw = document.getElementById('lockPw').value;
   if (pw === ADMIN_PW) {
@@ -1089,472 +482,238 @@ function unlock() {
   }
 }
 document.getElementById('lockPw').addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
+function doLogout() { document.getElementById('lockScreen').style.display='flex'; document.getElementById('lockPw').value=''; }
 
-function doLogout() {
-  document.getElementById('lockScreen').style.display = 'flex';
-  document.getElementById('lockPw').value = '';
-}
-
-/* ─── PANELS ─── */
+/* ── PANELS ── */
 const titles = {
   overview: 'Vue d\'<em style="font-style:italic;color:var(--accent)">ensemble</em>',
   upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
-  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
-  meshy:'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>'
+  meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
+  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>'
 };
 function showPanel(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1))?.classList.add('active');
+  const panel = document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1));
+  if (panel) panel.classList.add('active');
   document.getElementById('topbarTitle').innerHTML = titles[name] || name;
   document.querySelector('.content').scrollTop = 0;
   closeSidebar();
-  // highlight nav
   document.querySelectorAll('.nav-item').forEach(btn => {
-    if (btn.textContent.trim().toLowerCase().includes(
-      name === 'overview' ? 'ensemble' : name === 'upload' ? 'ajouter' : 'catalogue'
-    )) btn.classList.add('active');
+    const t = btn.textContent.trim().toLowerCase();
+    if ((name==='overview'&&t.includes('ensemble'))||(name==='upload'&&t.includes('ajouter')&&!t.includes('ia'))||(name==='meshy'&&t.includes('ia'))||(name==='catalogue'&&t.includes('catalogue'))) btn.classList.add('active');
   });
 }
 
-/* ─── SIDEBAR ─── */
-function toggleSidebar() { document.getElementById('sidebar').classList.contains('open') ? closeSidebar() : openSidebar(); }
+/* ── SIDEBAR ── */
+function toggleSidebar() { document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar(); }
 function openSidebar()   { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('show'); }
 function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
 
-/* ─── TOAST ─── */
+/* ── TOAST ── */
 let toastT;
-function showToast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = 'toast show' + (type ? ' '+type : '');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3000);
-}
+function showToast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3000);}
 
-/* ─── UPLOAD FILE ─── */
-async function uploadFile(fileInput, progEl, barEl, doneEl, urlInput) {
-  const file = fileInput.files[0];
-  if (!file) return urlInput.value.trim() || null;
-  const ext  = file.name.split('.').pop();
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  progEl.style.display = 'block'; barEl.style.width = '20%';
-  let uploadData, uploadError;
-  try {
-    const result = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
-    uploadData = result.data; uploadError = result.error;
-  } catch(e) { uploadError = { message: e.message }; }
-  barEl.style.width = '100%';
-  if (uploadError) {
-    console.warn('Upload:', uploadError.message);
-    progEl.style.display = 'none';
-    showToast('Upload storage indisponible — utilisez une URL directe');
-    return null;
-  }
-  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-  doneEl.style.display = 'block'; doneEl.textContent = '✓ ' + file.name;
+/* ── UPLOAD FILE ── */
+async function uploadFile(fileInput,progEl,barEl,doneEl,urlInput) {
+  const file=fileInput.files[0];
+  if(!file) return urlInput.value.trim()||null;
+  const ext=file.name.split('.').pop();
+  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  progEl.style.display='block';barEl.style.width='20%';
+  let uploadError;
+  try{const r=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});uploadError=r.error;}catch(e){uploadError={message:e.message};}
+  barEl.style.width='100%';
+  if(uploadError){progEl.style.display='none';showToast('Upload storage — utilisez une URL directe');return null;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  doneEl.style.display='block';doneEl.textContent='✓ '+file.name;
   return pub.publicUrl;
 }
 
-/* ─── ADD PRODUCT ─── */
+/* ── ADD PRODUCT ── */
 async function addProduct() {
-  const nom    = document.getElementById('fNom').value.trim();
-  const marque = document.getElementById('fMarque').value.trim();
-  const cat    = document.getElementById('fCat').value;
-  if (!nom || !marque || !cat) { showMsg('Nom, marque et catégorie requis.', 'err'); return; }
-  setLoading(true);
+  const nom=document.getElementById('fNom').value.trim();
+  const marque=document.getElementById('fMarque').value.trim();
+  const cat=document.getElementById('fCat').value;
+  if(!nom||!marque||!cat){showMsg('Nom, marque et catégorie requis.','err');return;}
+  setLoading('Add',true);
+  const glbUrl=await uploadFile(document.getElementById('fileGlb'),document.getElementById('progGlb'),document.getElementById('barGlb'),document.getElementById('doneGlb'),document.getElementById('fGlbUrl'));
+  const usdzUrl=await uploadFile(document.getElementById('fileUsdz'),document.getElementById('progUsdz'),document.getElementById('barUsdz'),document.getElementById('doneUsdz'),document.getElementById('fUsdzUrl'));
+  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true}]);
+  setLoading('Add',false);
+  if(error){showMsg('Erreur : '+error.message,'err');}
+  else{showMsg('✓ Produit ajouté !','ok');showToast('✓ '+nom+' ajouté','ok');resetForm();loadProducts();}
+}
+function setLoading(prefix,on){document.getElementById('btn'+prefix).disabled=on;document.getElementById('spin'+prefix).style.display=on?'block':'none';document.getElementById('lbl'+prefix).style.opacity=on?.4:1;}
+function showMsg(txt,type){const el=document.getElementById('formMsg');el.textContent=txt;el.className='form-msg '+type;setTimeout(()=>el.textContent='',4000);}
+function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});document.getElementById('formMsg').textContent='';}
 
-  const glbUrl = await uploadFile(
-    document.getElementById('fileGlb'), document.getElementById('progGlb'),
-    document.getElementById('barGlb'), document.getElementById('doneGlb'),
-    document.getElementById('fGlbUrl')
-  );
-  const usdzUrl = await uploadFile(
-    document.getElementById('fileUsdz'), document.getElementById('progUsdz'),
-    document.getElementById('barUsdz'), document.getElementById('doneUsdz'),
-    document.getElementById('fUsdzUrl')
-  );
-
-  const payload = {
-    nom, marque, categorie: cat,
-    prix:       parseFloat(document.getElementById('fPrix').value) || null,
-    matiere:    document.getElementById('fMat').value.trim()  || null,
-    couleur:    document.getElementById('fCol').value.trim()  || null,
-    reference:  document.getElementById('fRef').value.trim()  || null,
-    largeur:    parseFloat(document.getElementById('fLarg').value) || null,
-    hauteur:    parseFloat(document.getElementById('fHaut').value) || null,
-    profondeur: parseFloat(document.getElementById('fProf').value) || null,
-    model_glb_url: glbUrl  || null,
-    usdz_url:      usdzUrl || null,
-  };
-
-  const { error } = await sb.from('products').insert([{ name: payload.nom, enseigne_id: null, enseigne_name: payload.marque, reference: payload.reference, price: payload.prix, category: payload.categorie, model_glb_url: payload.model_glb_url, model_usdz_url: payload.usdz_url, is_active: true }]);
-  setLoading(false);
-  if (error) { showMsg('Erreur : ' + error.message, 'err'); }
-  else { showMsg('✓ Produit ajouté !', 'ok'); showToast('✓ ' + nom + ' ajouté', 'ok'); resetForm(); loadProducts(); }
+/* ── PRODUCTS ── */
+let allProducts=[],deleteId=null;
+async function loadProducts(){
+  const{data}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  allProducts=data||[];
+  document.getElementById('stTotal').textContent=allProducts.length;
+  document.getElementById('stGlb').textContent=allProducts.filter(p=>p.model_glb_url).length;
+  document.getElementById('stUsdz').textContent=allProducts.filter(p=>p.model_usdz_url).length;
+  document.getElementById('stQr').textContent=allProducts.length;
+  document.getElementById('navBadge').textContent=allProducts.length;
+  renderTable(allProducts.slice(0,6),'overviewTable');
+  renderTable(allProducts,'catTable');
+}
+function filterTable(){const q=document.getElementById('searchInput').value.toLowerCase();renderTable(allProducts.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.enseigne_name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q)),'catTable');}
+function renderTable(products,targetId){
+  const el=document.getElementById(targetId);
+  if(!products.length){el.innerHTML='<div class="empty-state"><div class="empty-h">Aucun produit</div><p class="empty-p">Ajoutez votre premier modèle 3D.</p></div>';return;}
+  let html='<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
+  products.forEach(p=>{html+=`<tr><td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td><td>${p.category||'—'}</td><td>${p.price?p.price+'€':'—'}</td><td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td><td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td><td><div class="row-actions"><button class="row-btn" onclick="showQR('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">QR</button><button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button><button class="row-btn del" onclick="askDelete('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">✕</button></div></td></tr>`;});
+  html+='</tbody></table>';el.innerHTML=html;
 }
 
-function setLoading(on) {
-  document.getElementById('btnAdd').disabled = on;
-  document.getElementById('spinAdd').style.display = on ? 'block' : 'none';
-  document.getElementById('lblAdd').style.opacity = on ? .4 : 1;
-}
-function showMsg(txt, type) {
-  const el = document.getElementById('formMsg');
-  el.textContent = txt; el.className = 'form-msg ' + type;
-  setTimeout(() => el.textContent = '', 4000);
-}
-function resetForm() {
-  ['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('fCat').value='';
-  ['Glb','Usdz'].forEach(t => {
-    document.getElementById('prog'+t).style.display='none';
-    document.getElementById('bar'+t).style.width='0';
-    document.getElementById('done'+t).style.display='none';
-    document.getElementById('file'+t).value='';
-    document.getElementById('lbl'+t).textContent = t==='Glb' ? 'Fichier GLB' : 'Fichier USDZ';
-  });
-  document.getElementById('formMsg').textContent='';
-}
+/* ── QR ── */
+function showQR(id,nom){const url=`${BASE_URL}?id=${id}`;document.getElementById('qrTitle').textContent=nom;document.getElementById('qrSub').textContent=url;QRCode.toCanvas(document.getElementById('qrCanvas'),url,{width:200,margin:2,color:{dark:'#1C1B18',light:'#FAFAF8'}});document.getElementById('qrModal').classList.add('show');}
+function closeQR(){document.getElementById('qrModal').classList.remove('show');}
+function downloadQR(){const a=document.createElement('a');a.download='qr-tadamhome.png';a.href=document.getElementById('qrCanvas').toDataURL();a.click();showToast('QR Code téléchargé','ok');}
 
-/* ─── LOAD / RENDER PRODUCTS ─── */
-let allProducts = [], deleteId = null;
+/* ── DELETE ── */
+function askDelete(id,nom){deleteId=id;document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Le QR code ne fonctionnera plus.`;document.getElementById('confirmBg').classList.add('show');}
+function closeConfirm(){document.getElementById('confirmBg').classList.remove('show');deleteId=null;}
+async function confirmDelete(){if(!deleteId)return;const{error}=await sb.from('products').delete().eq('id',deleteId);closeConfirm();if(error)showToast('Erreur : '+error.message,'err');else{showToast('Produit supprimé','ok');loadProducts();}}
 
-async function loadProducts() {
-  const { data, error } = await sb.from('products').select('*').order('created_at', { ascending: false });
-  allProducts = data || [];
-  updateStats();
-  renderOverview();
-  renderTable(allProducts);
-  document.getElementById('navBadge').textContent = allProducts.length;
-}
-
-function updateStats() {
-  document.getElementById('stTotal').textContent = allProducts.length;
-  document.getElementById('stGlb').textContent   = allProducts.filter(p => p.model_glb_url).length;
-  document.getElementById('stUsdz').textContent  = allProducts.filter(p => p.usdz_url).length;
-  document.getElementById('stQr').textContent    = allProducts.length;
-}
-
-function filterTable() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  renderTable(allProducts.filter(p =>
-    (p.nom||'').toLowerCase().includes(q) ||
-    (p.marque||'').toLowerCase().includes(q) ||
-    (p.categorie||'').toLowerCase().includes(q)
-  ));
-}
-
-function renderOverview() {
-  document.getElementById('overviewTable').innerHTML = buildTable(allProducts.slice(0, 6));
-}
-function renderTable(products) {
-  document.getElementById('catTable').innerHTML = buildTable(products);
-}
-
-function buildTable(products) {
-  if (!products.length) return `
-    <div class="empty-state">
-      <div class="empty-icon">◇</div>
-      <div class="empty-h">Aucun produit</div>
-      <p class="empty-p">Ajoutez votre premier modèle 3D ci-dessus.</p>
-    </div>`;
-
-  let html = `<table><thead><tr>
-    <th>Produit</th><th>Catégorie</th><th>Prix</th>
-    <th>GLB</th><th>USDZ</th><th>Actions</th>
-  </tr></thead><tbody>`;
-  products.forEach(p => {
-    html += `<tr>
-      <td><div class="td-brand">${p.marque||'—'}</div><div class="td-name">${p.nom||'—'}</div></td>
-      <td>${p.categorie||'—'}</td>
-      <td>${p.price||p.prix ? (p.price||p.prix)+'€' : '—'}</td>
-      <td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td>
-      <td><span class="td-badge ${p.usdz_url?'ok':''}">${p.usdz_url?'✓ USDZ':'—'}</span></td>
-      <td><div class="row-actions">
-        <button class="row-btn" onclick="showQR('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">QR</button>
-        <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button>
-        <button class="row-btn del" onclick="askDelete('${p.id}','${(p.nom||'').replace(/'/g,"\\'")}')">✕</button>
-      </div></td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  return html;
-}
-
-/* ─── QR ─── */
-function showQR(id, nom) {
-  const url = `${BASE_URL}?id=${id}`;
-  document.getElementById('qrTitle').textContent = nom;
-  document.getElementById('qrSub').textContent   = url;
-  QRCode.toCanvas(document.getElementById('qrCanvas'), url, {
-    width: 200, margin: 2,
-    color: { dark: '#1C1B18', light: '#FAFAF8' }
-  });
-  document.getElementById('qrModal').classList.add('show');
-}
-function closeQR() { document.getElementById('qrModal').classList.remove('show'); }
-function downloadQR() {
-  const a = document.createElement('a');
-  a.download = 'qr-tadamhome.png';
-  a.href = document.getElementById('qrCanvas').toDataURL();
-  a.click();
-  showToast('QR Code téléchargé', 'ok');
-}
-
-/* ─── DELETE ─── */
-function askDelete(id, nom) {
-  deleteId = id;
-  document.getElementById('confirmTxt').textContent = `Supprimer "${nom}" ? Le QR code associé ne fonctionnera plus.`;
-  document.getElementById('confirmBg').classList.add('show');
-}
-function closeConfirm() { document.getElementById('confirmBg').classList.remove('show'); deleteId = null; }
-async function confirmDelete() {
-  if (!deleteId) return;
-  const { error } = await sb.from('products').delete().eq('id', deleteId);
-  closeConfirm();
-  if (error) showToast('Erreur : ' + error.message, 'err');
-  else { showToast('Produit supprimé', 'ok'); loadProducts(); }
-}
-
-/* ─── DRAG & DROP ─── */
-['Glb','Usdz'].forEach(t => {
-  const zone = document.getElementById('zone'+t);
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    const fi = document.getElementById('file'+t); fi.files = e.dataTransfer.files;
-    if (fi.files[0]) document.getElementById('lbl'+t).textContent = '✓ ' + fi.files[0].name;
-  });
-  document.getElementById('file'+t).addEventListener('change', e => {
-    if (e.target.files[0]) document.getElementById('lbl'+t).textContent = '✓ ' + e.target.files[0].name;
-  });
+/* ── DRAG & DROP UPLOAD ── */
+['Glb','Usdz'].forEach(t=>{
+  const zone=document.getElementById('zone'+t);
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');const fi=document.getElementById('file'+t);fi.files=e.dataTransfer.files;if(fi.files[0])document.getElementById('lbl'+t).textContent='✓ '+fi.files[0].name;});
+  document.getElementById('file'+t).addEventListener('change',e=>{if(e.target.files[0])document.getElementById('lbl'+t).textContent='✓ '+e.target.files[0].name;});
 });
 
 /* ── MESHY AI ── */
-const MESHY_API = 'https://api.meshy.ai';
-let meshyTaskId = null;
-let meshyPollInterval = null;
-let meshyGlbUrl = null;
-let meshyUsdzUrl = null;
+let meshyTaskId=null,meshyPollInterval=null,meshyGlbUrl=null,meshyUsdzUrl=null;
 
-function saveMeshyKey() {
-  localStorage.setItem('meshy_api_key', document.getElementById('meshyApiKey').value.trim());
+async function testMeshyKey(){
+  const key=document.getElementById('meshyApiKey').value.trim();
+  if(!key){showToast('Entrez votre clé API Meshy','err');return;}
+  try{const r=await fetch(`${MESHY_API}/openapi/v1/balance`,{headers:{Authorization:`Bearer ${key}`}});const d=await r.json();if(d.balance!==undefined)showToast('✓ Clé valide — Crédits : '+d.balance,'ok');else showToast('Clé invalide','err');}
+  catch(e){showToast('Erreur connexion Meshy','err');}
 }
 
-async function testMeshyKey() {
-  const key = document.getElementById('meshyApiKey').value.trim();
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  try {
-    const r = await fetch(`${MESHY_API}/openapi/v1/balance`, { headers: { Authorization: `Bearer ${key}` } });
-    const d = await r.json();
-    if (d.balance !== undefined) showToast('✓ Clé valide — Crédits : ' + d.balance, 'ok');
-    else showToast('Clé invalide', 'err');
-  } catch(e) { showToast('Erreur de connexion à Meshy', 'err'); }
-}
-
-function handleMeshyImage(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const prev = document.getElementById('meshyPreview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-    document.getElementById('meshyDropZone').querySelector('div').textContent = '✓ ' + file.name;
-  };
+function handleMeshyImage(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{const prev=document.getElementById('meshyPreview');prev.src=e.target.result;prev.style.display='block';document.getElementById('meshyDropLabel').textContent='✓ '+file.name;};
   reader.readAsDataURL(file);
 }
 
-function previewMeshyUrl() {
-  const url = document.getElementById('meshyImgUrl').value.trim();
-  if (!url) return;
-  const prev = document.getElementById('meshyPreview');
-  prev.src = url;
-  prev.style.display = 'block';
-  prev.onerror = () => { prev.style.display = 'none'; showToast('URL image invalide', 'err'); };
+function previewMeshyUrl(url){
+  if(!url)return;
+  const prev=document.getElementById('meshyPreview');prev.src=url;prev.style.display='block';
+  prev.onerror=()=>{prev.style.display='none';};
 }
 
-async function getImageUrl() {
-  const file = document.getElementById('meshyFileInput').files[0];
-  const urlInput = document.getElementById('meshyImgUrl').value.trim();
-
-  if (file) {
-    // Convert to base64 data URL for Meshy API
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  } else if (urlInput) {
-    return urlInput;
-  }
-  return null;
+async function getImgUrl(){
+  const file=document.getElementById('meshyFileInput').files[0];
+  const url=document.getElementById('meshyImgUrl').value.trim();
+  if(file){return new Promise(resolve=>{const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(file);});}
+  return url||null;
 }
 
-async function generateMeshy() {
-  const key = document.getElementById('meshyApiKey').value.trim() || localStorage.getItem('meshy_api_key');
-  if (!key) { showToast('Entrez votre clé API Meshy', 'err'); return; }
-  document.getElementById('meshyApiKey').value = key;
-
-  const imgUrl = await getImageUrl();
-  if (!imgUrl) { showToast('Ajoutez une image ou une URL', 'err'); return; }
-
-  const nom = document.getElementById('mNom').value.trim();
-  if (!nom) { showToast('Entrez le nom du produit', 'err'); return; }
-
-  // UI state
-  setGenLoading(true);
-  document.getElementById('genStatus').style.display = 'block';
-  document.getElementById('genProgressBar').style.width = '5%';
-  document.getElementById('genStatusTitle').textContent = 'Envoi de l'image…';
-  document.getElementById('genStatusSub').textContent = 'Connexion à Meshy AI';
-  document.getElementById('genUrls').style.display = 'none';
-  document.getElementById('genActions').style.display = 'none';
-  document.getElementById('genPreviewImg').style.display = 'none';
-  document.getElementById('genIcon').textContent = '⏳';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
-
-  try {
-    // Call Meshy Image to 3D API
-    const prompt = document.getElementById('meshyPrompt').value.trim();
-    const body = {
-      image_url: imgUrl,
-      ai_model: 'meshy-4',
-      topology: 'quad',
-      target_polycount: 30000,
-      enable_pbr: true,
-    };
-    if (prompt) body.prompt = prompt;
-
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Erreur API Meshy');
-
-    meshyTaskId = data.result;
-    document.getElementById('genProgressBar').style.width = '15%';
-    document.getElementById('genStatusTitle').textContent = 'Génération en cours…';
-    document.getElementById('genStatusSub').textContent = 'ID : ' + meshyTaskId;
-
-    // Poll for result
+async function generateMeshy(){
+  const key=document.getElementById('meshyApiKey').value.trim()||localStorage.getItem('meshy_api_key');
+  if(!key){showToast('Entrez votre clé API Meshy','err');return;}
+  const imgUrl=await getImgUrl();
+  if(!imgUrl){showToast('Ajoutez une image ou une URL','err');return;}
+  const nom=document.getElementById('mNom').value.trim();
+  if(!nom){showToast('Entrez le nom du produit','err');return;}
+  setLoading('Generate',true);
+  document.getElementById('genStatus').style.display='block';
+  document.getElementById('genBar').style.width='5%';
+  document.getElementById('genTitle').textContent='Envoi de l\'image…';
+  document.getElementById('genSub').textContent='Connexion à Meshy AI';
+  document.getElementById('genUrls').style.display='none';
+  document.getElementById('genActions').style.display='none';
+  document.getElementById('genPreview').style.display='none';
+  document.getElementById('genIcon').textContent='⏳';
+  meshyGlbUrl=null;meshyUsdzUrl=null;
+  try{
+    const prompt=document.getElementById('meshyPrompt').value.trim();
+    const body={image_url:imgUrl,ai_model:'meshy-4',topology:'quad',target_polycount:30000,enable_pbr:true};
+    if(prompt)body.prompt=prompt;
+    const res=await fetch(`${MESHY_API}/openapi/v2/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.message||'Erreur API Meshy');
+    meshyTaskId=data.result;
+    document.getElementById('genBar').style.width='15%';
+    document.getElementById('genTitle').textContent='Génération en cours…';
+    document.getElementById('genSub').textContent='ID : '+meshyTaskId;
     clearInterval(meshyPollInterval);
-    meshyPollInterval = setInterval(() => pollMeshy(key, meshyTaskId), 4000);
-
-  } catch(e) {
-    setGenLoading(false);
-    document.getElementById('genIcon').textContent = '✕';
-    document.getElementById('genStatusTitle').textContent = 'Erreur';
-    document.getElementById('genStatusSub').textContent = e.message;
-    showToast('Erreur : ' + e.message, 'err');
-  }
+    meshyPollInterval=setInterval(()=>pollMeshy(key,meshyTaskId),4000);
+  }catch(e){setLoading('Generate',false);document.getElementById('genIcon').textContent='✕';document.getElementById('genTitle').textContent='Erreur';document.getElementById('genSub').textContent=e.message;showToast('Erreur : '+e.message,'err');}
 }
 
-async function pollMeshy(key, taskId) {
-  try {
-    const res = await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`, {
-      headers: { Authorization: `Bearer ${key}` }
-    });
-    const data = await res.json();
-    const pct = data.progress || 0;
-
-    document.getElementById('genProgressBar').style.width = Math.max(15, pct) + '%';
-    document.getElementById('genStatusSub').textContent = `Progression : ${pct}%`;
-
-    if (data.status === 'SUCCEEDED') {
+async function pollMeshy(key,taskId){
+  try{
+    const res=await fetch(`${MESHY_API}/openapi/v2/image-to-3d/${taskId}`,{headers:{Authorization:`Bearer ${key}`}});
+    const data=await res.json();
+    const pct=data.progress||0;
+    document.getElementById('genBar').style.width=Math.max(15,pct)+'%';
+    document.getElementById('genSub').textContent=`Progression : ${pct}%`;
+    if(data.status==='SUCCEEDED'){
       clearInterval(meshyPollInterval);
-      meshyGlbUrl  = data.model_urls?.glb  || null;
-      meshyUsdzUrl = data.model_urls?.usdz || null;
-
-      document.getElementById('genProgressBar').style.width = '100%';
-      document.getElementById('genIcon').textContent = '✓';
-      document.getElementById('genStatusTitle').textContent = 'Modèle généré !';
-      document.getElementById('genStatusSub').textContent = 'Prêt à être ajouté au catalogue';
-
-      if (data.thumbnail_url) {
-        const img = document.getElementById('genPreviewImg');
-        img.src = data.thumbnail_url;
-        img.style.display = 'block';
-      }
-
-      document.getElementById('genGlbUrl').textContent  = meshyGlbUrl  || '—';
-      document.getElementById('genUsdzUrl').textContent = meshyUsdzUrl || '—';
-      document.getElementById('genUrls').style.display    = 'flex';
-      document.getElementById('genActions').style.display = 'flex';
-
-      setGenLoading(false);
-      showToast('✓ Modèle 3D généré avec succès !', 'ok');
-
-    } else if (data.status === 'FAILED') {
+      meshyGlbUrl=data.model_urls?.glb||null;
+      meshyUsdzUrl=data.model_urls?.usdz||null;
+      document.getElementById('genBar').style.width='100%';
+      document.getElementById('genIcon').textContent='✓';
+      document.getElementById('genTitle').textContent='Modèle généré !';
+      document.getElementById('genSub').textContent='Prêt à être ajouté au catalogue';
+      if(data.thumbnail_url){const img=document.getElementById('genPreview');img.src=data.thumbnail_url;img.style.display='block';}
+      document.getElementById('genGlbUrl').textContent=meshyGlbUrl||'—';
+      document.getElementById('genUsdzUrl').textContent=meshyUsdzUrl||'—';
+      document.getElementById('genUrls').style.display='block';
+      document.getElementById('genActions').style.display='flex';
+      setLoading('Generate',false);
+      showToast('✓ Modèle 3D généré !','ok');
+    }else if(data.status==='FAILED'){
       clearInterval(meshyPollInterval);
-      document.getElementById('genIcon').textContent = '✕';
-      document.getElementById('genStatusTitle').textContent = 'Échec de génération';
-      document.getElementById('genStatusSub').textContent = data.task_error?.message || 'Essayez avec une autre image';
-      setGenLoading(false);
-      showToast('Génération échouée — essayez une autre image', 'err');
+      document.getElementById('genIcon').textContent='✕';
+      document.getElementById('genTitle').textContent='Échec';
+      document.getElementById('genSub').textContent=data.task_error?.message||'Essayez une autre image';
+      setLoading('Generate',false);
+      showToast('Génération échouée','err');
     }
-  } catch(e) {
-    console.error('Poll error:', e);
-  }
+  }catch(e){console.warn('Poll:',e);}
 }
 
-async function saveMeshyProduct() {
-  if (!meshyGlbUrl) { showToast('Aucun modèle disponible', 'err'); return; }
-  const nom    = document.getElementById('mNom').value.trim();
-  const marque = document.getElementById('mMarque').value.trim();
-  const cat    = document.getElementById('mCat').value;
-  const prix   = parseFloat(document.getElementById('mPrix').value) || null;
-  if (!nom || !marque) { showToast('Nom et marque requis', 'err'); return; }
-
-  const { error } = await sb.from('products').insert([{
-    name: nom, enseigne_name: marque, category: cat || null, price: prix,
-    model_glb_url:  meshyGlbUrl,
-    model_usdz_url: meshyUsdzUrl || null,
-    is_active: true
-  }]);
-
-  if (error) { showToast('Erreur Supabase : ' + error.message, 'err'); return; }
-
-  showToast('✓ ' + nom + ' ajouté au catalogue !', 'ok');
+async function saveMeshyProduct(){
+  if(!meshyGlbUrl){showToast('Aucun modèle disponible','err');return;}
+  const nom=document.getElementById('mNom').value.trim();
+  const marque=document.getElementById('mMarque').value.trim();
+  if(!nom||!marque){showToast('Nom et marque requis','err');return;}
+  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:document.getElementById('mCat').value||null,price:parseFloat(document.getElementById('mPrix').value)||null,model_glb_url:meshyGlbUrl,model_usdz_url:meshyUsdzUrl||null,is_active:true}]);
+  if(error){showToast('Erreur : '+error.message,'err');return;}
+  showToast('✓ '+nom+' ajouté au catalogue !','ok');
   loadProducts();
-
-  // Reset
-  document.getElementById('mNom').value = '';
-  document.getElementById('mMarque').value = '';
-  document.getElementById('mPrix').value = '';
-  document.getElementById('mCat').value = '';
-  document.getElementById('meshyPrompt').value = '';
-  document.getElementById('meshyPreview').style.display = 'none';
-  document.getElementById('genStatus').style.display = 'none';
-  document.getElementById('meshyFileInput').value = '';
-  document.getElementById('meshyImgUrl').value = '';
-  meshyGlbUrl = null; meshyUsdzUrl = null;
+  ['mNom','mMarque','mPrix','meshyPrompt','meshyImgUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mCat').value='';
+  document.getElementById('meshyPreview').style.display='none';
+  document.getElementById('genStatus').style.display='none';
+  document.getElementById('meshyFileInput').value='';
+  document.getElementById('meshyDropLabel').textContent='Glissez une photo ici';
+  meshyGlbUrl=null;meshyUsdzUrl=null;
 }
 
-function setGenLoading(on) {
-  document.getElementById('btnGenerate').disabled = on;
-  document.getElementById('spinGenerate').style.display = on ? 'block' : 'none';
-  document.getElementById('lblGenerate').style.opacity = on ? .4 : 1;
-}
+/* ── DRAG DROP MESHY ── */
+const mzone=document.getElementById('meshyDropZone');
+mzone.addEventListener('dragover',e=>{e.preventDefault();mzone.classList.add('drag');});
+mzone.addEventListener('dragleave',()=>mzone.classList.remove('drag'));
+mzone.addEventListener('drop',e=>{e.preventDefault();mzone.classList.remove('drag');const fi=document.getElementById('meshyFileInput');fi.files=e.dataTransfer.files;if(fi.files[0])handleMeshyImage(fi.files[0]);});
 
-// Init — restore API key
-(function() {
-  const savedKey = localStorage.getItem('meshy_api_key');
-  if (savedKey) document.getElementById('meshyApiKey').value = savedKey;
-  // Drag & drop on Meshy zone
-  const zone = document.getElementById('meshyDropZone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    const fi = document.getElementById('meshyFileInput');
-    fi.files = e.dataTransfer.files;
-    if (fi.files[0]) handleMeshyImage(fi.files[0]);
-  });
+/* ── INIT ── */
+(function(){
+  const k=localStorage.getItem('meshy_api_key');
+  if(k)document.getElementById('meshyApiKey').value=k;
 })();
-
 </script>
 </body>
 </html>
