@@ -412,6 +412,11 @@ tr:hover td{background:rgba(237,234,226,.5)}
             </div>
             <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
           </div>
+          <div class="form-grid three" style="margin-top:4px">
+            <div class="field"><label>Largeur (cm)</label><input type="number" id="mLarg" placeholder="ex. 220"/></div>
+            <div class="field"><label>Hauteur (cm)</label><input type="number" id="mHaut" placeholder="ex. 85"/></div>
+            <div class="field"><label>Profondeur (cm)</label><input type="number" id="mProf" placeholder="ex. 95"/></div>
+          </div>
           <div class="field" style="margin-top:4px"><label>Prompt IA (optionnel)</label><input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric, clean design"/></div>
           <div class="form-actions">
             <button class="btn-add" id="btnGenerate" onclick="generateMeshy()"><div class="spin" id="spinGenerate"></div><span id="lblGenerate">✦ Générer le modèle 3D</span></button>
@@ -647,16 +652,21 @@ async function generateMeshy(){
     const cat = document.getElementById('mCat').value;
     const realHeight = heightMap[cat] || 1.0;
 
+    // Si hauteur renseignée → on la passe à Meshy pour un resize précis
+    const hauteur = parseFloat(document.getElementById('mHaut').value) || null;
+
     const body={
       image_url:imgUrl,
       ai_model:'meshy-6',
       topology:'quad',
       target_polycount:30000,
       enable_pbr:true,
-      auto_size:true,           // Meshy estime la taille réelle depuis la photo
-      origin_at:'bottom',       // Origine au sol pour AR
+      auto_size: hauteur ? false : true,  // auto_size si pas de dim renseignée
+      origin_at:'bottom',
       target_formats:['glb','usdz']
     };
+    // Si hauteur connue, on utilise resize_height (en mètres)
+    if(hauteur) body.resize_height = hauteur / 100;
     if(prompt)body.prompt=prompt;
     const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
@@ -708,11 +718,23 @@ async function saveMeshyProduct(){
   const nom=document.getElementById('mNom').value.trim();
   const marque=document.getElementById('mMarque').value.trim();
   if(!nom||!marque){showToast('Nom et marque requis','err');return;}
-  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:document.getElementById('mCat').value||null,price:parseFloat(document.getElementById('mPrix').value)||null,model_glb_url:meshyGlbUrl,model_usdz_url:meshyUsdzUrl||null,is_active:true}]);
+  const larg = parseFloat(document.getElementById('mLarg').value) || null;
+  const haut = parseFloat(document.getElementById('mHaut').value) || null;
+  const prof = parseFloat(document.getElementById('mProf').value) || null;
+  const dims = (larg||haut||prof) ? {l:larg,h:haut,p:prof} : null;
+
+  const{error}=await sb.from('products').insert([{
+    name:nom, enseigne_name:marque,
+    category:document.getElementById('mCat').value||null,
+    price:parseFloat(document.getElementById('mPrix').value)||null,
+    model_glb_url:meshyGlbUrl, model_usdz_url:meshyUsdzUrl||null,
+    is_active:true,
+    dimensions:dims
+  }]);
   if(error){showToast('Erreur : '+error.message,'err');return;}
   showToast('✓ '+nom+' ajouté au catalogue !','ok');
   loadProducts();
-  ['mNom','mMarque','mPrix','meshyPrompt','meshyImgUrl'].forEach(id=>document.getElementById(id).value='');
+  ['mNom','mMarque','mPrix','mLarg','mHaut','mProf','meshyPrompt','meshyImgUrl'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mCat').value='';
   document.getElementById('meshyPreview').style.display='none';
   document.getElementById('genStatus').style.display='none';
