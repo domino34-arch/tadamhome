@@ -213,6 +213,28 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .toast.err{background:var(--red)}
 
 @media(max-width:768px){.sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.hamburger{display:flex}.topbar{padding:0 16px;height:52px}.content{padding:16px}.metrics{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.form-grid.three{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}.meshy-steps{grid-template-columns:1fr}.table-head-row{flex-direction:column;align-items:flex-start;gap:12px}.search-wrap{width:100%}.search-input{flex:1;width:auto}}
+
+/* COLORS MANAGER */
+.colors-manager{margin-top:2px}
+.color-row{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);margin-bottom:2px;position:relative}
+.color-swatch-preview{width:32px;height:32px;border:1px solid var(--border);flex-shrink:0;cursor:pointer;transition:transform .2s}
+.color-swatch-preview:hover{transform:scale(1.1)}
+.color-row-info{flex:1;min-width:0}
+.color-row-name{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--text);margin-bottom:2px}
+.color-row-url{font-size:10px;color:var(--muted);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.color-row-del{background:none;border:1px solid var(--border);padding:5px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap;flex-shrink:0}
+.color-row-del:hover{border-color:var(--red);color:var(--red)}
+.color-add-form{background:var(--white);border:1px solid rgba(184,152,106,.25);padding:18px;margin-top:2px}
+.color-add-grid{display:grid;grid-template-columns:44px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.color-picker-wrap{position:relative;width:44px;height:44px}
+.color-picker-wrap input[type=color]{width:44px;height:44px;border:1px solid var(--border);cursor:pointer;padding:2px;background:var(--bg2)}
+.texture-drop{border:1px dashed rgba(184,152,106,.35);padding:16px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.texture-drop:hover,.texture-drop.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.texture-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.texture-preview{width:100%;height:60px;object-fit:cover;margin-top:8px;display:none;border:1px solid var(--border)}
+.btn-add-color{padding:9px 18px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s}
+.btn-add-color:hover{background:var(--accent)}
+.colors-empty{padding:20px;text-align:center;font-size:12px;color:var(--muted);font-family:var(--sans);border:1px dashed var(--border)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -368,6 +390,36 @@ tr:hover td{background:rgba(237,234,226,.5)}
       </div>
     </div>
 
+      <!-- COLORS SECTION upload panel -->
+      <div class="form-card colors-manager" style="margin-top:2px">
+        <div class="form-card-head">
+          <h3>Coloris & textures</h3>
+          <span>Optionnel — permet le changement de tissu sur la page AR</span>
+        </div>
+        <div class="form-card-body">
+          <div id="uploadColorsList"><div class="colors-empty">Aucun coloris — ajoutez les options de tissu disponibles</div></div>
+          <div class="color-add-form">
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:var(--sans)">Ajouter un coloris</div>
+            <div class="color-add-grid">
+              <div class="color-picker-wrap"><input type="color" id="uColorHex" value="#B8986A"/></div>
+              <div class="field" style="margin:0"><input type="text" id="uColorName" placeholder="ex. Jaune Kvadrat" style="height:44px"/></div>
+              <div class="field" style="margin:0"><input type="text" id="uColorMat" placeholder="ex. Tissu, Cuir…" style="height:44px"/></div>
+            </div>
+            <div class="texture-drop" id="uTextureZone">
+              <input type="file" id="uTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'u')"/>
+              <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture ici · JPG, PNG</div>
+              <img id="uTexturePreview" class="texture-preview"/>
+              <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="uTextureName">ou cliquez pour parcourir</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+              <button class="btn-add-color" onclick="addUploadColor()">+ Ajouter ce coloris</button>
+              <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="uColorMsg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MESHY AI -->
     <div class="page" id="panelMeshy">
       <div class="sec-eyebrow">Intelligence artificielle</div>
@@ -418,6 +470,29 @@ tr:hover td{background:rgba(237,234,226,.5)}
             <div class="field"><label>Profondeur (cm)</label><input type="number" id="mProf" placeholder="ex. 95"/></div>
           </div>
           <div class="field" style="margin-top:4px"><label>Prompt IA (optionnel)</label><input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric, clean design"/></div>
+
+          <!-- COLORIS MESHY -->
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:16px">
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:var(--sans)">Coloris & textures (optionnel)</div>
+            <div id="meshyColorsList"><div class="colors-empty">Aucun coloris — ajoutez les options de tissu disponibles</div></div>
+            <div class="color-add-form" style="margin-top:2px">
+              <div class="color-add-grid">
+                <div class="color-picker-wrap"><input type="color" id="mColorHex" value="#B8986A"/></div>
+                <div class="field" style="margin:0"><input type="text" id="mColorName" placeholder="ex. Jaune Kvadrat" style="height:44px"/></div>
+                <div class="field" style="margin:0"><input type="text" id="mColorMat" placeholder="ex. Tissu, Cuir…" style="height:44px"/></div>
+              </div>
+              <div class="texture-drop" id="mTextureZone">
+                <input type="file" id="mTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'m')"/>
+                <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture ici</div>
+                <img id="mTexturePreview" class="texture-preview"/>
+                <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="mTextureName">ou cliquez pour parcourir</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                <button class="btn-add-color" onclick="addMeshyColor()">+ Ajouter ce coloris</button>
+                <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="mColorMsg"></span>
+              </div>
+            </div>
+          </div>
           <div class="form-actions">
             <button class="btn-add" id="btnGenerate" onclick="generateMeshy()"><div class="spin" id="spinGenerate"></div><span id="lblGenerate">✦ Générer le modèle 3D</span></button>
             <span class="form-msg" id="meshyMsg"></span>
@@ -544,14 +619,14 @@ async function addProduct() {
   setLoading('Add',true);
   const glbUrl=await uploadFile(document.getElementById('fileGlb'),document.getElementById('progGlb'),document.getElementById('barGlb'),document.getElementById('doneGlb'),document.getElementById('fGlbUrl'));
   const usdzUrl=await uploadFile(document.getElementById('fileUsdz'),document.getElementById('progUsdz'),document.getElementById('barUsdz'),document.getElementById('doneUsdz'),document.getElementById('fUsdzUrl'));
-  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true}]);
+  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true,colors:uploadColors.length?uploadColors:null}]);
   setLoading('Add',false);
   if(error){showMsg('Erreur : '+error.message,'err');}
   else{showMsg('✓ Produit ajouté !','ok');showToast('✓ '+nom+' ajouté','ok');resetForm();loadProducts();}
 }
 function setLoading(prefix,on){document.getElementById('btn'+prefix).disabled=on;document.getElementById('spin'+prefix).style.display=on?'block':'none';document.getElementById('lbl'+prefix).style.opacity=on?.4:1;}
 function showMsg(txt,type){const el=document.getElementById('formMsg');el.textContent=txt;el.className='form-msg '+type;setTimeout(()=>el.textContent='',4000);}
-function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});document.getElementById('formMsg').textContent='';}
+function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});uploadColors=[];renderColorsList('upload');document.getElementById('formMsg').textContent='';}
 
 /* ── PRODUCTS ── */
 let allProducts=[],deleteId=null;
@@ -729,11 +804,13 @@ async function saveMeshyProduct(){
     price:parseFloat(document.getElementById('mPrix').value)||null,
     model_glb_url:meshyGlbUrl, model_usdz_url:meshyUsdzUrl||null,
     is_active:true,
-    dimensions:dims
+    dimensions:dims,
+    colors:meshyColors.length?meshyColors:null
   }]);
   if(error){showToast('Erreur : '+error.message,'err');return;}
   showToast('✓ '+nom+' ajouté au catalogue !','ok');
   loadProducts();
+  meshyColors=[]; renderColorsList('meshy');
   ['mNom','mMarque','mPrix','mLarg','mHaut','mProf','meshyPrompt','meshyImgUrl'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mCat').value='';
   document.getElementById('meshyPreview').style.display='none';
@@ -743,7 +820,93 @@ async function saveMeshyProduct(){
   meshyGlbUrl=null;meshyUsdzUrl=null;
 }
 
-/* ── DRAG DROP MESHY ── */
+/* ── COLORS MANAGER ── */
+let uploadColors = [];   // colors for manual upload panel
+let meshyColors  = [];   // colors for meshy panel
+let uTextureUrl  = null; // current texture url (upload)
+let mTextureUrl  = null; // current texture url (meshy)
+
+async function handleTextureUpload(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const previewEl = document.getElementById(prefix + 'TexturePreview');
+  const nameEl    = document.getElementById(prefix + 'TextureName');
+
+  // Show local preview immediately
+  const reader = new FileReader();
+  reader.onload = e => { previewEl.src = e.target.result; previewEl.style.display = 'block'; };
+  reader.readAsDataURL(file);
+  nameEl.textContent = '⏳ Upload en cours…';
+
+  // Upload to Supabase storage
+  const ext  = file.name.split('.').pop();
+  const path = `textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { nameEl.textContent = '✗ Erreur upload'; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (prefix === 'u') uTextureUrl = url;
+  else mTextureUrl = url;
+  nameEl.textContent = '✓ ' + file.name;
+}
+
+function addUploadColor() {
+  const name = document.getElementById('uColorName').value.trim();
+  const hex  = document.getElementById('uColorHex').value;
+  const mat  = document.getElementById('uColorMat').value.trim();
+  if (!name) { document.getElementById('uColorMsg').textContent = 'Nom requis'; return; }
+  uploadColors.push({ name, hex, mat: mat || null, texture: uTextureUrl || null });
+  renderColorsList('upload');
+  // Reset
+  document.getElementById('uColorName').value = '';
+  document.getElementById('uColorMat').value  = '';
+  document.getElementById('uTexturePreview').style.display = 'none';
+  document.getElementById('uTextureName').textContent = 'ou cliquez pour parcourir';
+  document.getElementById('uTextureFile').value = '';
+  document.getElementById('uColorMsg').textContent = '';
+  uTextureUrl = null;
+}
+
+function addMeshyColor() {
+  const name = document.getElementById('mColorName').value.trim();
+  const hex  = document.getElementById('mColorHex').value;
+  const mat  = document.getElementById('mColorMat').value.trim();
+  if (!name) { document.getElementById('mColorMsg').textContent = 'Nom requis'; return; }
+  meshyColors.push({ name, hex, mat: mat || null, texture: mTextureUrl || null });
+  renderColorsList('meshy');
+  document.getElementById('mColorName').value = '';
+  document.getElementById('mColorMat').value  = '';
+  document.getElementById('mTexturePreview').style.display = 'none';
+  document.getElementById('mTextureName').textContent = 'ou cliquez pour parcourir';
+  document.getElementById('mTextureFile').value = '';
+  document.getElementById('mColorMsg').textContent = '';
+  mTextureUrl = null;
+}
+
+function renderColorsList(panel) {
+  const colors = panel === 'upload' ? uploadColors : meshyColors;
+  const listEl = document.getElementById(panel === 'upload' ? 'uploadColorsList' : 'meshyColorsList');
+  if (!colors.length) {
+    listEl.innerHTML = '<div class="colors-empty">Aucun coloris ajouté</div>';
+    return;
+  }
+  listEl.innerHTML = colors.map((c, i) => `
+    <div class="color-row">
+      <div class="color-swatch-preview" style="background:${c.hex}" title="${c.name}"></div>
+      <div class="color-row-info">
+        <div class="color-row-name">${c.name}${c.mat ? ' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>' : ''}</div>
+        <div class="color-row-url">${c.texture ? '✓ Texture : ' + c.texture.split('/').pop() : '⚠ Pas de texture'}</div>
+      </div>
+      <button class="color-row-del" onclick="removeColor('${panel}',${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeColor(panel, idx) {
+  if (panel === 'upload') { uploadColors.splice(idx, 1); renderColorsList('upload'); }
+  else { meshyColors.splice(idx, 1); renderColorsList('meshy'); }
+}
+
+
 const mzone=document.getElementById('meshyDropZone');
 mzone.addEventListener('dragover',e=>{e.preventDefault();mzone.classList.add('drag');});
 mzone.addEventListener('dragleave',()=>mzone.classList.remove('drag'));
