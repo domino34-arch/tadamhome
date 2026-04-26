@@ -638,7 +638,25 @@ async function generateMeshy(){
   meshyGlbUrl=null;meshyUsdzUrl=null;
   try{
     const prompt=document.getElementById('meshyPrompt').value.trim();
-    const body={image_url:imgUrl,ai_model:'meshy-6',topology:'quad',target_polycount:30000,enable_pbr:true};
+    // Hauteurs réelles par catégorie (en mètres)
+    const heightMap = {
+      'Sofa':0.85,'Fauteuil':0.90,'Chaise':0.90,'Table basse':0.45,
+      'Table à manger':0.75,'Bureau':0.75,'Luminaire':1.80,
+      'Rangement':1.20,'Lit':0.60,'Autre':1.00
+    };
+    const cat = document.getElementById('mCat').value;
+    const realHeight = heightMap[cat] || 1.0;
+
+    const body={
+      image_url:imgUrl,
+      ai_model:'meshy-6',
+      topology:'quad',
+      target_polycount:30000,
+      enable_pbr:true,
+      auto_size:true,           // Meshy estime la taille réelle depuis la photo
+      origin_at:'bottom',       // Origine au sol pour AR
+      target_formats:['glb','usdz']
+    };
     if(prompt)body.prompt=prompt;
     const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
