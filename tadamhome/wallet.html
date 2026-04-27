@@ -320,10 +320,6 @@ html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:va
 <!-- STICKY ACTION BAR -->
 <div class="sticky-bar hidden" id="sticky-bar">
   <button class="btn-scan-more" onclick="goScan()">+ Scanner</button>
-  <button class="btn-scene-ar" onclick="createARScene()" style="flex:1;padding:13px;background:rgba(184,152,106,.12);color:var(--accent);border:1px solid rgba(184,152,106,.3);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-    Scène AR
-  </button>
   <button class="btn-send" onclick="openShare()">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     Recevoir par email
@@ -392,21 +388,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   setTimeout(()=>document.getElementById('install-banner').classList.add('show'), 2000);
 });
 
-
-function createARScene() {
-  const wallet = getWallet();
-  if (!wallet.length) { toast('Ajoutez des meubles à votre sélection d'abord'); return; }
-  // Store wallet items as AR scene queue
-  const sceneQueue = wallet.map(item => ({
-    id: item.id,
-    name: item.name,
-    glb: item.model_url || null,
-    category: item.category || null,
-    dimensions: item.dimensions || null
-  }));
-  localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneQueue));
-  window.location.href = 'ar-scene.html';
-}
 function init(){
   const wallet = getWallet();
   const header = document.getElementById('page-header');
