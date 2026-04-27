@@ -1091,6 +1091,91 @@ function editExistingColor(idx) {
 
 
 /* ── TEXTURE & COLOR FILE HANDLERS ── */
+
+/* Colors state */
+let uploadColors   = [];
+let meshyColors    = [];
+let uTextureUrl    = null;
+let mTextureUrl    = null;
+let uColorGlbUrl   = null;
+let uColorUsdzUrl  = null;
+let mColorGlbUrl   = null;
+let mColorUsdzUrl  = null;
+
+function renderColorsList(panel) {
+  const colors = panel === 'upload' ? uploadColors : meshyColors;
+  const listId = panel === 'upload' ? 'uploadColorsList' : 'meshyColorsList';
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+  if (!colors.length) {
+    listEl.innerHTML = '<div class="colors-empty">Aucun coloris ajouté</div>';
+    return;
+  }
+  listEl.innerHTML = colors.map((c, i) => `
+    <div class="color-row">
+      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+(c.hex||'#ccc')}"></div>
+      <div class="color-row-info">
+        <div class="color-row-name">${c.name||'—'}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
+        <div class="color-row-url">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
+      </div>
+      <button class="color-row-del" onclick="removeColor('${panel}',${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeColor(panel, idx) {
+  if (panel === 'upload') { uploadColors.splice(idx, 1); renderColorsList('upload'); }
+  else                    { meshyColors.splice(idx, 1);  renderColorsList('meshy'); }
+}
+
+function addUploadColor() {
+  const name = document.getElementById('uColorName').value.trim();
+  const hex  = document.getElementById('uColorHex').value;
+  const mat  = document.getElementById('uColorMat').value.trim();
+  if (!name) { document.getElementById('uColorMsg').textContent = 'Nom requis'; return; }
+  const glb  = uColorGlbUrl  || document.getElementById('uGlbColorUrl')?.value.trim()  || null;
+  const usdz = uColorUsdzUrl || document.getElementById('uUsdzColorUrl')?.value.trim() || null;
+  uploadColors.push({ name, hex, mat: mat||null, texture: uTextureUrl||null, glb, usdz });
+  renderColorsList('upload');
+  // Reset
+  document.getElementById('uColorName').value = '';
+  document.getElementById('uColorMat').value  = '';
+  const urlGlb = document.getElementById('uGlbColorUrl'); if(urlGlb) urlGlb.value='';
+  const urlUsdz = document.getElementById('uUsdzColorUrl'); if(urlUsdz) urlUsdz.value='';
+  const prev = document.getElementById('uTexturePreview'); if(prev) prev.style.display='none';
+  const lbl = document.getElementById('uTextureName'); if(lbl) lbl.textContent='ou cliquez pour parcourir';
+  const tf = document.getElementById('uTextureFile'); if(tf) tf.value='';
+  const gf = document.getElementById('uGlbFile'); if(gf) gf.value='';
+  const uf = document.getElementById('uUsdzFile'); if(uf) uf.value='';
+  const gn = document.getElementById('uGlbFileName'); if(gn) gn.textContent='cliquez ou glissez';
+  const un = document.getElementById('uUsdzFileName'); if(un) un.textContent='cliquez ou glissez';
+  document.getElementById('uColorMsg').textContent = '';
+  uTextureUrl=null; uColorGlbUrl=null; uColorUsdzUrl=null;
+}
+
+function addMeshyColor() {
+  const name = document.getElementById('mColorName').value.trim();
+  const hex  = document.getElementById('mColorHex').value;
+  const mat  = document.getElementById('mColorMat').value.trim();
+  if (!name) { document.getElementById('mColorMsg').textContent = 'Nom requis'; return; }
+  const glb  = mColorGlbUrl  || document.getElementById('mGlbUrl')?.value.trim()  || null;
+  const usdz = mColorUsdzUrl || document.getElementById('mUsdzUrl')?.value.trim() || null;
+  meshyColors.push({ name, hex, mat: mat||null, texture: mTextureUrl||null, glb, usdz });
+  renderColorsList('meshy');
+  // Reset
+  document.getElementById('mColorName').value = '';
+  document.getElementById('mColorMat').value  = '';
+  const prev = document.getElementById('mTexturePreview'); if(prev) prev.style.display='none';
+  const lbl = document.getElementById('mTextureName'); if(lbl) lbl.textContent='ou cliquez pour parcourir';
+  const tf = document.getElementById('mTextureFile'); if(tf) tf.value='';
+  const gf = document.getElementById('mGlbFile'); if(gf) gf.value='';
+  const uf = document.getElementById('mUsdzFile'); if(uf) uf.value='';
+  const gn = document.getElementById('mGlbFileName'); if(gn) gn.textContent='ou cliquez';
+  const un = document.getElementById('mUsdzFileName'); if(un) un.textContent='ou cliquez';
+  document.getElementById('mColorMsg').textContent = '';
+  mTextureUrl=null; mColorGlbUrl=null; mColorUsdzUrl=null;
+}
+
+
 async function handleTextureUpload(input, prefix) {
   const file = input.files[0];
   if (!file) return;
