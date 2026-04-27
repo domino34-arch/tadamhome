@@ -618,14 +618,10 @@ function renderPage() {
     return `
       <div class="prod-card" onclick="goProduct('${p.id}')">
         <div class="prod-card-img">
-          <div class="no-img">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="20" y="70" width="160" height="55" rx="12" fill="#C4B896"/>
-              <rect x="20" y="55" width="160" height="22" rx="6" fill="#D4C8A8"/>
-              <rect x="20" y="55" width="18" height="70" rx="4" fill="#B4A888"/>
-              <rect x="162" y="55" width="18" height="70" rx="4" fill="#B4A888"/>
-            </svg>
-          </div>
+          ${p.images && p.images[0]
+            ? `<img src="${p.images[0]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover"/>`
+            : `<div class="no-img"><svg viewBox="0 0 200 150" fill="none"><rect x="20" y="70" width="160" height="55" rx="12" fill="#C4B896"/><rect x="20" y="55" width="160" height="22" rx="6" fill="#D4C8A8"/><rect x="20" y="55" width="18" height="70" rx="4" fill="#B4A888"/><rect x="162" y="55" width="18" height="70" rx="4" fill="#B4A888"/></svg></div>`
+          }
           ${cat ? `<div class="prod-cat-chip">${cat}</div>` : ''}
           <div class="ar-overlay">
             <a href="${SCAN_BASE}?id=${p.id}" class="ar-overlay-btn" onclick="event.stopPropagation()">
