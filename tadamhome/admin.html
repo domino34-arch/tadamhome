@@ -266,6 +266,20 @@ tr:hover td{background:rgba(237,234,226,.5)}
 .btn-edit-save:hover{background:var(--accent)}
 .btn-edit-cancel{padding:12px 20px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .btn-edit-cancel:hover{border-color:var(--accent);color:var(--accent)}
+
+/* PHOTO UPLOAD */
+.photos-section{margin-top:2px}
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.photo-thumb{position:relative;aspect-ratio:4/3;background:var(--bg2);border:1px solid var(--border);overflow:hidden;cursor:pointer}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb-del{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(192,57,43,.85);border:none;cursor:pointer;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.photo-thumb:hover .photo-thumb-del{opacity:1}
+.photo-add-zone{aspect-ratio:4/3;border:1px dashed rgba(184,152,106,.35);background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;gap:5px}
+.photo-add-zone:hover,.photo-add-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.photo-add-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-add-zone span{font-size:10px;color:var(--muted);font-family:var(--sans);letter-spacing:.06em;text-align:center}
+.photo-hint{font-size:11px;color:var(--muted);font-family:var(--sans);line-height:1.6;margin-bottom:8px}
+.photo-cover-badge{position:absolute;bottom:4px;left:4px;background:var(--accent);color:white;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;font-family:var(--sans)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -380,6 +394,21 @@ tr:hover td{background:rgba(237,234,226,.5)}
         </div>
         <div style="margin-top:8px"><input type="text" id="eUsdzUrl" placeholder="…ou collez une URL USDZ directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
       </div>
+
+
+      <!-- Photos -->
+      <div class="edit-section">
+        <div class="edit-section-title">Photos produit</div>
+        <p class="photo-hint">La 1ère photo = visuel principal du catalogue.</p>
+        <div class="photos-grid" id="editPhotoGrid">
+          <div class="photo-add-zone" id="editPhotoZone">
+            <input type="file" id="editPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'edit')"/>
+            <div style="font-size:22px">+</div>
+            <span>Ajouter des photos</span>
+      
+    
+  
+
 
       <!-- Coloris & textures -->
       <div class="edit-section">
@@ -548,6 +577,25 @@ tr:hover td{background:rgba(237,234,226,.5)}
         </div>
       </div>
     </div>
+
+
+      <!-- PHOTOS -->
+      <div class="form-card photos-section" style="margin-top:2px">
+        <div class="form-card-head">
+          <h3>Photos produit</h3>
+          <span>La 1ère photo = visuel principal du catalogue</span>
+        </div>
+        <div class="form-card-body">
+          <p class="photo-hint">Ajoutez jusqu'à 6 photos. La première sera utilisée comme visuel principal dans le catalogue et sur la page produit.</p>
+          <div class="photos-grid" id="uploadPhotoGrid">
+            <div class="photo-add-zone" id="uploadPhotoZone">
+              <input type="file" id="uploadPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'upload')"/>
+              <div style="font-size:22px">+</div>
+              <span>Ajouter des photos<br>JPG, PNG, WebP</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- COLORS SECTION upload panel -->
       <div class="form-card colors-manager" style="margin-top:2px">
@@ -817,14 +865,14 @@ async function addProduct() {
   setLoading('Add',true);
   const glbUrl=await uploadFile(document.getElementById('fileGlb'),document.getElementById('progGlb'),document.getElementById('barGlb'),document.getElementById('doneGlb'),document.getElementById('fGlbUrl'));
   const usdzUrl=await uploadFile(document.getElementById('fileUsdz'),document.getElementById('progUsdz'),document.getElementById('barUsdz'),document.getElementById('doneUsdz'),document.getElementById('fUsdzUrl'));
-  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true,colors:uploadColors.length?uploadColors:null}]);
+  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true,colors:uploadColors.length?uploadColors:null,images:uploadPhotos.length?uploadPhotos.map(p=>p.url):null}]);
   setLoading('Add',false);
   if(error){showMsg('Erreur : '+error.message,'err');}
   else{showMsg('✓ Produit ajouté !','ok');showToast('✓ '+nom+' ajouté','ok');resetForm();loadProducts();}
 }
 function setLoading(prefix,on){document.getElementById('btn'+prefix).disabled=on;document.getElementById('spin'+prefix).style.display=on?'block':'none';document.getElementById('lbl'+prefix).style.opacity=on?.4:1;}
 function showMsg(txt,type){const el=document.getElementById('formMsg');el.textContent=txt;el.className='form-msg '+type;setTimeout(()=>el.textContent='',4000);}
-function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});uploadColors=[];renderColorsList('upload');document.getElementById('formMsg').textContent='';}
+function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});uploadColors=[];renderColorsList('upload');uploadPhotos=[];renderPhotoGrid('upload');document.getElementById('formMsg').textContent='';}
 
 /* ── PRODUCTS ── */
 let allProducts=[],deleteId=null;
@@ -1042,6 +1090,59 @@ async function saveMeshyProduct(){
   meshyGlbUrl=null;meshyUsdzUrl=null;
 }
 
+
+
+/* ── PHOTOS ── */
+let uploadPhotos = [];   // [{url, name}] for upload panel
+let editPhotos   = [];   // [{url, name}] for edit modal
+
+async function handlePhotoUpload(files, panel) {
+  if (!files || !files.length) return;
+  const arr = panel === 'upload' ? uploadPhotos : editPhotos;
+  const max = 6;
+  for (const file of Array.from(files)) {
+    if (arr.length >= max) { showToast('Maximum 6 photos', 'err'); break; }
+    const ext  = file.name.split('.').pop();
+    const path = `photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    showToast('Upload photo en cours…');
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (error) { showToast('Erreur upload photo', 'err'); continue; }
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    arr.push({ url: pub.publicUrl, name: file.name });
+  }
+  renderPhotoGrid(panel);
+}
+
+function renderPhotoGrid(panel) {
+  const arr    = panel === 'upload' ? uploadPhotos : editPhotos;
+  const gridId = panel === 'upload' ? 'uploadPhotoGrid' : 'editPhotoGrid';
+  const grid   = document.getElementById(gridId);
+  if (!grid) return;
+
+  let html = arr.map((p, i) => `
+    <div class="photo-thumb">
+      <img src="${p.url}" alt="${p.name}" loading="lazy"/>
+      ${i === 0 ? '<div class="photo-cover-badge">Principale</div>' : ''}
+      <button class="photo-thumb-del" onclick="removePhoto('${panel}',${i})">✕</button>
+    </div>`).join('');
+
+  // Add zone if < 6
+  if (arr.length < 6) {
+    const inputId = panel === 'upload' ? 'uploadPhotoInput' : 'editPhotoInput';
+    html += `<div class="photo-add-zone">
+      <input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'${panel}')"/>
+      <div style="font-size:22px">+</div>
+      <span>Ajouter des photos</span>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function removePhoto(panel, idx) {
+  const arr = panel === 'upload' ? uploadPhotos : editPhotos;
+  arr.splice(idx, 1);
+  renderPhotoGrid(panel);
+}
 
 /* ── EDIT COLORS ── */
 let editColors = [];
@@ -1319,6 +1420,9 @@ function openEdit(id) {
     document.getElementById('e'+t+'Url').value = '';
   });
 
+  // Load existing photos
+  editPhotos = (p.images||[]).map(url => ({url, name: url.split('/').pop()}));
+  renderPhotoGrid('edit');
   // Load existing colors
   editColors = JSON.parse(JSON.stringify(p.colors || []));
   renderEditColors();
@@ -1330,6 +1434,7 @@ function openEdit(id) {
 function closeEdit() {
   document.getElementById('editModal').classList.remove('show');
   editProductId = null; editGlbUrl = null; editUsdzUrl = null;
+  editPhotos = []; renderPhotoGrid('edit');
 }
 
 async function handleEditFile(input, prefix) {
@@ -1395,8 +1500,9 @@ async function saveEdit() {
   if (glbUrl)  payload.model_glb_url  = glbUrl;
   if (usdzUrl) payload.model_usdz_url = usdzUrl;
 
-  // Include updated colors
+  // Include updated colors + photos
   payload.colors = editColors.length ? editColors : null;
+  if (editPhotos.length) payload.images = editPhotos.map(p => p.url);
 
   const { error } = await sb.from('products').update(payload).eq('id', editProductId);
 
