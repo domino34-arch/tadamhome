@@ -15,11 +15,11 @@
   --text:#1C1B18;--muted:#8A8880;--light:#EDEAE2;--green:#27704A;--red:#C0392B;
   --serif:'Cormorant Garamond',Georgia,serif;--sans:'Outfit',sans-serif;
 }
-html,body{height:100%;overflow:hidden}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex;-webkit-font-smoothing:antialiased}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 
 /* LOCK */
-#lockScreen{position:fixed;inset:0;z-index:999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
+#lockScreen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
 #lockScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(184,152,106,.07) 0%,transparent 60%);pointer-events:none}
 .lock-box{width:100%;max-width:360px;padding:0 28px;text-align:center;position:relative;z-index:1}
 .lock-logo{margin-bottom:6px}
@@ -286,7 +286,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
 <body>
 
 <!-- LOCK SCREEN -->
-<div id="lockScreen" style="position:fixed;inset:0;z-index:9999;background:#1C1B18;display:flex!important;align-items:center;justify-content:center">
+<div id="lockScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#1C1B18;display:flex;align-items:center;justify-content:center">
   <div class="lock-box">
     <div class="lock-logo">
       <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block;margin:0 auto 6px" onerror="this.style.display='none'"/>
