@@ -286,7 +286,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
 <body>
 
 <!-- LOCK SCREEN -->
-<div id="lockScreen">
+<div id="lockScreen" style="position:fixed;inset:0;z-index:9999;background:#1C1B18;display:flex!important;align-items:center;justify-content:center">
   <div class="lock-box">
     <div class="lock-logo">
       <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block;margin:0 auto 6px" onerror="this.style.display='none'"/>
@@ -297,6 +297,7 @@ tr:hover td{background:rgba(237,234,226,.5)}
     </div>
     <button class="lock-btn" onclick="unlock()">Accéder →</button>
     <div class="lock-err" id="lockErr"></div>
+    <div id="adminJsError" style="display:none;margin-top:12px;padding:10px;background:rgba(192,57,43,.2);color:#ff6b6b;font-family:monospace;font-size:11px;text-align:left;border-radius:4px;max-width:320px"></div>
   </div>
 </div>
 
@@ -784,6 +785,13 @@ tr:hover td{background:rgba(237,234,226,.5)}
 </div>
 
 <script>
+window.onerror = function(msg, src, line) {
+  console.error('ADMIN ERROR:', msg, 'line:', line);
+  // Show error on screen for debugging
+  const errDiv = document.getElementById('adminJsError');
+  if(errDiv) { errDiv.style.display='block'; errDiv.textContent = 'Erreur JS: '+msg+' (ligne '+line+')'; }
+  return false;
+};
 /* ── CONFIG ── */
 const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
 const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
@@ -808,7 +816,7 @@ function unlock() {
     setTimeout(() => el.textContent = '', 2200);
   }
 }
-document.getElementById('lockPw').addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
+document.addEventListener('DOMContentLoaded', () => { const lp = document.getElementById('lockPw'); if(lp) lp.addEventListener('keydown', e => { if(e.key==='Enter') unlock(); }); });
 function doLogout() { document.getElementById('lockScreen').style.display='flex'; document.getElementById('lockPw').value=''; }
 
 /* ── PANELS ── */
