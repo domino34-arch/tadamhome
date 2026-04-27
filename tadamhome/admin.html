@@ -1089,6 +1089,47 @@ function editExistingColor(idx) {
   document.getElementById('eColorMsg').textContent = 'Modifiez puis cliquez + Ajouter';
 }
 
+
+/* ── TEXTURE & COLOR FILE HANDLERS ── */
+async function handleTextureUpload(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const previewEl = document.getElementById(prefix + 'TexturePreview');
+  const nameEl    = document.getElementById(prefix + 'TextureName');
+  // Local preview
+  const reader = new FileReader();
+  reader.onload = e => { previewEl.src = e.target.result; previewEl.style.display = 'block'; };
+  reader.readAsDataURL(file);
+  nameEl.textContent = '⏳ Upload en cours…';
+  // Upload to Supabase
+  const ext  = file.name.split('.').pop();
+  const path = `textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { nameEl.textContent = '✗ Erreur : ' + error.message; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (prefix === 'u') uTextureUrl = url;
+  else if (prefix === 'm') mTextureUrl = url;
+  nameEl.textContent = '✓ ' + file.name;
+}
+
+async function handleColorFile(input, prefix, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const isU = prefix === 'u';
+  const fnId = prefix + (type === 'glb' ? 'GlbFileName' : 'UsdzFileName');
+  document.getElementById(fnId).textContent = '⏳ Upload…';
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { document.getElementById(fnId).textContent = '✗ Erreur : ' + error.message; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (isU) { if (type === 'glb') uColorGlbUrl = url; else uColorUsdzUrl = url; }
+  else      { if (type === 'glb') mColorGlbUrl = url; else mColorUsdzUrl = url; }
+  document.getElementById(fnId).textContent = '✓ ' + file.name;
+}
+
 async function handleEditColorTexture(input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
