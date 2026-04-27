@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TadamHome — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F5F2EC;--bg2:#EDEAE2;--bg3:#E4E0D6;--sidebar:#1C1B18;--white:#FAFAF8;
+  --accent:#B8986A;--acc2:#D4B896;--acc3:#A07A4A;--border:rgba(28,27,24,.1);
+  --text:#1C1B18;--muted:#8A8880;--light:#EDEAE2;--green:#27704A;--red:#C0392B;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Outfit',sans-serif;
+}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* LOCK */
+#lockScreen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
+#lockScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(184,152,106,.07) 0%,transparent 60%);pointer-events:none}
+.lock-box{width:100%;max-width:360px;padding:0 28px;text-align:center;position:relative;z-index:1}
+.lock-logo{margin-bottom:6px}
+.lock-sub{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:40px;font-family:var(--sans)}
+.lock-field input{width:100%;padding:14px 18px;background:rgba(255,255,255,.05);border:1px solid rgba(184,152,106,.2);color:var(--white);font-family:var(--sans);font-size:13px;outline:none;text-align:center;letter-spacing:.06em;transition:border-color .2s;margin-bottom:12px}
+.lock-field input:focus{border-color:var(--accent)}
+.lock-field input::placeholder{color:rgba(255,255,255,.2)}
+.lock-btn{width:100%;padding:14px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s;margin-bottom:10px}
+.lock-btn:hover{background:var(--acc3)}
+.lock-err{font-size:12px;color:rgba(192,57,43,.8);min-height:18px;font-family:var(--sans)}
+
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;transition:transform .25s;z-index:100}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer}
+.sidebar-tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-top:5px;font-family:var(--sans)}
+.nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.nav-section{font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.16em;text-transform:uppercase;padding:14px 12px 6px;font-family:var(--sans)}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:12px;font-weight:400;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--sans);letter-spacing:.02em;border-left:2px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.75)}
+.nav-item.active{background:rgba(184,152,106,.1);color:var(--accent);border-left-color:var(--accent)}
+.nav-badge{margin-left:auto;background:var(--accent);color:var(--white);font-size:9px;font-weight:500;padding:2px 7px;font-family:var(--sans)}
+.sidebar-bottom{padding:14px 10px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);font-family:var(--sans);margin-bottom:4px;padding:10px 12px 0}
+.sb-val{font-size:12px;color:rgba(255,255,255,.5);font-family:var(--sans);padding:0 12px 10px}
+.btn-logout{width:100%;padding:9px 12px;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:var(--sans);transition:color .2s;text-align:left;display:flex;align-items:center;gap:8px}
+.btn-logout:hover{color:rgba(192,57,43,.7)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99}
+.sidebar-overlay.show{display:block}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
+.topbar{padding:0 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(245,242,236,.95);backdrop-filter:blur(12px);height:56px;gap:12px}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar h1{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text)}
+.topbar p{font-size:11px;color:var(--muted);font-family:var(--sans)}
+.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:18px;height:1.5px;background:var(--text)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:11px;cursor:pointer;border:none;transition:all .18s;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--text);color:var(--white);border:1px solid var(--text)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-sm{padding:6px 13px;font-size:10px}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.page{display:none}
+.page.active{display:block}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:24px;border:1px solid var(--border)}
+.metric{background:var(--white);padding:20px 22px}
+.metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.metric-ico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--bg2);border:1px solid var(--border)}
+.ico-a{background:rgba(184,152,106,.08);border-color:rgba(184,152,106,.2)}
+.ico-b{background:rgba(39,112,74,.06);border-color:rgba(39,112,74,.15)}
+.ico-c{background:rgba(28,27,24,.04);border-color:var(--border)}
+.metric-val{font-family:var(--serif);font-size:32px;font-weight:300;margin-bottom:4px;color:var(--text)}
+.metric-label{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
+
+/* SECTION */
+.sec-eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:10px;font-family:var(--sans)}
+.sec-eyebrow::before{content:'';width:20px;height:1px;background:var(--accent)}
+.sec-h2{font-family:var(--serif);font-size:28px;font-weight:300;margin-bottom:22px}
+.sec-h2 em{font-style:italic;color:var(--accent)}
+
+/* FORM CARD */
+.form-card{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
+.form-card-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.form-card-head h3{font-family:var(--serif);font-size:20px;font-weight:400}
+.form-card-head span{font-size:11px;color:var(--muted);font-family:var(--sans)}
+.form-card-body{padding:24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
+.field input,.field select{padding:11px 14px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:300;outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus{border-color:var(--accent);background:var(--white)}
+.field input::placeholder{color:var(--muted)}
+.field select{cursor:pointer}
+
+/* UPLOAD */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);margin-bottom:2px}
+.upload-zone{background:var(--white);border:1px dashed rgba(184,152,106,.35);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:24px;margin-bottom:8px}
+.upload-title{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px;color:var(--text)}
+.upload-sub{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--sans)}
+.formats{display:flex;gap:6px;justify-content:center}
+.fmt{background:rgba(184,152,106,.08);border:1px solid rgba(184,152,106,.2);padding:3px 8px;font-size:10px;color:var(--accent);letter-spacing:.1em;font-family:var(--sans)}
+.upload-url{margin-top:8px}
+.upload-url input{width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none;font-weight:300}
+.upload-url input:focus{border-color:var(--accent)}
+.upload-url input::placeholder{color:var(--muted)}
+.upload-progress{height:2px;background:rgba(184,152,106,.15);margin-top:10px;display:none}
+.upload-bar{height:100%;background:var(--accent);width:0;transition:width .3s}
+.upload-done{font-size:11px;color:var(--green);margin-top:6px;display:none;font-family:var(--sans)}
+
+/* FORM ACTIONS */
+.form-actions{display:flex;gap:10px;align-items:center;padding-top:20px;border-top:1px solid var(--border)}
+.btn-add{padding:13px 30px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;gap:8px}
+.btn-add:hover{background:var(--accent)}
+.btn-add:disabled{background:var(--muted);cursor:wait}
+.btn-reset{padding:13px 22px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+.spin{width:13px;height:13px;border:1.5px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;display:none}
+.form-msg{font-size:12px;font-family:var(--sans)}
+.form-msg.ok{color:var(--green)}
+.form-msg.err{color:var(--red)}
+
+/* TABLE */
+.table-head-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.search-wrap{display:flex;gap:8px}
+.search-input{padding:9px 14px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none;width:220px;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--muted)}
+.refresh-btn{padding:9px 14px;border:1px solid var(--border);background:transparent;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.table-wrap{background:var(--white);border:1px solid var(--border);overflow:hidden}
+.table-bar{height:38px;background:var(--text);display:flex;align-items:center;padding:0 16px;gap:6px}
+.tbar-dot{width:8px;height:8px;border-radius:50%}
+.tbar-lbl{font-size:10px;color:rgba(255,255,255,.25);margin-left:auto;letter-spacing:.06em;font-family:var(--sans)}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+th{padding:11px 16px;text-align:left;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400;font-family:var(--sans)}
+td{padding:13px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid rgba(28,27,24,.05);vertical-align:middle;font-family:var(--sans)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(237,234,226,.5)}
+.td-brand{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.td-name{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--text)}
+.td-badge{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(184,152,106,.25);color:var(--acc3);font-family:var(--sans)}
+.td-badge.ok{border-color:rgba(39,112,74,.3);color:var(--green)}
+.td-badge.no{border-color:rgba(192,57,43,.2);color:rgba(192,57,43,.7)}
+.row-actions{display:flex;gap:5px}
+.row-btn{padding:5px 11px;border:1px solid var(--border);background:transparent;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap}
+.row-btn:hover{border-color:var(--accent);color:var(--accent)}
+.row-btn.del:hover{border-color:var(--red);color:var(--red)}
+.empty-state{padding:52px;text-align:center}
+.empty-h{font-family:var(--serif);font-size:20px;font-weight:300;margin-bottom:6px}
+.empty-p{font-size:12px;color:var(--muted);font-family:var(--sans)}
+
+/* MESHY */
+.meshy-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);margin-bottom:24px;border:1px solid var(--border)}
+.meshy-step{background:var(--white);padding:20px}
+.meshy-step-n{font-family:var(--serif);font-size:28px;font-weight:300;color:rgba(184,152,106,.3);margin-bottom:8px}
+.meshy-step-t{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px}
+.meshy-step-p{font-size:11px;color:var(--muted);line-height:1.6}
+.img-drop-zone{border:1px dashed rgba(184,152,106,.4);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:8px}
+.img-drop-zone:hover,.img-drop-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.img-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-preview{width:100%;max-height:200px;object-fit:contain;margin-top:12px;display:none;border:1px solid var(--border)}
+.generation-status{background:var(--bg2);border:1px solid var(--border);padding:20px;margin-top:12px;display:none}
+.gen-status-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.gen-icon{width:36px;height:36px;background:rgba(184,152,106,.1);border:1px solid rgba(184,152,106,.25);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.gen-txt h4{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--text)}
+.gen-txt p{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--sans)}
+.gen-progress{height:2px;background:rgba(184,152,106,.15);margin-bottom:14px;overflow:hidden}
+.gen-progress-bar{height:100%;background:var(--accent);transition:width 1s ease;width:0}
+.gen-preview-img{width:100%;max-height:160px;object-fit:contain;border:1px solid var(--border);margin-bottom:12px;display:none}
+.gen-url-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.gen-url-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:50px;font-family:var(--sans)}
+.gen-url-val{flex:1;font-size:11px;color:var(--acc3);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--bg3);padding:5px 8px}
+.gen-actions{display:flex;gap:8px;margin-top:12px}
+.btn-save-cat{padding:12px 24px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s;flex:1}
+.btn-save-cat:hover{background:var(--accent)}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(28,27,24,.5);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--white);padding:36px;max-width:320px;width:90%;text-align:center}
+.modal h3{font-family:var(--serif);font-size:22px;font-weight:400;margin-bottom:5px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:22px;word-break:break-all;font-family:var(--sans)}
+
+.modal-btns{display:flex;gap:8px}
+.modal-btn{flex:1;padding:11px;border:1px solid var(--border);background:transparent;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s}
+.modal-btn:hover{border-color:var(--accent);color:var(--accent)}
+.modal-btn.primary{background:var(--text);color:var(--white);border-color:var(--text)}
+.modal-btn.primary:hover{background:var(--accent);border-color:var(--accent)}
+.confirm-bg{position:fixed;inset:0;background:rgba(28,27,24,.5);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.confirm-bg.show{display:flex}
+.confirm-box{background:var(--white);padding:32px;max-width:340px;width:90%;text-align:center}
+.confirm-box h4{font-family:var(--serif);font-size:22px;font-weight:300;margin-bottom:10px}
+.confirm-box p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.7;font-family:var(--sans)}
+.confirm-btns{display:flex;gap:8px}
+.confirm-btn{flex:1;padding:12px;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.confirm-btn:hover{border-color:var(--accent);color:var(--accent)}
+.confirm-btn.danger{background:var(--red);color:var(--white);border-color:var(--red)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--white);padding:11px 20px;font-size:12px;opacity:0;transition:all .3s;z-index:999;transform:translateY(8px);font-family:var(--sans)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+
+@media(max-width:768px){.sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.hamburger{display:flex}.topbar{padding:0 16px;height:52px}.content{padding:16px}.metrics{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.form-grid.three{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}.meshy-steps{grid-template-columns:1fr}.table-head-row{flex-direction:column;align-items:flex-start;gap:12px}.search-wrap{width:100%}.search-input{flex:1;width:auto}}
+
+/* COLORS MANAGER */
+.colors-manager{margin-top:2px}
+.color-row{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);margin-bottom:2px;position:relative}
+.color-swatch-preview{width:32px;height:32px;border:1px solid var(--border);flex-shrink:0;cursor:pointer;transition:transform .2s}
+.color-swatch-preview:hover{transform:scale(1.1)}
+.color-row-info{flex:1;min-width:0}
+.color-row-name{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--text);margin-bottom:2px}
+.color-row-url{font-size:10px;color:var(--muted);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.color-row-del{background:none;border:1px solid var(--border);padding:5px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap;flex-shrink:0}
+.color-row-del:hover{border-color:var(--red);color:var(--red)}
+.color-add-form{background:var(--white);border:1px solid rgba(184,152,106,.25);padding:18px;margin-top:2px}
+.color-add-grid{display:grid;grid-template-columns:44px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.color-picker-wrap{position:relative;width:44px;height:44px}
+.color-picker-wrap input[type=color]{width:44px;height:44px;border:1px solid var(--border);cursor:pointer;padding:2px;background:var(--bg2)}
+.texture-drop{border:1px dashed rgba(184,152,106,.35);padding:16px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.texture-drop:hover,.texture-drop.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.texture-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.texture-preview{width:100%;height:60px;object-fit:cover;margin-top:8px;display:none;border:1px solid var(--border)}
+.btn-add-color{padding:9px 18px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s}
+.btn-add-color:hover{background:var(--accent)}
+.colors-empty{padding:20px;text-align:center;font-size:12px;color:var(--muted);font-family:var(--sans);border:1px dashed var(--border)}
+
+/* EDIT MODAL */
+.edit-modal-bg{position:fixed;inset:0;background:rgba(28,27,24,.55);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px}
+.edit-modal-bg.show{display:flex}
+.edit-modal{background:var(--white);width:100%;max-width:620px;max-height:90vh;overflow-y:auto;animation:popin .3s ease}
+.edit-modal-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
+.edit-modal-head h3{font-family:var(--serif);font-size:22px;font-weight:400}
+.edit-modal-close{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.edit-modal-close:hover{border-color:var(--red);color:var(--red)}
+.edit-modal-body{padding:22px 24px}
+.edit-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.edit-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.edit-section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px;font-family:var(--sans)}
+.edit-section-title::before{content:'';width:16px;height:1px;background:var(--accent)}
+.edit-file-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:12px;background:var(--bg2);border:1px solid var(--border)}
+.edit-file-info{flex:1;min-width:0}
+.edit-file-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:var(--sans)}
+.edit-file-url{font-size:11px;color:var(--acc3);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edit-file-url.none{color:var(--muted);font-style:italic;font-family:var(--sans)}
+.edit-upload-zone{border:1px dashed rgba(184,152,106,.35);padding:14px;text-align:center;cursor:pointer;position:relative;transition:all .2s;margin-top:6px}
+.edit-upload-zone:hover,.edit-upload-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.edit-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.edit-upload-zone-txt{font-size:12px;color:var(--muted);font-family:var(--sans)}
+.edit-progress{height:2px;background:rgba(184,152,106,.15);margin-top:8px;display:none}
+.edit-progress-bar{height:100%;background:var(--accent);width:0;transition:width .3s}
+.edit-done{font-size:11px;color:var(--green);margin-top:5px;display:none;font-family:var(--sans)}
+.edit-modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--white)}
+.btn-edit-save{padding:12px 28px;background:var(--text);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;gap:8px}
+.btn-edit-save:hover{background:var(--accent)}
+.btn-edit-cancel{padding:12px 20px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-edit-cancel:hover{border-color:var(--accent);color:var(--accent)}
+
+/* PHOTO UPLOAD */
+.photos-section{margin-top:2px}
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.photo-thumb{position:relative;aspect-ratio:4/3;background:var(--bg2);border:1px solid var(--border);overflow:hidden;cursor:pointer}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb-del{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(192,57,43,.85);border:none;cursor:pointer;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.photo-thumb:hover .photo-thumb-del{opacity:1}
+.photo-add-zone{aspect-ratio:4/3;border:1px dashed rgba(184,152,106,.35);background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;gap:5px}
+.photo-add-zone:hover,.photo-add-zone.drag{border-color:var(--accent);background:rgba(184,152,106,.03)}
+.photo-add-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-add-zone span{font-size:10px;color:var(--muted);font-family:var(--sans);letter-spacing:.06em;text-align:center}
+.photo-hint{font-size:11px;color:var(--muted);font-family:var(--sans);line-height:1.6;margin-bottom:8px}
+.photo-cover-badge{position:absolute;bottom:4px;left:4px;background:var(--accent);color:white;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;font-family:var(--sans)}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#1C1B18;display:flex;align-items:center;justify-content:center">
+  <div class="lock-box">
+    <div class="lock-logo">
+      <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;display:block;margin:0 auto 6px" onerror="this.style.display='none'"/>
+    </div>
+    <div class="lock-sub">Espace administration</div>
+    <div class="lock-field">
+      <input type="password" id="lockPw" placeholder="Mot de passe admin" autocomplete="off"/>
+    </div>
+    <button class="lock-btn" onclick="unlock()">Accéder →</button>
+    <div class="lock-err" id="lockErr"></div>
+    <div id="adminJsError" style="display:none;margin-top:12px;padding:10px;background:rgba(192,57,43,.2);color:#ff6b6b;font-family:monospace;font-size:11px;text-align:left;border-radius:4px;max-width:320px"></div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-bg" id="qrModal">
+  <div class="modal">
+    <h3 id="qrTitle">QR Code</h3>
+    <p class="modal-sub" id="qrSub"></p>
+    <div id="qrContainer" style="width:200px;height:200px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center"></div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="downloadQR()">Télécharger</button>
+      <button class="modal-btn primary" onclick="closeQR()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-bg" id="confirmBg">
+  <div class="confirm-box">
+    <h4>Supprimer ?</h4>
+    <p id="confirmTxt">Cette action est irréversible.</p>
+    <div class="confirm-btns">
+      <button class="confirm-btn" onclick="closeConfirm()">Annuler</button>
+      <button class="confirm-btn danger" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- EDIT MODAL -->
+<div class="edit-modal-bg" id="editModal">
+  <div class="edit-modal">
+    <div class="edit-modal-head">
+      <h3 id="editModalTitle">Modifier le produit</h3>
+      <button class="edit-modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="edit-modal-body">
+
+      <!-- Infos générales -->
+      <div class="edit-section">
+        <div class="edit-section-title">Informations</div>
+        <div class="form-grid">
+          <div class="field"><label>Nom</label><input type="text" id="eName"/></div>
+          <div class="field"><label>Marque</label><input type="text" id="eMarque"/></div>
+          <div class="field"><label>Catégorie</label>
+            <select id="eCat">
+              <option value="">Choisir…</option>
+              <option>Sofa</option><option>Fauteuil</option><option>Chaise</option>
+              <option>Table basse</option><option>Table à manger</option>
+              <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
+              <option>Lit</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="field"><label>Prix (€)</label><input type="number" id="ePrix"/></div>
+        </div>
+        <div class="form-grid three" style="margin-top:12px">
+          <div class="field"><label>Largeur (cm)</label><input type="number" id="eLarg"/></div>
+          <div class="field"><label>Hauteur (cm)</label><input type="number" id="eHaut"/></div>
+          <div class="field"><label>Profondeur (cm)</label><input type="number" id="eProf"/></div>
+        </div>
+      </div>
+
+      <!-- Fichier GLB -->
+      <div class="edit-section">
+        <div class="edit-section-title">Fichier GLB — Android & Web</div>
+        <div class="edit-file-row">
+          <div class="edit-file-info">
+            <div class="edit-file-label">Fichier actuel</div>
+            <div class="edit-file-url" id="eGlbCurrent">—</div>
+          </div>
+        </div>
+        <div class="edit-upload-zone" id="eZoneGlb">
+          <input type="file" id="eFileGlb" accept=".glb,.gltf" onchange="handleEditFile(this,'eGlb')"/>
+          <div class="edit-upload-zone-txt" id="eLblGlb">Glissez un nouveau fichier GLB pour remplacer · ou cliquez</div>
+          <div class="edit-progress" id="eProgGlb"><div class="edit-progress-bar" id="eBarGlb"></div></div>
+          <div class="edit-done" id="eDoneGlb"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" id="eGlbUrl" placeholder="…ou collez une URL GLB directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
+      </div>
+
+      <!-- Fichier USDZ -->
+      <div class="edit-section">
+        <div class="edit-section-title">Fichier USDZ — iPhone & iPad</div>
+        <div class="edit-file-row">
+          <div class="edit-file-info">
+            <div class="edit-file-label">Fichier actuel</div>
+            <div class="edit-file-url" id="eUsdzCurrent">—</div>
+          </div>
+        </div>
+        <div class="edit-upload-zone" id="eZoneUsdz">
+          <input type="file" id="eFileUsdz" accept=".usdz" onchange="handleEditFile(this,'eUsdz')"/>
+          <div class="edit-upload-zone-txt" id="eLblUsdz">Glissez un nouveau fichier USDZ pour remplacer · ou cliquez</div>
+          <div class="edit-progress" id="eProgUsdz"><div class="edit-progress-bar" id="eBarUsdz"></div></div>
+          <div class="edit-done" id="eDoneUsdz"></div>
+        </div>
+        <div style="margin-top:8px"><input type="text" id="eUsdzUrl" placeholder="…ou collez une URL USDZ directement" style="width:100%;padding:9px 12px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''" /></div>
+      </div>
+
+
+      <!-- Photos -->
+      <div class="edit-section">
+        <div class="edit-section-title">Photos produit</div>
+        <p class="photo-hint">La 1ère photo = visuel principal du catalogue.</p>
+        <div class="photos-grid" id="editPhotoGrid">
+          <div class="photo-add-zone" id="editPhotoZone">
+            <input type="file" id="editPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'edit')"/>
+            <div style="font-size:22px">+</div>
+            <span>Ajouter des photos</span>
+      
+    
+  
+
+
+      <!-- Coloris & textures -->
+      <div class="edit-section">
+        <div class="edit-section-title">Coloris & textures</div>
+        <div id="eColorsList" style="margin-bottom:12px"></div>
+
+        <!-- Ajouter / remplacer un coloris -->
+        <div style="background:var(--bg2);border:1px solid var(--border);padding:14px">
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--sans)">Ajouter ou remplacer un coloris</div>
+          <div style="display:grid;grid-template-columns:44px 1fr 1fr;gap:8px;margin-bottom:10px;align-items:center">
+            <input type="color" id="eColorHex" value="#B8986A" style="width:44px;height:44px;border:1px solid var(--border);padding:2px;cursor:pointer"/>
+            <input type="text" id="eColorName" placeholder="ex. Noir Kvadrat" style="padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none"/>
+            <input type="text" id="eColorMat" placeholder="ex. Tissu, Cuir…" style="padding:9px 12px;border:1px solid var(--border);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--text);outline:none"/>
+          </div>
+          <!-- Texture -->
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase">Texture (swatch)</div>
+          <div class="edit-upload-zone" id="eColorTextureZone" style="margin-bottom:10px">
+            <input type="file" id="eColorTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleEditColorTexture(this)"/>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="eColorTextureLbl">Glissez la texture JPG ici · ou cliquez</div>
+            <img id="eColorTexturePreview" style="width:100%;max-height:60px;object-fit:cover;margin-top:8px;display:none;border:1px solid var(--border)"/>
+          </div>
+          <!-- GLB + USDZ -->
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase">Modèle 3D associé</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div>
+              <div class="edit-upload-zone" id="eColorGlbZone" style="padding:10px">
+                <input type="file" id="eColorGlbFile" accept=".glb,.gltf" onchange="handleEditColorFile(this,'glb')"/>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB — Android</div>
+                <div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eColorGlbLbl">cliquez ou glissez</div>
+              </div>
+              <input type="text" id="eColorGlbUrl" placeholder="ou URL GLB…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+            </div>
+            <div>
+              <div class="edit-upload-zone" id="eColorUsdzZone" style="padding:10px">
+                <input type="file" id="eColorUsdzFile" accept=".usdz" onchange="handleEditColorFile(this,'usdz')"/>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ — iPhone</div>
+                <div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eColorUsdzLbl">cliquez ou glissez</div>
+              </div>
+              <input type="text" id="eColorUsdzUrl" placeholder="ou URL USDZ…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-add-color" onclick="addEditColor()">+ Ajouter ce coloris</button>
+            <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="eColorMsg"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="edit-modal-footer">
+      <button class="btn-edit-cancel" onclick="closeEdit()">Annuler</button>
+      <button class="btn-edit-save" id="btnEditSave" onclick="saveEdit()">
+        <div class="spin" id="spinEdit"></div>
+        <span id="lblEditSave">Enregistrer les modifications</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a href="index.html" style="display:block">
+      <img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block" onerror="this.style.display='none'"/>
+    </a>
+    <div class="sidebar-tag">Administration</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Gestion</div>
+    <button class="nav-item active" onclick="showPanel('overview')"><span>◈</span>Vue d'ensemble</button>
+    <button class="nav-item" onclick="showPanel('upload')"><span>↑</span>Ajouter un modèle</button>
+    <button class="nav-item" onclick="showPanel('meshy')"><span>✦</span>Générer avec IA</button>
+    <button class="nav-item" onclick="showPanel('catalogue')"><span>◫</span>Catalogue<span class="nav-badge" id="navBadge">0</span></button>
+    <div class="nav-section">Liens</div>
+    <a href="index.html" class="nav-item"><span>←</span>Retour au site</a>
+    <a href="dashboard.html" class="nav-item"><span>◎</span>Dashboard</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sb-label">Accès</div>
+    <div class="sb-val">Administrateur</div>
+    <button class="btn-logout" onclick="doLogout()">← Verrouiller</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+      <div>
+        <h1 id="topbarTitle">Vue d'<em style="font-style:italic;color:var(--accent)">ensemble</em></h1>
+        <p>Gestion du catalogue TadamHome</p>
+      </div>
+    </div>
+    <div class="tb-right">
+      <button class="btn btn-outline" onclick="showPanel('catalogue')">Catalogue</button>
+      <button class="btn btn-primary" onclick="showPanel('upload')">+ Ajouter</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="panelOverview">
+      <div class="metrics">
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-a">◈</div></div><div class="metric-val" id="stTotal">—</div><div class="metric-label">Produits total</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-b">◫</div></div><div class="metric-val" id="stGlb">—</div><div class="metric-label">Modèles GLB</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-c">◇</div></div><div class="metric-val" id="stUsdz">—</div><div class="metric-label">Fichiers USDZ</div></div>
+        <div class="metric"><div class="metric-top"><div class="metric-ico ico-a">⊞</div></div><div class="metric-val" id="stQr">—</div><div class="metric-label">QR codes actifs</div></div>
+      </div>
+      <div class="sec-eyebrow">Derniers ajouts</div>
+      <h2 class="sec-h2">Vos <em>modèles récents</em></h2>
+      <div class="table-wrap">
+        <div class="table-bar"><div class="tbar-dot" style="background:#E74C3C"></div><div class="tbar-dot" style="background:#F39C12"></div><div class="tbar-dot" style="background:#27AE60"></div><span class="tbar-lbl">TadamHome — Catalogue Admin</span></div>
+        <div id="overviewTable"></div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="page" id="panelUpload">
+      <div class="sec-eyebrow">Nouveau modèle</div>
+      <h2 class="sec-h2">Ajouter au <em>catalogue</em></h2>
+      <div class="form-card">
+        <div class="form-card-head"><h3>Informations produit</h3><span>* champs requis</span></div>
+        <div class="form-card-body">
+          <div class="form-grid">
+            <div class="field"><label>Nom *</label><input type="text" id="fNom" placeholder="ex. Canapé Mags"/></div>
+            <div class="field"><label>Marque *</label><input type="text" id="fMarque" placeholder="ex. Hay"/></div>
+            <div class="field"><label>Catégorie *</label>
+              <select id="fCat"><option value="">Choisir…</option><option>Sofa</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
+            </div>
+            <div class="field"><label>Prix (€)</label><input type="number" id="fPrix" placeholder="ex. 1290"/></div>
+          </div>
+          <div class="form-grid three">
+            <div class="field"><label>Matière</label><input type="text" id="fMat" placeholder="Tissu, Cuir…"/></div>
+            <div class="field"><label>Couleur</label><input type="text" id="fCol" placeholder="Gris chiné"/></div>
+            <div class="field"><label>Référence</label><input type="text" id="fRef" placeholder="HAY-MG-001"/></div>
+          </div>
+          <div class="form-grid three">
+            <div class="field"><label>Largeur (cm)</label><input type="number" id="fLarg" placeholder="220"/></div>
+            <div class="field"><label>Hauteur (cm)</label><input type="number" id="fHaut" placeholder="75"/></div>
+            <div class="field"><label>Profondeur (cm)</label><input type="number" id="fProf" placeholder="95"/></div>
+          </div>
+        </div>
+      </div>
+      <div class="upload-grid">
+        <div>
+          <div class="upload-zone" id="zoneGlb"><input type="file" id="fileGlb" accept=".glb"><div class="upload-icon">◈</div><div class="upload-title" id="lblGlb">Fichier GLB</div><div class="upload-sub">Android & Web · Chrome</div><div class="formats"><div class="fmt">GLB</div><div class="fmt">GLTF</div></div><div class="upload-progress" id="progGlb"><div class="upload-bar" id="barGlb"></div></div><div class="upload-done" id="doneGlb">✓ Uploadé</div></div>
+          <div class="upload-url"><input type="text" id="fGlbUrl" placeholder="…ou collez une URL GLB directement"/></div>
+        </div>
+        <div>
+          <div class="upload-zone" id="zoneUsdz"><input type="file" id="fileUsdz" accept=".usdz"><div class="upload-icon">◇</div><div class="upload-title" id="lblUsdz">Fichier USDZ</div><div class="upload-sub">iPhone & iPad · Safari</div><div class="formats"><div class="fmt">USDZ</div></div><div class="upload-progress" id="progUsdz"><div class="upload-bar" id="barUsdz"></div></div><div class="upload-done" id="doneUsdz">✓ Uploadé</div></div>
+          <div class="upload-url"><input type="text" id="fUsdzUrl" placeholder="…ou collez une URL USDZ directement"/></div>
+        </div>
+      </div>
+      <div class="form-card" style="margin-top:2px">
+        <div class="form-card-body">
+          <div class="form-actions">
+            <button class="btn-add" id="btnAdd" onclick="addProduct()"><div class="spin" id="spinAdd"></div><span id="lblAdd">Ajouter au catalogue</span></button>
+            <button class="btn-reset" onclick="resetForm()">Réinitialiser</button>
+            <span class="form-msg" id="formMsg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+      <!-- PHOTOS -->
+      <div class="form-card photos-section" style="margin-top:2px">
+        <div class="form-card-head">
+          <h3>Photos produit</h3>
+          <span>La 1ère photo = visuel principal du catalogue</span>
+        </div>
+        <div class="form-card-body">
+          <p class="photo-hint">Ajoutez jusqu'à 6 photos. La première sera utilisée comme visuel principal dans le catalogue et sur la page produit.</p>
+          <div class="photos-grid" id="uploadPhotoGrid">
+            <div class="photo-add-zone" id="uploadPhotoZone">
+              <input type="file" id="uploadPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'upload')"/>
+              <div style="font-size:22px">+</div>
+              <span>Ajouter des photos<br>JPG, PNG, WebP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLORS SECTION upload panel -->
+      <div class="form-card colors-manager" style="margin-top:2px">
+        <div class="form-card-head">
+          <h3>Coloris & textures</h3>
+          <span>Optionnel — permet le changement de tissu sur la page AR</span>
+        </div>
+        <div class="form-card-body">
+          <div id="uploadColorsList"><div class="colors-empty">Aucun coloris — ajoutez les options de tissu disponibles</div></div>
+          <div class="color-add-form">
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:var(--sans)">Ajouter un coloris</div>
+            <div class="color-add-grid">
+              <div class="color-picker-wrap"><input type="color" id="uColorHex" value="#B8986A"/></div>
+              <div class="field" style="margin:0"><input type="text" id="uColorName" placeholder="ex. Jaune Kvadrat" style="height:44px"/></div>
+              <div class="field" style="margin:0"><input type="text" id="uColorMat" placeholder="ex. Tissu, Cuir…" style="height:44px"/></div>
+            </div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;font-family:var(--sans)">Texture (aperçu swatch)</div>
+            <div class="texture-drop" id="uTextureZone">
+              <input type="file" id="uTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'u')"/>
+              <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture ici · JPG, PNG</div>
+              <img id="uTexturePreview" class="texture-preview"/>
+              <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="uTextureName">ou cliquez pour parcourir</div>
+            </div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;font-family:var(--sans)">Modèle 3D de ce coloris</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+              <div>
+                <div class="texture-drop" id="uGlbZone" style="padding:12px">
+                  <input type="file" id="uGlbFile" accept=".glb,.gltf" onchange="handleColorFile(this,'u','glb')"/>
+                  <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB — Android & Web</div>
+                  <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="uGlbFileName">cliquez ou glissez</div>
+                </div>
+                <input type="text" id="uGlbColorUrl" placeholder="ou URL GLB directe…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+              </div>
+              <div>
+                <div class="texture-drop" id="uUsdzZone" style="padding:12px">
+                  <input type="file" id="uUsdzFile" accept=".usdz" onchange="handleColorFile(this,'u','usdz')"/>
+                  <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ — iPhone AR</div>
+                  <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="uUsdzFileName">cliquez ou glissez</div>
+                </div>
+                <input type="text" id="uUsdzColorUrl" placeholder="ou URL USDZ directe…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+              <button class="btn-add-color" onclick="addUploadColor()">+ Ajouter ce coloris</button>
+              <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="uColorMsg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESHY AI -->
+    <div class="page" id="panelMeshy">
+      <div class="sec-eyebrow">Intelligence artificielle</div>
+      <h2 class="sec-h2">Générer un <em>modèle 3D avec IA</em></h2>
+      <div class="meshy-steps">
+        <div class="meshy-step"><div class="meshy-step-n">01</div><div class="meshy-step-t">Photo du meuble</div><div class="meshy-step-p">Uploadez une photo claire sur fond neutre</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">02</div><div class="meshy-step-t">Génération IA</div><div class="meshy-step-p">Meshy convertit l'image en GLB + USDZ en ~1 min</div></div>
+        <div class="meshy-step"><div class="meshy-step-n">03</div><div class="meshy-step-t">Ajout au catalogue</div><div class="meshy-step-p">Sauvegarde automatique dans Supabase</div></div>
+      </div>
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Clé API Meshy</h3><a href="https://www.meshy.ai/api" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">Obtenir une clé →</a></div>
+        <div class="form-card-body">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="password" id="meshyApiKey" placeholder="msy_xxxxxxxxxxxxxxxx" style="flex:1;padding:10px 13px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:12px;color:var(--text);outline:none" oninput="localStorage.setItem('meshy_api_key',this.value)"/>
+            <button class="btn-reset" onclick="testMeshyKey()">Tester</button>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--sans)">100 crédits gratuits/mois · 15 crédits par génération · Clé sauvegardée localement</p>
+        </div>
+      </div>
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Image source</h3><span>JPG, PNG — fond blanc de préférence</span></div>
+        <div class="form-card-body">
+          <div class="img-drop-zone" id="meshyDropZone">
+            <input type="file" id="meshyFileInput" accept=".jpg,.jpeg,.png,.webp" onchange="handleMeshyImage(this.files[0])"/>
+            <div style="font-size:24px;margin-bottom:8px">◈</div>
+            <div style="font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:5px" id="meshyDropLabel">Glissez une photo ici</div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">ou cliquez pour parcourir · JPG, PNG, WebP</div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0;font-family:var(--sans)">ou</div>
+          <div class="field"><label>URL directe de l'image</label><input type="url" id="meshyImgUrl" placeholder="https://exemple.com/photo.jpg" oninput="previewMeshyUrl(this.value)"/></div>
+          <img id="meshyPreview" class="img-preview"/>
+        </div>
+      </div>
+      <div class="form-card" style="margin-bottom:2px">
+        <div class="form-card-head"><h3>Informations produit</h3></div>
+        <div class="form-card-body">
+          <div class="form-grid">
+            <div class="field"><label>Nom *</label><input type="text" id="mNom" placeholder="ex. Canapé Mags"/></div>
+            <div class="field"><label>Marque *</label><input type="text" id="mMarque" placeholder="ex. Hay"/></div>
+            <div class="field"><label>Catégorie</label>
+              <select id="mCat"><option value="">Choisir…</option><option>Sofa</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
+            </div>
+            <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
+          </div>
+          <div class="form-grid three" style="margin-top:4px">
+            <div class="field"><label>Largeur (cm)</label><input type="number" id="mLarg" placeholder="ex. 220"/></div>
+            <div class="field"><label>Hauteur (cm)</label><input type="number" id="mHaut" placeholder="ex. 85"/></div>
+            <div class="field"><label>Profondeur (cm)</label><input type="number" id="mProf" placeholder="ex. 95"/></div>
+          </div>
+          <div class="field" style="margin-top:4px"><label>Prompt IA (optionnel)</label><input type="text" id="meshyPrompt" placeholder="ex. modern sofa, fabric, clean design"/></div>
+
+          <!-- COLORIS MESHY -->
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:16px">
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:var(--sans)">Coloris & textures (optionnel)</div>
+            <div id="meshyColorsList"><div class="colors-empty">Aucun coloris — ajoutez les options de tissu disponibles</div></div>
+            <div class="color-add-form" style="margin-top:2px">
+              <div class="color-add-grid">
+                <div class="color-picker-wrap"><input type="color" id="mColorHex" value="#B8986A"/></div>
+                <div class="field" style="margin:0"><input type="text" id="mColorName" placeholder="ex. Jaune Kvadrat" style="height:44px"/></div>
+                <div class="field" style="margin:0"><input type="text" id="mColorMat" placeholder="ex. Tissu, Cuir…" style="height:44px"/></div>
+              </div>
+              <div class="texture-drop" id="mTextureZone">
+                <input type="file" id="mTextureFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleTextureUpload(this,'m')"/>
+                <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Glissez la texture JPG ici</div>
+                <img id="mTexturePreview" class="texture-preview"/>
+                <div style="font-size:10px;color:var(--accent);margin-top:6px;font-family:var(--sans)" id="mTextureName">ou cliquez pour parcourir</div>
+              </div>
+              <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 8px;font-family:var(--sans)">Modèle 3D associé à ce coloris</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div>
+                  <div class="texture-drop" id="mGlbZone" style="padding:12px">
+                    <input type="file" id="mGlbFile" accept=".glb,.gltf" onchange="handleColorFile(this,'m','glb')"/>
+                    <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◈ GLB (Android)</div>
+                    <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="mGlbFileName">ou cliquez</div>
+                  </div>
+                  <input type="text" id="mGlbUrl" placeholder="ou URL GLB…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+                </div>
+                <div>
+                  <div class="texture-drop" id="mUsdzZone" style="padding:12px">
+                    <input type="file" id="mUsdzFile" accept=".usdz" onchange="handleColorFile(this,'m','usdz')"/>
+                    <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">◇ USDZ (iPhone)</div>
+                    <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="mUsdzFileName">ou cliquez</div>
+                  </div>
+                  <input type="text" id="mUsdzUrl" placeholder="ou URL USDZ…" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--border);background:var(--bg2);font-family:var(--sans);font-size:11px;color:var(--text);outline:none"/>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                <button class="btn-add-color" onclick="addMeshyColor()">+ Ajouter ce coloris</button>
+                <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="mColorMsg"></span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-add" id="btnGenerate" onclick="generateMeshy()"><div class="spin" id="spinGenerate"></div><span id="lblGenerate">✦ Générer le modèle 3D</span></button>
+            <span class="form-msg" id="meshyMsg"></span>
+          </div>
+        </div>
+      </div>
+      <div class="generation-status" id="genStatus">
+        <div class="gen-status-head">
+          <div class="gen-icon" id="genIcon">⏳</div>
+          <div class="gen-txt"><h4 id="genTitle">Génération en cours…</h4><p id="genSub">Meshy AI analyse votre image</p></div>
+        </div>
+        <div class="gen-progress"><div class="gen-progress-bar" id="genBar"></div></div>
+        <img id="genPreview" class="gen-preview-img"/>
+        <div id="genUrls" style="display:none">
+          <div class="gen-url-row"><span class="gen-url-label">GLB</span><div class="gen-url-val" id="genGlbUrl">—</div></div>
+          <div class="gen-url-row"><span class="gen-url-label">USDZ</span><div class="gen-url-val" id="genUsdzUrl">—</div></div>
+        </div>
+        <div class="gen-actions" id="genActions" style="display:none">
+          <button class="btn-save-cat" onclick="saveMeshyProduct()">↓ Sauvegarder dans le catalogue</button>
+          <button class="btn-reset" onclick="generateMeshy()">↺ Regénérer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATALOGUE -->
+    <div class="page" id="panelCatalogue">
+      <div class="sec-eyebrow">Catalogue complet</div>
+      <h2 class="sec-h2">Vos <em>modèles</em></h2>
+      <div class="table-head-row">
+        <div class="search-wrap">
+          <input class="search-input" id="searchInput" placeholder="Rechercher un produit…" oninput="filterTable()"/>
+          <button class="refresh-btn" onclick="loadProducts()">↺ Actualiser</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showPanel('upload')">+ Ajouter</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-bar"><div class="tbar-dot" style="background:#E74C3C"></div><div class="tbar-dot" style="background:#F39C12"></div><div class="tbar-dot" style="background:#27AE60"></div><span class="tbar-lbl">TadamHome — Catalogue Admin</span></div>
+        <div id="catTable"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+window.onerror = function(msg, src, line) {
+  console.error('ADMIN ERROR:', msg, 'line:', line);
+  // Show error on screen for debugging
+  const errDiv = document.getElementById('adminJsError');
+  if(errDiv) { errDiv.style.display='block'; errDiv.textContent = 'Erreur JS: '+msg+' (ligne '+line+')'; }
+  return false;
+};
+/* ── CONFIG ── */
+const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const ADMIN_PW = 'tadam2025';
+const BUCKET   = 'models';
+const BASE_URL = 'https://tadamhome.fr/scan';
+const MESHY_API= 'https://api.meshy.ai';
+
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+/* ── LOCK ── */
+function unlock() {
+  const pw = document.getElementById('lockPw').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('lockScreen').style.display = 'none';
+    showPanel('overview');
+    loadProducts();
+  } else {
+    const el = document.getElementById('lockErr');
+    el.textContent = 'Mot de passe incorrect.';
+    setTimeout(() => el.textContent = '', 2200);
+  }
+}
+document.addEventListener('DOMContentLoaded', () => { const lp = document.getElementById('lockPw'); if(lp) lp.addEventListener('keydown', e => { if(e.key==='Enter') unlock(); }); });
+function doLogout() { document.getElementById('lockScreen').style.display='flex'; document.getElementById('lockPw').value=''; }
+
+/* ── PANELS ── */
+const titles = {
+  overview: 'Vue d\'<em style="font-style:italic;color:var(--accent)">ensemble</em>',
+  upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
+  meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
+  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>'
+};
+function showPanel(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1));
+  if (panel) panel.classList.add('active');
+  document.getElementById('topbarTitle').innerHTML = titles[name] || name;
+  document.querySelector('.content').scrollTop = 0;
+  closeSidebar();
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    const t = btn.textContent.trim().toLowerCase();
+    if ((name==='overview'&&t.includes('ensemble'))||(name==='upload'&&t.includes('ajouter')&&!t.includes('ia'))||(name==='meshy'&&t.includes('ia'))||(name==='catalogue'&&t.includes('catalogue'))) btn.classList.add('active');
+  });
+}
+
+/* ── SIDEBAR ── */
+function toggleSidebar() { document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar(); }
+function openSidebar()   { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('show'); }
+function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+
+/* ── TOAST ── */
+let toastT;
+function showToast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3000);}
+
+/* ── UPLOAD FILE ── */
+async function uploadFile(fileInput,progEl,barEl,doneEl,urlInput) {
+  const file=fileInput.files[0];
+  if(!file) return urlInput.value.trim()||null;
+  const ext=file.name.split('.').pop();
+  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  progEl.style.display='block';barEl.style.width='20%';
+  let uploadError;
+  try{const r=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});uploadError=r.error;}catch(e){uploadError={message:e.message};}
+  barEl.style.width='100%';
+  if(uploadError){progEl.style.display='none';showToast('Upload storage — utilisez une URL directe');return null;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  doneEl.style.display='block';doneEl.textContent='✓ '+file.name;
+  return pub.publicUrl;
+}
+
+/* ── ADD PRODUCT ── */
+async function addProduct() {
+  const nom=document.getElementById('fNom').value.trim();
+  const marque=document.getElementById('fMarque').value.trim();
+  const cat=document.getElementById('fCat').value;
+  if(!nom||!marque||!cat){showMsg('Nom, marque et catégorie requis.','err');return;}
+  setLoading('Add',true);
+  const glbUrl=await uploadFile(document.getElementById('fileGlb'),document.getElementById('progGlb'),document.getElementById('barGlb'),document.getElementById('doneGlb'),document.getElementById('fGlbUrl'));
+  const usdzUrl=await uploadFile(document.getElementById('fileUsdz'),document.getElementById('progUsdz'),document.getElementById('barUsdz'),document.getElementById('doneUsdz'),document.getElementById('fUsdzUrl'));
+  const{error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:cat,price:parseFloat(document.getElementById('fPrix').value)||null,model_glb_url:glbUrl||null,model_usdz_url:usdzUrl||null,is_active:true,colors:uploadColors.length?uploadColors:null,images:uploadPhotos.length?uploadPhotos.map(p=>p.url):null}]);
+  setLoading('Add',false);
+  if(error){showMsg('Erreur : '+error.message,'err');}
+  else{showMsg('✓ Produit ajouté !','ok');showToast('✓ '+nom+' ajouté','ok');resetForm();loadProducts();}
+}
+function setLoading(prefix,on){document.getElementById('btn'+prefix).disabled=on;document.getElementById('spin'+prefix).style.display=on?'block':'none';document.getElementById('lbl'+prefix).style.opacity=on?.4:1;}
+function showMsg(txt,type){const el=document.getElementById('formMsg');el.textContent=txt;el.className='form-msg '+type;setTimeout(()=>el.textContent='',4000);}
+function resetForm(){['fNom','fMarque','fPrix','fMat','fCol','fRef','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>document.getElementById(id).value='');document.getElementById('fCat').value='';['Glb','Usdz'].forEach(t=>{document.getElementById('prog'+t).style.display='none';document.getElementById('bar'+t).style.width='0';document.getElementById('done'+t).style.display='none';document.getElementById('file'+t).value='';document.getElementById('lbl'+t).textContent=t==='Glb'?'Fichier GLB':'Fichier USDZ';});uploadColors=[];renderColorsList('upload');uploadPhotos=[];renderPhotoGrid('upload');document.getElementById('formMsg').textContent='';}
+
+/* ── PRODUCTS ── */
+let allProducts=[],deleteId=null;
+async function loadProducts(){
+  const{data}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  allProducts=data||[];
+  document.getElementById('stTotal').textContent=allProducts.length;
+  document.getElementById('stGlb').textContent=allProducts.filter(p=>p.model_glb_url).length;
+  document.getElementById('stUsdz').textContent=allProducts.filter(p=>p.model_usdz_url).length;
+  document.getElementById('stQr').textContent=allProducts.length;
+  document.getElementById('navBadge').textContent=allProducts.length;
+  renderTable(allProducts.slice(0,6),'overviewTable');
+  renderTable(allProducts,'catTable');
+}
+function filterTable(){const q=document.getElementById('searchInput').value.toLowerCase();renderTable(allProducts.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.enseigne_name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q)),'catTable');}
+function renderTable(products,targetId){
+  const el=document.getElementById(targetId);
+  if(!products.length){el.innerHTML='<div class="empty-state"><div class="empty-h">Aucun produit</div><p class="empty-p">Ajoutez votre premier modèle 3D.</p></div>';return;}
+  let html='<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
+  products.forEach(p=>{html+=`<tr><td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td><td>${p.category||'—'}</td><td>${p.price?p.price+'€':'—'}</td><td><span class="td-badge ${p.model_glb_url?'ok':'no'}">${p.model_glb_url?'✓ GLB':'✗'}</span></td><td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td><td><div class="row-actions"><button class="row-btn" onclick="openEdit('${p.id}')">✏ Éditer</button><button class="row-btn" onclick="showQR('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">QR</button><button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button><button class="row-btn del" onclick="askDelete('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">✕</button></div></td></tr>`;});
+  html+='</tbody></table>';el.innerHTML=html;
+}
+
+/* ── QR ── */
+function showQR(id,nom){
+  const url=BASE_URL+'?id='+id;
+  document.getElementById('qrTitle').textContent=nom;
+  document.getElementById('qrSub').textContent=url;
+  // Clear previous QR
+  const container=document.getElementById('qrContainer');
+  container.innerHTML='';
+  try{
+    new QRCode(container,{text:url,width:200,height:200,colorDark:'#1C1B18',colorLight:'#FAFAF8',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){
+    // Fallback: use QR server API
+    container.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(url)+'&color=1C1B18&bgcolor=FAFAF8" width="200" height="200"/>';
+  }
+  document.getElementById('qrModal').classList.add('show');
+}
+function closeQR(){document.getElementById('qrModal').classList.remove('show');}
+function downloadQR(){
+  const container=document.getElementById('qrContainer');
+  const canvas=container.querySelector('canvas');
+  const img=container.querySelector('img');
+  const a=document.createElement('a');
+  a.download='qr-tadamhome.png';
+  if(canvas) a.href=canvas.toDataURL();
+  else if(img) a.href=img.src;
+  else return;
+  a.click();showToast('QR Code téléchargé','ok');
+}
+
+/* ── DELETE ── */
+function askDelete(id,nom){deleteId=id;document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Le QR code ne fonctionnera plus.`;document.getElementById('confirmBg').classList.add('show');}
+function closeConfirm(){document.getElementById('confirmBg').classList.remove('show');deleteId=null;}
+async function confirmDelete(){if(!deleteId)return;const{error}=await sb.from('products').delete().eq('id',deleteId);closeConfirm();if(error)showToast('Erreur : '+error.message,'err');else{showToast('Produit supprimé','ok');loadProducts();}}
+
+/* ── DRAG & DROP UPLOAD ── */
+['Glb','Usdz'].forEach(t=>{
+  const zone=document.getElementById('zone'+t);
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');const fi=document.getElementById('file'+t);fi.files=e.dataTransfer.files;if(fi.files[0])document.getElementById('lbl'+t).textContent='✓ '+fi.files[0].name;});
+  document.getElementById('file'+t).addEventListener('change',e=>{if(e.target.files[0])document.getElementById('lbl'+t).textContent='✓ '+e.target.files[0].name;});
+});
+
+/* ── MESHY AI ── */
+let meshyTaskId=null,meshyPollInterval=null,meshyGlbUrl=null,meshyUsdzUrl=null;
+
+async function testMeshyKey(){
+  const key=document.getElementById('meshyApiKey').value.trim();
+  if(!key){showToast('Entrez votre clé API Meshy','err');return;}
+  try{const r=await fetch(`${MESHY_API}/openapi/v1/balance`,{headers:{Authorization:`Bearer ${key}`}});const d=await r.json();if(d.balance!==undefined)showToast('✓ Clé valide — Crédits : '+d.balance,'ok');else showToast('Clé invalide','err');}
+  catch(e){showToast('Erreur connexion Meshy','err');}
+}
+
+function handleMeshyImage(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{const prev=document.getElementById('meshyPreview');prev.src=e.target.result;prev.style.display='block';document.getElementById('meshyDropLabel').textContent='✓ '+file.name;};
+  reader.readAsDataURL(file);
+}
+
+function previewMeshyUrl(url){
+  if(!url)return;
+  const prev=document.getElementById('meshyPreview');prev.src=url;prev.style.display='block';
+  prev.onerror=()=>{prev.style.display='none';};
+}
+
+async function getImgUrl(){
+  const file=document.getElementById('meshyFileInput').files[0];
+  const url=document.getElementById('meshyImgUrl').value.trim();
+  if(file){return new Promise(resolve=>{const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(file);});}
+  return url||null;
+}
+
+async function generateMeshy(){
+  const key=document.getElementById('meshyApiKey').value.trim()||localStorage.getItem('meshy_api_key');
+  if(!key){showToast('Entrez votre clé API Meshy','err');return;}
+  const imgUrl=await getImgUrl();
+  if(!imgUrl){showToast('Ajoutez une image ou une URL','err');return;}
+  const nom=document.getElementById('mNom').value.trim();
+  if(!nom){showToast('Entrez le nom du produit','err');return;}
+  setLoading('Generate',true);
+  document.getElementById('genStatus').style.display='block';
+  document.getElementById('genBar').style.width='5%';
+  document.getElementById('genTitle').textContent='Envoi de l\'image…';
+  document.getElementById('genSub').textContent='Connexion à Meshy AI';
+  document.getElementById('genUrls').style.display='none';
+  document.getElementById('genActions').style.display='none';
+  document.getElementById('genPreview').style.display='none';
+  document.getElementById('genIcon').textContent='⏳';
+  meshyGlbUrl=null;meshyUsdzUrl=null;
+  try{
+    const prompt=document.getElementById('meshyPrompt').value.trim();
+    // Hauteurs réelles par catégorie (en mètres)
+    const heightMap = {
+      'Sofa':0.85,'Fauteuil':0.90,'Chaise':0.90,'Table basse':0.45,
+      'Table à manger':0.75,'Bureau':0.75,'Luminaire':1.80,
+      'Rangement':1.20,'Lit':0.60,'Autre':1.00
+    };
+    const cat = document.getElementById('mCat').value;
+    const realHeight = heightMap[cat] || 1.0;
+
+    // Si hauteur renseignée → on la passe à Meshy pour un resize précis
+    const hauteur = parseFloat(document.getElementById('mHaut').value) || null;
+
+    const body={
+      image_url:imgUrl,
+      ai_model:'meshy-6',
+      topology:'quad',
+      target_polycount:30000,
+      enable_pbr:true,
+      auto_size: hauteur ? false : true,  // auto_size si pas de dim renseignée
+      origin_at:'bottom',
+      target_formats:['glb','usdz']
+    };
+    // Si hauteur connue, on utilise resize_height (en mètres)
+    if(hauteur) body.resize_height = hauteur / 100;
+    if(prompt)body.prompt=prompt;
+    const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.message||'Erreur API Meshy');
+    meshyTaskId=data.result;
+    document.getElementById('genBar').style.width='15%';
+    document.getElementById('genTitle').textContent='Génération en cours…';
+    document.getElementById('genSub').textContent='ID : '+meshyTaskId;
+    clearInterval(meshyPollInterval);
+    meshyPollInterval=setInterval(()=>pollMeshy(key,meshyTaskId),4000);
+  }catch(e){setLoading('Generate',false);document.getElementById('genIcon').textContent='✕';document.getElementById('genTitle').textContent='Erreur';document.getElementById('genSub').textContent=e.message;showToast('Erreur : '+e.message,'err');}
+}
+
+async function pollMeshy(key,taskId){
+  try{
+    const res=await fetch(`${MESHY_API}/openapi/v1/image-to-3d/${taskId}`,{headers:{Authorization:`Bearer ${key}`}});
+    const data=await res.json();
+    const pct=data.progress||0;
+    document.getElementById('genBar').style.width=Math.max(15,pct)+'%';
+    document.getElementById('genSub').textContent=`Progression : ${pct}%`;
+    if(data.status==='SUCCEEDED'){
+      clearInterval(meshyPollInterval);
+      meshyGlbUrl=data.model_urls?.glb||null;
+      meshyUsdzUrl=data.model_urls?.usdz||null;
+      document.getElementById('genBar').style.width='100%';
+      document.getElementById('genIcon').textContent='✓';
+      document.getElementById('genTitle').textContent='Modèle généré !';
+      document.getElementById('genSub').textContent='Prêt à être ajouté au catalogue';
+      if(data.thumbnail_url){const img=document.getElementById('genPreview');img.src=data.thumbnail_url;img.style.display='block';}
+      document.getElementById('genGlbUrl').textContent=meshyGlbUrl||'—';
+      document.getElementById('genUsdzUrl').textContent=meshyUsdzUrl||'—';
+      document.getElementById('genUrls').style.display='block';
+      document.getElementById('genActions').style.display='flex';
+      setLoading('Generate',false);
+      showToast('✓ Modèle 3D généré !','ok');
+    }else if(data.status==='FAILED'){
+      clearInterval(meshyPollInterval);
+      document.getElementById('genIcon').textContent='✕';
+      document.getElementById('genTitle').textContent='Échec';
+      document.getElementById('genSub').textContent=data.task_error?.message||'Essayez une autre image';
+      setLoading('Generate',false);
+      showToast('Génération échouée','err');
+    }
+  }catch(e){console.warn('Poll:',e);}
+}
+
+async function saveMeshyProduct(){
+  if(!meshyGlbUrl){showToast('Aucun modèle disponible','err');return;}
+  const nom=document.getElementById('mNom').value.trim();
+  const marque=document.getElementById('mMarque').value.trim();
+  if(!nom||!marque){showToast('Nom et marque requis','err');return;}
+  const larg = parseFloat(document.getElementById('mLarg').value) || null;
+  const haut = parseFloat(document.getElementById('mHaut').value) || null;
+  const prof = parseFloat(document.getElementById('mProf').value) || null;
+  const dims = (larg||haut||prof) ? {l:larg,h:haut,p:prof} : null;
+
+  const{error}=await sb.from('products').insert([{
+    name:nom, enseigne_name:marque,
+    category:document.getElementById('mCat').value||null,
+    price:parseFloat(document.getElementById('mPrix').value)||null,
+    model_glb_url:meshyGlbUrl, model_usdz_url:meshyUsdzUrl||null,
+    is_active:true,
+    dimensions:dims,
+    colors:meshyColors.length?meshyColors:null
+  }]);
+  if(error){showToast('Erreur : '+error.message,'err');return;}
+  showToast('✓ '+nom+' ajouté au catalogue !','ok');
+  loadProducts();
+  meshyColors=[]; renderColorsList('meshy');
+  ['mNom','mMarque','mPrix','mLarg','mHaut','mProf','meshyPrompt','meshyImgUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mCat').value='';
+  document.getElementById('meshyPreview').style.display='none';
+  document.getElementById('genStatus').style.display='none';
+  document.getElementById('meshyFileInput').value='';
+  document.getElementById('meshyDropLabel').textContent='Glissez une photo ici';
+  meshyGlbUrl=null;meshyUsdzUrl=null;
+}
+
+
+
+/* ── PHOTOS ── */
+let uploadPhotos = [];   // [{url, name}] for upload panel
+let editPhotos   = [];   // [{url, name}] for edit modal
+
+async function handlePhotoUpload(files, panel) {
+  if (!files || !files.length) return;
+  const arr = panel === 'upload' ? uploadPhotos : editPhotos;
+  const max = 6;
+  for (const file of Array.from(files)) {
+    if (arr.length >= max) { showToast('Maximum 6 photos', 'err'); break; }
+    const ext  = file.name.split('.').pop();
+    const path = `photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    showToast('Upload photo en cours…');
+    const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+    if (error) { showToast('Erreur upload photo', 'err'); continue; }
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    arr.push({ url: pub.publicUrl, name: file.name });
+  }
+  renderPhotoGrid(panel);
+}
+
+function renderPhotoGrid(panel) {
+  const arr    = panel === 'upload' ? uploadPhotos : editPhotos;
+  const gridId = panel === 'upload' ? 'uploadPhotoGrid' : 'editPhotoGrid';
+  const grid   = document.getElementById(gridId);
+  if (!grid) return;
+
+  let html = arr.map((p, i) => `
+    <div class="photo-thumb">
+      <img src="${p.url}" alt="${p.name}" loading="lazy"/>
+      ${i === 0 ? '<div class="photo-cover-badge">Principale</div>' : ''}
+      <button class="photo-thumb-del" onclick="removePhoto('${panel}',${i})">✕</button>
+    </div>`).join('');
+
+  // Add zone if < 6
+  if (arr.length < 6) {
+    const inputId = panel === 'upload' ? 'uploadPhotoInput' : 'editPhotoInput';
+    html += `<div class="photo-add-zone">
+      <input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple onchange="handlePhotoUpload(this.files,'${panel}')"/>
+      <div style="font-size:22px">+</div>
+      <span>Ajouter des photos</span>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function removePhoto(panel, idx) {
+  const arr = panel === 'upload' ? uploadPhotos : editPhotos;
+  arr.splice(idx, 1);
+  renderPhotoGrid(panel);
+}
+
+/* ── EDIT COLORS ── */
+let editColors = [];
+let eColorTextureUrl = null;
+let eColorGlbUrl_new = null;
+let eColorUsdzUrl_new = null;
+
+function renderEditColors() {
+  const el = document.getElementById('eColorsList');
+  if (!el) return;
+  if (!editColors.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:var(--sans);padding:12px;border:1px dashed var(--border);text-align:center;margin-bottom:10px">Aucun coloris — ajoutez-en ci-dessous</div>';
+    return;
+  }
+  el.innerHTML = editColors.map((c, i) => `
+    <div class="color-row" style="margin-bottom:2px">
+      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+(c.hex||'#ccc')}"></div>
+      <div class="color-row-info">
+        <div class="color-row-name">${c.name||'—'}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
+        <div class="color-row-url">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="row-btn" onclick="editExistingColor(${i})" style="font-size:9px">✏</button>
+        <button class="color-row-del" onclick="removeEditColor(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function removeEditColor(idx) { editColors.splice(idx,1); renderEditColors(); }
+
+function editExistingColor(idx) {
+  const c = editColors[idx];
+  document.getElementById('eColorHex').value  = c.hex  || '#B8986A';
+  document.getElementById('eColorName').value = c.name || '';
+  document.getElementById('eColorMat').value  = c.mat  || '';
+  document.getElementById('eColorGlbUrl').value  = c.glb  || '';
+  document.getElementById('eColorUsdzUrl').value = c.usdz || '';
+  if (c.texture) {
+    const prev = document.getElementById('eColorTexturePreview');
+    prev.src = c.texture; prev.style.display = 'block';
+    document.getElementById('eColorTextureLbl').textContent = '✓ Texture actuelle';
+    eColorTextureUrl = c.texture;
+  }
+  removeEditColor(idx);
+  document.getElementById('eColorMsg').textContent = 'Modifiez puis cliquez + Ajouter';
+}
+
+
+/* ── TEXTURE & COLOR FILE HANDLERS ── */
+
+/* Colors state */
+let uploadColors   = [];
+let meshyColors    = [];
+let uTextureUrl    = null;
+let mTextureUrl    = null;
+let uColorGlbUrl   = null;
+let uColorUsdzUrl  = null;
+let mColorGlbUrl   = null;
+let mColorUsdzUrl  = null;
+
+function renderColorsList(panel) {
+  const colors = panel === 'upload' ? uploadColors : meshyColors;
+  const listId = panel === 'upload' ? 'uploadColorsList' : 'meshyColorsList';
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+  if (!colors.length) {
+    listEl.innerHTML = '<div class="colors-empty">Aucun coloris ajouté</div>';
+    return;
+  }
+  listEl.innerHTML = colors.map((c, i) => `
+    <div class="color-row">
+      <div class="color-swatch-preview" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+(c.hex||'#ccc')}"></div>
+      <div class="color-row-info">
+        <div class="color-row-name">${c.name||'—'}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
+        <div class="color-row-url">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
+      </div>
+      <button class="color-row-del" onclick="removeColor('${panel}',${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeColor(panel, idx) {
+  if (panel === 'upload') { uploadColors.splice(idx, 1); renderColorsList('upload'); }
+  else                    { meshyColors.splice(idx, 1);  renderColorsList('meshy'); }
+}
+
+function addUploadColor() {
+  const name = document.getElementById('uColorName').value.trim();
+  const hex  = document.getElementById('uColorHex').value;
+  const mat  = document.getElementById('uColorMat').value.trim();
+  if (!name) { document.getElementById('uColorMsg').textContent = 'Nom requis'; return; }
+  const glb  = uColorGlbUrl  || document.getElementById('uGlbColorUrl')?.value.trim()  || null;
+  const usdz = uColorUsdzUrl || document.getElementById('uUsdzColorUrl')?.value.trim() || null;
+  uploadColors.push({ name, hex, mat: mat||null, texture: uTextureUrl||null, glb, usdz });
+  renderColorsList('upload');
+  // Reset
+  document.getElementById('uColorName').value = '';
+  document.getElementById('uColorMat').value  = '';
+  const urlGlb = document.getElementById('uGlbColorUrl'); if(urlGlb) urlGlb.value='';
+  const urlUsdz = document.getElementById('uUsdzColorUrl'); if(urlUsdz) urlUsdz.value='';
+  const prev = document.getElementById('uTexturePreview'); if(prev) prev.style.display='none';
+  const lbl = document.getElementById('uTextureName'); if(lbl) lbl.textContent='ou cliquez pour parcourir';
+  const tf = document.getElementById('uTextureFile'); if(tf) tf.value='';
+  const gf = document.getElementById('uGlbFile'); if(gf) gf.value='';
+  const uf = document.getElementById('uUsdzFile'); if(uf) uf.value='';
+  const gn = document.getElementById('uGlbFileName'); if(gn) gn.textContent='cliquez ou glissez';
+  const un = document.getElementById('uUsdzFileName'); if(un) un.textContent='cliquez ou glissez';
+  document.getElementById('uColorMsg').textContent = '';
+  uTextureUrl=null; uColorGlbUrl=null; uColorUsdzUrl=null;
+}
+
+function addMeshyColor() {
+  const name = document.getElementById('mColorName').value.trim();
+  const hex  = document.getElementById('mColorHex').value;
+  const mat  = document.getElementById('mColorMat').value.trim();
+  if (!name) { document.getElementById('mColorMsg').textContent = 'Nom requis'; return; }
+  const glb  = mColorGlbUrl  || document.getElementById('mGlbUrl')?.value.trim()  || null;
+  const usdz = mColorUsdzUrl || document.getElementById('mUsdzUrl')?.value.trim() || null;
+  meshyColors.push({ name, hex, mat: mat||null, texture: mTextureUrl||null, glb, usdz });
+  renderColorsList('meshy');
+  // Reset
+  document.getElementById('mColorName').value = '';
+  document.getElementById('mColorMat').value  = '';
+  const prev = document.getElementById('mTexturePreview'); if(prev) prev.style.display='none';
+  const lbl = document.getElementById('mTextureName'); if(lbl) lbl.textContent='ou cliquez pour parcourir';
+  const tf = document.getElementById('mTextureFile'); if(tf) tf.value='';
+  const gf = document.getElementById('mGlbFile'); if(gf) gf.value='';
+  const uf = document.getElementById('mUsdzFile'); if(uf) uf.value='';
+  const gn = document.getElementById('mGlbFileName'); if(gn) gn.textContent='ou cliquez';
+  const un = document.getElementById('mUsdzFileName'); if(un) un.textContent='ou cliquez';
+  document.getElementById('mColorMsg').textContent = '';
+  mTextureUrl=null; mColorGlbUrl=null; mColorUsdzUrl=null;
+}
+
+
+async function handleTextureUpload(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const previewEl = document.getElementById(prefix + 'TexturePreview');
+  const nameEl    = document.getElementById(prefix + 'TextureName');
+  // Local preview
+  const reader = new FileReader();
+  reader.onload = e => { previewEl.src = e.target.result; previewEl.style.display = 'block'; };
+  reader.readAsDataURL(file);
+  nameEl.textContent = '⏳ Upload en cours…';
+  // Upload to Supabase
+  const ext  = file.name.split('.').pop();
+  const path = `textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { nameEl.textContent = '✗ Erreur : ' + error.message; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (prefix === 'u') uTextureUrl = url;
+  else if (prefix === 'm') mTextureUrl = url;
+  nameEl.textContent = '✓ ' + file.name;
+}
+
+async function handleColorFile(input, prefix, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const isU = prefix === 'u';
+  const fnId = prefix + (type === 'glb' ? 'GlbFileName' : 'UsdzFileName');
+  document.getElementById(fnId).textContent = '⏳ Upload…';
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  if (error) { document.getElementById(fnId).textContent = '✗ Erreur : ' + error.message; return; }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (isU) { if (type === 'glb') uColorGlbUrl = url; else uColorUsdzUrl = url; }
+  else      { if (type === 'glb') mColorGlbUrl = url; else mColorUsdzUrl = url; }
+  document.getElementById(fnId).textContent = '✓ ' + file.name;
+}
+
+async function handleEditColorTexture(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { const p=document.getElementById('eColorTexturePreview');p.src=e.target.result;p.style.display='block'; };
+  reader.readAsDataURL(file);
+  document.getElementById('eColorTextureLbl').textContent = '⏳ Upload…';
+  const ext=file.name.split('.').pop();
+  const path=`textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const{error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+  if(error){document.getElementById('eColorTextureLbl').textContent='✗ Erreur';return;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  eColorTextureUrl=pub.publicUrl;
+  document.getElementById('eColorTextureLbl').textContent='✓ '+file.name;
+}
+
+async function handleEditColorFile(input, type) {
+  const file=input.files[0];if(!file)return;
+  const lblId=type==='glb'?'eColorGlbLbl':'eColorUsdzLbl';
+  document.getElementById(lblId).textContent='⏳ Upload…';
+  const ext=file.name.split('.').pop();
+  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const{error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+  if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
+  const{data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+  if(type==='glb')eColorGlbUrl_new=pub.publicUrl;
+  else eColorUsdzUrl_new=pub.publicUrl;
+  document.getElementById(lblId).textContent='✓ '+file.name;
+}
+
+function addEditColor() {
+  const name=document.getElementById('eColorName').value.trim();
+  if(!name){document.getElementById('eColorMsg').textContent='Nom requis';return;}
+  const hex=document.getElementById('eColorHex').value;
+  const mat=document.getElementById('eColorMat').value.trim();
+  const glb=eColorGlbUrl_new||document.getElementById('eColorGlbUrl').value.trim()||null;
+  const usdz=eColorUsdzUrl_new||document.getElementById('eColorUsdzUrl').value.trim()||null;
+  editColors.push({name,hex,mat:mat||null,texture:eColorTextureUrl||null,glb,usdz});
+  renderEditColors();
+  resetEditColorForm();
+  document.getElementById('eColorMsg').textContent='✓ Coloris ajouté';
+  setTimeout(()=>document.getElementById('eColorMsg').textContent='',2000);
+}
+
+function resetEditColorForm() {
+  ['eColorName','eColorMat','eColorGlbUrl','eColorUsdzUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('eColorHex').value='#B8986A';
+  ['eColorTextureFile','eColorGlbFile','eColorUsdzFile'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const prev=document.getElementById('eColorTexturePreview');if(prev)prev.style.display='none';
+  document.getElementById('eColorTextureLbl').textContent='Glissez la texture JPG ici · ou cliquez';
+  document.getElementById('eColorGlbLbl').textContent='cliquez ou glissez';
+  document.getElementById('eColorUsdzLbl').textContent='cliquez ou glissez';
+  eColorTextureUrl=null;eColorGlbUrl_new=null;eColorUsdzUrl_new=null;
+}
+
+/* ── EDIT PRODUCT ── */
+let editProductId = null;
+let editGlbUrl = null;
+let editUsdzUrl = null;
+
+function openEdit(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (!p) return;
+  editProductId = id;
+  editGlbUrl = null;
+  editUsdzUrl = null;
+
+  // Fill form
+  document.getElementById('editModalTitle').textContent = 'Modifier — ' + (p.name || '');
+  document.getElementById('eName').value   = p.name  || '';
+  document.getElementById('eMarque').value = p.enseigne_name || '';
+  document.getElementById('eCat').value    = p.category || '';
+  document.getElementById('ePrix').value   = p.price || '';
+  document.getElementById('eLarg').value   = p.dimensions?.l || '';
+  document.getElementById('eHaut').value   = p.dimensions?.h || '';
+  document.getElementById('eProf').value   = p.dimensions?.p || '';
+
+  // Show current files
+  const glbEl = document.getElementById('eGlbCurrent');
+  const usdzEl = document.getElementById('eUsdzCurrent');
+  if (p.model_glb_url) {
+    glbEl.textContent = p.model_glb_url.split('/').pop();
+    glbEl.classList.remove('none');
+  } else {
+    glbEl.textContent = 'Aucun fichier GLB';
+    glbEl.classList.add('none');
+  }
+  if (p.model_usdz_url) {
+    usdzEl.textContent = p.model_usdz_url.split('/').pop();
+    usdzEl.classList.remove('none');
+  } else {
+    usdzEl.textContent = 'Aucun fichier USDZ';
+    usdzEl.classList.add('none');
+  }
+
+  // Reset upload zones
+  ['Glb','Usdz'].forEach(t => {
+    document.getElementById('eFile'+t).value = '';
+    document.getElementById('eLbl'+t).textContent = 'Glissez un nouveau fichier pour remplacer · ou cliquez';
+    document.getElementById('eProg'+t).style.display = 'none';
+    document.getElementById('eBar'+t).style.width = '0';
+    document.getElementById('eDone'+t).style.display = 'none';
+    document.getElementById('e'+t+'Url').value = '';
+  });
+
+  // Load existing photos
+  editPhotos = (p.images||[]).map(url => ({url, name: url.split('/').pop()}));
+  renderPhotoGrid('edit');
+  // Load existing colors
+  editColors = JSON.parse(JSON.stringify(p.colors || []));
+  renderEditColors();
+  // Reset add-color form
+  resetEditColorForm();
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('show');
+  editProductId = null; editGlbUrl = null; editUsdzUrl = null;
+  editPhotos = []; renderPhotoGrid('edit');
+}
+
+async function handleEditFile(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const progEl = document.getElementById(prefix + 'Prog' + (prefix === 'eGlb' ? '' : ''));
+
+  // Determine correct IDs
+  const isGlb = prefix === 'eGlb';
+  const progId = isGlb ? 'eProgGlb' : 'eProgUsdz';
+  const barId  = isGlb ? 'eBarGlb'  : 'eBarUsdz';
+  const doneId = isGlb ? 'eDoneGlb' : 'eDoneUsdz';
+  const lblId  = isGlb ? 'eLblGlb'  : 'eLblUsdz';
+
+  document.getElementById(progId).style.display = 'block';
+  document.getElementById(barId).style.width = '20%';
+  document.getElementById(lblId).textContent = '⏳ Upload en cours…';
+
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
+  document.getElementById(barId).style.width = '100%';
+
+  if (error) {
+    document.getElementById(lblId).textContent = '✗ Erreur upload — collez une URL directement';
+    return;
+  }
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (isGlb) editGlbUrl = url;
+  else editUsdzUrl = url;
+
+  document.getElementById(doneId).style.display = 'block';
+  document.getElementById(doneId).textContent = '✓ ' + file.name;
+  document.getElementById(lblId).textContent = 'Fichier prêt';
+}
+
+async function saveEdit() {
+  if (!editProductId) return;
+  const nom = document.getElementById('eName').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
+
+  document.getElementById('btnEditSave').disabled = true;
+  document.getElementById('spinEdit').style.display = 'block';
+  document.getElementById('lblEditSave').style.opacity = .4;
+
+  // Build update payload
+  const larg = parseFloat(document.getElementById('eLarg').value) || null;
+  const haut = parseFloat(document.getElementById('eHaut').value) || null;
+  const prof = parseFloat(document.getElementById('eProf').value) || null;
+
+  const payload = {
+    name:         nom,
+    enseigne_name:document.getElementById('eMarque').value.trim() || null,
+    category:     document.getElementById('eCat').value || null,
+    price:        parseFloat(document.getElementById('ePrix').value) || null,
+    dimensions:   (larg||haut||prof) ? {l:larg,h:haut,p:prof} : null,
+  };
+
+  // Override files if new ones uploaded or URL provided
+  const glbUrl  = editGlbUrl  || document.getElementById('eGlbUrl').value.trim()  || undefined;
+  const usdzUrl = editUsdzUrl || document.getElementById('eUsdzUrl').value.trim() || undefined;
+  if (glbUrl)  payload.model_glb_url  = glbUrl;
+  if (usdzUrl) payload.model_usdz_url = usdzUrl;
+
+  // Include updated colors + photos
+  payload.colors = editColors.length ? editColors : null;
+  if (editPhotos.length) payload.images = editPhotos.map(p => p.url);
+
+  const { error } = await sb.from('products').update(payload).eq('id', editProductId);
+
+  document.getElementById('btnEditSave').disabled = false;
+  document.getElementById('spinEdit').style.display = 'none';
+  document.getElementById('lblEditSave').style.opacity = 1;
+
+  if (error) { showToast('Erreur : ' + error.message, 'err'); return; }
+
+  showToast('✓ ' + nom + ' mis à jour !', 'ok');
+  closeEdit();
+  loadProducts();
+}
+
+// Drag & drop on edit zones
+['Glb','Usdz'].forEach(t => {
+  const zone = document.getElementById('eZone'+t);
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const fi = document.getElementById('eFile'+t);
+    fi.files = e.dataTransfer.files;
+    if (fi.files[0]) handleEditFile(fi, 'e'+t);
+  });
+});
+
+</script>
+</body>
+</html>
