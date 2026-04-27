@@ -204,7 +204,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
   </div>
 
   <div class="ar-bottom">
-    <div class="rotate-hint" id="rotateHint">Glissez pour déplacer · Pincez pour pivoter</div>
+    <div class="rotate-hint" id="rotateHint">Glissez le meuble sélectionné · Pincez pour pivoter</div>
     <div class="scene-tray" id="sceneTray">
       <div class="tray-add-wrap" onclick="openCat()">
         <div class="tray-add">+</div>
@@ -332,18 +332,49 @@ function initThree() {
 /* ── ANIMATE ── */
 function animate() {
   animId = requestAnimationFrame(animate);
+  if (useOrientation) updateCamera();
   renderer.render(scene, camera);
 }
 
-/* ── CAMERA ORBIT CONTROLS (touch) ── */
-let camTheta = 0, camPhi = Math.PI/6, camRadius = 3;
+/* ── CAMERA + TOUCH CONTROLS ── */
+let camYaw = 0, camPitch = 0.3;
+let camRadius = 4;
 let orbitStart = null;
+let groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+let raycaster = new THREE.Raycaster();
 
 function setupCameraControls() {
+  // DeviceOrientation for real AR feel on mobile
+  if (window.DeviceOrientationEvent) {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+ — ask permission on gesture
+      document.getElementById('arCanvas').addEventListener('touchend', function askPerm() {
+        DeviceOrientationEvent.requestPermission().then(s => {
+          if (s === 'granted') enableOrientation();
+        }).catch(()=>{});
+        document.getElementById('arCanvas').removeEventListener('touchend', askPerm);
+      }, { once: true });
+    } else {
+      enableOrientation();
+    }
+  }
+
   const canvas = document.getElementById('arCanvas');
   canvas.addEventListener('touchstart', onTStart, { passive: false });
   canvas.addEventListener('touchmove',  onTMove,  { passive: false });
   canvas.addEventListener('touchend',   onTEnd,   { passive: false });
+}
+
+let useOrientation = false;
+let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
+
+function enableOrientation() {
+  useOrientation = true;
+  window.addEventListener('deviceorientation', e => {
+    orientAlpha = e.alpha || 0;
+    orientBeta  = e.beta  || 0;
+    orientGamma = e.gamma || 0;
+  });
 }
 
 function onTStart(e) {
@@ -351,7 +382,7 @@ function onTStart(e) {
   if (e.touches.length === 1) {
     touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
     isDragging = false;
-    orbitStart = { theta: camTheta, phi: camPhi, x: e.touches[0].clientX, y: e.touches[0].clientY };
+    orbitStart = { yaw: camYaw, pitch: camPitch, x: e.touches[0].clientX, y: e.touches[0].clientY };
   } else if (e.touches.length === 2) {
     lastPinch = pinchDist(e);
   }
@@ -360,33 +391,46 @@ function onTStart(e) {
 function onTMove(e) {
   e.preventDefault();
   if (e.touches.length === 1) {
-    const dx = e.touches[0].clientX - touchStart.x;
-    const dy = e.touches[0].clientY - touchStart.y;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+    const dx = e.touches[0].clientX - (touchStart?.x || 0);
+    const dy = e.touches[0].clientY - (touchStart?.y || 0);
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
       isDragging = true;
-      if (selectedObj && !orbitOnSelected(e)) {
-        // Move selected object in XZ plane
-        selectedObj.mesh.position.x += dx * 0.005;
-        selectedObj.mesh.position.z += dy * 0.005;
-        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+      if (selectedObj) {
+        // ── DRAG SELECTED OBJECT freely on ground plane ──
+        const nx = (e.touches[0].clientX / window.innerWidth)  * 2 - 1;
+        const ny = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
+        const target = new THREE.Vector3();
+        raycaster.ray.intersectPlane(groundPlane, target);
+        if (target) {
+          selectedObj.mesh.position.x = target.x;
+          selectedObj.mesh.position.z = target.z;
+          // Keep on floor
+          const b = new THREE.Box3().setFromObject(selectedObj.mesh);
+          selectedObj.mesh.position.y -= b.min.y;
+        }
       } else {
-        // Orbit camera
-        camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.008;
-        camPhi   = Math.max(0.1, Math.min(Math.PI/2, orbitStart.phi - (e.touches[0].clientY - orbitStart.y) * 0.005));
+        // ── ORBIT CAMERA ──
+        camYaw   = orbitStart.yaw   - (e.touches[0].clientX - orbitStart.x) * 0.006;
+        camPitch = Math.max(0.05, Math.min(Math.PI/2.2, orbitStart.pitch - (e.touches[0].clientY - orbitStart.y) * 0.004));
         updateCamera();
       }
     }
   } else if (e.touches.length === 2) {
-    // Pinch zoom
     const d = pinchDist(e);
-    camRadius = Math.max(0.5, Math.min(8, camRadius * (lastPinch / d)));
-    lastPinch = d;
-    updateCamera();
-    // Rotate selected if we have one
+    const factor = lastPinch / d;
     if (selectedObj) {
-      const angle = twoFingerAngle(e);
-      selectedObj.mesh.rotation.y += angle * 0.03;
+      // Pinch on selected = rotate
+      const a = twoFingerAngle(e);
+      selectedObj.mesh.rotation.y += (a - (orbitStart?.angle||a)) * 0.5;
+      orbitStart = orbitStart || {};
+      orbitStart.angle = a;
+    } else {
+      // Pinch on empty = zoom
+      camRadius = Math.max(0.8, Math.min(10, camRadius * factor));
+      updateCamera();
     }
+    lastPinch = d;
   }
 }
 
@@ -394,19 +438,23 @@ function onTEnd(e) {
   if (!isDragging && touchStart && e.changedTouches.length === 1) {
     if (Date.now() - touchStart.time < 300) handleTap(e.changedTouches[0]);
   }
-  touchStart = null; isDragging = false;
-}
-
-function orbitOnSelected(e) {
-  // True if touch started on the selected object's screen position
-  return false; // Always orbit for simplicity; move via controls panel
+  touchStart = null; isDragging = false; orbitStart = null;
 }
 
 function updateCamera() {
-  camera.position.x = camRadius * Math.sin(camTheta) * Math.cos(camPhi);
-  camera.position.y = camRadius * Math.sin(camPhi) + 0.5;
-  camera.position.z = camRadius * Math.cos(camTheta) * Math.cos(camPhi);
-  camera.lookAt(0, 0.5, 0);
+  if (useOrientation) {
+    // Use real device orientation
+    const beta  = THREE.MathUtils.degToRad(Math.max(0, Math.min(90, orientBeta)));
+    const alpha = THREE.MathUtils.degToRad(orientAlpha);
+    camera.position.x = camRadius * Math.sin(alpha) * Math.cos(beta);
+    camera.position.y = camRadius * Math.sin(beta) + 0.3;
+    camera.position.z = camRadius * Math.cos(alpha) * Math.cos(beta);
+  } else {
+    camera.position.x = camRadius * Math.sin(camYaw) * Math.cos(camPitch);
+    camera.position.y = camRadius * Math.sin(camPitch) + 0.3;
+    camera.position.z = camRadius * Math.cos(camYaw) * Math.cos(camPitch);
+  }
+  camera.lookAt(0, 0.4, 0);
 }
 
 function handleTap(touch) {
@@ -474,8 +522,23 @@ window.placeObj = function() {
   if (!pendingModel) return;
   const mesh = pendingModel.mesh.clone();
 
-  // Place at center, slightly in front of camera
-  mesh.position.set(0, 0, 0);
+  // Place in front of camera on ground
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  dir.y = 0; dir.normalize();
+  const pos = new THREE.Vector3();
+  pos.copy(camera.position).addScaledVector(dir, 2.0);
+  pos.y = 0;
+  mesh.position.copy(pos);
+  // Fix rotation — face camera
+  mesh.rotation.y = Math.atan2(
+    camera.position.x - pos.x,
+    camera.position.z - pos.z
+  );
+  // Ensure on floor
+  const box = new THREE.Box3().setFromObject(mesh);
+  mesh.position.y -= box.min.y;
+
   mesh.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; c.userData.origMat=c.material; } });
   scene.add(mesh);
 
@@ -634,7 +697,7 @@ function getIcon(cat) {
 
 function updateStatus() {
   const n = sceneObjects.length;
-  setStatus(n ? `${n} meuble${n>1?'s':''} dans la scène` : 'Appuyez sur + pour ajouter un meuble');
+  setStatus(n ? `${n} meuble${n>1?'s':''} — touchez un meuble pour le sélectionner` : 'Appuyez sur + pour ajouter un meuble');
 }
 
 window.setStatus = function(msg, accent=false) {
