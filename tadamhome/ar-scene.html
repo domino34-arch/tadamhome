@@ -287,8 +287,8 @@ function initThree() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
-  camera.position.set(0, 1.6, 3);
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 1.2, 0);
+  camera.lookAt(0, 1.2, -1); // looking forward
 
   // Lighting
   scene.add(new THREE.AmbientLight(0xffffff, 1.4));
@@ -332,31 +332,42 @@ function initThree() {
 /* ── ANIMATE ── */
 function animate() {
   animId = requestAnimationFrame(animate);
-  if (useOrientation) updateCamera();
+  updateCamera();
   renderer.render(scene, camera);
 }
 
 /* ── CAMERA + TOUCH CONTROLS ── */
-let camYaw = 0, camPitch = 0.3;
-let camRadius = 4;
-let orbitStart = null;
+// Camera is FIXED in position — only rotation changes via gyroscope
+// Objects are in WORLD SPACE — they stay anchored as camera rotates
 let groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-let raycaster = new THREE.Raycaster();
+let raycaster   = new THREE.Raycaster();
+let devAlpha = 0, devBeta = 45, devGamma = 0;
+let useOrientation = false;
+let lastTwoAngle = null;
 
 function setupCameraControls() {
-  // DeviceOrientation for real AR feel on mobile
-  if (window.DeviceOrientationEvent) {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS 13+ — ask permission on gesture
-      document.getElementById('arCanvas').addEventListener('touchend', function askPerm() {
-        DeviceOrientationEvent.requestPermission().then(s => {
-          if (s === 'granted') enableOrientation();
-        }).catch(()=>{});
-        document.getElementById('arCanvas').removeEventListener('touchend', askPerm);
-      }, { once: true });
-    } else {
-      enableOrientation();
-    }
+  // Fix camera position — only orientation rotates it
+  camera.position.set(0, 1.2, 0);
+
+  // Try to get device orientation immediately
+  function startOrientation() {
+    window.addEventListener('deviceorientation', e => {
+      if (e.alpha === null) return;
+      devAlpha  = e.alpha  || 0;
+      devBeta   = e.beta   || 45;
+      devGamma  = e.gamma  || 0;
+      useOrientation = true;
+    }, false);
+  }
+
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ needs permission
+    DeviceOrientationEvent.requestPermission()
+      .then(s => { if (s === 'granted') startOrientation(); })
+      .catch(() => startOrientation());
+  } else {
+    startOrientation();
   }
 
   const canvas = document.getElementById('arCanvas');
@@ -365,71 +376,52 @@ function setupCameraControls() {
   canvas.addEventListener('touchend',   onTEnd,   { passive: false });
 }
 
-let useOrientation = false;
-let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
-
-function enableOrientation() {
-  useOrientation = true;
-  window.addEventListener('deviceorientation', e => {
-    orientAlpha = e.alpha || 0;
-    orientBeta  = e.beta  || 0;
-    orientGamma = e.gamma || 0;
-  });
-}
-
 function onTStart(e) {
   e.preventDefault();
   if (e.touches.length === 1) {
     touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
     isDragging = false;
-    orbitStart = { yaw: camYaw, pitch: camPitch, x: e.touches[0].clientX, y: e.touches[0].clientY };
   } else if (e.touches.length === 2) {
     lastPinch = pinchDist(e);
+    lastTwoAngle = twoFingerAngle(e);
   }
 }
 
 function onTMove(e) {
   e.preventDefault();
-  if (e.touches.length === 1) {
-    const dx = e.touches[0].clientX - (touchStart?.x || 0);
-    const dy = e.touches[0].clientY - (touchStart?.y || 0);
+  if (e.touches.length === 1 && touchStart) {
+    const dx = e.touches[0].clientX - touchStart.x;
+    const dy = e.touches[0].clientY - touchStart.y;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
       isDragging = true;
       if (selectedObj) {
-        // ── DRAG SELECTED OBJECT freely on ground plane ──
+        // ── MOVE OBJECT on ground plane via raycast ──
         const nx = (e.touches[0].clientX / window.innerWidth)  * 2 - 1;
         const ny = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
-        const target = new THREE.Vector3();
-        raycaster.ray.intersectPlane(groundPlane, target);
-        if (target) {
-          selectedObj.mesh.position.x = target.x;
-          selectedObj.mesh.position.z = target.z;
+        const hit = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(groundPlane, hit)) {
+          selectedObj.mesh.position.x = hit.x;
+          selectedObj.mesh.position.z = hit.z;
           // Keep on floor
           const b = new THREE.Box3().setFromObject(selectedObj.mesh);
-          selectedObj.mesh.position.y -= b.min.y;
+          if (b.min.y < 0) selectedObj.mesh.position.y -= b.min.y;
         }
-      } else {
-        // ── ORBIT CAMERA ──
-        camYaw   = orbitStart.yaw   - (e.touches[0].clientX - orbitStart.x) * 0.006;
-        camPitch = Math.max(0.05, Math.min(Math.PI/2.2, orbitStart.pitch - (e.touches[0].clientY - orbitStart.y) * 0.004));
-        updateCamera();
+        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: touchStart.time };
       }
+      // No manual orbit — orientation handles camera rotation
     }
-  } else if (e.touches.length === 2) {
+  } else if (e.touches.length === 2 && selectedObj) {
+    // Two fingers on selected → rotate it
+    const a = twoFingerAngle(e);
+    if (lastTwoAngle !== null) {
+      selectedObj.mesh.rotation.y += (a - lastTwoAngle);
+    }
+    lastTwoAngle = a;
+    // Pinch = scale
     const d = pinchDist(e);
-    const factor = lastPinch / d;
-    if (selectedObj) {
-      // Pinch on selected = rotate
-      const a = twoFingerAngle(e);
-      selectedObj.mesh.rotation.y += (a - (orbitStart?.angle||a)) * 0.5;
-      orbitStart = orbitStart || {};
-      orbitStart.angle = a;
-    } else {
-      // Pinch on empty = zoom
-      camRadius = Math.max(0.8, Math.min(10, camRadius * factor));
-      updateCamera();
-    }
+    const s = selectedObj.mesh.scale.x * (d / lastPinch);
+    if (s > 0.05 && s < 12) selectedObj.mesh.scale.setScalar(s);
     lastPinch = d;
   }
 }
@@ -438,23 +430,27 @@ function onTEnd(e) {
   if (!isDragging && touchStart && e.changedTouches.length === 1) {
     if (Date.now() - touchStart.time < 300) handleTap(e.changedTouches[0]);
   }
-  touchStart = null; isDragging = false; orbitStart = null;
+  touchStart = null; isDragging = false; lastTwoAngle = null;
 }
 
 function updateCamera() {
-  if (useOrientation) {
-    // Use real device orientation
-    const beta  = THREE.MathUtils.degToRad(Math.max(0, Math.min(90, orientBeta)));
-    const alpha = THREE.MathUtils.degToRad(orientAlpha);
-    camera.position.x = camRadius * Math.sin(alpha) * Math.cos(beta);
-    camera.position.y = camRadius * Math.sin(beta) + 0.3;
-    camera.position.z = camRadius * Math.cos(alpha) * Math.cos(beta);
-  } else {
-    camera.position.x = camRadius * Math.sin(camYaw) * Math.cos(camPitch);
-    camera.position.y = camRadius * Math.sin(camPitch) + 0.3;
-    camera.position.z = camRadius * Math.cos(camYaw) * Math.cos(camPitch);
-  }
-  camera.lookAt(0, 0.4, 0);
+  if (!useOrientation) return;
+  // Apply device orientation to camera rotation
+  // Camera stays at fixed position, only rotates
+  const alpha = THREE.MathUtils.degToRad(devAlpha);
+  const beta  = THREE.MathUtils.degToRad(devBeta);
+  const gamma = THREE.MathUtils.degToRad(devGamma);
+
+  // Euler in device frame → Three.js camera
+  const euler = new THREE.Euler();
+  // Portrait mode
+  euler.set(
+    beta  - Math.PI/2,
+    alpha,
+   -gamma,
+    'YXZ'
+  );
+  camera.quaternion.setFromEuler(euler);
 }
 
 function handleTap(touch) {
@@ -522,22 +518,19 @@ window.placeObj = function() {
   if (!pendingModel) return;
   const mesh = pendingModel.mesh.clone();
 
-  // Place in front of camera on ground
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  dir.y = 0; dir.normalize();
-  const pos = new THREE.Vector3();
-  pos.copy(camera.position).addScaledVector(dir, 2.0);
-  pos.y = 0;
+  // Project a ray from camera center to ground plane
+  raycaster.setFromCamera(new THREE.Vector2(0, -0.3), camera);
+  const hit = new THREE.Vector3();
+  const didHit = raycaster.ray.intersectPlane(groundPlane, hit);
+  const pos = didHit ? hit : new THREE.Vector3(0, 0, -1.5);
   mesh.position.copy(pos);
-  // Fix rotation — face camera
-  mesh.rotation.y = Math.atan2(
-    camera.position.x - pos.x,
-    camera.position.z - pos.z
-  );
+  // Face camera
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+  mesh.rotation.y = Math.atan2(camDir.x, camDir.z) + Math.PI;
   // Ensure on floor
   const box = new THREE.Box3().setFromObject(mesh);
-  mesh.position.y -= box.min.y;
+  if (box.min.y < 0) mesh.position.y -= box.min.y;
 
   mesh.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; c.userData.origMat=c.material; } });
   scene.add(mesh);
