@@ -123,16 +123,6 @@ model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#
 .price{font-family:var(--serif);font-size:32px;font-weight:300;color:var(--text);letter-spacing:-.02em}
 .price-note{font-size:12px;color:var(--mid);font-family:var(--sans)}
 
-.btn-scene{
-  flex:0 0 auto;padding:0 14px;
-  background:transparent;color:var(--accent);
-  border:1px solid rgba(184,152,106,.35);
-  font-family:var(--sans);font-size:11px;font-weight:400;
-  letter-spacing:.08em;text-transform:uppercase;
-  cursor:pointer;transition:all .2s;
-  display:flex;align-items:center;gap:5px;height:46px;
-}
-.btn-scene:hover{background:rgba(184,152,106,.1);border-color:var(--accent)}
 .btn-ar{width:100%;padding:14px;background:var(--dark);color:var(--white);border:none;font-size:11px;font-weight:500;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s;margin-bottom:8px;letter-spacing:.12em;text-transform:uppercase}
 .btn-ar:active{background:var(--accent)}
 
@@ -416,41 +406,25 @@ function toggleInfo(){
   // Masquer ref/statut mais garder le nom + coloris visibles
   if(sub) sub.style.display = infoVisible ? '' : 'none';
   if(!infoVisible){
+    const ctaHeight = cta.offsetHeight + 20;
     const topbarHeight = 52;
-    // CTA compacte — on réduit le padding et on cache le bouton contact
+    // Calculer la hauteur en tenant compte du header nom + coloris
+    const header = document.getElementById('s-header');
+    const colors = document.getElementById('s-colors');
+    const headerH = (header?.offsetHeight||0) + (colors?.offsetHeight||0);
+    const newH = window.innerHeight - topbarHeight - ctaHeight - headerH - 12;
+    mv.style.height = Math.max(newH, 200) + 'px';
+    mv.style.maxHeight = 'none';
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
     cta.style.left = '0';
     cta.style.right = '0';
-    cta.style.background = 'rgba(245,242,236,.97)';
-    cta.style.backdropFilter = 'blur(12px)';
+    cta.style.background = 'var(--bg)';
     cta.style.borderTop = '1px solid var(--border)';
-    cta.style.padding = '8px 16px calc(10px + env(safe-area-inset-bottom,0))';
+    cta.style.padding = '14px 18px 24px';
     cta.style.zIndex = '20';
-    // Réduire les boutons en mode caché
-    const btnAr = document.querySelector('.btn-ar');
-    const btnWallet = document.querySelector('.btn-wallet');
-    const btnContact = document.querySelector('.btn-contact');
-    const btnToggle = document.getElementById('btn-toggle');
-    if(btnAr){ btnAr.style.padding='10px'; btnAr.style.marginBottom='6px'; btnAr.style.fontSize='10px'; }
-    if(btnWallet){ btnWallet.style.padding='8px'; btnWallet.style.marginBottom='6px'; btnWallet.style.fontSize='10px'; }
-    if(btnContact){ btnContact.style.display='none'; }
-    if(btnToggle){ btnToggle.style.padding='7px 12px'; btnToggle.style.fontSize='10px'; btnToggle.style.marginBottom='6px'; }
-
-    // Calculer hauteur réelle de la CTA après modifications
-    requestAnimationFrame(() => {
-      const ctaH = cta.offsetHeight;
-      const header = document.getElementById('s-header');
-      const colors = document.getElementById('s-colors');
-      const headerH = (header?.offsetHeight||0) + (colors?.offsetHeight||0);
-      // Viewer prend tout l'espace restant
-      const newH = window.innerHeight - topbarHeight - ctaH - headerH - 4;
-      mv.style.height = Math.max(newH, 220) + 'px';
-      mv.style.maxHeight = 'none';
-    });
-
     btn.classList.add('hidden-mode');
-    label.textContent = 'Infos';
+    label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   } else {
     mv.style.height = '260px';
@@ -460,19 +434,9 @@ function toggleInfo(){
     cta.style.left = '';
     cta.style.right = '';
     cta.style.background = '';
-    cta.style.backdropFilter = '';
     cta.style.borderTop = '';
     cta.style.padding = '';
     cta.style.zIndex = '';
-    // Restaurer les boutons
-    const btnAr = document.querySelector('.btn-ar');
-    const btnWallet = document.querySelector('.btn-wallet');
-    const btnContact = document.querySelector('.btn-contact');
-    const btnToggle = document.getElementById('btn-toggle');
-    if(btnAr){ btnAr.style.padding=''; btnAr.style.marginBottom=''; btnAr.style.fontSize=''; }
-    if(btnWallet){ btnWallet.style.padding=''; btnWallet.style.marginBottom=''; btnWallet.style.fontSize=''; }
-    if(btnContact){ btnContact.style.display=''; }
-    if(btnToggle){ btnToggle.style.padding=''; btnToggle.style.fontSize=''; btnToggle.style.marginBottom=''; }
     btn.classList.remove('hidden-mode');
     label.textContent = 'Masquer les informations';
     icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
@@ -519,8 +483,6 @@ function render(p){
   document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
   document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
   document.getElementById('dim').textContent=p.dim_label||p.dimensions||'—';
-  // Populate photos tab
-  renderProductPhotos(p.images||[]);
   document.getElementById('enseigne-name').textContent=p.enseigne_name;
   if(p.model_url){
     const mv = document.getElementById('mv');
@@ -643,69 +605,12 @@ function renderColors(colors){
 }
 
 
-
-function renderProductPhotos(images) {
-  const tab = document.getElementById('tab-1');
-  if (!tab) return;
-  if (!images || !images.length) {
-    tab.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucune photo disponible</div>';
-    return;
-  }
-  // Main photo + thumbnails
-  tab.innerHTML = `
-    <div style="background:var(--bg2);aspect-ratio:4/3;overflow:hidden">
-      <img id="mainPhoto" src="${images[0]}" alt="Photo principale"
-        style="width:100%;height:100%;object-fit:cover;display:block;transition:opacity .3s"/>
-    </div>
-    ${images.length > 1 ? `
-    <div style="display:flex;gap:6px;padding:10px 14px;overflow-x:auto;background:var(--white);border-top:1px solid var(--border)">
-      ${images.map((url, i) => `
-        <div onclick="setMainPhoto('${url}')"
-          style="flex-shrink:0;width:60px;height:60px;border:${i===0?'2px solid var(--accent)':'1px solid var(--border)'};overflow:hidden;cursor:pointer;transition:border-color .2s"
-          id="thumb-${i}">
-          <img src="${url}" style="width:100%;height:100%;object-fit:cover"/>
-        </div>`).join('')}
-    </div>` : ''}`;
-}
-
-function setMainPhoto(url) {
-  const main = document.getElementById('mainPhoto');
-  if (main) { main.style.opacity='.5'; main.src=url; main.onload=()=>main.style.opacity='1'; }
-  // Update thumb borders
-  document.querySelectorAll('[id^="thumb-"]').forEach(t => {
-    t.style.borderWidth = '1px';
-    t.style.borderColor = 'var(--border)';
-    if (t.querySelector('img')?.src === url) {
-      t.style.borderWidth = '2px';
-      t.style.borderColor = 'var(--accent)';
-    }
-  });
-}
 function setTab(i,el){
   ['tab-0','tab-1'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'block':'none');
   document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
 }
 
-
-function addToARScene() {
-  if (!prod) return;
-  // Store current product in localStorage for ar-scene.html
-  const sceneQueue = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
-  const exists = sceneQueue.find(p => p.id === prod.id);
-  if (!exists) {
-    sceneQueue.push({
-      id: prod.id,
-      name: prod.name,
-      glb: prod.model_url,
-      usdz: prod.usdz_url,
-      category: prod.category,
-      dimensions: prod.dimensions
-    });
-    localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneQueue));
-  }
-  window.location.href = 'ar-scene.html?add=' + prod.id;
-}
 function launchAR(){
   const mv=document.getElementById('mv');
   if(!mv)return;
