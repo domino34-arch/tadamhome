@@ -81,6 +81,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .rotate-hint{font-size:10px;color:rgba(255,255,255,.3);text-align:center;letter-spacing:.06em;margin-bottom:6px;display:none}
 .rotate-hint.show{display:block}
 
+
+/* CATEGORY QUICK MENU */
+.cat-quick-menu{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cat-quick-menu::-webkit-scrollbar{display:none}
+.cat-q-btn{
+  flex-shrink:0;display:flex;align-items:center;gap:6px;
+  padding:7px 12px;
+  background:rgba(245,242,236,.12);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.15);
+  color:var(--white);font-family:var(--sans);font-size:10px;
+  font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.cat-q-btn:hover,.cat-q-btn.loading{background:rgba(184,152,106,.25);border-color:var(--accent)}
+.cat-q-btn.loading{opacity:.7;pointer-events:none}
+.cat-q-btn span{font-size:14px;line-height:1}
+/* UNDO BUTTON */
+.ar-undo-btn{
+  position:absolute;bottom:200px;left:16px;
+  width:44px;height:44px;
+  background:rgba(28,27,24,.75);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--white);transition:all .2s;
+  pointer-events:all;opacity:0;transform:translateX(-10px);transition:all .3s;
+}
+.ar-undo-btn.show{opacity:1;transform:none}
+.ar-undo-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
+.ar-undo-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 /* CATALOGUE OVERLAY */
 #catOverlay{position:fixed;inset:0;z-index:300;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);display:none;flex-direction:column}
 #catOverlay.show{display:flex}
@@ -195,6 +224,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
     </svg>
   </div>
 
+  <!-- UNDO LAST -->
+  <div class="ar-undo-btn" id="undoBtn" onclick="undoLastObject()" title="Annuler dernier">
+    <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+  </div>
+
   <div id="objControls">
     <div class="obj-btn" onclick="rotateObj(-15)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></div>
     <div class="obj-btn" onclick="rotateObj(15)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.5"/></svg></div>
@@ -205,6 +239,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 
   <div class="ar-bottom">
     <div class="rotate-hint" id="rotateHint">Glissez le meuble sélectionné · Pincez pour pivoter</div>
+    <!-- CATEGORY QUICK MENU -->
+    <div class="cat-quick-menu" id="catQuickMenu">
+      <button class="cat-q-btn" onclick="quickAdd('canape')"><span>🛋️</span> Canapé</button>
+      <button class="cat-q-btn" onclick="quickAdd('table')"><span>🪵</span> Table</button>
+      <button class="cat-q-btn" onclick="quickAdd('fauteuil')"><span>🪑</span> Fauteuil</button>
+      <button class="cat-q-btn" onclick="quickAdd('luminaire')"><span>💡</span> Lampe</button>
+      <button class="cat-q-btn" onclick="quickAdd('lit')"><span>🛏️</span> Lit</button>
+    </div>
     <div class="scene-tray" id="sceneTray">
       <div class="tray-add-wrap" onclick="openCat()">
         <div class="tray-add">+</div>
@@ -221,6 +263,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Loader global pour ajouterMeubleReel
+const loader = new GLTFLoader();
 
 /* ── CONFIG ── */
 const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
@@ -480,6 +525,148 @@ function twoFingerAngle(e) {
                     e.touches[0].clientX - e.touches[1].clientX);
 }
 
+
+/* ── QUICK ADD PAR CATÉGORIE ── */
+// Historique pour undo
+let objectHistory = [];
+
+window.quickAdd = async function(categorie) {
+  // Chercher le premier produit de cette catégorie dans Supabase
+  const btn = document.querySelector(`.cat-q-btn[onclick="quickAdd('${categorie}')"]`);
+  if (btn) btn.classList.add('loading');
+
+  // Chercher dans les produits déjà chargés
+  const matches = allProducts.filter(p => {
+    const cat = (p.category || '').toLowerCase();
+    return cat.includes(categorie) && p.model_glb_url;
+  });
+
+  if (!matches.length) {
+    toast(`Aucun ${categorie} disponible`, 'err');
+    if (btn) btn.classList.remove('loading');
+    return;
+  }
+
+  // Prendre le premier disponible
+  const p = matches[0];
+  await ajouterMeubleReel(p.model_glb_url, {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    dimensions: p.dimensions,
+    usdz: p.model_usdz_url
+  });
+  if (btn) btn.classList.remove('loading');
+};
+
+/* ── COEUR : CHARGER UN GLB AVEC TEXTURES ── */
+window.ajouterMeubleReel = async function(urlModele, meta = {}) {
+  if (!urlModele) { toast('URL du modèle manquante', 'err'); return; }
+  setLoading(true, `Chargement de ${meta.name || 'meuble'}…`);
+  try {
+    const gltf = await new Promise((resolve, reject) => {
+      loader.load(urlModele, resolve, undefined, reject);
+    });
+
+    const modele = gltf.scene;
+
+    // ── NORMALISATION ÉCHELLE (1 unit = 1 mètre) ──
+    const box = new THREE.Box3().setFromObject(modele);
+    const modelH = box.max.y - box.min.y;
+    const targetH = meta.dimensions?.h
+      ? meta.dimensions.h / 100
+      : targetHeight(meta.category);
+    if (modelH > 0) {
+      const scale = targetH / modelH;
+      modele.scale.setScalar(scale);
+    }
+
+    // ── ANCRER AU SOL ──
+    const box2 = new THREE.Box3().setFromObject(modele);
+    modele.position.y -= box2.min.y; // Positionner base à Y=0
+
+    // Placer devant la caméra
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.y = 0; dir.normalize();
+    modele.position.x = camera.position.x + dir.x * 1.5;
+    modele.position.z = camera.position.z + dir.z * 1.5;
+
+    // ── TEXTURES — s'assurer que les textures GLB sont préservées ──
+    modele.traverse(child => {
+      if (child.isMesh) {
+        child.castShadow    = true;
+        child.receiveShadow = true;
+        // Forcer encoding correct pour préserver les couleurs
+        if (child.material) {
+          if (child.material.map)          child.material.map.colorSpace = THREE.SRGBColorSpace;
+          if (child.material.emissiveMap)  child.material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+          child.material.needsUpdate = true;
+        }
+        child.userData.origMat = child.material;
+      }
+    });
+
+    scene.add(modele);
+
+    const placed = {
+      mesh: modele,
+      id: meta.id || Date.now().toString(),
+      name: meta.name || 'Meuble',
+      sceneId: Date.now(),
+      usdz: meta.usdz || null,
+      icon: getIcon(meta.category)
+    };
+    sceneObjects.push(placed);
+    objectHistory.push(placed); // Pour undo
+
+    // Ajouter au tray
+    addTrayItem(placed);
+    selectObj(placed);
+
+    // Afficher bouton undo
+    document.getElementById('undoBtn')?.classList.add('show');
+    document.getElementById('rotateHint')?.classList.add('show');
+
+    setLoading(false);
+    updateStatus();
+    toast(`✓ ${placed.name} ajouté`, 'ok');
+
+    // Si USDZ dispo → proposer Quick Look iOS
+    if (meta.usdz && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      setTimeout(() => {
+        toast('📱 Tap "AR" pour voir en Quick Look', 'ok');
+      }, 2000);
+    }
+
+  } catch(e) {
+    console.error('GLTFLoader error:', e);
+    setLoading(false);
+    toast(`Erreur chargement : ${e.message}`, 'err');
+  }
+};
+
+/* ── SUPPRIMER DERNIER OBJET (UNDO) ── */
+window.undoLastObject = function() {
+  if (!objectHistory.length) { toast('Rien à annuler'); return; }
+  const last = objectHistory.pop();
+  // Supprimer de la scène
+  scene.remove(last.mesh);
+  sceneObjects = sceneObjects.filter(o => o.sceneId !== last.sceneId);
+  // Si c'était l'objet sélectionné
+  if (selectedObj?.sceneId === last.sceneId) {
+    selectedObj = null;
+    document.getElementById('objControls')?.classList.remove('show');
+  }
+  // Mettre à jour le tray
+  const trayEl = document.querySelector(`.tray-item[data-scene-id="${last.sceneId}"]`);
+  if (trayEl) trayEl.remove();
+  // Cacher undo si plus rien
+  if (!objectHistory.length) document.getElementById('undoBtn')?.classList.remove('show');
+  updateStatus();
+  toast(`↩ ${last.name} supprimé`);
+};
+
 /* ── LOAD MODEL ── */
 async function loadModel(item) {
   if (!item.glb) return;
@@ -651,7 +838,13 @@ window.addFromCat = async (id) => {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
   closeCat();
-  await loadModel({ id: p.id, name: p.name, glb: p.model_glb_url, category: p.category, dimensions: p.dimensions });
+  await ajouterMeubleReel(p.model_glb_url, {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    dimensions: p.dimensions,
+    usdz: p.model_usdz_url
+  });
   renderCatGrid(allProducts);
 };
 
