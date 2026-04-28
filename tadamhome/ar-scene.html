@@ -486,7 +486,7 @@ canvas.addEventListener('touchmove', (e) => {
       /* Elevation only adjustable in perspective mode — Plan/Axo elevations are fixed */
       if (viewMode === 'persp') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-          orbitStart.elev - (e.touches[0].clientY - orbitStart.y) * 0.006));
+          orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
       }
       applyCamera();
     }
@@ -601,7 +601,7 @@ window.addEventListener('mousemove', (e) => {
     camTheta = mOrbitStart.theta + (e.clientX - mOrbitStart.x) * 0.007;
     if (viewMode === 'persp') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-        mOrbitStart.elev - (e.clientY - mOrbitStart.y) * 0.006));
+        mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
     }
     applyCamera();
   }
