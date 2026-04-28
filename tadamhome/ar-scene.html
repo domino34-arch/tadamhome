@@ -482,7 +482,7 @@ canvas.addEventListener('touchmove', (e) => {
       }
     } else {
       tMode = 'orbit';
-      camTheta = orbitStart.theta + (e.touches[0].clientX - orbitStart.x) * 0.007;
+      camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       /* Elevation only adjustable in perspective mode — Plan/Axo elevations are fixed */
       if (viewMode === 'persp') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
@@ -598,7 +598,7 @@ window.addEventListener('mousemove', (e) => {
       selected.mesh.position.z = pt.z;
     }
   } else if (mOrbitStart) {
-    camTheta = mOrbitStart.theta + (e.clientX - mOrbitStart.x) * 0.007;
+    camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     if (viewMode === 'persp') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
         mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
