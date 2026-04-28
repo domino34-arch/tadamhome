@@ -273,6 +273,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
   </div>
 </div>
 
+
+<!-- Bridge: expose module functions to inline onclick handlers -->
+<script>
+function startAR()     { if(window._startAR)     window._startAR();     else console.error('startAR not ready'); }
+function openCat()     { if(window._openCat)      window._openCat();     }
+function closeCat()    { if(window._closeCat)     window._closeCat();    }
+function filterCat()   { if(window._filterCat)    window._filterCat();   }
+function clearScene()  { if(window._clearScene)   window._clearScene();  }
+function takePhoto()   { if(window._takePhoto)     window._takePhoto();   }
+function exporterVersAR(){ if(window._exporterVersAR) window._exporterVersAR(); }
+function goBack()      { history.back(); }
+function rotateObj(d)  { if(window._rotateObj)    window._rotateObj(d);  }
+function scaleObj(f)   { if(window._scaleObj)     window._scaleObj(f);   }
+function deleteObj()   { if(window._deleteObj)    window._deleteObj();   }
+function undoLastObject(){ if(window._undoLastObject) window._undoLastObject(); }
+function quickAdd(cat) { if(window._quickAdd)     window._quickAdd(cat); }
+function addFromCat(id){ if(window._addFromCat)   window._addFromCat(id);}
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -302,7 +320,7 @@ let isDragging   = false;
 let floorGrid;
 
 /* ── START ── */
-window.startAR = async function() {
+window._startAR = async function() {
   setLoading(true, 'Accès à la caméra…');
   try {
     // Camera access
@@ -328,7 +346,7 @@ window.startAR = async function() {
   } catch(e) {
     setLoading(false);
     document.getElementById('splash').classList.add('hidden');
-    toast('Caméra non disponible — mode 3D sans AR', 'err');
+    toast('Caméra non disponible — mode 3D sans AR", "err");
     initThree();
     await loadCatalogue();
   }
@@ -542,9 +560,9 @@ function twoFingerAngle(e) {
 
 
 /* ── EXPORT USDZ MULTI-MODÈLES → AR QUICK LOOK iOS ── */
-window.exporterVersAR = async function() {
+window._exporterVersAR = async function() {
   if (!sceneObjects.length) {
-    toast('Ajoutez des meubles avant de lancer l'AR', 'err');
+    toast("Ajoutez des meubles avant de lancer l'AR", "err");
     return;
   }
 
@@ -638,7 +656,7 @@ function updateARBadge() {
 // Historique pour undo
 let objectHistory = [];
 
-window.quickAdd = async function(categorie) {
+window._quickAdd = async function(categorie) {
   // Chercher le premier produit de cette catégorie dans Supabase
   const btn = document.querySelector(`.cat-q-btn[onclick="quickAdd('${categorie}')"]`);
   if (btn) btn.classList.add('loading');
@@ -755,7 +773,7 @@ window.ajouterMeubleReel = async function(urlModele, meta = {}) {
 };
 
 /* ── SUPPRIMER DERNIER OBJET (UNDO) ── */
-window.undoLastObject = function() {
+window._undoLastObject = function() {
   if (!objectHistory.length) { toast('Rien à annuler'); return; }
   const last = objectHistory.pop();
   // Supprimer de la scène
@@ -810,7 +828,7 @@ async function loadModel(item) {
 }
 
 /* ── PLACE ── */
-window.placeObj = function() {
+window._placeObj = function() {
   if (!pendingModel) return;
   const mesh = pendingModel.mesh.clone();
 
@@ -864,13 +882,13 @@ function selectObj(obj) {
 }
 
 /* ── CONTROLS ── */
-window.rotateObj = d => { if (selectedObj) selectedObj.mesh.rotation.y += (d * Math.PI) / 180; };
+window._rotateObj = d => { if (selectedObj) selectedObj.mesh.rotation.y += (d * Math.PI) / 180; };
 window.scaleObj  = f => {
   if (!selectedObj) return;
   const s = selectedObj.mesh.scale.x * f;
   if (s > 0.05 && s < 15) selectedObj.mesh.scale.setScalar(s);
 };
-window.deleteObj = () => {
+window._deleteObj = () => {
   if (!selectedObj) return;
   scene.remove(selectedObj.mesh);
   sceneObjects = sceneObjects.filter(o => o.sceneId !== selectedObj.sceneId);
@@ -885,7 +903,7 @@ window.deleteObj = () => {
   updateARBadge();
   toast('Meuble supprimé');
 };
-window.clearScene = () => {
+window._clearScene = () => {
   sceneObjects.forEach(o => scene.remove(o.mesh));
   sceneObjects = [];
   selectedObj = null;
@@ -897,7 +915,7 @@ window.clearScene = () => {
 };
 
 /* ── PHOTO ── */
-window.takePhoto = () => {
+window._takePhoto = () => {
   const flash = document.getElementById('flash');
   flash.classList.add('show');
   setTimeout(() => flash.classList.remove('show'), 150);
@@ -916,7 +934,7 @@ async function loadCatalogue() {
   renderCatGrid(allProducts);
 }
 
-window.filterCat = () => {
+window._filterCat = () => {
   const q = document.getElementById('catSearch').value.toLowerCase();
   renderCatGrid(allProducts.filter(p =>
     (p.name||'').toLowerCase().includes(q) ||
@@ -945,7 +963,7 @@ function renderCatGrid(products) {
   }).join('');
 }
 
-window.addFromCat = async (id) => {
+window._addFromCat = async (id) => {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
   closeCat();
@@ -960,7 +978,7 @@ window.addFromCat = async (id) => {
 };
 
 window.openCat  = () => document.getElementById('catOverlay').classList.add('show');
-window.closeCat = () => document.getElementById('catOverlay').classList.remove('show');
+window._closeCat = () => document.getElementById('catOverlay').classList.remove('show');
 
 /* ── TRAY ── */
 function addTrayItem(item) {
