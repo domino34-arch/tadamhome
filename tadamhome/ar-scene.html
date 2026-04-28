@@ -17,22 +17,30 @@
 html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidden}
 
 /* TOPBAR */
-.topbar{height:52px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;padding-top:env(safe-area-inset-top,0)}
-.topbar-left{display:flex;align-items:center;gap:10px}
-.topbar-right{display:flex;align-items:center;gap:6px}
-.t-logo{height:20px;object-fit:contain}
-.t-sep{width:1px;height:18px;background:rgba(255,255,255,.15)}
-.t-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.35);font-family:var(--sans)}
-.t-btn{display:flex;align-items:center;gap:5px;padding:7px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
-.t-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
+.topbar{height:52px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0;padding-top:env(safe-area-inset-top,0);gap:6px}
+.topbar-left{display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:0}
+.topbar-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.t-logo{height:18px;object-fit:contain;flex-shrink:0}
+.t-sep{width:1px;height:16px;background:rgba(255,255,255,.15);flex-shrink:0}
+.t-label{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--sans);white-space:nowrap}
+/* All buttons = icon only on mobile, label on larger screens */
+.t-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:34px;height:34px;padding:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative}
+.t-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
+.t-btn-lbl{display:none} /* hidden on mobile */
 .t-btn:hover{background:rgba(184,152,106,.2);border-color:var(--accent);color:var(--accent)}
-.t-btn.ar{background:rgba(39,112,74,.25);border-color:rgba(39,112,74,.5);color:#6dcf95}
+.t-btn.ar{width:auto;padding:0 10px;background:rgba(39,112,74,.25);border-color:rgba(39,112,74,.5);color:#6dcf95}
 .t-btn.ar:hover{background:rgba(39,112,74,.4)}
-.t-badge{background:var(--green);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;font-family:var(--sans);display:none}
+.t-btn.ar .t-btn-lbl{display:inline;font-size:10px;letter-spacing:.08em}
+.t-badge{background:var(--green);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(--sans);display:none;flex-shrink:0}
 .t-badge.on{display:inline}
 .t-icon-btn{width:34px;height:34px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s;flex-shrink:0}
 .t-icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .t-icon-btn:hover{background:rgba(255,255,255,.18)}
+@media (min-width:500px){
+  .t-btn{width:auto;padding:0 10px;gap:5px}
+  .t-btn-lbl{display:inline}
+  .topbar{padding:0 14px}
+}
 
 /* LAYOUT */
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh}
@@ -116,13 +124,13 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
       <div class="t-label">Studio AR</div>
     </div>
     <div class="topbar-right">
-      <button class="t-btn" onclick="doPhoto()">
+      <button class="t-btn" onclick="doPhoto()" title="Photo">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        Photo
+        <span class="t-btn-lbl">Photo</span>
       </button>
-      <button class="t-btn ar" onclick="doExportAR()">
+      <button class="t-btn ar" onclick="doExportAR()" title="Voir en AR">
         <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        Voir en AR
+        <span class="t-btn-lbl">Voir en AR</span>
         <span class="t-badge" id="badge">0</span>
       </button>
       <div class="t-icon-btn" onclick="history.back()">
@@ -212,7 +220,7 @@ camera.position.set(3, 2.2, 3);
 
 /* FIXED CAMERA ORBIT - horizontal only, locked elevation */
 var camTheta = Math.PI * 0.25; /* horizontal angle */
-var camElev  = 0.55;           /* fixed vertical elevation in radians */
+var camElev  = 0.55;           /* vertical elevation in radians — now controllable */
 var camDist  = 4.5;            /* distance from center */
 var camTarget = new THREE.Vector3(0, 0, 0);
 
@@ -301,7 +309,7 @@ canvas.addEventListener('touchstart', function(e) {
     t0 = { x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now() };
     tDragging = false;
     tMode = 'none';
-    orbitStart = { theta:camTheta, x:e.touches[0].clientX };
+    orbitStart = { theta:camTheta, elev:camElev, x:e.touches[0].clientX, y:e.touches[0].clientY };
   } else if (e.touches.length === 2) {
     t0 = { x:e.touches[0].clientX, y:e.touches[0].clientY };
     t1 = { x:e.touches[1].clientX, y:e.touches[1].clientY };
@@ -336,6 +344,8 @@ canvas.addEventListener('touchmove', function(e) {
       /* orbit camera - horizontal only */
       tMode = 'orbit';
       camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
+      camElev  = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
+        orbitStart.elev - (e.touches[0].clientY - orbitStart.y) * 0.006));
       applyCamera();
     }
   } else if (e.touches.length === 2) {
@@ -385,7 +395,7 @@ canvas.addEventListener('mousedown', function(e) {
     if (hits.length) { mObjDrag = true; return; }
   }
   mObjDrag = false;
-  mOrbitStart = { theta:camTheta, x:e.clientX };
+  mOrbitStart = { theta:camTheta, elev:camElev, x:e.clientX, y:e.clientY };
 });
 window.addEventListener('mousemove', function(e) {
   if (!mDown) return;
@@ -401,6 +411,8 @@ window.addEventListener('mousemove', function(e) {
     }
   } else if (mOrbitStart) {
     camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
+    camElev  = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
+      mOrbitStart.elev - (e.clientY - mOrbitStart.y) * 0.006));
     applyCamera();
   }
 });
