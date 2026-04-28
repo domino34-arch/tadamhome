@@ -117,6 +117,33 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .cov-btn{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
 .cov-btn:hover,.cov-btn.added{background:var(--accent)}
 
+/* SCENES MODAL — reuses .cov-head / .cov-title / .cov-x */
+#scnOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
+#scnOv.open{display:flex}
+.sov-body{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
+.sov-section-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 0;font-weight:500}
+.sov-section-title:not(:first-child){margin-top:18px}
+.sov-save-block{background:var(--white);border:1px solid var(--border);padding:14px}
+.sov-input{width:100%;border:1px solid var(--border);background:var(--bg);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;font-weight:300;margin-bottom:10px;transition:border-color .15s}
+.sov-input:focus{border-color:var(--accent);background:var(--white)}
+.sov-save-btn{width:100%;padding:11px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.sov-save-btn:hover{background:var(--accent)}
+.sov-save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sov-save-btn:disabled{opacity:.4;cursor:not-allowed}
+.sov-list{display:flex;flex-direction:column;gap:8px}
+.sov-item{background:var(--white);border:1px solid var(--border);padding:10px;display:flex;align-items:center;gap:12px}
+.sov-item-thumb{width:64px;height:48px;border:1px solid var(--border);background:var(--bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+.sov-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sov-item-info{flex:1;min-width:0}
+.sov-item-name{font-family:var(--serif);font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+.sov-item-meta{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.sov-item-actions{display:flex;gap:6px;flex-shrink:0}
+.sov-item-btn{width:32px;height:32px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s}
+.sov-item-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sov-item-btn.load:hover{color:var(--green);border-color:var(--green)}
+.sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
+.sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
+
 /* LOADER + TOAST */
 #ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #ldr.on{display:flex}
@@ -139,6 +166,10 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
       <div class="t-label">Studio AR</div>
     </div>
     <div class="topbar-right">
+      <button class="t-btn" onclick="openScenes()" title="Mes scenes">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span class="t-btn-lbl">Scenes</span>
+      </button>
       <button class="t-btn" onclick="doPhoto()" title="Photo">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         <span class="t-btn-lbl">Photo</span>
@@ -215,6 +246,26 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <div class="cov-grid" id="cgrid">
       <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div>
     </div>
+  </div>
+</div>
+
+<!-- SCENES (save / load) -->
+<div id="scnOv">
+  <div class="cov-head">
+    <div class="cov-title">Mes <em>scenes</em></div>
+    <button class="cov-x" onclick="closeScenes()">x</button>
+  </div>
+  <div class="sov-body">
+    <div class="sov-section-title">Sauvegarder la scene actuelle</div>
+    <div class="sov-save-block">
+      <input type="text" id="scnNameInput" class="sov-input" placeholder="Nom de la scene (optionnel)" maxlength="60"/>
+      <button class="sov-save-btn" id="scnSaveBtn" onclick="saveScene()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Sauvegarder
+      </button>
+    </div>
+    <div class="sov-section-title">Scenes sauvegardees (<span id="scnCount">0</span>)</div>
+    <div class="sov-list" id="scnList"></div>
   </div>
 </div>
 
@@ -431,11 +482,11 @@ canvas.addEventListener('touchmove', (e) => {
       }
     } else {
       tMode = 'orbit';
-      camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
+      camTheta = orbitStart.theta + (e.touches[0].clientX - orbitStart.x) * 0.007;
       /* Elevation only adjustable in perspective mode — Plan/Axo elevations are fixed */
       if (viewMode === 'persp') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-          orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
+          orbitStart.elev - (e.touches[0].clientY - orbitStart.y) * 0.006));
       }
       applyCamera();
     }
@@ -547,10 +598,10 @@ window.addEventListener('mousemove', (e) => {
       selected.mesh.position.z = pt.z;
     }
   } else if (mOrbitStart) {
-    camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
+    camTheta = mOrbitStart.theta + (e.clientX - mOrbitStart.x) * 0.007;
     if (viewMode === 'persp') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-        mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
+        mOrbitStart.elev - (e.clientY - mOrbitStart.y) * 0.006));
     }
     applyCamera();
   }
@@ -1044,6 +1095,260 @@ function toast(txt, type) {
 function spin(show, txt) {
   document.getElementById('ldr').className = show ? 'on' : '';
   if (txt) document.getElementById('ltxt').textContent = txt;
+}
+
+/* ====================================
+   SCENES — save / load / delete
+   Stored in localStorage under SCENES_KEY.
+   Each scene captures every placed item's
+   product reference + transform + a small
+   thumbnail rendered from the active camera.
+   ==================================== */
+const SCENES_KEY = 'tadam_saved_scenes';
+
+function listScenes() {
+  try { return JSON.parse(localStorage.getItem(SCENES_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function persistScenes(arr) {
+  try {
+    localStorage.setItem(SCENES_KEY, JSON.stringify(arr));
+    return true;
+  } catch(e) {
+    /* QuotaExceededError */
+    toast('Espace de stockage plein', 'err');
+    console.warn(e);
+    return false;
+  }
+}
+function captureThumbnail(maxW, maxH) {
+  /* preserveDrawingBuffer is enabled on the renderer, so we can read it back */
+  renderer.render(scene, activeCam);
+  const sw = canvas.width;
+  const sh = canvas.height;
+  const k  = Math.min(maxW / sw, maxH / sh, 1);
+  const tw = Math.max(1, Math.round(sw * k));
+  const th = Math.max(1, Math.round(sh * k));
+  const c = document.createElement('canvas');
+  c.width = tw; c.height = th;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(canvas, 0, 0, tw, th);
+  try { return c.toDataURL('image/jpeg', 0.65); }
+  catch(_) { return null; }
+}
+
+window.openScenes = function() {
+  document.getElementById('scnNameInput').value = '';
+  renderScenesModal();
+  document.getElementById('scnOv').classList.add('open');
+};
+window.closeScenes = function() {
+  document.getElementById('scnOv').classList.remove('open');
+};
+
+window.saveScene = function() {
+  if (!placed.length) {
+    toast('Aucun meuble a sauvegarder', 'err');
+    return;
+  }
+  const input = document.getElementById('scnNameInput');
+  let name = (input.value || '').trim();
+  if (!name) {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    name = 'Scene ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1)
+         + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /* Render thumbnail BEFORE we (potentially) close the modal so the live scene is visible */
+  const thumb = captureThumbnail(280, 180);
+
+  const scn = {
+    id: 'scene_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    name,
+    savedAt: Date.now(),
+    thumb,
+    items: placed.map((p) => {
+      const prod = products.find(x => x.id === p.id);
+      return {
+        productId: p.id,
+        name: p.name,
+        glbUrl:   prod ? prod.model_glb_url : null,
+        category: prod ? prod.category : null,
+        heightCm: prod && prod.dimensions && prod.dimensions.h ? prod.dimensions.h : null,
+        imgUrl: p.imgUrl || (prod && prod.images && prod.images[0]) || null,
+        position: { x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z },
+        rotationY: p.mesh.rotation.y || 0,
+        scale: p.mesh.scale.x || 1
+      };
+    })
+  };
+
+  /* Drop scenes that lost their glbUrl reference (impossible to restore) */
+  const restorable = scn.items.filter(it => it.glbUrl);
+  if (!restorable.length) {
+    toast('Aucun modele restaurable (catalogue introuvable)', 'err');
+    return;
+  }
+  scn.items = restorable;
+
+  const arr = listScenes();
+  arr.unshift(scn);
+  if (persistScenes(arr)) {
+    input.value = '';
+    renderScenesModal();
+    toast('Scene "' + name + '" sauvegardee', 'ok');
+  }
+};
+
+window.deleteScene = function(id) {
+  const arr = listScenes().filter(s => s.id !== id);
+  if (persistScenes(arr)) {
+    renderScenesModal();
+    toast('Scene supprimee');
+  }
+};
+
+window.loadSavedScene = async function(id) {
+  const arr = listScenes();
+  const scn = arr.find(s => s.id === id);
+  if (!scn) { toast('Scene introuvable', 'err'); return; }
+  closeScenes();
+  spin(true, 'Chargement de la scene...');
+
+  /* Make sure the catalogue is loaded so we can resolve glbUrls if missing */
+  if (!products.length) {
+    try { await loadCatalogue(); } catch(_) {}
+  }
+
+  clearScene();
+
+  for (const it of scn.items) {
+    if (!it.glbUrl) {
+      const p = products.find(x => x.id === it.productId);
+      if (p) it.glbUrl = p.model_glb_url;
+    }
+    if (!it.glbUrl) { console.warn('Skipping unrestorable item', it.name); continue; }
+    try {
+      await restoreSavedItem(it);
+    } catch(e) {
+      console.warn('Failed to restore item', it.name, e);
+    }
+  }
+
+  spin(false);
+  toast('Scene "' + scn.name + '" chargee', 'ok');
+  setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' charge' + (placed.length > 1 ? 's' : ''));
+};
+
+/* Headless equivalent of loadModel + doPlace, applies saved transform */
+async function restoreSavedItem(it) {
+  const gltf = await new Promise((ok, fail) => {
+    gltfLoader.load(it.glbUrl, ok, null, fail);
+  });
+  const mesh = gltf.scene;
+
+  /* Real-world height scaling */
+  const box = new THREE.Box3().setFromObject(mesh);
+  const mh  = box.max.y - box.min.y;
+  const th  = it.heightCm ? (it.heightCm / 100) : realH(it.category);
+  if (mh > 0.001) mesh.scale.setScalar(th / mh);
+
+  /* Anchor to floor */
+  const box2 = new THREE.Box3().setFromObject(mesh);
+  mesh.position.y -= box2.min.y;
+
+  /* Texture color spaces */
+  mesh.traverse((c) => {
+    if (!c.isMesh) return;
+    c.castShadow = c.receiveShadow = true;
+    if (!c.material) return;
+    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    mats.forEach((mat) => {
+      ['map', 'emissiveMap'].forEach((k) => {
+        if (mat[k]) { mat[k].colorSpace = THREE.SRGBColorSpace; mat[k].needsUpdate = true; }
+      });
+      ['normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach((k) => {
+        if (mat[k]) { mat[k].colorSpace = THREE.NoColorSpace; mat[k].needsUpdate = true; }
+      });
+      mat.needsUpdate = true;
+    });
+  });
+
+  /* Stage as pending then place at saved position with saved rotation */
+  pending = {
+    mesh,
+    id: it.productId,
+    name: it.name,
+    icon: catIco(it.category),
+    imgUrl: it.imgUrl || null
+  };
+  pending.mesh.rotation.y = it.rotationY || 0;
+  doPlace({ x: it.position.x, z: it.position.z });
+
+  addTrayItem({ id: it.productId, name: it.name, icon: catIco(it.category), imgUrl: it.imgUrl });
+}
+
+/* Wipe the active scene before loading another one */
+function clearScene() {
+  placed.forEach((p) => {
+    scene.remove(p.mesh);
+    p.mesh.traverse((c) => {
+      if (c.isMesh && c.material) {
+        if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+        else c.material.dispose();
+      }
+    });
+  });
+  placed   = [];
+  snapList = [];
+  selected = null;
+  pending  = null;
+  document.getElementById('delFab').classList.remove('on');
+  document.getElementById('dupFab').classList.remove('on');
+  document.getElementById('selTag').classList.remove('on');
+  document.getElementById('undoFab').classList.remove('on');
+  document.querySelectorAll('.tray-item').forEach(el => el.remove());
+  updateBadge();
+  setStatus('Ajoutez des meubles pour commencer');
+}
+
+function renderScenesModal() {
+  const arr = listScenes();
+  const list = document.getElementById('scnList');
+  document.getElementById('scnCount').textContent = arr.length;
+  /* Disable save when scene is empty */
+  document.getElementById('scnSaveBtn').disabled = (placed.length === 0);
+
+  if (!arr.length) {
+    list.innerHTML = '<div class="sov-empty">Aucune scene sauvegardee</div>';
+    return;
+  }
+  list.innerHTML = arr.map((s) => {
+    const d = new Date(s.savedAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const cnt = s.items.length;
+    const safeName = String(s.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const thumbHtml = s.thumb
+      ? '<img src="' + s.thumb + '" alt=""/>'
+      : '\u25C7';
+    return '<div class="sov-item">'
+      + '<div class="sov-item-thumb">' + thumbHtml + '</div>'
+      + '<div class="sov-item-info">'
+        + '<div class="sov-item-name">' + safeName + '</div>'
+        + '<div class="sov-item-meta">' + dateStr + ' &middot; ' + cnt + ' meuble' + (cnt > 1 ? 's' : '') + '</div>'
+      + '</div>'
+      + '<div class="sov-item-actions">'
+        + '<button class="sov-item-btn load" onclick="loadSavedScene(\'' + s.id + '\')" title="Charger">'
+          + '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>'
+        + '</button>'
+        + '<button class="sov-item-btn del" onclick="deleteScene(\'' + s.id + '\')" title="Supprimer">'
+          + '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>'
+        + '</button>'
+      + '</div>'
+    + '</div>';
+  }).join('');
 }
 
 /* INIT */
