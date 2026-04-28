@@ -345,14 +345,14 @@ canvas.addEventListener('touchmove', function(e) {
       tMode = 'orbit';
       camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       camElev  = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-        orbitStart.elev - (e.touches[0].clientY - orbitStart.y) * 0.006));
+        orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
       applyCamera();
     }
   } else if (e.touches.length === 2) {
     if (tMode === 'rotate' && selected) {
       /* rotate selected object with 2 fingers */
       var da = getAngle(e) - tAngle0;
-      selected.mesh.rotation.y += da;
+      selected.mesh.rotation.y -= da;
       tAngle0 = getAngle(e);
     } else if (tMode === 'zoom') {
       /* pinch zoom camera distance */
@@ -412,7 +412,7 @@ window.addEventListener('mousemove', function(e) {
   } else if (mOrbitStart) {
     camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     camElev  = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
-      mOrbitStart.elev - (e.clientY - mOrbitStart.y) * 0.006));
+      mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
     applyCamera();
   }
 });
