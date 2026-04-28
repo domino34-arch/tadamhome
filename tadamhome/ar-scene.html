@@ -3,1039 +3,669 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-<title>TadamHome — Scène AR</title>
+<title>TadamHome - Scene AR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/","three/exporters/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/exporters/"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 :root{
   --bg:#F5F2EC;--ink:#1C1B18;--white:#FAFAF8;
-  --accent:#B8986A;--acc2:#D4B896;--acc3:#A07A4A;
-  --muted:#8A8880;--border:rgba(28,27,24,.12);
+  --accent:#B8986A;--acc3:#A07A4A;--muted:#8A8880;
+  --border:rgba(28,27,24,.12);--green:#27704A;
   --serif:'Cormorant Garamond',serif;--sans:'Outfit',sans-serif;
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--sans)}
 
-/* ══ SPLASH ══ */
+/* SPLASH */
 #splash{position:fixed;inset:0;z-index:9999;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center}
-#splash.hidden{display:none}
-.sp-sub{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:44px}
-.sp-features{display:flex;gap:28px;justify-content:center;margin-bottom:36px;width:100%;max-width:320px}
-.sp-feat{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;min-width:60px}
-.sp-feat-ico{font-size:22px;line-height:1}
-.sp-feat-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);text-align:center;white-space:nowrap}
-.sp-icon{width:60px;height:60px;margin:0 auto 18px;border:1px solid rgba(184,152,106,.3);display:flex;align-items:center;justify-content:center}
-.sp-icon svg{width:28px;height:28px;fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linecap:round}
+#splash.hidden{display:none!important}
+.sp-sub{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:40px}
+.sp-feats{display:flex;gap:24px;justify-content:center;margin-bottom:36px;width:100%;max-width:320px}
+.sp-feat{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1}
+.sp-feat-ico{font-size:20px;line-height:1}
+.sp-feat-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);text-align:center;white-space:nowrap}
+.sp-icon{width:56px;height:56px;margin:0 auto 16px;border:1px solid rgba(184,152,106,.3);display:flex;align-items:center;justify-content:center}
+.sp-icon svg{width:26px;height:26px;fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linecap:round}
 .sp-title{font-family:var(--serif);font-size:24px;font-weight:300;color:var(--white);margin-bottom:12px;line-height:1.2}
 .sp-title em{font-style:italic;color:var(--accent)}
-.sp-desc{font-size:13px;color:rgba(255,255,255,.4);line-height:1.8;margin-bottom:32px;max-width:300px}
-.sp-btn{padding:14px 36px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s;width:100%;max-width:280px}
-.sp-btn:hover{background:var(--acc3)}
+.sp-desc{font-size:13px;color:rgba(255,255,255,.4);line-height:1.8;margin-bottom:28px;max-width:300px}
+.sp-btn{padding:14px 36px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;width:100%;max-width:280px}
 .sp-hint{font-size:11px;color:rgba(255,255,255,.2);margin-top:14px;line-height:1.7}
 
-/* ══ AR LAYERS ══ */
+/* LAYERS */
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 #arCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:2;touch-action:none}
 
-/* ══ UI ══ */
+/* UI */
 #ui{position:fixed;inset:0;z-index:10;pointer-events:none}
+.ar-top{position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(to bottom,rgba(28,27,24,.8),transparent);display:flex;align-items:center;justify-content:space-between;padding:0 16px;pointer-events:all;padding-top:env(safe-area-inset-top,0)}
+.ar-btns{display:flex;gap:8px}
+.ar-btn{width:38px;height:38px;background:rgba(28,27,24,.65);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s;flex-shrink:0}
+.ar-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ar-btn.green{background:rgba(39,112,74,.7);border-color:rgba(39,112,74,.5)}
+.ar-btn.green:hover{background:rgba(39,112,74,.9)}
+.ar-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
+.ar-badge{position:absolute;top:-5px;right:-5px;width:14px;height:14px;background:var(--green);border-radius:50%;font-size:8px;color:#fff;display:none;align-items:center;justify-content:center;font-weight:600}
+.ar-badge.show{display:flex}
+#status{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);padding:7px 16px;font-size:11px;color:rgba(255,255,255,.8);letter-spacing:.06em;white-space:nowrap;pointer-events:none}
 
-.ar-top{position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(to bottom,rgba(28,27,24,.75),transparent);display:flex;align-items:center;justify-content:space-between;padding:0 16px;pointer-events:all;padding-top:env(safe-area-inset-top,0)}
-.ar-iBtn{width:38px;height:38px;background:rgba(28,27,24,.65);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s}
-.ar-iBtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.ar-iBtn:hover,.ar-iBtn.act{background:rgba(184,152,106,.3);border-color:var(--accent)}
-.ar-top-right{display:flex;gap:8px}
+/* OBJ CONTROLS */
+#objCtrls{position:absolute;bottom:210px;right:16px;display:flex;flex-direction:column;gap:8px;pointer-events:all;opacity:0;transform:translateX(16px);transition:all .3s}
+#objCtrls.show{opacity:1;transform:none}
+.oc-btn{width:42px;height:42px;background:rgba(28,27,24,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white)}
+.oc-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.oc-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
+.oc-btn.del:hover{background:rgba(192,57,43,.3);border-color:#C0392B}
 
-#statusBar{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);padding:7px 16px;font-size:11px;color:rgba(255,255,255,.8);letter-spacing:.06em;text-align:center;transition:all .4s;white-space:nowrap;pointer-events:none}
-#statusBar.accent{color:var(--accent);border-color:rgba(184,152,106,.3)}
-
-/* CROSSHAIR */
-#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:.4}
-
-/* OBJECT CONTROLS */
-#objControls{position:absolute;bottom:200px;right:16px;display:flex;flex-direction:column;gap:8px;pointer-events:all;opacity:0;transform:translateX(20px);transition:all .3s}
-#objControls.show{opacity:1;transform:none}
-.obj-btn{width:44px;height:44px;background:rgba(28,27,24,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s}
-.obj-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
-.obj-btn.del:hover{background:rgba(192,57,43,.3);border-color:rgba(192,57,43,.5)}
-.obj-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+/* UNDO */
+#undoBtn{position:absolute;bottom:210px;left:16px;width:42px;height:42px;background:rgba(28,27,24,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);pointer-events:all;opacity:0;transition:all .3s}
+#undoBtn.show{opacity:1}
+#undoBtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
 /* BOTTOM */
-.ar-bottom{position:absolute;bottom:0;left:0;right:0;padding:12px 14px calc(14px + env(safe-area-inset-bottom,0));background:linear-gradient(to top,rgba(28,27,24,.88),transparent);pointer-events:all}
-.scene-tray{display:flex;gap:8px;overflow-x:auto;padding:0 0 10px;margin-bottom:10px;scrollbar-width:none;align-items:flex-end}
-.scene-tray::-webkit-scrollbar{display:none}
-.tray-add-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.tray-add{width:54px;height:54px;background:rgba(184,152,106,.15);border:1.5px dashed rgba(184,152,106,.45);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent);transition:all .2s}
-.tray-add:hover{background:rgba(184,152,106,.25)}
-.tray-add-lbl{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase}
+.ar-bottom{position:absolute;bottom:0;left:0;right:0;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0));background:linear-gradient(to top,rgba(28,27,24,.9),transparent);pointer-events:all}
+.cat-btns{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none;padding-bottom:2px}
+.cat-btns::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:6px 11px;background:rgba(245,242,236,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:all .2s}
+.cat-btn:hover,.cat-btn.busy{background:rgba(184,152,106,.25);border-color:var(--accent)}
+.tray{display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none;align-items:flex-end}
+.tray::-webkit-scrollbar{display:none}
+.tray-add{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.tray-add-box{width:52px;height:52px;background:rgba(184,152,106,.12);border:1.5px dashed rgba(184,152,106,.4);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent)}
+.tray-lbl{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase}
 .tray-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.tray-thumb{width:54px;height:54px;background:rgba(245,242,236,.12);border:1.5px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .2s;position:relative}
+.tray-thumb{width:52px;height:52px;background:rgba(245,242,236,.1);border:1.5px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:19px;position:relative}
 .tray-item.sel .tray-thumb{border-color:var(--accent);background:rgba(184,152,106,.2)}
-.tray-item.placed .tray-thumb::after{content:'✓';position:absolute;top:-5px;right:-5px;width:15px;height:15px;background:var(--accent);font-size:9px;color:white;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.tray-name{font-size:9px;color:rgba(255,255,255,.5);text-align:center;max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
-.ar-place-btn{width:100%;padding:14px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;justify-content:center;gap:8px}
-.ar-place-btn:hover{background:var(--acc3)}
+.tray-item-lbl{font-size:9px;color:rgba(255,255,255,.45);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.ar-place-btn{width:100%;padding:13px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
 .ar-place-btn:disabled{background:rgba(255,255,255,.15);cursor:not-allowed;color:rgba(255,255,255,.4)}
-.ar-place-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.rotate-hint{font-size:10px;color:rgba(255,255,255,.3);text-align:center;letter-spacing:.06em;margin-bottom:6px;display:none}
-.rotate-hint.show{display:block}
+.ar-place-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
-
-/* CATEGORY QUICK MENU */
-.cat-quick-menu{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.cat-quick-menu::-webkit-scrollbar{display:none}
-.cat-q-btn{
-  flex-shrink:0;display:flex;align-items:center;gap:6px;
-  padding:7px 12px;
-  background:rgba(245,242,236,.12);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.15);
-  color:var(--white);font-family:var(--sans);font-size:10px;
-  font-weight:400;letter-spacing:.08em;text-transform:uppercase;
-  cursor:pointer;transition:all .2s;white-space:nowrap;
-}
-.cat-q-btn:hover,.cat-q-btn.loading{background:rgba(184,152,106,.25);border-color:var(--accent)}
-.cat-q-btn.loading{opacity:.7;pointer-events:none}
-.cat-q-btn span{font-size:14px;line-height:1}
-/* UNDO BUTTON */
-.ar-undo-btn{
-  position:absolute;bottom:200px;left:16px;
-  width:44px;height:44px;
-  background:rgba(28,27,24,.75);backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.14);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;color:var(--white);transition:all .2s;
-  pointer-events:all;opacity:0;transform:translateX(-10px);transition:all .3s;
-}
-.ar-undo-btn.show{opacity:1;transform:none}
-.ar-undo-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
-.ar-undo-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-
-/* AR EXPORT */
-#btnVoirAR{position:relative}
-#btnVoirAR::after{content:'AR';position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.08em;color:rgba(39,112,74,.9);font-family:var(--sans);white-space:nowrap}
-.ar-export-badge{
-  position:absolute;top:-6px;right:-6px;
-  width:14px;height:14px;background:#27704A;border-radius:50%;
-  font-size:8px;color:white;display:flex;align-items:center;justify-content:center;
-  font-weight:600;
-}
-/* CATALOGUE OVERLAY */
-#catOverlay{position:fixed;inset:0;z-index:300;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);display:none;flex-direction:column}
-#catOverlay.show{display:flex}
-.cat-head{padding:16px 18px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding-top:calc(16px + env(safe-area-inset-top,0))}
-.cat-title{font-family:var(--serif);font-size:22px;font-weight:300}
-.cat-title em{font-style:italic;color:var(--accent)}
-.cat-close{background:none;border:1px solid var(--border);width:34px;height:34px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .2s}
-.cat-close:hover{border-color:var(--accent);color:var(--accent)}
-.cat-body{flex:1;overflow-y:auto;background:var(--bg);padding:14px}
-.cat-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:10px 14px;margin-bottom:12px}
-.cat-search-wrap svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
-.cat-search-wrap input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
+/* CATALOGUE */
+#catModal{position:fixed;inset:0;z-index:200;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);display:none;flex-direction:column}
+#catModal.open{display:flex}
+.cat-head{background:var(--white);padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding-top:calc(16px + env(safe-area-inset-top,0))}
+.cat-head-title{font-family:var(--serif);font-size:22px;font-weight:300}
+.cat-head-title em{font-style:italic;color:var(--accent)}
+.cat-x{background:none;border:1px solid var(--border);width:32px;height:32px;cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.cat-body{flex:1;overflow-y:auto;background:var(--bg);padding:12px}
+.cat-searchbar{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:9px 12px;margin-bottom:10px}
+.cat-searchbar svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
+.cat-searchbar input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
 .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
-.cat-card{background:var(--white);padding:14px;cursor:pointer;transition:background .2s;display:flex;flex-direction:column;gap:6px}
-.cat-card:hover{background:var(--bg)}
-.cat-card-img{aspect-ratio:4/3;background:var(--bg2,#EDEAE2);display:flex;align-items:center;justify-content:center;font-size:28px}
+.cat-card{background:var(--white);padding:13px;cursor:pointer;display:flex;flex-direction:column;gap:5px}
+.cat-card-img{aspect-ratio:4/3;background:#EDEAE2;display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
 .cat-card-img img{width:100%;height:100%;object-fit:cover}
 .cat-brand{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
-.cat-name{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink)}
-.cat-add{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s;width:100%}
-.cat-add:hover,.cat-add.added{background:var(--accent)}
+.cat-name{font-family:var(--serif);font-size:15px}
+.cat-add-btn{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
+.cat-add-btn:hover,.cat-add-btn.done{background:var(--accent)}
 
-/* FLASH + TOAST + LOADING */
-#flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:200;transition:opacity .08s}
-#flash.show{opacity:1}
-.ar-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-8px);background:rgba(28,27,24,.92);backdrop-filter:blur(10px);color:var(--white);padding:9px 18px;font-size:12px;letter-spacing:.04em;opacity:0;transition:all .3s;z-index:500;white-space:nowrap;border-left:2px solid var(--accent)}
-.ar-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.ar-toast.ok{border-left-color:#27704A}
-.ar-toast.err{border-left-color:#C0392B}
-.loading-ov{position:fixed;inset:0;z-index:400;background:rgba(28,27,24,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
-.loading-ov.show{display:flex}
-.loader{width:36px;height:36px;border:2px solid rgba(184,152,106,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-.loader-txt{font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.06em}
+/* LOADING + FLASH + TOAST */
+#loader{position:fixed;inset:0;z-index:300;background:rgba(28,27,24,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loader.show{display:flex}
+.spin{width:34px;height:34px;border:2px solid rgba(184,152,106,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.spin-txt{font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.06em}
 @keyframes spin{to{transform:rotate(360deg)}}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:250;transition:opacity .08s}
+#flash.on{opacity:1}
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-8px);background:rgba(28,27,24,.92);backdrop-filter:blur(10px);color:var(--white);padding:9px 18px;font-size:12px;letter-spacing:.04em;opacity:0;transition:all .3s;z-index:400;white-space:nowrap;border-left:2px solid var(--accent)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-left-color:var(--green)}
+#toast.err{border-left-color:#C0392B}
 </style>
 </head>
 <body>
 
 <!-- SPLASH -->
 <div id="splash">
-  <img src="logo_blanc.png" alt="TadamHome" style="height:28px;object-fit:contain;margin-bottom:6px" onerror="this.style.display='none'"/>
-  <div class="sp-sub">Scène AR — Multi-modèles</div>
-  <div class="sp-features">
-    <div class="sp-feat"><div class="sp-feat-ico">◈</div><div class="sp-feat-lbl">Placer</div></div>
-    <div class="sp-feat"><div class="sp-feat-ico">↔</div><div class="sp-feat-lbl">Déplacer</div></div>
-    <div class="sp-feat"><div class="sp-feat-ico">↻</div><div class="sp-feat-lbl">Pivoter</div></div>
-    <div class="sp-feat"><div class="sp-feat-ico">📷</div><div class="sp-feat-lbl">Capturer</div></div>
+  <img src="logo_blanc.png" alt="TadamHome" style="height:26px;object-fit:contain;margin-bottom:6px" onerror="this.style.display='none'"/>
+  <div class="sp-sub">Scene AR - Multi-modeles</div>
+  <div class="sp-feats">
+    <div class="sp-feat"><div class="sp-feat-ico">&#9672;</div><div class="sp-feat-lbl">Placer</div></div>
+    <div class="sp-feat"><div class="sp-feat-ico">&#8596;</div><div class="sp-feat-lbl">Deplacer</div></div>
+    <div class="sp-feat"><div class="sp-feat-ico">&#8635;</div><div class="sp-feat-lbl">Pivoter</div></div>
+    <div class="sp-feat"><div class="sp-feat-ico">&#128247;</div><div class="sp-feat-lbl">Capturer</div></div>
   </div>
   <div class="sp-icon">
     <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
   </div>
-  <div class="sp-title">Composez votre <em>espace</em><br>en réalité augmentée</div>
-  <div class="sp-desc">Placez plusieurs meubles simultanément. Déplacez, pivotez et capturez votre aménagement.</div>
-  <button class="sp-btn" onclick="startAR()">Lancer la scène AR →</button>
-  <div class="sp-hint">Autorisez l'accès à la caméra<br>iOS Safari · Android Chrome</div>
+  <div class="sp-title">Composez votre <em>espace</em><br>en realite augmentee</div>
+  <div class="sp-desc">Placez plusieurs meubles simultanement. Deplacez, pivotez et capturez votre amenagement.</div>
+  <button class="sp-btn" onclick="startAR()">Lancer la scene AR</button>
+  <div class="sp-hint">iOS Safari · Android Chrome</div>
 </div>
 
-<!-- LOADING -->
-<div class="loading-ov" id="loadingOv">
-  <div class="loader"></div>
-  <div class="loader-txt" id="loadingTxt">Initialisation…</div>
-</div>
+<!-- LOADER -->
+<div id="loader"><div class="spin"></div><div class="spin-txt" id="loaderTxt">Chargement...</div></div>
 
-<!-- CAMERA VIDEO -->
+<!-- VIDEO + CANVAS -->
 <video id="videoEl" autoplay playsinline muted></video>
-
-<!-- THREE.JS CANVAS -->
 <canvas id="arCanvas"></canvas>
 
-<!-- CATALOGUE OVERLAY -->
-<div id="catOverlay">
+<!-- CATALOGUE -->
+<div id="catModal">
   <div class="cat-head">
-    <div class="cat-title">Ajouter à la <em>scène</em></div>
-    <button class="cat-close" onclick="closeCat()">✕</button>
+    <div class="cat-head-title">Ajouter a la <em>scene</em></div>
+    <button class="cat-x" onclick="closeCat()">x</button>
   </div>
   <div class="cat-body">
-    <div class="cat-search-wrap">
+    <div class="cat-searchbar">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="catSearch" placeholder="Rechercher…" oninput="filterCat()"/>
+      <input type="text" id="catSearch" placeholder="Rechercher..." oninput="filterCat()"/>
     </div>
-    <div class="cat-grid" id="catGrid"></div>
+    <div class="cat-grid" id="catGrid"><div style="grid-column:1/-1;padding:24px;text-align:center;font-size:13px;color:var(--muted)">Chargement...</div></div>
   </div>
 </div>
 
-<!-- FLASH -->
+<!-- FLASH + TOAST -->
 <div id="flash"></div>
-<div class="ar-toast" id="arToast"></div>
+<div id="toast"></div>
 
 <!-- UI -->
 <div id="ui">
+  <!-- TOPBAR -->
   <div class="ar-top">
-    <a href="index.html"><img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block" onerror="this.style.display='none'"/></a>
-    <div class="ar-top-right">
-      <div class="ar-iBtn" id="btnVoirAR" onclick="exporterVersAR()" title="Voir en AR Quick Look" style="background:rgba(39,112,74,.7);border-color:rgba(39,112,74,.5)">
+    <a href="index.html"><img src="logo_blanc.png" alt="TadamHome" style="height:20px;object-fit:contain" onerror="this.style.display='none'"/></a>
+    <div class="ar-btns">
+      <div class="ar-btn green" id="btnAR" onclick="exportAR()" title="Voir en AR">
         <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><circle cx="12" cy="12" r="2"/></svg>
+        <div class="ar-badge" id="arBadge"></div>
       </div>
-      <div class="ar-iBtn" onclick="takePhoto()" title="Photo">
+      <div class="ar-btn" onclick="takePhoto()" title="Photo">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
-      <div class="ar-iBtn" onclick="clearScene()" title="Effacer">
+      <div class="ar-btn" onclick="clearAll()" title="Effacer">
         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       </div>
-      <div class="ar-iBtn" onclick="goBack()" title="Quitter">
+      <div class="ar-btn" onclick="history.back()" title="Quitter">
         <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </div>
     </div>
   </div>
 
-  <div id="statusBar">Ajoutez des meubles via le bouton +</div>
+  <!-- STATUS -->
+  <div id="status">Appuyez sur + pour ajouter un meuble</div>
 
-  <div id="crosshair">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5">
-      <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
-    </svg>
+  <!-- OBJ CONTROLS -->
+  <div id="objCtrls">
+    <div class="oc-btn" onclick="rotObj(-15)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></div>
+    <div class="oc-btn" onclick="rotObj(15)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.5"/></svg></div>
+    <div class="oc-btn" onclick="scaObj(1.15)"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></div>
+    <div class="oc-btn" onclick="scaObj(0.87)"><svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg></div>
+    <div class="oc-btn del" onclick="delObj()"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
   </div>
 
-  <!-- UNDO LAST -->
-  <div class="ar-undo-btn" id="undoBtn" onclick="undoLastObject()" title="Annuler dernier">
+  <!-- UNDO -->
+  <div id="undoBtn" onclick="undoLast()">
     <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
   </div>
 
-  <div id="objControls">
-    <div class="obj-btn" onclick="rotateObj(-15)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg></div>
-    <div class="obj-btn" onclick="rotateObj(15)"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.5"/></svg></div>
-    <div class="obj-btn" onclick="scaleObj(1.15)"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></div>
-    <div class="obj-btn" onclick="scaleObj(0.87)"><svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg></div>
-    <div class="obj-btn del" onclick="deleteObj()"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
-  </div>
-
+  <!-- BOTTOM -->
   <div class="ar-bottom">
-    <div class="rotate-hint" id="rotateHint">Glissez le meuble sélectionné · Pincez pour pivoter</div>
-    <!-- CATEGORY QUICK MENU -->
-    <div class="cat-quick-menu" id="catQuickMenu">
-      <button class="cat-q-btn" onclick="quickAdd('canape')"><span>🛋️</span> Canapé</button>
-      <button class="cat-q-btn" onclick="quickAdd('table')"><span>🪵</span> Table</button>
-      <button class="cat-q-btn" onclick="quickAdd('fauteuil')"><span>🪑</span> Fauteuil</button>
-      <button class="cat-q-btn" onclick="quickAdd('luminaire')"><span>💡</span> Lampe</button>
-      <button class="cat-q-btn" onclick="quickAdd('lit')"><span>🛏️</span> Lit</button>
+    <!-- CATEGORIES -->
+    <div class="cat-btns">
+      <button class="cat-btn" data-cat="canape" onclick="quickAdd(this,'canape')">&#128763; Canape</button>
+      <button class="cat-btn" data-cat="table" onclick="quickAdd(this,'table')">&#129717; Table</button>
+      <button class="cat-btn" data-cat="fauteuil" onclick="quickAdd(this,'fauteuil')">&#129937; Fauteuil</button>
+      <button class="cat-btn" data-cat="luminaire" onclick="quickAdd(this,'luminaire')">&#128161; Lampe</button>
+      <button class="cat-btn" data-cat="lit" onclick="quickAdd(this,'lit')">&#128719; Lit</button>
     </div>
-    <div class="scene-tray" id="sceneTray">
-      <div class="tray-add-wrap" onclick="openCat()">
-        <div class="tray-add">+</div>
-        <div class="tray-add-lbl">Ajouter</div>
+    <!-- TRAY -->
+    <div class="tray" id="tray">
+      <div class="tray-add" onclick="openCat()">
+        <div class="tray-add-box">+</div>
+        <div class="tray-lbl">Tout</div>
       </div>
     </div>
-    <button class="ar-place-btn" id="placeBtn" onclick="placeObj()">
+    <!-- PLACE BUTTON -->
+    <button class="ar-place-btn" id="placeBtn" onclick="placeObj()" disabled>
       <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Placer au centre
+      Placer le meuble
     </button>
   </div>
 </div>
 
-
-<!-- Bridge: expose module functions to inline onclick handlers -->
-<script>
-function startAR()     { if(window._startAR)     window._startAR();     else console.error('startAR not ready'); }
-function openCat()     { if(window._openCat)      window._openCat();     }
-function closeCat()    { if(window._closeCat)     window._closeCat();    }
-function filterCat()   { if(window._filterCat)    window._filterCat();   }
-function clearScene()  { if(window._clearScene)   window._clearScene();  }
-function takePhoto()   { if(window._takePhoto)     window._takePhoto();   }
-function exporterVersAR(){ if(window._exporterVersAR) window._exporterVersAR(); }
-function goBack()      { history.back(); }
-function rotateObj(d)  { if(window._rotateObj)    window._rotateObj(d);  }
-function scaleObj(f)   { if(window._scaleObj)     window._scaleObj(f);   }
-function deleteObj()   { if(window._deleteObj)    window._deleteObj();   }
-function undoLastObject(){ if(window._undoLastObject) window._undoLastObject(); }
-function quickAdd(cat) { if(window._quickAdd)     window._quickAdd(cat); }
-function addFromCat(id){ if(window._addFromCat)   window._addFromCat(id);}
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}
 </script>
+
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 
-// Loader global pour ajouterMeubleReel
+/* CONFIG */
+const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 const loader = new GLTFLoader();
+const usdz  = new USDZExporter();
+const ground = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+const ray    = new THREE.Raycaster();
 
-/* ── CONFIG ── */
-const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
-const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
-const { createClient } = supabase;
-const sb = createClient(SB_URL, SB_KEY);
-
-/* ── STATE ── */
+/* STATE */
 let renderer, scene, camera, animId;
-let sceneObjects = [];   // { mesh, id, name, sceneId }
-let queuedModels = [];   // loaded but not placed
-let selectedObj  = null;
-let pendingModel = null;
-let allProducts  = [];
-let touchStart   = null;
-let lastPinch    = 0;
-let isDragging   = false;
+let placed   = [];  // { mesh, id, name, sceneId }
+let history  = [];  // for undo
+let pending  = null;// model ready to place
+let selected = null;// currently selected object
+let products = [];  // from supabase
+let devAlpha = 0, devBeta = 45, devGamma = 0, useGyro = false;
+let touch0 = null, lastPinch = 0, dragging = false;
 
-/* ── FLOOR GRID (visual reference) ── */
-let floorGrid;
-
-/* ── START ── */
-window._startAR = async function() {
-  setLoading(true, 'Accès à la caméra…');
+/* START */
+window.startAR = async function() {
+  loading(true, 'Camera...');
   try {
-    // Camera access
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-    const video = document.getElementById('videoEl');
-    video.srcObject = stream;
-    await new Promise(r => video.onloadedmetadata = r);
-
-    setLoading(true, 'Initialisation 3D…');
-    initThree();
-    document.getElementById('splash').classList.add('hidden');
-    setLoading(false);
-    await loadCatalogue();
-    // Load queued models from wallet/scan
-    const queue = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
-    if (queue.length) {
-      for (const item of queue) { if (item.glb) await loadModel(item); }
-      localStorage.removeItem('tadam_ar_scene');
-    }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' }, audio:false });
+    document.getElementById('videoEl').srcObject = stream;
   } catch(e) {
-    setLoading(false);
-    document.getElementById('splash').classList.add('hidden');
-    toast('Caméra non disponible — mode 3D sans AR", "err");
-    initThree();
-    await loadCatalogue();
+    msg('Camera non disponible - mode 3D', 'err');
   }
+  loading(true, 'Initialisation 3D...');
+  initThree();
+  document.getElementById('splash').classList.add('hidden');
+  loading(false);
+
+  // Device orientation
+  function startGyro() {
+    window.addEventListener('deviceorientation', function(e) {
+      if (e.alpha === null) return;
+      devAlpha = e.alpha||0; devBeta = e.beta||45; devGamma = e.gamma||0;
+      useGyro = true;
+    });
+  }
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function(s) { if (s==='granted') startGyro(); }).catch(startGyro);
+  } else { startGyro(); }
+
+  await loadProducts();
+  // Load from localStorage (wallet / scan)
+  const queue = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
+  for (const item of queue) { if (item.glb) await loadGLB(item); }
+  if (queue.length) localStorage.removeItem('tadam_ar_scene');
 };
 
-/* ── THREE.JS INIT ── */
+/* THREE INIT */
 function initThree() {
   const canvas = document.getElementById('arCanvas');
-  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+  renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true, preserveDrawingBuffer:true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
+  scene  = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, 100);
   camera.position.set(0, 1.2, 0);
-  camera.lookAt(0, 1.2, -1); // looking forward
+  camera.lookAt(0, 1.2, -1);
 
-  // Lighting
   scene.add(new THREE.AmbientLight(0xffffff, 1.4));
   const dir = new THREE.DirectionalLight(0xffffff, 1.8);
-  dir.position.set(2, 5, 3);
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(1024, 1024);
+  dir.position.set(2,5,3); dir.castShadow = true;
+  dir.shadow.mapSize.set(1024,1024);
   scene.add(dir);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
+  scene.add(new THREE.HemisphereLight(0xffffff,0x888888,0.6));
 
-  // Floor reference grid (subtle)
-  const gridHelper = new THREE.GridHelper(6, 12, 0xB8986A, 0xB8986A);
-  gridHelper.material.opacity = 0.15;
-  gridHelper.material.transparent = true;
-  gridHelper.position.y = 0;
-  scene.add(gridHelper);
-  floorGrid = gridHelper;
+  const grid = new THREE.GridHelper(8,10,0xB8986A,0xB8986A);
+  grid.material.opacity = 0.12; grid.material.transparent = true;
+  scene.add(grid);
 
-  // Shadow receiver
-  const shadowGeo = new THREE.PlaneGeometry(10, 10);
-  const shadowMat = new THREE.ShadowMaterial({ opacity: 0.25 });
-  const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
-  shadowPlane.rotation.x = -Math.PI / 2;
-  shadowPlane.receiveShadow = true;
-  scene.add(shadowPlane);
+  const sp = new THREE.Mesh(new THREE.PlaneGeometry(10,10), new THREE.ShadowMaterial({opacity:.25}));
+  sp.rotation.x = -Math.PI/2; sp.receiveShadow = true; scene.add(sp);
 
-  // Touch controls on camera
-  setupCameraControls();
-
-  // Resize
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+  canvas.addEventListener('touchstart', onTS, {passive:false});
+  canvas.addEventListener('touchmove',  onTM, {passive:false});
+  canvas.addEventListener('touchend',   onTE, {passive:false});
+  window.addEventListener('resize', function() {
+    camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
   animate();
-  setStatus('Appuyez sur + pour ajouter un meuble');
 }
 
-/* ── ANIMATE ── */
 function animate() {
   animId = requestAnimationFrame(animate);
-  updateCamera();
+  if (useGyro) {
+    const b = THREE.MathUtils.degToRad(devBeta);
+    const a = THREE.MathUtils.degToRad(devAlpha);
+    camera.quaternion.setFromEuler(new THREE.Euler(b - Math.PI/2, a, -THREE.MathUtils.degToRad(devGamma), 'YXZ'));
+  }
   renderer.render(scene, camera);
 }
 
-/* ── CAMERA + TOUCH CONTROLS ── */
-// Camera is FIXED in position — only rotation changes via gyroscope
-// Objects are in WORLD SPACE — they stay anchored as camera rotates
-let groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-let raycaster   = new THREE.Raycaster();
-let devAlpha = 0, devBeta = 45, devGamma = 0;
-let useOrientation = false;
-let lastTwoAngle = null;
-
-function setupCameraControls() {
-  // Fix camera position — only orientation rotates it
-  camera.position.set(0, 1.2, 0);
-
-  // Try to get device orientation immediately
-  function startOrientation() {
-    window.addEventListener('deviceorientation', e => {
-      if (e.alpha === null) return;
-      devAlpha  = e.alpha  || 0;
-      devBeta   = e.beta   || 45;
-      devGamma  = e.gamma  || 0;
-      useOrientation = true;
-    }, false);
-  }
-
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 13+ needs permission
-    DeviceOrientationEvent.requestPermission()
-      .then(s => { if (s === 'granted') startOrientation(); })
-      .catch(() => startOrientation());
-  } else {
-    startOrientation();
-  }
-
-  const canvas = document.getElementById('arCanvas');
-  canvas.addEventListener('touchstart', onTStart, { passive: false });
-  canvas.addEventListener('touchmove',  onTMove,  { passive: false });
-  canvas.addEventListener('touchend',   onTEnd,   { passive: false });
-}
-
-function onTStart(e) {
+/* TOUCH */
+function onTS(e) {
   e.preventDefault();
   if (e.touches.length === 1) {
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-    isDragging = false;
+    touch0 = { x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now() };
+    dragging = false;
   } else if (e.touches.length === 2) {
-    lastPinch = pinchDist(e);
-    lastTwoAngle = twoFingerAngle(e);
+    lastPinch = pinchD(e);
   }
 }
-
-function onTMove(e) {
+function onTM(e) {
   e.preventDefault();
-  if (e.touches.length === 1 && touchStart) {
-    const dx = e.touches[0].clientX - touchStart.x;
-    const dy = e.touches[0].clientY - touchStart.y;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-      isDragging = true;
-      if (selectedObj) {
-        // ── MOVE OBJECT on ground plane via raycast ──
-        const nx = (e.touches[0].clientX / window.innerWidth)  * 2 - 1;
-        const ny = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
-        const hit = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(groundPlane, hit)) {
-          selectedObj.mesh.position.x = hit.x;
-          selectedObj.mesh.position.z = hit.z;
-          // Keep on floor
-          const b = new THREE.Box3().setFromObject(selectedObj.mesh);
-          if (b.min.y < 0) selectedObj.mesh.position.y -= b.min.y;
-        }
-        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: touchStart.time };
+  if (e.touches.length === 1 && touch0 && selected) {
+    const dx = e.touches[0].clientX - touch0.x;
+    const dy = e.touches[0].clientY - touch0.y;
+    if (Math.abs(dx)>4||Math.abs(dy)>4) {
+      dragging = true;
+      const nx = (e.touches[0].clientX/window.innerWidth)*2-1;
+      const ny = -(e.touches[0].clientY/window.innerHeight)*2+1;
+      ray.setFromCamera(new THREE.Vector2(nx,ny), camera);
+      const hit = new THREE.Vector3();
+      if (ray.ray.intersectPlane(ground, hit)) {
+        selected.mesh.position.x = hit.x;
+        selected.mesh.position.z = hit.z;
+        const b2 = new THREE.Box3().setFromObject(selected.mesh);
+        if (b2.min.y < 0) selected.mesh.position.y -= b2.min.y;
       }
-      // No manual orbit — orientation handles camera rotation
     }
-  } else if (e.touches.length === 2 && selectedObj) {
-    // Two fingers on selected → rotate it
-    const a = twoFingerAngle(e);
-    if (lastTwoAngle !== null) {
-      selectedObj.mesh.rotation.y += (a - lastTwoAngle);
-    }
-    lastTwoAngle = a;
-    // Pinch = scale
-    const d = pinchDist(e);
-    const s = selectedObj.mesh.scale.x * (d / lastPinch);
-    if (s > 0.05 && s < 12) selectedObj.mesh.scale.setScalar(s);
+  } else if (e.touches.length === 2 && selected) {
+    const d = pinchD(e);
+    const s = selected.mesh.scale.x * (d/lastPinch);
+    if (s>0.05&&s<12) selected.mesh.scale.setScalar(s);
     lastPinch = d;
   }
 }
-
-function onTEnd(e) {
-  if (!isDragging && touchStart && e.changedTouches.length === 1) {
-    if (Date.now() - touchStart.time < 300) handleTap(e.changedTouches[0]);
+function onTE(e) {
+  if (!dragging && touch0 && e.changedTouches.length===1 && (Date.now()-touch0.t)<300) {
+    tapSelect(e.changedTouches[0]);
   }
-  touchStart = null; isDragging = false; lastTwoAngle = null;
+  touch0 = null; dragging = false;
 }
-
-function updateCamera() {
-  if (!useOrientation) return;
-  // Apply device orientation to camera rotation
-  // Camera stays at fixed position, only rotates
-  const alpha = THREE.MathUtils.degToRad(devAlpha);
-  const beta  = THREE.MathUtils.degToRad(devBeta);
-  const gamma = THREE.MathUtils.degToRad(devGamma);
-
-  // Euler in device frame → Three.js camera
-  const euler = new THREE.Euler();
-  // Portrait mode
-  euler.set(
-    beta  - Math.PI/2,
-    alpha,
-   -gamma,
-    'YXZ'
-  );
-  camera.quaternion.setFromEuler(euler);
-}
-
-function handleTap(touch) {
-  const rect = document.getElementById('arCanvas').getBoundingClientRect();
-  const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-  const ray = new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(x, y), camera);
-  const meshes = sceneObjects.map(o => o.mesh);
-  const hits = ray.intersectObjects(meshes, true);
-  if (hits.length > 0) {
+function tapSelect(t) {
+  const nx = (t.clientX/window.innerWidth)*2-1;
+  const ny = -(t.clientY/window.innerHeight)*2+1;
+  ray.setFromCamera(new THREE.Vector2(nx,ny), camera);
+  const hits = ray.intersectObjects(placed.map(function(o){return o.mesh;}), true);
+  if (hits.length) {
     let m = hits[0].object;
-    while (m.parent && !sceneObjects.find(o => o.mesh === m)) m = m.parent;
-    const found = sceneObjects.find(o => o.mesh === m);
-    if (found) { selectObj(found); return; }
+    while (m.parent && !placed.find(function(o){return o.mesh===m;})) m=m.parent;
+    const found = placed.find(function(o){return o.mesh===m;});
+    if (found) { sel(found); return; }
   }
-  selectObj(null);
+  sel(null);
+}
+function pinchD(e) {
+  const dx = e.touches[0].clientX-e.touches[1].clientX;
+  const dy = e.touches[0].clientY-e.touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
 }
 
-function pinchDist(e) {
-  const dx = e.touches[0].clientX - e.touches[1].clientX;
-  const dy = e.touches[0].clientY - e.touches[1].clientY;
-  return Math.sqrt(dx*dx + dy*dy);
-}
-function twoFingerAngle(e) {
-  return Math.atan2(e.touches[0].clientY - e.touches[1].clientY,
-                    e.touches[0].clientX - e.touches[1].clientX);
-}
-
-
-
-/* ── EXPORT USDZ MULTI-MODÈLES → AR QUICK LOOK iOS ── */
-window._exporterVersAR = async function() {
-  if (!sceneObjects.length) {
-    toast("Ajoutez des meubles avant de lancer l'AR", "err");
-    return;
-  }
-
-  // Vérifier si iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-  setLoading(true, 'Génération de la scène AR…');
+/* LOAD GLB */
+async function loadGLB(item) {
+  if (!item.glb) return;
+  loading(true, 'Chargement '+item.name+'...');
   try {
-    const exporter = new USDZExporter();
+    const gltf = await new Promise(function(res,rej){ loader.load(item.glb,res,undefined,rej); });
+    const m = gltf.scene;
+    const box = new THREE.Box3().setFromObject(m);
+    const h = box.max.y - box.min.y;
+    const tgt = item.dimensions&&item.dimensions.h ? item.dimensions.h/100 : catH(item.category);
+    if (h>0) m.scale.setScalar(tgt/h);
+    const b2 = new THREE.Box3().setFromObject(m);
+    m.position.y -= b2.min.y;
+    m.traverse(function(c) {
+      if (!c.isMesh) return;
+      c.castShadow = true; c.receiveShadow = true;
+      if (c.material) {
+        if (c.material.map) c.material.map.colorSpace = THREE.SRGBColorSpace;
+        c.material.needsUpdate = true;
+      }
+      c.userData.orig = c.material;
+    });
+    m.visible = false; m.position.set(0,0,-1.5);
 
-    // Créer un groupe avec tous les meubles actuels
-    const exportGroup = new THREE.Group();
-    sceneObjects.forEach(obj => {
+    const obj = { mesh:m, id:item.id||''+Date.now(), name:item.name, sceneId:Date.now(), icon:icon(item.category) };
+    pending = obj;
+    addTrayItem(obj);
+    loading(false);
+    document.getElementById('placeBtn').disabled = false;
+    setStatus(item.name+' - Appuyez sur "Placer le meuble"', true);
+    msg(item.name+' charge', 'ok');
+  } catch(e) {
+    loading(false);
+    msg('Erreur chargement', 'err');
+  }
+}
+
+/* PLACE */
+window.placeObj = function() {
+  if (!pending) return;
+  const m = pending.mesh.clone();
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir); dir.y=0; dir.normalize();
+  m.position.set(camera.position.x + dir.x*1.8, 0, camera.position.z + dir.z*1.8);
+  const b = new THREE.Box3().setFromObject(m);
+  if (b.min.y<0) m.position.y -= b.min.y;
+  m.visible = true;
+  m.traverse(function(c){ if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.userData.orig=c.material;} });
+  scene.add(m);
+  const obj = { mesh:m, id:pending.id, name:pending.name, sceneId:Date.now(), icon:pending.icon };
+  placed.push(obj);
+  history.push(obj);
+  markTray(pending.id);
+  pending = null;
+  sel(obj);
+  document.getElementById('placeBtn').disabled = true;
+  document.getElementById('undoBtn').classList.add('show');
+  updateBadge();
+  setStatus(placed.length+' meuble'+(placed.length>1?'s':'')+' - Touchez pour selectionner');
+  msg(obj.name+' place', 'ok');
+};
+
+/* SELECT */
+function sel(obj) {
+  if (selected) {
+    selected.mesh.traverse(function(c){ if(c.isMesh&&c.userData.orig) c.material=c.userData.orig; });
+  }
+  selected = obj;
+  document.getElementById('objCtrls').classList.toggle('show', !!obj);
+  if (!obj) return;
+  obj.mesh.traverse(function(c){
+    if (!c.isMesh) return;
+    c.material = c.material.clone();
+    c.material.emissive = new THREE.Color(0xB8986A);
+    c.material.emissiveIntensity = 0.2;
+  });
+}
+
+/* CONTROLS */
+window.rotObj = function(d) { if (selected) selected.mesh.rotation.y += d*Math.PI/180; };
+window.scaObj = function(f) {
+  if (!selected) return;
+  const s = selected.mesh.scale.x*f;
+  if (s>0.05&&s<12) selected.mesh.scale.setScalar(s);
+};
+window.delObj = function() {
+  if (!selected) return;
+  scene.remove(selected.mesh);
+  placed = placed.filter(function(o){return o.sceneId!==selected.sceneId;});
+  history = history.filter(function(o){return o.sceneId!==selected.sceneId;});
+  const tEl = document.querySelector('.tray-item[data-sid="'+selected.sceneId+'"]');
+  if (tEl) tEl.remove();
+  selected = null;
+  document.getElementById('objCtrls').classList.remove('show');
+  if (!history.length) document.getElementById('undoBtn').classList.remove('show');
+  updateBadge();
+  setStatus(placed.length>0 ? placed.length+' meuble'+(placed.length>1?'s':'') : 'Appuyez sur + pour ajouter');
+  msg('Meuble supprime');
+};
+window.undoLast = function() {
+  if (!history.length) return;
+  const last = history.pop();
+  scene.remove(last.mesh);
+  placed = placed.filter(function(o){return o.sceneId!==last.sceneId;});
+  if (selected&&selected.sceneId===last.sceneId){ selected=null; document.getElementById('objCtrls').classList.remove('show'); }
+  const tEl = document.querySelector('.tray-item[data-sid="'+last.sceneId+'"]');
+  if (tEl) tEl.remove();
+  if (!history.length) document.getElementById('undoBtn').classList.remove('show');
+  updateBadge();
+  msg('Annule: '+last.name);
+};
+window.clearAll = function() {
+  placed.forEach(function(o){scene.remove(o.mesh);});
+  placed=[]; history=[]; selected=null;
+  document.getElementById('objCtrls').classList.remove('show');
+  document.getElementById('undoBtn').classList.remove('show');
+  document.querySelectorAll('.tray-item').forEach(function(t){t.remove();});
+  updateBadge();
+  setStatus('Appuyez sur + pour ajouter un meuble');
+  msg('Scene effacee');
+};
+
+/* EXPORT USDZ -> AR QUICK LOOK iOS */
+window.exportAR = async function() {
+  if (!placed.length) { msg('Ajoutez des meubles avant de lancer l\'AR', 'err'); return; }
+  loading(true, 'Generation USDZ...');
+  try {
+    const grp = new THREE.Group();
+    placed.forEach(function(obj) {
       const clone = obj.mesh.clone();
-      // Préserver position/rotation/scale réels
       clone.position.copy(obj.mesh.position);
       clone.rotation.copy(obj.mesh.rotation);
       clone.scale.copy(obj.mesh.scale);
-      // S'assurer que les textures sont encodées correctement
-      clone.traverse(child => {
-        if (child.isMesh && child.material) {
-          child.material = child.material.clone();
-          if (child.material.map) {
-            child.material.map.colorSpace = THREE.SRGBColorSpace;
-            child.material.map.needsUpdate = true;
-          }
-        }
-      });
-      exportGroup.add(clone);
-    });
-
-    const arraybuffer = await exporter.parse(exportGroup, {
-      maxTextureSize: 1024 // Optimiser pour mobile
-    });
-
-    setLoading(false);
-
-    const blob = new Blob([arraybuffer], { type: 'model/vnd.usdz+zip' });
-    const url  = URL.createObjectURL(blob);
-
-    if (isIOS) {
-      // ── iOS : ouvrir AR Quick Look ──
-      // Le trick : <a rel="ar"> avec <img> enfant déclenche AR Quick Look
-      const anchor = document.createElement('a');
-      anchor.setAttribute('rel', 'ar');
-      anchor.href = url;
-      // L'img enfant est requis par Safari pour déclencher Quick Look
-      const img = document.createElement('img');
-      anchor.appendChild(img);
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      toast('🏠 Ouverture AR Quick Look…', 'ok');
-    } else {
-      // ── Android/Desktop : télécharger le USDZ ──
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `TadamHome-scene-${Date.now()}.usdz`;
-      a.click();
-      toast('📥 Scène USDZ téléchargée', 'ok');
-    }
-
-    // Nettoyer l'URL après usage
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-  } catch(e) {
-    setLoading(false);
-    console.error('USDZ export error:', e);
-    toast('Erreur export AR : ' + e.message, 'err');
-  }
-};
-
-// Mettre à jour le badge du bouton AR avec le nombre d'objets
-function updateARBadge() {
-  const btn = document.getElementById('btnVoirAR');
-  if (!btn) return;
-  let badge = btn.querySelector('.ar-export-badge');
-  if (sceneObjects.length > 0) {
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.className = 'ar-export-badge';
-      btn.appendChild(badge);
-    }
-    badge.textContent = sceneObjects.length;
-  } else if (badge) {
-    badge.remove();
-  }
-}
-
-/* ── QUICK ADD PAR CATÉGORIE ── */
-// Historique pour undo
-let objectHistory = [];
-
-window._quickAdd = async function(categorie) {
-  // Chercher le premier produit de cette catégorie dans Supabase
-  const btn = document.querySelector(`.cat-q-btn[onclick="quickAdd('${categorie}')"]`);
-  if (btn) btn.classList.add('loading');
-
-  // Chercher dans les produits déjà chargés
-  const matches = allProducts.filter(p => {
-    const cat = (p.category || '').toLowerCase();
-    return cat.includes(categorie) && p.model_glb_url;
-  });
-
-  if (!matches.length) {
-    toast(`Aucun ${categorie} disponible`, 'err');
-    if (btn) btn.classList.remove('loading');
-    return;
-  }
-
-  // Prendre le premier disponible
-  const p = matches[0];
-  await ajouterMeubleReel(p.model_glb_url, {
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    dimensions: p.dimensions,
-    usdz: p.model_usdz_url
-  });
-  if (btn) btn.classList.remove('loading');
-};
-
-/* ── COEUR : CHARGER UN GLB AVEC TEXTURES ── */
-window.ajouterMeubleReel = async function(urlModele, meta = {}) {
-  if (!urlModele) { toast('URL du modèle manquante', 'err'); return; }
-  setLoading(true, `Chargement de ${meta.name || 'meuble'}…`);
-  try {
-    const gltf = await new Promise((resolve, reject) => {
-      loader.load(urlModele, resolve, undefined, reject);
-    });
-
-    const modele = gltf.scene;
-
-    // ── NORMALISATION ÉCHELLE (1 unit = 1 mètre) ──
-    const box = new THREE.Box3().setFromObject(modele);
-    const modelH = box.max.y - box.min.y;
-    const targetH = meta.dimensions?.h
-      ? meta.dimensions.h / 100
-      : targetHeight(meta.category);
-    if (modelH > 0) {
-      const scale = targetH / modelH;
-      modele.scale.setScalar(scale);
-    }
-
-    // ── ANCRER AU SOL ──
-    const box2 = new THREE.Box3().setFromObject(modele);
-    modele.position.y -= box2.min.y; // Positionner base à Y=0
-
-    // Placer devant la caméra
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    dir.y = 0; dir.normalize();
-    modele.position.x = camera.position.x + dir.x * 1.5;
-    modele.position.z = camera.position.z + dir.z * 1.5;
-
-    // ── TEXTURES — s'assurer que les textures GLB sont préservées ──
-    modele.traverse(child => {
-      if (child.isMesh) {
-        child.castShadow    = true;
-        child.receiveShadow = true;
-        // Forcer encoding correct pour préserver les couleurs
-        if (child.material) {
-          if (child.material.map)          child.material.map.colorSpace = THREE.SRGBColorSpace;
-          if (child.material.emissiveMap)  child.material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-          child.material.needsUpdate = true;
-        }
-        child.userData.origMat = child.material;
-      }
-    });
-
-    scene.add(modele);
-
-    const placed = {
-      mesh: modele,
-      id: meta.id || Date.now().toString(),
-      name: meta.name || 'Meuble',
-      sceneId: Date.now(),
-      usdz: meta.usdz || null,
-      icon: getIcon(meta.category)
-    };
-    sceneObjects.push(placed);
-    objectHistory.push(placed); // Pour undo
-
-    // Ajouter au tray
-    addTrayItem(placed);
-    selectObj(placed);
-
-    // Afficher bouton undo
-    document.getElementById('undoBtn')?.classList.add('show');
-    document.getElementById('rotateHint')?.classList.add('show');
-
-    setLoading(false);
-    updateStatus();
-    toast(`✓ ${placed.name} ajouté`, 'ok');
-
-    // Si USDZ dispo → proposer Quick Look iOS
-    if (meta.usdz && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      setTimeout(() => {
-        toast('📱 Tap "AR" pour voir en Quick Look', 'ok');
-      }, 2000);
-    }
-
-  } catch(e) {
-    console.error('GLTFLoader error:', e);
-    setLoading(false);
-    toast(`Erreur chargement : ${e.message}`, 'err');
-  }
-};
-
-/* ── SUPPRIMER DERNIER OBJET (UNDO) ── */
-window._undoLastObject = function() {
-  if (!objectHistory.length) { toast('Rien à annuler'); return; }
-  const last = objectHistory.pop();
-  // Supprimer de la scène
-  scene.remove(last.mesh);
-  sceneObjects = sceneObjects.filter(o => o.sceneId !== last.sceneId);
-  // Si c'était l'objet sélectionné
-  if (selectedObj?.sceneId === last.sceneId) {
-    selectedObj = null;
-    document.getElementById('objControls')?.classList.remove('show');
-  }
-  // Mettre à jour le tray
-  const trayEl = document.querySelector(`.tray-item[data-scene-id="${last.sceneId}"]`);
-  if (trayEl) trayEl.remove();
-  // Cacher undo si plus rien
-  if (!objectHistory.length) document.getElementById('undoBtn')?.classList.remove('show');
-  updateStatus();
-  updateARBadge();
-  toast(`↩ ${last.name} supprimé`);
-};
-
-/* ── LOAD MODEL ── */
-async function loadModel(item) {
-  if (!item.glb) return;
-  setLoading(true, `Chargement de ${item.name}…`);
-  try {
-    const loader = new GLTFLoader();
-    const gltf = await new Promise((res, rej) => loader.load(item.glb, res, undefined, rej));
-
-    // Normalize scale
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const h = box.max.y - box.min.y;
-    const target = item.dimensions?.h ? item.dimensions.h / 100 : targetH(item.category);
-    if (h > 0) gltf.scene.scale.setScalar(target / h);
-
-    // Center at base
-    const box2 = new THREE.Box3().setFromObject(gltf.scene);
-    gltf.scene.position.y -= box2.min.y;
-
-    // Shadows
-    gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-
-    const qItem = { id: item.id, name: item.name, mesh: gltf.scene, icon: getIcon(item.category) };
-    queuedModels.push(qItem);
-    addTrayItem(qItem);
-    selectTrayModel(qItem);
-    setLoading(false);
-    toast(`${item.name} — prêt à placer`, 'ok');
-  } catch(e) {
-    setLoading(false);
-    toast(`Erreur : ${item.name}`, 'err');
-  }
-}
-
-/* ── PLACE ── */
-window._placeObj = function() {
-  if (!pendingModel) return;
-  const mesh = pendingModel.mesh.clone();
-
-  // Project a ray from camera center to ground plane
-  raycaster.setFromCamera(new THREE.Vector2(0, -0.3), camera);
-  const hit = new THREE.Vector3();
-  const didHit = raycaster.ray.intersectPlane(groundPlane, hit);
-  const pos = didHit ? hit : new THREE.Vector3(0, 0, -1.5);
-  mesh.position.copy(pos);
-  // Face camera
-  const camDir = new THREE.Vector3();
-  camera.getWorldDirection(camDir);
-  mesh.rotation.y = Math.atan2(camDir.x, camDir.z) + Math.PI;
-  // Ensure on floor
-  const box = new THREE.Box3().setFromObject(mesh);
-  if (box.min.y < 0) mesh.position.y -= box.min.y;
-
-  mesh.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; c.userData.origMat=c.material; } });
-  scene.add(mesh);
-
-  const placed = { mesh, id: pendingModel.id, name: pendingModel.name, sceneId: Date.now() };
-  sceneObjects.push(placed);
-
-  const trayEl = document.querySelector(`.tray-item[data-id="${pendingModel.id}"]`);
-  if (trayEl) trayEl.classList.add('placed');
-
-  selectObj(placed);
-  document.getElementById('rotateHint').classList.add('show');
-  updateStatus();
-  toast(`${placed.name} placé`, 'ok');
-};
-
-/* ── SELECT ── */
-function selectObj(obj) {
-  if (selectedObj) {
-    selectedObj.mesh.traverse(c => {
-      if (c.isMesh && c.userData.origMat) { c.material = c.userData.origMat; }
-    });
-  }
-  selectedObj = obj;
-  document.getElementById('objControls').classList.toggle('show', !!obj);
-  if (obj) {
-    obj.mesh.traverse(c => {
-      if (c.isMesh) {
+      clone.traverse(function(c){
+        if (!c.isMesh||!c.material) return;
         c.material = c.material.clone();
-        c.material.emissive = new THREE.Color(0xB8986A);
-        c.material.emissiveIntensity = 0.18;
-      }
+        if (c.material.map) { c.material.map.colorSpace=THREE.SRGBColorSpace; c.material.map.needsUpdate=true; }
+      });
+      grp.add(clone);
     });
+    const buf = await usdz.parse(grp, {maxTextureSize:1024});
+    loading(false);
+    const blob = new Blob([buf], {type:'model/vnd.usdz+zip'});
+    const url  = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      const a = document.createElement('a');
+      a.setAttribute('rel','ar');
+      a.href = url;
+      a.appendChild(document.createElement('img'));
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      msg('Ouverture AR Quick Look...', 'ok');
+    } else {
+      const a = document.createElement('a');
+      a.href = url; a.download = 'TadamHome-'+Date.now()+'.usdz';
+      a.click();
+      msg('USDZ telecharge', 'ok');
+    }
+    setTimeout(function(){URL.revokeObjectURL(url);}, 60000);
+  } catch(e) {
+    loading(false);
+    msg('Erreur export: '+e.message, 'err');
   }
-}
-
-/* ── CONTROLS ── */
-window._rotateObj = d => { if (selectedObj) selectedObj.mesh.rotation.y += (d * Math.PI) / 180; };
-window.scaleObj  = f => {
-  if (!selectedObj) return;
-  const s = selectedObj.mesh.scale.x * f;
-  if (s > 0.05 && s < 15) selectedObj.mesh.scale.setScalar(s);
-};
-window._deleteObj = () => {
-  if (!selectedObj) return;
-  scene.remove(selectedObj.mesh);
-  sceneObjects = sceneObjects.filter(o => o.sceneId !== selectedObj.sceneId);
-  const remaining = sceneObjects.filter(o => o.id === selectedObj.id);
-  if (!remaining.length) {
-    const el = document.querySelector(`.tray-item[data-id="${selectedObj.id}"]`);
-    if (el) el.classList.remove('placed');
-  }
-  selectedObj = null;
-  document.getElementById('objControls').classList.remove('show');
-  updateStatus();
-  updateARBadge();
-  toast('Meuble supprimé');
-};
-window._clearScene = () => {
-  sceneObjects.forEach(o => scene.remove(o.mesh));
-  sceneObjects = [];
-  selectedObj = null;
-  document.getElementById('objControls').classList.remove('show');
-  document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('placed'));
-  updateStatus();
-  updateARBadge();
-  toast('Scène effacée');
 };
 
-/* ── PHOTO ── */
-window._takePhoto = () => {
-  const flash = document.getElementById('flash');
-  flash.classList.add('show');
-  setTimeout(() => flash.classList.remove('show'), 150);
-  renderer.render(scene, camera);
+/* PHOTO */
+window.takePhoto = function() {
+  const fl = document.getElementById('flash');
+  fl.classList.add('on'); setTimeout(function(){fl.classList.remove('on');},120);
+  renderer.render(scene,camera);
   const a = document.createElement('a');
-  a.download = `TadamHome-AR-${Date.now()}.jpg`;
-  a.href = document.getElementById('arCanvas').toDataURL('image/jpeg', 0.92);
+  a.download = 'TadamHome-'+Date.now()+'.jpg';
+  a.href = document.getElementById('arCanvas').toDataURL('image/jpeg',0.92);
   a.click();
-  toast('📷 Photo enregistrée', 'ok');
+  msg('Photo enregistree', 'ok');
 };
 
-/* ── CATALOGUE ── */
-async function loadCatalogue() {
-  const { data } = await sb.from('products').select('*').order('created_at', { ascending: false });
-  allProducts = (data || []).filter(p => p.model_glb_url);
-  renderCatGrid(allProducts);
+/* CATALOGUE */
+async function loadProducts() {
+  const {data} = await sb.from('products').select('*').order('created_at',{ascending:false});
+  products = (data||[]).filter(function(p){return p.model_glb_url;});
+  renderCat(products);
 }
-
-window._filterCat = () => {
+window.filterCat = function() {
   const q = document.getElementById('catSearch').value.toLowerCase();
-  renderCatGrid(allProducts.filter(p =>
-    (p.name||'').toLowerCase().includes(q) ||
-    (p.enseigne_name||'').toLowerCase().includes(q)
-  ));
+  renderCat(products.filter(function(p){
+    return (p.name||'').toLowerCase().includes(q)||(p.enseigne_name||'').toLowerCase().includes(q);
+  }));
 };
-
-function renderCatGrid(products) {
-  const grid = document.getElementById('catGrid');
-  if (!products.length) {
-    grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;font-size:13px;color:var(--muted)">Aucun modèle disponible</div>';
-    return;
-  }
-  const icons = {sofa:'🛋️',canape:'🛋️',canapé:'🛋️',fauteuil:'🪑',chaise:'🪑',table:'🪵',luminaire:'💡',rangement:'📦',lit:'🛏️'};
-  grid.innerHTML = products.map(p => {
-    const ico = icons[(p.category||'').toLowerCase()] || '◇';
-    const inQ = queuedModels.some(q => q.id === p.id);
-    return `<div class="cat-card">
-      <div class="cat-card-img">${ico}</div>
-      <div class="cat-brand">${p.enseigne_name||'—'}</div>
-      <div class="cat-name">${p.name||'—'}</div>
-      <button class="cat-add${inQ?' added':''}" onclick="addFromCat('${p.id}')">
-        ${inQ ? '✓ Chargé' : '+ Ajouter'}
-      </button>
-    </div>`;
+function renderCat(list) {
+  const g = document.getElementById('catGrid');
+  if (!list.length) { g.innerHTML='<div style="grid-column:1/-1;padding:24px;text-align:center;font-size:13px;color:var(--muted)">Aucun modele disponible</div>'; return; }
+  const cats = {sofa:'&#128763;',canape:'&#128763;',canap:'&#128763;',fauteuil:'&#129937;',chaise:'&#129937;',table:'&#129717;',luminaire:'&#128161;',rangement:'&#128230;',lit:'&#128719;'};
+  g.innerHTML = list.map(function(p) {
+    const ic = cats[(p.category||'').toLowerCase()] || '&#9671;';
+    const inQ = placed.some(function(o){return o.id===p.id;});
+    const img = p.images&&p.images[0] ? '<img src="'+p.images[0]+'" style="width:100%;height:100%;object-fit:cover"/>' : ic;
+    return '<div class="cat-card"><div class="cat-card-img">'+img+'</div><div class="cat-brand">'+(p.enseigne_name||'')+'</div><div class="cat-name">'+(p.name||'')+'</div><button class="cat-add-btn'+(inQ?' done':'')+'" onclick="addFromCat(\''+p.id+'\')">'+(inQ?'Ajoute':'+ Ajouter')+'</button></div>';
   }).join('');
 }
-
-window._addFromCat = async (id) => {
-  const p = allProducts.find(x => x.id === id);
+window.addFromCat = async function(id) {
+  const p = products.find(function(x){return x.id===id;});
   if (!p) return;
   closeCat();
-  await ajouterMeubleReel(p.model_glb_url, {
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    dimensions: p.dimensions,
-    usdz: p.model_usdz_url
-  });
-  renderCatGrid(allProducts);
+  await loadGLB({id:p.id,name:p.name,glb:p.model_glb_url,category:p.category,dimensions:p.dimensions});
 };
+window.quickAdd = async function(btn, cat) {
+  btn.classList.add('busy');
+  const match = products.filter(function(p){return (p.category||'').toLowerCase().includes(cat);});
+  if (!match.length) { msg('Aucun '+cat+' disponible', 'err'); btn.classList.remove('busy'); return; }
+  await loadGLB({id:match[0].id,name:match[0].name,glb:match[0].model_glb_url,category:match[0].category,dimensions:match[0].dimensions});
+  btn.classList.remove('busy');
+};
+window.openCat  = function() { document.getElementById('catModal').classList.add('open'); };
+window.closeCat = function() { document.getElementById('catModal').classList.remove('open'); };
 
-window.openCat  = () => document.getElementById('catOverlay').classList.add('show');
-window._closeCat = () => document.getElementById('catOverlay').classList.remove('show');
-
-/* ── TRAY ── */
+/* TRAY */
 function addTrayItem(item) {
-  const tray = document.getElementById('sceneTray');
-  const div = document.createElement('div');
-  div.className = 'tray-item';
-  div.dataset.id = item.id;
-  div.innerHTML = `<div class="tray-thumb">${item.icon}</div><div class="tray-name">${item.name}</div>`;
-  div.onclick = () => selectTrayModel(item);
-  tray.appendChild(div);
+  const tray = document.getElementById('tray');
+  const d = document.createElement('div');
+  d.className='tray-item sel'; d.dataset.id=item.id;
+  d.innerHTML='<div class="tray-thumb">'+item.icon+'</div><div class="tray-item-lbl">'+item.name+'</div>';
+  d.onclick=function(){
+    document.querySelectorAll('.tray-item').forEach(function(t){t.classList.remove('sel');});
+    d.classList.add('sel'); pending=item;
+    document.getElementById('placeBtn').disabled=false;
+    setStatus(item.name+' - Appuyez sur "Placer le meuble"', true);
+  };
+  tray.appendChild(d);
+}
+function markTray(id) {
+  const els = document.querySelectorAll('.tray-item[data-id="'+id+'"]');
+  if (els.length) els[els.length-1].dataset.sid = placed[placed.length-1]&&placed[placed.length-1].sceneId;
 }
 
-function selectTrayModel(item) {
-  document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('sel'));
-  const el = document.querySelector(`.tray-item[data-id="${item.id}"]`);
-  if (el) el.classList.add('sel');
-  pendingModel = item;
-  document.getElementById('placeBtn').disabled = false;
-  setStatus(`${item.name} — appuyez sur "Placer"`, true);
+/* UTILS */
+function catH(cat) {
+  const h = {sofa:.85,canape:.85,fauteuil:.90,chaise:.90,table:.75,bureau:.75,luminaire:1.80,rangement:1.20,lit:.60};
+  return h[(cat||'').toLowerCase()]||.80;
 }
-
-/* ── UTILS ── */
-function targetH(cat) {
-  const h = {sofa:.85,canape:.85,canapé:.85,fauteuil:.90,chaise:.90,'table basse':.45,'table à manger':.75,bureau:.75,luminaire:1.80,rangement:1.20,lit:.60};
-  return h[(cat||'').toLowerCase()] || .80;
+function icon(cat) {
+  const i = {sofa:'&#128763;',canape:'&#128763;',fauteuil:'&#129937;',chaise:'&#129937;',table:'&#129717;',luminaire:'&#128161;',rangement:'&#128230;',lit:'&#128719;'};
+  return i[(cat||'').toLowerCase()]||'&#9671;';
 }
-function getIcon(cat) {
-  const i = {sofa:'🛋️',canape:'🛋️',canapé:'🛋️',fauteuil:'🪑',chaise:'🪑',table:'🪵',luminaire:'💡',rangement:'📦',lit:'🛏️'};
-  return i[(cat||'').toLowerCase()] || '◇';
+function updateBadge() {
+  const b = document.getElementById('arBadge');
+  if (placed.length>0) { b.textContent=placed.length; b.classList.add('show'); }
+  else b.classList.remove('show');
 }
-
-function updateStatus() {
-  const n = sceneObjects.length;
-  setStatus(n ? `${n} meuble${n>1?'s':''} — touchez un meuble pour le sélectionner` : 'Appuyez sur + pour ajouter un meuble');
+function setStatus(txt, accent) {
+  const s = document.getElementById('status');
+  s.textContent = txt;
+  s.style.color  = accent ? 'var(--accent)' : 'rgba(255,255,255,.8)';
+  s.style.borderColor = accent ? 'rgba(184,152,106,.3)' : 'rgba(255,255,255,.1)';
 }
-
-window.setStatus = function(msg, accent=false) {
-  const el = document.getElementById('statusBar');
-  el.textContent = msg;
-  el.className = accent ? 'accent' : '';
-};
-
 let toastT;
-window.toast = function(msg, type='') {
-  const el = document.getElementById('arToast');
-  el.textContent = msg;
-  el.className = 'ar-toast show' + (type ? ' '+type : '');
+function msg(txt, type) {
+  const t = document.getElementById('toast');
+  t.textContent = txt;
+  t.className = 'on' + (type?' '+type:'');
   clearTimeout(toastT);
-  toastT = setTimeout(() => el.classList.remove('show'), 3000);
-};
-
-window.setLoading = function(show, txt='') {
-  document.getElementById('loadingOv').classList.toggle('show', show);
-  if (txt) document.getElementById('loadingTxt').textContent = txt;
-};
-
-window.goBack = () => history.back();
+  toastT = setTimeout(function(){t.className='';}, 3000);
+}
+function loading(show, txt) {
+  document.getElementById('loader').classList.toggle('show', show);
+  if (txt) document.getElementById('loaderTxt').textContent = txt;
+}
 </script>
 </body>
 </html>
