@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>TadamHome — Scène AR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/","three/exporters/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/exporters/"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
@@ -110,6 +110,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .ar-undo-btn.show{opacity:1;transform:none}
 .ar-undo-btn:hover{background:rgba(184,152,106,.3);border-color:var(--accent)}
 .ar-undo-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+
+/* AR EXPORT */
+#btnVoirAR{position:relative}
+#btnVoirAR::after{content:'AR';position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.08em;color:rgba(39,112,74,.9);font-family:var(--sans);white-space:nowrap}
+.ar-export-badge{
+  position:absolute;top:-6px;right:-6px;
+  width:14px;height:14px;background:#27704A;border-radius:50%;
+  font-size:8px;color:white;display:flex;align-items:center;justify-content:center;
+  font-weight:600;
+}
 /* CATALOGUE OVERLAY */
 #catOverlay{position:fixed;inset:0;z-index:300;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);display:none;flex-direction:column}
 #catOverlay.show{display:flex}
@@ -203,6 +213,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
   <div class="ar-top">
     <a href="index.html"><img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block" onerror="this.style.display='none'"/></a>
     <div class="ar-top-right">
+      <div class="ar-iBtn" id="btnVoirAR" onclick="exporterVersAR()" title="Voir en AR Quick Look" style="background:rgba(39,112,74,.7);border-color:rgba(39,112,74,.5)">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
       <div class="ar-iBtn" onclick="takePhoto()" title="Photo">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
@@ -263,6 +276,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 
 // Loader global pour ajouterMeubleReel
 const loader = new GLTFLoader();
@@ -526,6 +540,100 @@ function twoFingerAngle(e) {
 }
 
 
+
+/* ── EXPORT USDZ MULTI-MODÈLES → AR QUICK LOOK iOS ── */
+window.exporterVersAR = async function() {
+  if (!sceneObjects.length) {
+    toast('Ajoutez des meubles avant de lancer l'AR', 'err');
+    return;
+  }
+
+  // Vérifier si iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  setLoading(true, 'Génération de la scène AR…');
+  try {
+    const exporter = new USDZExporter();
+
+    // Créer un groupe avec tous les meubles actuels
+    const exportGroup = new THREE.Group();
+    sceneObjects.forEach(obj => {
+      const clone = obj.mesh.clone();
+      // Préserver position/rotation/scale réels
+      clone.position.copy(obj.mesh.position);
+      clone.rotation.copy(obj.mesh.rotation);
+      clone.scale.copy(obj.mesh.scale);
+      // S'assurer que les textures sont encodées correctement
+      clone.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material = child.material.clone();
+          if (child.material.map) {
+            child.material.map.colorSpace = THREE.SRGBColorSpace;
+            child.material.map.needsUpdate = true;
+          }
+        }
+      });
+      exportGroup.add(clone);
+    });
+
+    const arraybuffer = await exporter.parse(exportGroup, {
+      maxTextureSize: 1024 // Optimiser pour mobile
+    });
+
+    setLoading(false);
+
+    const blob = new Blob([arraybuffer], { type: 'model/vnd.usdz+zip' });
+    const url  = URL.createObjectURL(blob);
+
+    if (isIOS) {
+      // ── iOS : ouvrir AR Quick Look ──
+      // Le trick : <a rel="ar"> avec <img> enfant déclenche AR Quick Look
+      const anchor = document.createElement('a');
+      anchor.setAttribute('rel', 'ar');
+      anchor.href = url;
+      // L'img enfant est requis par Safari pour déclencher Quick Look
+      const img = document.createElement('img');
+      anchor.appendChild(img);
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      toast('🏠 Ouverture AR Quick Look…', 'ok');
+    } else {
+      // ── Android/Desktop : télécharger le USDZ ──
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TadamHome-scene-${Date.now()}.usdz`;
+      a.click();
+      toast('📥 Scène USDZ téléchargée', 'ok');
+    }
+
+    // Nettoyer l'URL après usage
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+  } catch(e) {
+    setLoading(false);
+    console.error('USDZ export error:', e);
+    toast('Erreur export AR : ' + e.message, 'err');
+  }
+};
+
+// Mettre à jour le badge du bouton AR avec le nombre d'objets
+function updateARBadge() {
+  const btn = document.getElementById('btnVoirAR');
+  if (!btn) return;
+  let badge = btn.querySelector('.ar-export-badge');
+  if (sceneObjects.length > 0) {
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'ar-export-badge';
+      btn.appendChild(badge);
+    }
+    badge.textContent = sceneObjects.length;
+  } else if (badge) {
+    badge.remove();
+  }
+}
+
 /* ── QUICK ADD PAR CATÉGORIE ── */
 // Historique pour undo
 let objectHistory = [];
@@ -664,6 +772,7 @@ window.undoLastObject = function() {
   // Cacher undo si plus rien
   if (!objectHistory.length) document.getElementById('undoBtn')?.classList.remove('show');
   updateStatus();
+  updateARBadge();
   toast(`↩ ${last.name} supprimé`);
 };
 
@@ -773,6 +882,7 @@ window.deleteObj = () => {
   selectedObj = null;
   document.getElementById('objControls').classList.remove('show');
   updateStatus();
+  updateARBadge();
   toast('Meuble supprimé');
 };
 window.clearScene = () => {
@@ -782,6 +892,7 @@ window.clearScene = () => {
   document.getElementById('objControls').classList.remove('show');
   document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('placed'));
   updateStatus();
+  updateARBadge();
   toast('Scène effacée');
 };
 
