@@ -144,6 +144,31 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
 .sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
 
+/* MANIPULATION LABELS — invisible until activated, opacity fades.
+   Position is set via transform:translate(xpx,ypx) with a 60ms ease so the
+   label glides instead of jittering when the underlying world point ticks. */
+.manip-label{
+  position:absolute;top:0;left:0;
+  background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
+  color:rgba(255,255,255,.94);
+  font-family:var(--sans);font-size:10px;font-weight:400;
+  letter-spacing:.08em;
+  padding:4px 8px;
+  border-left:1.5px solid var(--accent);
+  pointer-events:none;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .25s ease, transform 60ms linear;
+  z-index:5;
+  will-change:transform,opacity;
+}
+.manip-label.on{opacity:1}
+.manip-label.angle{
+  border-left:none;
+  border-bottom:1.5px solid var(--accent);
+  padding:4px 9px;
+}
+
 /* LOADER + TOAST */
 #ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #ldr.on{display:flex}
@@ -194,6 +219,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <button class="dup-fab" id="dupFab" onclick="doDuplicate()" title="Dupliquer">
       <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="1.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     </button>
+    <!-- Manipulation labels (height + rotation angle) -->
+    <div class="manip-label" id="hLabel"></div>
+    <div class="manip-label angle" id="aLabel"></div>
     <!-- DELETE FAB -->
     <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -404,6 +432,420 @@ scene.add(grid);
 
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
+/* ========================================================================
+   MANIPULATION HELPERS — "Natural Minimal"
+   Visual repères + audio/haptic feedback for precise but free movement.
+   Spec: silk-thin XYZ axes, dropline+H label, ground angle ring with degree
+   tooltip, all faded in only during drag/rotate. Sensory crantage at every
+   10cm translated and 15° rotated, never blocking the gesture itself.
+   ======================================================================== */
+const HELPER = (() => {
+  const root = new THREE.Group();
+  root.name = 'manip-helpers';
+  root.visible = false;
+  scene.add(root);
+
+  /* Three thin lines through the object center on each axis. We use
+     LineBasicMaterial — looks like a 0.5px hair line on retina. */
+  const axisMat = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30,
+    depthTest: false /* always visible through geometry, like a CAD overlay */
+  });
+  const yAxisMat = axisMat.clone(); yAxisMat.opacity = 0.30;
+  const dashMat  = new THREE.LineDashedMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.55,
+    dashSize: 0.04, gapSize: 0.04, depthTest: false
+  });
+
+  function makeLine(mat) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, mat);
+    l.frustumCulled = false;
+    l.renderOrder = 999;
+    return l;
+  }
+  const xAxis = makeLine(axisMat);
+  const yAxis = makeLine(yAxisMat);
+  const zAxis = makeLine(axisMat);
+  const dropY = makeLine(dashMat); /* Y dropline: object base -> ground shadow */
+  root.add(xAxis, yAxis, zAxis, dropY);
+
+  /* Rotation ring — graduated circle on the floor, visible during rotate */
+  const ringGroup = new THREE.Group();
+  ringGroup.visible = false;
+  ringGroup.renderOrder = 998;
+  root.add(ringGroup);
+
+  const ringSegs = 96;
+  const ringRadius = 1; /* dynamic, scaled per-object below */
+  const ringPos = new Float32Array((ringSegs + 1) * 3);
+  for (let i = 0; i <= ringSegs; i++) {
+    const a = (i / ringSegs) * Math.PI * 2;
+    ringPos[i * 3]     = Math.cos(a) * ringRadius;
+    ringPos[i * 3 + 1] = 0.001;
+    ringPos[i * 3 + 2] = Math.sin(a) * ringRadius;
+  }
+  const ringGeo = new THREE.BufferGeometry();
+  ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
+  const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.55, depthTest: false
+  }));
+  ringLine.renderOrder = 998;
+  ringGroup.add(ringLine);
+
+  /* Tick marks every 15° */
+  const tickMat = new THREE.LineBasicMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.65, depthTest: false
+  });
+  const tickMatMajor = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.85, depthTest: false
+  });
+  for (let deg = 0; deg < 360; deg += 15) {
+    const a = deg * Math.PI / 180;
+    const major = (deg % 90) === 0;
+    const inner = major ? 0.92 : 0.95;
+    const outer = 1.02;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      Math.cos(a) * inner, 0.001, Math.sin(a) * inner,
+      Math.cos(a) * outer, 0.001, Math.sin(a) * outer
+    ]), 3));
+    const t = new THREE.Line(g, major ? tickMatMajor : tickMat);
+    t.renderOrder = 998;
+    ringGroup.add(t);
+  }
+
+  /* HTML labels */
+  const hLabel = document.getElementById('hLabel');
+  const aLabel = document.getElementById('aLabel');
+  /* Smoothed display values — avoids flicker on jitter */
+  let hDisplay = 0, hTarget = 0;
+  let aDisplay = 0, aTarget = 0;
+
+  /* Helper state */
+  let mode = 'none'; /* 'drag' | 'rotate' | 'none' */
+  let target = null;
+
+  /* Per-frame label tweening (ticks via animation loop) */
+  function tweenLabels() {
+    /* Lerp text values toward target so they never strobe */
+    if (Math.abs(hTarget - hDisplay) > 0.05) {
+      hDisplay += (hTarget - hDisplay) * 0.35;
+    } else hDisplay = hTarget;
+    if (Math.abs(aTarget - aDisplay) > 0.1) {
+      aDisplay += (aTarget - aDisplay) * 0.35;
+    } else aDisplay = aTarget;
+
+    if (hLabel.classList.contains('on')) {
+      hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
+    }
+    if (aLabel.classList.contains('on')) {
+      let deg = ((aDisplay % 360) + 360) % 360;
+      if (deg > 180) deg -= 360;
+      aLabel.textContent = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
+    }
+  }
+
+  function project(v3) {
+    const v = v3.clone().project(activeCam);
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    return {
+      x: (v.x * 0.5 + 0.5) * w,
+      y: (-v.y * 0.5 + 0.5) * h
+    };
+  }
+
+  /* Compute the object's bottom-center world position */
+  const _bx = new THREE.Box3();
+  const _ctr = new THREE.Vector3();
+  const _bot = new THREE.Vector3();
+  function objCenter(obj) {
+    _bx.setFromObject(obj.mesh);
+    _bx.getCenter(_ctr);
+    _bot.set(_ctr.x, _bx.min.y, _ctr.z);
+    return { center: _ctr.clone(), bottom: _bot.clone(), box: _bx.clone() };
+  }
+
+  /* Adapt axis line length to scene scale — based on object size + camera zoom */
+  function axisExtent(box) {
+    const sz = new THREE.Vector3();
+    box.getSize(sz);
+    /* Whichever is bigger: 1.5× the largest object dimension or 1.5× radius */
+    const objScale = Math.max(sz.x, sz.y, sz.z) * 1.5;
+    /* Cap relative to the camera distance so axes stay readable when zoomed out */
+    const camScale = Math.max(0.6, Math.min(camDist * 0.4, 5));
+    return Math.max(objScale, camScale, 0.5);
+  }
+
+  function update() {
+    if (!target || !root.visible) return;
+
+    const info = objCenter(target);
+    const ext  = axisExtent(info.box);
+
+    /* Position helpers at the bottom-center (on the ground when posed) */
+    root.position.copy(info.bottom);
+
+    /* Update axis lines: X red? no — we keep neutral as per spec (white/taupe) */
+    const xp = xAxis.geometry.attributes.position;
+    xp.array[0] = -ext; xp.array[1] = 0.001; xp.array[2] = 0;
+    xp.array[3] =  ext; xp.array[4] = 0.001; xp.array[5] = 0;
+    xp.needsUpdate = true;
+
+    const yp = yAxis.geometry.attributes.position;
+    yp.array[0] = 0; yp.array[1] = 0.001; yp.array[2] = 0;
+    yp.array[3] = 0; yp.array[4] = ext;   yp.array[5] = 0;
+    yp.needsUpdate = true;
+
+    const zp = zAxis.geometry.attributes.position;
+    zp.array[0] = 0; zp.array[1] = 0.001; zp.array[2] = -ext;
+    zp.array[3] = 0; zp.array[4] = 0.001; zp.array[5] =  ext;
+    zp.needsUpdate = true;
+
+    /* Y dropline: only meaningful when the bottom is above the floor.
+       Even at floor level, we keep it visible during drag with the H label
+       because dragging on uneven future terrain might lift the object. */
+    const liftedH = info.bottom.y;
+    const showDrop = liftedH > 0.005;
+    dropY.visible = showDrop;
+    if (showDrop) {
+      const dp = dropY.geometry.attributes.position;
+      dp.array[0] = 0; dp.array[1] = 0;       dp.array[2] = 0;
+      dp.array[3] = 0; dp.array[4] = liftedH; dp.array[5] = 0;
+      dp.needsUpdate = true;
+      dropY.computeLineDistances();
+    }
+
+    /* Adjust ring radius to ~1.1× the object's footprint in plan */
+    const sz = new THREE.Vector3();
+    info.box.getSize(sz);
+    const ringR = Math.max(0.4, Math.hypot(sz.x, sz.z) * 0.55);
+    ringGroup.scale.setScalar(ringR);
+
+    /* H label — anchor to top of axis line */
+    if (mode === 'drag') {
+      hTarget = info.bottom.y * 100; /* meters → cm */
+      const wp = info.bottom.clone(); wp.y += 0.04;
+      const sc = project(wp);
+      hLabel.style.transform = 'translate(' + (sc.x + 14) + 'px,' + (sc.y - 26) + 'px)';
+    }
+
+    /* Angle label — anchor near object center (in plan) at ring edge */
+    if (mode === 'rotate') {
+      const wp = info.bottom.clone();
+      wp.x += ringR * 0.7;
+      wp.z += ringR * 0.7;
+      wp.y += 0.04;
+      const sc = project(wp);
+      aLabel.style.transform = 'translate(' + (sc.x + 12) + 'px,' + (sc.y - 22) + 'px)';
+    }
+
+    tweenLabels();
+  }
+
+  function show(obj, m) {
+    target = obj;
+    mode = m;
+    root.visible = true;
+    /* Mode-specific overlay visibility */
+    ringGroup.visible = (m === 'rotate');
+    dropY.visible = (m === 'drag');
+
+    if (m === 'drag') {
+      hTarget = (objCenter(obj).bottom.y) * 100;
+      hDisplay = hTarget;
+      hLabel.classList.add('on');
+      aLabel.classList.remove('on');
+    } else if (m === 'rotate') {
+      aTarget = (obj.mesh.rotation.y * 180 / Math.PI);
+      aDisplay = aTarget;
+      aLabel.classList.add('on');
+      hLabel.classList.remove('on');
+    }
+    update();
+  }
+
+  function setRotationLabel(rad) {
+    aTarget = rad * 180 / Math.PI;
+  }
+
+  function hide() {
+    /* Spec: 400ms fade out on deselect.
+       CSS transitions on .manip-label give us the label fades for free.
+       For the 3D helpers we tween opacity manually. */
+    mode = 'none';
+    hLabel.classList.remove('on');
+    aLabel.classList.remove('on');
+    /* Tween mesh opacity down */
+    const start = performance.now();
+    const dur = 400;
+    const initial = {
+      x: axisMat.opacity,
+      d: dashMat.opacity,
+      r: ringLine.material.opacity,
+      tk: tickMat.opacity,
+      tj: tickMatMajor.opacity
+    };
+    function step() {
+      const t = Math.min(1, (performance.now() - start) / dur);
+      const k = 1 - t;
+      axisMat.opacity      = initial.x  * k;
+      yAxisMat.opacity     = initial.x  * k;
+      dashMat.opacity      = initial.d  * k;
+      ringLine.material.opacity = initial.r * k;
+      tickMat.opacity      = initial.tk * k;
+      tickMatMajor.opacity = initial.tj * k;
+      if (t < 1 && mode === 'none') {
+        requestAnimationFrame(step);
+      } else if (mode === 'none') {
+        root.visible = false;
+        target = null;
+        /* restore original opacities for next show() */
+        axisMat.opacity = 0.30; yAxisMat.opacity = 0.30;
+        dashMat.opacity = 0.55;
+        ringLine.material.opacity = 0.55;
+        tickMat.opacity = 0.65; tickMatMajor.opacity = 0.85;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  return { show, hide, update, setRotationLabel };
+})();
+
+/* ========================================================================
+   FEEDBACK — "Thock" sound + haptic at translation/rotation thresholds.
+   - Sound is synthesised on AudioContext (no asset loading, zero latency).
+   - Tracking uses cumulative distance/angle so we never miss a notch even
+     during fast gestures, and we never spam the user with overlapping ticks.
+   ======================================================================== */
+const FEEDBACK = (() => {
+  let ctx = null;
+  let lastTickAt = 0;
+  const minIntervalMs = 35; /* never two thocks closer than this */
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) ctx = new AC();
+    } catch(_) {}
+    return ctx;
+  }
+
+  /* Synthesise a wooden "thock":
+     - very short percussive envelope (20-30ms)
+     - low fundamental ~180Hz with quick decay
+     - a tiny noise burst at the front for the wood "click" */
+  function thock() {
+    const ac = ensureCtx();
+    if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch(_){} }
+    const now = ac.currentTime;
+
+    /* Tonal body */
+    const osc = ac.createOscillator();
+    const oscGain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.022);
+    oscGain.gain.setValueAtTime(0.0001, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.18, now + 0.002);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+    osc.connect(oscGain);
+
+    /* Click attack (filtered noise burst) */
+    const noiseBuf = ac.createBuffer(1, 256, ac.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const noise = ac.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseFilter = ac.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = 2200;
+    noiseFilter.Q.value = 1.2;
+    const noiseGain = ac.createGain();
+    noiseGain.gain.setValueAtTime(0.06, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+    noise.connect(noiseFilter); noiseFilter.connect(noiseGain);
+
+    /* Output bus (so we can master-attenuate later if needed) */
+    const out = ac.createGain();
+    out.gain.value = 0.85;
+    oscGain.connect(out);
+    noiseGain.connect(out);
+    out.connect(ac.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+    noise.start(now);
+    noise.stop(now + 0.02);
+  }
+
+  function haptic() {
+    /* Web Vibration API — works on Android. iOS Safari ignores it silently
+       (no error), and that's fine: the user keeps the audio cue. */
+    try { if (navigator.vibrate) navigator.vibrate(8); } catch(_){}
+  }
+
+  function trigger() {
+    const now = performance.now();
+    if (now - lastTickAt < minIntervalMs) return;
+    lastTickAt = now;
+    thock();
+    haptic();
+  }
+
+  /* Translation tracker — ticks every 10cm of cumulative XZ travel */
+  const TRANS_THRESHOLD = 0.10; /* meters */
+  let lastPos = null, transAccum = 0;
+  function startTranslate(pos) { lastPos = pos.clone(); transAccum = 0; }
+  function updateTranslate(pos) {
+    if (!lastPos) { startTranslate(pos); return; }
+    transAccum += Math.hypot(pos.x - lastPos.x, pos.z - lastPos.z);
+    lastPos.copy(pos);
+    while (transAccum >= TRANS_THRESHOLD) {
+      transAccum -= TRANS_THRESHOLD;
+      trigger();
+    }
+  }
+  function endTranslate() { lastPos = null; transAccum = 0; }
+
+  /* Rotation tracker — ticks every 15° of cumulative |Δθ| */
+  const ROT_THRESHOLD = 15 * Math.PI / 180;
+  let lastRot = null, rotAccum = 0;
+  function startRotate(rad) { lastRot = rad; rotAccum = 0; }
+  function updateRotate(rad) {
+    if (lastRot === null) { startRotate(rad); return; }
+    let d = rad - lastRot;
+    /* Wrap-safe shortest-path delta */
+    while (d > Math.PI)  d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    rotAccum += Math.abs(d);
+    lastRot = rad;
+    while (rotAccum >= ROT_THRESHOLD) {
+      rotAccum -= ROT_THRESHOLD;
+      trigger();
+    }
+  }
+  function endRotate() { lastRot = null; rotAccum = 0; }
+
+  /* Audio context unlock on first user interaction (Safari requirement) */
+  function unlock() {
+    ensureCtx();
+    if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch(_){} }
+    window.removeEventListener('touchstart', unlock);
+    window.removeEventListener('mousedown',   unlock);
+  }
+  window.addEventListener('touchstart', unlock, { once: false, passive: true });
+  window.addEventListener('mousedown',   unlock, { once: false });
+
+  return { startTranslate, updateTranslate, endTranslate,
+           startRotate,    updateRotate,    endRotate };
+})();
+
 /* RESIZE */
 function resize() {
   const w = canvas.parentElement.clientWidth;
@@ -417,7 +859,7 @@ window.addEventListener('resize', resize);
 resize();
 
 /* ANIMATE */
-(function loop(){ requestAnimationFrame(loop); renderer.render(scene, activeCam); })();
+(function loop(){ requestAnimationFrame(loop); HELPER.update(); renderer.render(scene, activeCam); })();
 
 /* WebGL context loss safety net */
 canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); console.warn('WebGL context lost'); });
@@ -451,12 +893,16 @@ canvas.addEventListener('touchstart', (e) => {
     tDragging = false;
     tMode = 'none';
     orbitStart = { theta:camTheta, elev:camElev, x:e.touches[0].clientX, y:e.touches[0].clientY };
+    /* If we have a selection, prime the translation tracker — the actual
+       drag mode is decided in touchmove. */
+    if (selected) FEEDBACK.startTranslate(selected.mesh.position);
   } else if (e.touches.length === 2) {
     tPinch0 = getPinch(e);
     tAngle0 = getAngle(e);
     tMid0   = getMidpoint(e);
     /* If an object is selected, 2 fingers rotate it; otherwise pan + zoom the camera together */
     tMode = selected ? 'rotate' : 'panZoom';
+    if (tMode === 'rotate') FEEDBACK.startRotate(selected.mesh.rotation.y);
   }
 }, { passive:false });
 
@@ -479,6 +925,9 @@ canvas.addEventListener('touchmove', (e) => {
         selected.mesh.position.z = pt.z;
         const bx = new THREE.Box3().setFromObject(selected.mesh);
         if (bx.min.y < 0) selected.mesh.position.y -= bx.min.y;
+        /* feedback + helpers */
+        HELPER.show(selected, 'drag');
+        FEEDBACK.updateTranslate(selected.mesh.position);
       }
     } else {
       tMode = 'orbit';
@@ -495,6 +944,10 @@ canvas.addEventListener('touchmove', (e) => {
       const da = getAngle(e) - tAngle0;
       selected.mesh.rotation.y -= da;
       tAngle0 = getAngle(e);
+      /* feedback + helpers */
+      HELPER.show(selected, 'rotate');
+      HELPER.setRotationLabel(selected.mesh.rotation.y);
+      FEEDBACK.updateRotate(selected.mesh.rotation.y);
     } else if (tMode === 'panZoom') {
       /* Pinch -> zoom */
       const dp = getPinch(e);
@@ -516,7 +969,15 @@ canvas.addEventListener('touchend', (e) => {
   if (!tDragging && t0 && e.changedTouches.length === 1 && (Date.now() - t0.t) < 280) {
     handleTap(e.changedTouches[0]);
   }
-  if (e.touches.length === 0) { t0 = null; tDragging = false; tMode = 'none'; }
+  if (e.touches.length === 0) {
+    /* Hide manipulation helpers when gesture really ends.
+       We keep them visible if the user remains in active drag mode (e.g.
+       lifting one finger of a 2-finger rotate to a 1-finger drag). */
+    if (tMode === 'drag' || tMode === 'rotate') HELPER.hide();
+    if (tMode === 'drag')   FEEDBACK.endTranslate();
+    if (tMode === 'rotate') FEEDBACK.endRotate();
+    t0 = null; tDragging = false; tMode = 'none';
+  }
 }, { passive:false });
 
 function getPinch(e) {
@@ -574,7 +1035,11 @@ canvas.addEventListener('mousedown', (e) => {
   raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
   if (selected) {
     const hits = raycaster.intersectObjects([selected.mesh], true);
-    if (hits.length) { mObjDrag = true; return; }
+    if (hits.length) {
+      mObjDrag = true;
+      FEEDBACK.startTranslate(selected.mesh.position);
+      return;
+    }
   }
   mObjDrag = false;
   mOrbitStart = { theta:camTheta, elev:camElev, x:e.clientX, y:e.clientY };
@@ -596,6 +1061,8 @@ window.addEventListener('mousemove', (e) => {
     if (raycaster.ray.intersectPlane(groundPlane, pt)) {
       selected.mesh.position.x = pt.x;
       selected.mesh.position.z = pt.z;
+      HELPER.show(selected, 'drag');
+      FEEDBACK.updateTranslate(selected.mesh.position);
     }
   } else if (mOrbitStart) {
     camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
@@ -608,6 +1075,7 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mouseup', (e) => {
   if (!mDragging && mDown) handleMouseClick(e);
+  if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); }
   mDown = false; mDragging = false; mObjDrag = false; mPan = false; mPanStart = null;
 });
 /* Suppress browser context menu so middle/right-click pan is usable */
@@ -727,6 +1195,9 @@ function selectObj(obj) {
   const tag = document.getElementById('selTag');
   tag.classList.toggle('on', !!obj);
   if (obj) tag.textContent = obj.name;
+  /* Hide manipulation helpers when nothing is selected — they only show
+     during an active drag/rotate gesture, never just from a selection. */
+  if (!obj) HELPER.hide();
 }
 
 /* DELETE */
