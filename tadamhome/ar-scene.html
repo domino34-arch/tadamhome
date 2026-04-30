@@ -66,14 +66,19 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .dup-fab.on{opacity:1;pointer-events:all}
 .dup-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* ELEVATION FABS — vertical strip on the right above dup/del.
-   Tap = ±5cm, press-and-hold = continuous lift/lower. */
+/* RIGHT-EDGE MANIPULATION COLUMN — vertical strip of object controls.
+   Tap = single step, press-and-hold = continuous. */
 .elev-fab{position:absolute;right:14px;width:42px;height:42px;background:rgba(28,27,24,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:opacity .25s, background .15s;box-shadow:0 2px 10px rgba(0,0,0,.18);border-radius:2px;-webkit-user-select:none;user-select:none}
 .elev-fab.on{opacity:1;pointer-events:all}
 .elev-fab:active,.elev-fab.holding{background:var(--accent)}
 .elev-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.elev-up{bottom:64px}
-.elev-down{bottom:16px}
+.elev-up   {bottom:64px}
+.elev-down {bottom:16px}
+/* Rotation buttons sit above the elevation pair, with a small visual gap.
+   Slight tint shift makes the two clusters readable at a glance. */
+.rot-cw    {bottom:166px}
+.rot-ccw   {bottom:116px}
+.rot-cw,.rot-ccw{background:rgba(45,42,36,.85)}
 
 /* UNDO */
 .undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
@@ -241,6 +246,13 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     </button>
     <button class="elev-fab elev-down" id="elevDown" title="Baisser -5cm">
       <svg viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/><line x1="12" y1="16" x2="12" y2="4"/><line x1="6" y1="20" x2="18" y2="20"/></svg>
+    </button>
+    <!-- ROTATION FABs (clockwise / counter-clockwise) — useful on desktop where there's no 2-finger gesture -->
+    <button class="elev-fab rot-ccw" id="rotCcw" title="Pivoter -15°">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
+    </button>
+    <button class="elev-fab rot-cw" id="rotCw" title="Pivoter +15°">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg>
     </button>
     <!-- Manipulation labels (height + rotation angle + distance to nearest object) -->
     <div class="manip-label" id="hLabel"></div>
@@ -1083,6 +1095,67 @@ const FEEDBACK = (() => {
   bind(downBtn, -1);
 })();
 
+/* ========================================================================
+   ROTATION CONTROLS — Y-axis rotation of the selected object via buttons.
+   Mirrors the elevation hold pattern: tap = ±15° (matches the touch crantage),
+   press-and-hold = continuous rotation at 90°/s.
+   On desktop, also enables right-click + horizontal drag for fluid rotation. */
+(function rotationControls() {
+  const STEP_RAD    = 15 * Math.PI / 180;     /* same step as the touch tick */
+  const SPEED_RAD_S = 90 * Math.PI / 180;     /* 90° per second when held */
+
+  const ccwBtn = document.getElementById('rotCcw');
+  const cwBtn  = document.getElementById('rotCw');
+
+  function nudge(deltaRad) {
+    if (!selected) return;
+    selected.mesh.rotation.y += deltaRad;
+    HELPER.show(selected, 'rotate');
+    HELPER.setRotationLabel(selected.mesh.rotation.y);
+    FEEDBACK.updateRotate(selected.mesh.rotation.y);
+  }
+
+  let holdRAF = null, holdLastT = 0, holdDir = 0;
+  function holdLoop() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - holdLastT) / 1000);
+    holdLastT = now;
+    nudge(holdDir * SPEED_RAD_S * dt);
+    holdRAF = requestAnimationFrame(holdLoop);
+  }
+  function startHold(dir, btn) {
+    if (!selected) return;
+    btn.classList.add('holding');
+    holdDir = dir;
+    holdLastT = performance.now();
+    /* Start the rotation tracker so the tick fires correctly on continuous hold */
+    FEEDBACK.startRotate(selected.mesh.rotation.y);
+    nudge(dir * STEP_RAD);
+    holdRAF = setTimeout(() => {
+      holdLastT = performance.now();
+      holdRAF = requestAnimationFrame(holdLoop);
+    }, 280);
+  }
+  function endHold(btn) {
+    btn.classList.remove('holding');
+    if (holdRAF) {
+      clearTimeout(holdRAF);
+      cancelAnimationFrame(holdRAF);
+      holdRAF = null;
+    }
+    FEEDBACK.endRotate();
+  }
+
+  function bind(btn, dir) {
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerup',   ()  => endHold(btn));
+    btn.addEventListener('pointercancel', () => endHold(btn));
+    btn.addEventListener('pointerleave', () => endHold(btn));
+  }
+  bind(ccwBtn, -1);
+  bind(cwBtn,  +1);
+})();
+
 /* RESIZE */
 function resize() {
   const w = canvas.parentElement.clientWidth;
@@ -1334,7 +1407,31 @@ function panCamera(dx, dy) {
 
 /* MOUSE for desktop */
 let mDown = false, mDragging = false, mOrbitStart = null, mObjDrag = false, mPan = false, mPanStart = null;
+/* Right-click + horizontal drag = rotate the selected object around Y.
+   Power-user shortcut on desktop where there's no native 2-finger gesture. */
+let mObjRotate = false, mRotStartX = 0, mRotStartAngle = 0;
+const ROT_SENSITIVITY = 0.012; /* rad per pixel — feels like a smooth dial */
+
 canvas.addEventListener('mousedown', (e) => {
+  /* Right-click on the selected object: enter rotate mode, no other behaviour */
+  if (e.button === 2 && selected) {
+    const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+    const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+    if (pickPlaced(nx, ny, true)) {
+      e.preventDefault();
+      mDown = true;
+      mObjRotate = true;
+      mRotStartX = e.clientX;
+      mRotStartAngle = selected.mesh.rotation.y;
+      FEEDBACK.startRotate(mRotStartAngle);
+      HELPER.show(selected, 'rotate');
+      HELPER.setRotationLabel(mRotStartAngle);
+      return;
+    }
+    /* Right-click outside the selection: do nothing (let context menu suppression run) */
+    return;
+  }
+
   mDown = true; mDragging = false;
   /* Shift+drag or middle-mouse-drag = pan camera (desktop convention) */
   mPan = e.shiftKey || e.button === 1;
@@ -1361,6 +1458,15 @@ canvas.addEventListener('mousedown', (e) => {
 window.addEventListener('mousemove', (e) => {
   if (!mDown) return;
   mDragging = true;
+  if (mObjRotate && selected) {
+    /* Horizontal drag drives Y rotation. Right = clockwise. */
+    const dx = e.clientX - mRotStartX;
+    selected.mesh.rotation.y = mRotStartAngle - dx * ROT_SENSITIVITY;
+    HELPER.show(selected, 'rotate');
+    HELPER.setRotationLabel(selected.mesh.rotation.y);
+    FEEDBACK.updateRotate(selected.mesh.rotation.y);
+    return;
+  }
   if (mPan && mPanStart) {
     const dx = e.clientX - mPanStart.x;
     const dy = e.clientY - mPanStart.y;
@@ -1404,9 +1510,10 @@ window.addEventListener('mousemove', (e) => {
   }
 });
 window.addEventListener('mouseup', (e) => {
-  if (!mDragging && mDown) handleMouseClick(e);
+  if (!mDragging && mDown && !mObjRotate) handleMouseClick(e);
+  if (mObjRotate) { HELPER.hide(); FEEDBACK.endRotate(); }
   if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); currentAxisLock = null; HELPER.setAxisLock(null); }
-  mDown = false; mDragging = false; mObjDrag = false; mPan = false; mPanStart = null;
+  mDown = false; mDragging = false; mObjDrag = false; mObjRotate = false; mPan = false; mPanStart = null;
 });
 /* Suppress browser context menu so middle/right-click pan is usable */
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -1512,6 +1619,8 @@ function selectObj(obj) {
   document.getElementById('dupFab').classList.toggle('on', !!obj);
   document.getElementById('elevUp').classList.toggle('on', !!obj);
   document.getElementById('elevDown').classList.toggle('on', !!obj);
+  document.getElementById('rotCw').classList.toggle('on', !!obj);
+  document.getElementById('rotCcw').classList.toggle('on', !!obj);
   const tag = document.getElementById('selTag');
   tag.classList.toggle('on', !!obj);
   if (obj) tag.textContent = obj.name;
@@ -1546,6 +1655,8 @@ window.doDelete = function() {
   document.getElementById('dupFab').classList.remove('on');
   document.getElementById('elevUp').classList.remove('on');
   document.getElementById('elevDown').classList.remove('on');
+  document.getElementById('rotCw').classList.remove('on');
+  document.getElementById('rotCcw').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
   updateBadge();
@@ -1612,6 +1723,8 @@ window.doUndo = function() {
     document.getElementById('dupFab').classList.remove('on');
     document.getElementById('elevUp').classList.remove('on');
     document.getElementById('elevDown').classList.remove('on');
+    document.getElementById('rotCw').classList.remove('on');
+    document.getElementById('rotCcw').classList.remove('on');
     document.getElementById('selTag').classList.remove('on');
   }
   /* Update tray indicator */
@@ -1665,7 +1778,6 @@ async function loadModel(item) {
     pending = { mesh, id:item.id, name:item.name, icon:item.icon || '\u25C7', imgUrl:item.imgUrl || null };
     spin(false);
     setStatus('Touchez le sol pour placer ' + item.name, true);
-    toast(item.name + ' charge - touchez le sol pour placer', 'ok');
   } catch(e) {
     spin(false);
     toast('Erreur: ' + e.message, 'err');
@@ -2103,6 +2215,8 @@ function clearScene() {
   document.getElementById('dupFab').classList.remove('on');
   document.getElementById('elevUp').classList.remove('on');
   document.getElementById('elevDown').classList.remove('on');
+  document.getElementById('rotCw').classList.remove('on');
+  document.getElementById('rotCcw').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   document.getElementById('undoFab').classList.remove('on');
   document.querySelectorAll('.tray-item').forEach(el => el.remove());
