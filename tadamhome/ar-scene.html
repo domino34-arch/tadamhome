@@ -58,13 +58,22 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .sel-tag.on{opacity:1}
 
 /* ACTION FABs (delete + duplicate) */
-.del-fab{position:absolute;bottom:16px;right:14px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
+.del-fab{position:absolute;bottom:16px;right:114px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
 .del-fab.on{opacity:1;pointer-events:all}
 .del-fab svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
-.dup-fab{position:absolute;bottom:16px;right:64px;width:42px;height:42px;background:rgba(184,152,106,.95);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(184,152,106,.35);border-radius:2px}
+.dup-fab{position:absolute;bottom:16px;right:162px;width:42px;height:42px;background:rgba(184,152,106,.95);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(184,152,106,.35);border-radius:2px}
 .dup-fab.on{opacity:1;pointer-events:all}
 .dup-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ELEVATION FABS — vertical strip on the right above dup/del.
+   Tap = ±5cm, press-and-hold = continuous lift/lower. */
+.elev-fab{position:absolute;right:14px;width:42px;height:42px;background:rgba(28,27,24,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:opacity .25s, background .15s;box-shadow:0 2px 10px rgba(0,0,0,.18);border-radius:2px;-webkit-user-select:none;user-select:none}
+.elev-fab.on{opacity:1;pointer-events:all}
+.elev-fab:active,.elev-fab.holding{background:var(--accent)}
+.elev-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.elev-up{bottom:64px}
+.elev-down{bottom:16px}
 
 /* UNDO */
 .undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
@@ -168,6 +177,13 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   border-bottom:1.5px solid var(--accent);
   padding:4px 9px;
 }
+.manip-label.dist{
+  border-left:none;
+  border-top:1.5px solid var(--accent);
+  background:rgba(28,27,24,.78);
+  padding:3px 8px;
+  font-size:9.5px;
+}
 
 /* LOADER + TOAST */
 #ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
@@ -219,9 +235,17 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <button class="dup-fab" id="dupFab" onclick="doDuplicate()" title="Dupliquer">
       <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="1.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     </button>
-    <!-- Manipulation labels (height + rotation angle) -->
+    <!-- ELEVATION FABs (lift up / down) — visible when something is selected -->
+    <button class="elev-fab elev-up" id="elevUp" title="Lever +5cm">
+      <svg viewBox="0 0 24 24"><polyline points="6 14 12 8 18 14"/><line x1="12" y1="8" x2="12" y2="20"/><line x1="6" y1="4" x2="18" y2="4"/></svg>
+    </button>
+    <button class="elev-fab elev-down" id="elevDown" title="Baisser -5cm">
+      <svg viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/><line x1="12" y1="16" x2="12" y2="4"/><line x1="6" y1="20" x2="18" y2="20"/></svg>
+    </button>
+    <!-- Manipulation labels (height + rotation angle + distance to nearest object) -->
     <div class="manip-label" id="hLabel"></div>
     <div class="manip-label angle" id="aLabel"></div>
+    <div class="manip-label dist" id="dLabel"></div>
     <!-- DELETE FAB -->
     <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -251,7 +275,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     </div>
 
     <div class="tray-row" id="tray">
-      <div class="tray-add" onclick="openCat()">
+      <div class="tray-add" onclick="window.location.href='https://tadamhome.fr/catalogue'">
         <div class="tray-add-box">+</div>
         <div class="tray-lbl">Ajouter</div>
       </div>
@@ -519,9 +543,27 @@ const HELPER = (() => {
   /* HTML labels */
   const hLabel = document.getElementById('hLabel');
   const aLabel = document.getElementById('aLabel');
+  const dLabel = document.getElementById('dLabel');
   /* Smoothed display values — avoids flicker on jitter */
   let hDisplay = 0, hTarget = 0;
   let aDisplay = 0, aTarget = 0;
+  let dDisplay = 0, dTarget = 0;
+
+  /* Distance line — connects the closest points of the selected object's
+     bounding box to the nearest other object's box during drag. */
+  const distGeo = new THREE.BufferGeometry();
+  distGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const distMat = new THREE.LineDashedMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.7,
+    dashSize: 0.05, gapSize: 0.04, depthTest: false
+  });
+  const distLine = new THREE.Line(distGeo, distMat);
+  distLine.frustumCulled = false;
+  distLine.renderOrder = 999;
+  distLine.visible = false;
+  /* This line is in WORLD space, so we attach it to the scene root, not the
+     helper group (which moves with the selected object). */
+  scene.add(distLine);
 
   /* Helper state */
   let mode = 'none'; /* 'drag' | 'rotate' | 'none' */
@@ -536,6 +578,9 @@ const HELPER = (() => {
     if (Math.abs(aTarget - aDisplay) > 0.1) {
       aDisplay += (aTarget - aDisplay) * 0.35;
     } else aDisplay = aTarget;
+    if (Math.abs(dTarget - dDisplay) > 0.05) {
+      dDisplay += (dTarget - dDisplay) * 0.35;
+    } else dDisplay = dTarget;
 
     if (hLabel.classList.contains('on')) {
       hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
@@ -545,6 +590,54 @@ const HELPER = (() => {
       if (deg > 180) deg -= 360;
       aLabel.textContent = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
     }
+    if (dLabel.classList.contains('on')) {
+      const cm = Math.round(dDisplay);
+      dLabel.textContent = (cm >= 100)
+        ? '↔ ' + (cm / 100).toFixed(2) + ' m'
+        : '↔ ' + cm + ' cm';
+    }
+  }
+
+  /* Box-to-box edge distance (zero if overlapping) */
+  function boxEdgeDistance(a, b) {
+    const dx = Math.max(0, Math.max(a.min.x - b.max.x, b.min.x - a.max.x));
+    const dy = Math.max(0, Math.max(a.min.y - b.max.y, b.min.y - a.max.y));
+    const dz = Math.max(0, Math.max(a.min.z - b.max.z, b.min.z - a.max.z));
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+  /* Closest point on box B to a reference point */
+  function closestPointOnBox(box, ref, out) {
+    out.set(
+      Math.max(box.min.x, Math.min(ref.x, box.max.x)),
+      Math.max(box.min.y, Math.min(ref.y, box.max.y)),
+      Math.max(box.min.z, Math.min(ref.z, box.max.z))
+    );
+    return out;
+  }
+
+  /* Find the nearest other placed object to `target`, plus the connection segment */
+  const _otherCenter = new THREE.Vector3();
+  const _selfCenter  = new THREE.Vector3();
+  const _ptA = new THREE.Vector3();
+  const _ptB = new THREE.Vector3();
+  function nearestNeighbour(selfBox) {
+    if (!target) return null;
+    selfBox.getCenter(_selfCenter);
+    let bestDist = Infinity;
+    let bestObj  = null;
+    let bestBox  = null;
+    for (const o of placed) {
+      if (o.sceneId === target.sceneId) continue;
+      const ob = new THREE.Box3().setFromObject(o.mesh);
+      const d  = boxEdgeDistance(selfBox, ob);
+      if (d < bestDist) { bestDist = d; bestObj = o; bestBox = ob; }
+    }
+    if (!bestObj) return null;
+    bestBox.getCenter(_otherCenter);
+    /* Closest point on each box pointing toward the other's center */
+    closestPointOnBox(selfBox,  _otherCenter, _ptA);
+    closestPointOnBox(bestBox, _selfCenter,   _ptB);
+    return { obj: bestObj, distance: bestDist, a: _ptA.clone(), b: _ptB.clone() };
   }
 
   function project(v3) {
@@ -608,7 +701,7 @@ const HELPER = (() => {
        Even at floor level, we keep it visible during drag with the H label
        because dragging on uneven future terrain might lift the object. */
     const liftedH = info.bottom.y;
-    const showDrop = liftedH > 0.005;
+    const showDrop = (mode === 'drag') && (viewMode === 'persp') && liftedH > 0.005;
     dropY.visible = showDrop;
     if (showDrop) {
       const dp = dropY.geometry.attributes.position;
@@ -624,12 +717,47 @@ const HELPER = (() => {
     const ringR = Math.max(0.4, Math.hypot(sz.x, sz.z) * 0.55);
     ringGroup.scale.setScalar(ringR);
 
-    /* H label — anchor to top of axis line */
-    if (mode === 'drag') {
-      hTarget = info.bottom.y * 100; /* meters → cm */
+    /* H label — shown only in perspective view during drag.
+       In plan/axo, height is not meaningful (we look straight down or near-down)
+       and we replace it with the inter-object distance label below. */
+    if (mode === 'drag' && viewMode === 'persp') {
+      hTarget = info.bottom.y * 100;
       const wp = info.bottom.clone(); wp.y += 0.04;
       const sc = project(wp);
       hLabel.style.transform = 'translate(' + (sc.x + 14) + 'px,' + (sc.y - 26) + 'px)';
+      if (!hLabel.classList.contains('on')) hLabel.classList.add('on');
+    } else if (hLabel.classList.contains('on')) {
+      hLabel.classList.remove('on');
+    }
+
+    /* Distance to nearest other object — shown during drag in ALL view modes.
+       This is what an architect needs for placement: "I have 30cm between this
+       chair and that table." */
+    if (mode === 'drag' && placed.length > 1) {
+      const nn = nearestNeighbour(info.box);
+      if (nn) {
+        dTarget = nn.distance * 100;
+        /* Draw segment between the two closest box-points */
+        const dp = distGeo.attributes.position;
+        dp.array[0] = nn.a.x; dp.array[1] = Math.max(nn.a.y, 0.005); dp.array[2] = nn.a.z;
+        dp.array[3] = nn.b.x; dp.array[4] = Math.max(nn.b.y, 0.005); dp.array[5] = nn.b.z;
+        dp.needsUpdate = true;
+        distLine.computeLineDistances();
+        distLine.visible = true;
+
+        /* Anchor the distance label to the midpoint, projected to screen */
+        const mid = nn.a.clone().add(nn.b).multiplyScalar(0.5);
+        mid.y = Math.max(mid.y, 0.005);
+        const sc = project(mid);
+        dLabel.style.transform = 'translate(' + (sc.x - 30) + 'px,' + (sc.y - 28) + 'px)';
+        if (!dLabel.classList.contains('on')) dLabel.classList.add('on');
+      } else {
+        if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
+        distLine.visible = false;
+      }
+    } else {
+      if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
+      distLine.visible = false;
     }
 
     /* Angle label — anchor near object center (in plan) at ring edge */
@@ -651,18 +779,21 @@ const HELPER = (() => {
     root.visible = true;
     /* Mode-specific overlay visibility */
     ringGroup.visible = (m === 'rotate');
-    dropY.visible = (m === 'drag');
+    /* dropY and label visibility are handled per-frame in update() based on
+       view mode and object state, so we just clear stale state here. */
 
     if (m === 'drag') {
       hTarget = (objCenter(obj).bottom.y) * 100;
       hDisplay = hTarget;
-      hLabel.classList.add('on');
       aLabel.classList.remove('on');
+      /* hLabel + dLabel get added back by update() when applicable */
     } else if (m === 'rotate') {
       aTarget = (obj.mesh.rotation.y * 180 / Math.PI);
       aDisplay = aTarget;
       aLabel.classList.add('on');
       hLabel.classList.remove('on');
+      dLabel.classList.remove('on');
+      distLine.visible = false;
     }
     update();
   }
@@ -678,6 +809,8 @@ const HELPER = (() => {
     mode = 'none';
     hLabel.classList.remove('on');
     aLabel.classList.remove('on');
+    dLabel.classList.remove('on');
+    distLine.visible = false;
     /* Tween mesh opacity down */
     const start = performance.now();
     const dur = 400;
@@ -738,25 +871,26 @@ const FEEDBACK = (() => {
   /* Synthesise a wooden "thock":
      - very short percussive envelope (20-30ms)
      - low fundamental ~180Hz with quick decay
-     - a tiny noise burst at the front for the wood "click" */
+     - a tiny noise burst at the front for the wood "click"
+     Volumes intentionally low — the cue should feel implicit, not announced. */
   function thock() {
     const ac = ensureCtx();
     if (!ac) return;
     if (ac.state === 'suspended') { try { ac.resume(); } catch(_){} }
     const now = ac.currentTime;
 
-    /* Tonal body */
+    /* Tonal body — quieter than before */
     const osc = ac.createOscillator();
     const oscGain = ac.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(220, now);
     osc.frequency.exponentialRampToValueAtTime(120, now + 0.022);
     oscGain.gain.setValueAtTime(0.0001, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.18, now + 0.002);
+    oscGain.gain.exponentialRampToValueAtTime(0.06, now + 0.002);
     oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
     osc.connect(oscGain);
 
-    /* Click attack (filtered noise burst) */
+    /* Click attack (filtered noise burst) — also quieter */
     const noiseBuf = ac.createBuffer(1, 256, ac.sampleRate);
     const data = noiseBuf.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
@@ -767,13 +901,13 @@ const FEEDBACK = (() => {
     noiseFilter.frequency.value = 2200;
     noiseFilter.Q.value = 1.2;
     const noiseGain = ac.createGain();
-    noiseGain.gain.setValueAtTime(0.06, now);
+    noiseGain.gain.setValueAtTime(0.018, now);
     noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
     noise.connect(noiseFilter); noiseFilter.connect(noiseGain);
 
-    /* Output bus (so we can master-attenuate later if needed) */
+    /* Output bus — overall master attenuation for "subtle" feel */
     const out = ac.createGain();
-    out.gain.value = 0.85;
+    out.gain.value = 0.4;
     oscGain.connect(out);
     noiseGain.connect(out);
     out.connect(ac.destination);
@@ -786,11 +920,20 @@ const FEEDBACK = (() => {
 
   function haptic() {
     /* Web Vibration API — works on Android. iOS Safari ignores it silently
-       (no error), and that's fine: the user keeps the audio cue. */
+       (no error), and that's fine: the cue is felt-only there. */
     try { if (navigator.vibrate) navigator.vibrate(8); } catch(_){}
   }
 
-  function trigger() {
+  /* Two cue flavours:
+     - tickSilent: haptic only (used during translation)
+     - tickFull:   thock + haptic (used during rotation) */
+  function tickSilent() {
+    const now = performance.now();
+    if (now - lastTickAt < minIntervalMs) return;
+    lastTickAt = now;
+    haptic();
+  }
+  function tickFull() {
     const now = performance.now();
     if (now - lastTickAt < minIntervalMs) return;
     lastTickAt = now;
@@ -798,7 +941,8 @@ const FEEDBACK = (() => {
     haptic();
   }
 
-  /* Translation tracker — ticks every 10cm of cumulative XZ travel */
+  /* Translation tracker — ticks every 10cm of cumulative XZ travel.
+     SILENT tick (haptic only) — the user feels precision without audio. */
   const TRANS_THRESHOLD = 0.10; /* meters */
   let lastPos = null, transAccum = 0;
   function startTranslate(pos) { lastPos = pos.clone(); transAccum = 0; }
@@ -808,12 +952,13 @@ const FEEDBACK = (() => {
     lastPos.copy(pos);
     while (transAccum >= TRANS_THRESHOLD) {
       transAccum -= TRANS_THRESHOLD;
-      trigger();
+      tickSilent();
     }
   }
   function endTranslate() { lastPos = null; transAccum = 0; }
 
-  /* Rotation tracker — ticks every 15° of cumulative |Δθ| */
+  /* Rotation tracker — ticks every 15° of cumulative |Δθ|.
+     FULL tick (thock + haptic) — rotation is the only gesture with audio. */
   const ROT_THRESHOLD = 15 * Math.PI / 180;
   let lastRot = null, rotAccum = 0;
   function startRotate(rad) { lastRot = rad; rotAccum = 0; }
@@ -827,7 +972,7 @@ const FEEDBACK = (() => {
     lastRot = rad;
     while (rotAccum >= ROT_THRESHOLD) {
       rotAccum -= ROT_THRESHOLD;
-      trigger();
+      tickFull();
     }
   }
   function endRotate() { lastRot = null; rotAccum = 0; }
@@ -844,6 +989,78 @@ const FEEDBACK = (() => {
 
   return { startTranslate, updateTranslate, endTranslate,
            startRotate,    updateRotate,    endRotate };
+})();
+
+/* ========================================================================
+   ELEVATION CONTROLS — vertical translation (Y) for the selected object.
+   Tap = ±5cm step. Press-and-hold = continuous lift/lower at ~30cm/s.
+   Tied directly to selected.mesh.position.y, clamped to [0, 3m]. */
+(function elevationControls() {
+  const STEP_M    = 0.05;  /* 5cm per tap */
+  const SPEED_M_S = 0.30;  /* 30cm per second when held */
+  const Y_MIN = 0;
+  const Y_MAX = 3.0;
+
+  const upBtn   = document.getElementById('elevUp');
+  const downBtn = document.getElementById('elevDown');
+
+  function clampY(y) { return Math.max(Y_MIN, Math.min(Y_MAX, y)); }
+
+  function nudge(deltaM) {
+    if (!selected) return;
+    const before = selected.mesh.position.y;
+    const after  = clampY(before + deltaM);
+    if (after === before) return;
+    selected.mesh.position.y = after;
+    /* Show drag helper while elevating so the user sees H label + dropline */
+    HELPER.show(selected, 'drag');
+  }
+
+  /* Hold-to-continuous: rAF loop while button is pressed */
+  let holdRAF = null;
+  let holdLastT = 0;
+  let holdDir = 0;
+  function holdLoop() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - holdLastT) / 1000);
+    holdLastT = now;
+    nudge(holdDir * SPEED_M_S * dt);
+    holdRAF = requestAnimationFrame(holdLoop);
+  }
+  function startHold(dir, btn) {
+    if (!selected) return;
+    btn.classList.add('holding');
+    holdDir = dir;
+    holdLastT = performance.now();
+    /* Immediate snap-tap so a quick tap moves at least one step */
+    nudge(dir * STEP_M);
+    /* After a short pause, kick off continuous mode */
+    holdRAF = setTimeout(() => {
+      holdLastT = performance.now();
+      holdRAF = requestAnimationFrame(holdLoop);
+    }, 280);
+  }
+  function endHold(btn) {
+    btn.classList.remove('holding');
+    if (holdRAF) {
+      /* holdRAF can be either a setTimeout id or rAF id — clear both safely */
+      clearTimeout(holdRAF);
+      cancelAnimationFrame(holdRAF);
+      holdRAF = null;
+    }
+    /* Cue at end of gesture so the user feels the action settled */
+    HELPER.show(selected, 'drag');
+  }
+
+  /* Pointer events handle mouse + touch uniformly */
+  function bind(btn, dir) {
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerup',   ()  => endHold(btn));
+    btn.addEventListener('pointercancel', () => endHold(btn));
+    btn.addEventListener('pointerleave', () => endHold(btn));
+  }
+  bind(upBtn,   +1);
+  bind(downBtn, -1);
 })();
 
 /* RESIZE */
@@ -886,6 +1103,31 @@ let tAngle0    = 0;
 let tMid0      = null; /* midpoint between 2 fingers, used for camera panning */
 let tMode      = 'none';
 
+/* Drag offset (XZ): preserves the visual offset between the finger and the
+   object center, so the model never snaps to be centered under the finger. */
+const dragOffset = new THREE.Vector3();
+let dragOffsetSet = false;
+
+/* Picking — bounding-box based for forgiving selection.
+   Mesh-precise raycasts force the user to tap exactly on slim chair legs;
+   we expand each placed item's box by ~5cm so even an approximate tap works. */
+const _pickBox = new THREE.Box3();
+const _pickHit = new THREE.Vector3();
+function pickPlaced(nx, ny, requireSelected) {
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+  let best = null, bestDist = Infinity;
+  const list = requireSelected ? (selected ? [selected] : []) : placed;
+  for (const obj of list) {
+    _pickBox.setFromObject(obj.mesh);
+    _pickBox.expandByScalar(0.05); /* ~5cm forgiveness on each side */
+    if (raycaster.ray.intersectBox(_pickBox, _pickHit)) {
+      const d = raycaster.ray.origin.distanceTo(_pickHit);
+      if (d < bestDist) { bestDist = d; best = obj; }
+    }
+  }
+  return best;
+}
+
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   if (e.touches.length === 1) {
@@ -893,6 +1135,7 @@ canvas.addEventListener('touchstart', (e) => {
     tDragging = false;
     tMode = 'none';
     orbitStart = { theta:camTheta, elev:camElev, x:e.touches[0].clientX, y:e.touches[0].clientY };
+    dragOffsetSet = false;
     /* If we have a selection, prime the translation tracker — the actual
        drag mode is decided in touchmove. */
     if (selected) FEEDBACK.startTranslate(selected.mesh.position);
@@ -921,8 +1164,20 @@ canvas.addEventListener('touchmove', (e) => {
       raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
       const pt = new THREE.Vector3();
       if (raycaster.ray.intersectPlane(groundPlane, pt)) {
-        selected.mesh.position.x = pt.x;
-        selected.mesh.position.z = pt.z;
+        /* On the very first move of a drag, snapshot the offset between
+           the finger world-position and the object's current XZ. From now on
+           we move the object so this offset stays constant — finger can be
+           anywhere on/around the model, the model never recenters under it. */
+        if (!dragOffsetSet) {
+          dragOffset.set(
+            selected.mesh.position.x - pt.x,
+            0,
+            selected.mesh.position.z - pt.z
+          );
+          dragOffsetSet = true;
+        }
+        selected.mesh.position.x = pt.x + dragOffset.x;
+        selected.mesh.position.z = pt.z + dragOffset.z;
         const bx = new THREE.Box3().setFromObject(selected.mesh);
         if (bx.min.y < 0) selected.mesh.position.y -= bx.min.y;
         /* feedback + helpers */
@@ -1033,13 +1288,14 @@ canvas.addEventListener('mousedown', (e) => {
   const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
   const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
   raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
-  if (selected) {
-    const hits = raycaster.intersectObjects([selected.mesh], true);
-    if (hits.length) {
-      mObjDrag = true;
-      FEEDBACK.startTranslate(selected.mesh.position);
-      return;
-    }
+  /* Forgiving pick for drag-on-selected: if the cursor lands inside the
+     selection's expanded bounding box, we drag — even if the precise mesh
+     ray-test would miss thin geometry like chair legs. */
+  if (selected && pickPlaced(nx, ny, true)) {
+    mObjDrag = true;
+    dragOffsetSet = false;
+    FEEDBACK.startTranslate(selected.mesh.position);
+    return;
   }
   mObjDrag = false;
   mOrbitStart = { theta:camTheta, elev:camElev, x:e.clientX, y:e.clientY };
@@ -1059,8 +1315,16 @@ window.addEventListener('mousemove', (e) => {
     raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
     const pt = new THREE.Vector3();
     if (raycaster.ray.intersectPlane(groundPlane, pt)) {
-      selected.mesh.position.x = pt.x;
-      selected.mesh.position.z = pt.z;
+      if (!dragOffsetSet) {
+        dragOffset.set(
+          selected.mesh.position.x - pt.x,
+          0,
+          selected.mesh.position.z - pt.z
+        );
+        dragOffsetSet = true;
+      }
+      selected.mesh.position.x = pt.x + dragOffset.x;
+      selected.mesh.position.z = pt.z + dragOffset.z;
       HELPER.show(selected, 'drag');
       FEEDBACK.updateTranslate(selected.mesh.position);
     }
@@ -1110,14 +1374,8 @@ function handleMouseClick(e) {
     const hf = raycaster.intersectObject(floorMesh);
     if (hf.length) { doPlace(hf[0].point); return; }
   }
-  const meshes = placed.map(o => o.mesh);
-  const hits = raycaster.intersectObjects(meshes, true);
-  if (hits.length) {
-    let m = hits[0].object;
-    while (m.parent && !placed.find(o => o.mesh === m)) m = m.parent;
-    const f = placed.find(o => o.mesh === m);
-    if (f) { selectObj(f); return; }
-  }
+  const hit = pickPlaced(nx, ny, false);
+  if (hit) { selectObj(hit); return; }
   selectObj(null);
 }
 function handleTap(t) {
@@ -1128,14 +1386,8 @@ function handleTap(t) {
     const hf = raycaster.intersectObject(floorMesh);
     if (hf.length) { doPlace(hf[0].point); return; }
   }
-  const meshes = placed.map(o => o.mesh);
-  const hits = raycaster.intersectObjects(meshes, true);
-  if (hits.length) {
-    let m = hits[0].object;
-    while (m.parent && !placed.find(o => o.mesh === m)) m = m.parent;
-    const f = placed.find(o => o.mesh === m);
-    if (f) { selectObj(f); return; }
-  }
+  const hit = pickPlaced(nx, ny, false);
+  if (hit) { selectObj(hit); return; }
   selectObj(null);
 }
 
@@ -1192,6 +1444,8 @@ function selectObj(obj) {
   selected = obj;
   document.getElementById('delFab').classList.toggle('on', !!obj);
   document.getElementById('dupFab').classList.toggle('on', !!obj);
+  document.getElementById('elevUp').classList.toggle('on', !!obj);
+  document.getElementById('elevDown').classList.toggle('on', !!obj);
   const tag = document.getElementById('selTag');
   tag.classList.toggle('on', !!obj);
   if (obj) tag.textContent = obj.name;
@@ -1224,6 +1478,8 @@ window.doDelete = function() {
   selected = null;
   document.getElementById('delFab').classList.remove('on');
   document.getElementById('dupFab').classList.remove('on');
+  document.getElementById('elevUp').classList.remove('on');
+  document.getElementById('elevDown').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
   updateBadge();
@@ -1288,6 +1544,8 @@ window.doUndo = function() {
     selected = null;
     document.getElementById('delFab').classList.remove('on');
     document.getElementById('dupFab').classList.remove('on');
+    document.getElementById('elevUp').classList.remove('on');
+    document.getElementById('elevDown').classList.remove('on');
     document.getElementById('selTag').classList.remove('on');
   }
   /* Update tray indicator */
@@ -1777,6 +2035,8 @@ function clearScene() {
   pending  = null;
   document.getElementById('delFab').classList.remove('on');
   document.getElementById('dupFab').classList.remove('on');
+  document.getElementById('elevUp').classList.remove('on');
+  document.getElementById('elevDown').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   document.getElementById('undoFab').classList.remove('on');
   document.querySelectorAll('.tray-item').forEach(el => el.remove());
