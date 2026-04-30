@@ -80,18 +80,20 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .rot-ccw   {bottom:116px}
 .rot-cw,.rot-ccw{background:rgba(45,42,36,.85)}
 
-/* ZOOM SLIDER — vertical control on the left edge for one-handed zoom.
-   Only visible when nothing is selected (so it never competes with object
-   actions). Fades in/out with the same 250ms ease as other helpers. */
-.zoom-slider{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(28,27,24,.78);backdrop-filter:blur(8px);padding:6px 4px;border:1px solid rgba(255,255,255,.06);border-radius:2px;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:4;-webkit-user-select:none;user-select:none}
-.zoom-slider.on{opacity:1;pointer-events:all}
-.zoom-btn{width:28px;height:28px;background:transparent;border:none;color:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:color .15s, background .15s;border-radius:2px}
-.zoom-btn:hover,.zoom-btn:active{color:var(--accent);background:rgba(255,255,255,.06)}
-.zoom-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.zoom-track{position:relative;width:24px;height:120px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:none}
-.zoom-track::before{content:"";position:absolute;width:1.5px;height:100%;background:rgba(255,255,255,.18);left:50%;transform:translateX(-50%)}
-.zoom-thumb{position:absolute;width:14px;height:14px;background:var(--accent);border:1.5px solid rgba(28,27,24,.8);border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3);left:50%;top:50%;transform:translate(-50%,-50%);transition:box-shadow .15s;will-change:top;pointer-events:none}
-.zoom-thumb.dragging{box-shadow:0 0 0 6px rgba(184,152,106,.18),0 1px 4px rgba(0,0,0,.3)}
+/* ZOOM SLIDER — discrete vertical control on the right edge for one-handed
+   zoom on mobile. Visible only when nothing is selected (so it never
+   competes with object actions). No panel background — it floats minimally
+   over the canvas with just a hair-line track and a small accent thumb. */
+.zoom-slider{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:4;-webkit-user-select:none;user-select:none}
+.zoom-slider.on{opacity:.65;pointer-events:all}
+.zoom-slider:hover,.zoom-slider:active{opacity:1}
+.zoom-btn{width:22px;height:22px;background:transparent;border:none;color:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:color .15s;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.zoom-btn:hover,.zoom-btn:active{color:var(--accent)}
+.zoom-btn svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.zoom-track{position:relative;width:18px;height:96px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:none}
+.zoom-track::before{content:"";position:absolute;width:1px;height:100%;background:rgba(255,255,255,.35);left:50%;transform:translateX(-50%);box-shadow:0 0 2px rgba(0,0,0,.4)}
+.zoom-thumb{position:absolute;width:10px;height:10px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 1.5px rgba(28,27,24,.6),0 1px 2px rgba(0,0,0,.4);left:50%;top:50%;transform:translate(-50%,-50%);transition:box-shadow .15s;will-change:top;pointer-events:none}
+.zoom-thumb.dragging{box-shadow:0 0 0 1.5px rgba(28,27,24,.6),0 0 0 5px rgba(184,152,106,.22),0 1px 2px rgba(0,0,0,.4)}
 
 /* UNDO */
 .undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
