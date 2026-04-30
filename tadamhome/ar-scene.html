@@ -1,5 +1,7 @@
-<!DOCTYPE html>
+20260430
+Page ar-scene :
 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -18,30 +20,30 @@
 html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidden}
 
 /* TOPBAR - logo réduit + écarts plus serrés pour libérer la place du X */
-.topbar{height:50px;background:var(–ink);display:flex;align-items:center;justify-content:space-between;padding:0 8px;flex-shrink:0;padding-top:env(safe-area-inset-top,0);gap:4px}
+.topbar{height:50px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 8px;flex-shrink:0;padding-top:env(safe-area-inset-top,0);gap:4px}
 .topbar-left{display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;overflow:hidden}
 .topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .t-logo{height:14px;object-fit:contain;flex-shrink:0}
 .t-sep{width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0}
-.t-label{font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(–sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-label{font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Boutons icône-seule sur mobile */
-.t-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:32px;height:32px;padding:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(–white);font-family:var(–sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative}
+.t-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:32px;height:32px;padding:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative}
 .t-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 .t-btn-lbl{display:none}
-.t-btn:hover{background:rgba(184,152,106,.2);border-color:var(–accent);color:var(–accent)}
+.t-btn:hover{background:rgba(184,152,106,.2);border-color:var(--accent);color:var(--accent)}
 .t-btn.ar{background:rgba(39,112,74,.25);border-color:rgba(39,112,74,.5);color:#6dcf95}
 .t-btn.ar:hover{background:rgba(39,112,74,.4)}
-.t-badge{background:var(–green);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(–sans);display:none;flex-shrink:0;position:absolute;top:-3px;right:-3px}
+.t-badge{background:var(--green);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(--sans);display:none;flex-shrink:0;position:absolute;top:-3px;right:-3px}
 .t-badge.on{display:inline}
-.t-icon-btn{width:32px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(–white);transition:all .2s;flex-shrink:0}
+.t-icon-btn{width:32px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s;flex-shrink:0}
 .t-icon-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .t-icon-btn:hover{background:rgba(255,255,255,.18)}
 @media (min-width:540px){
-.t-btn{width:auto;padding:0 10px;gap:5px}
-.t-btn-lbl{display:inline}
-.t-btn.ar .t-badge{position:static}
-.topbar{padding:0 14px;gap:6px}
-.t-logo{height:16px}
+  .t-btn{width:auto;padding:0 10px;gap:5px}
+  .t-btn-lbl{display:inline}
+  .t-btn.ar .t-badge{position:static}
+  .topbar{padding:0 14px;gap:6px}
+  .t-logo{height:16px}
 }
 
 /* LAYOUT */
@@ -52,171 +54,110 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 
 /* STATUS */
 .status{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.78);backdrop-filter:blur(8px);padding:6px 14px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);white-space:nowrap;border:1px solid rgba(255,255,255,.1);pointer-events:none;max-width:90%;overflow:hidden;text-overflow:ellipsis}
-.status.accent{color:var(–accent);border-color:rgba(184,152,106,.3)}
+.status.accent{color:var(--accent);border-color:rgba(184,152,106,.3)}
 
 /* SELECTED NAME TAG */
-.sel-tag{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.85);backdrop-filter:blur(8px);padding:5px 14px;font-size:11px;color:var(–white);letter-spacing:.05em;opacity:0;transition:opacity .2s;pointer-events:none;border-left:2px solid var(–accent);white-space:nowrap}
+.sel-tag{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.85);backdrop-filter:blur(8px);padding:5px 14px;font-size:11px;color:var(--white);letter-spacing:.05em;opacity:0;transition:opacity .2s;pointer-events:none;border-left:2px solid var(--accent);white-space:nowrap}
 .sel-tag.on{opacity:1}
 
 /* ACTION FABs (delete + duplicate) */
-.del-fab{position:absolute;bottom:16px;right:114px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
+.del-fab{position:absolute;bottom:16px;right:14px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
 .del-fab.on{opacity:1;pointer-events:all}
 .del-fab svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
-.dup-fab{position:absolute;bottom:16px;right:162px;width:42px;height:42px;background:rgba(184,152,106,.95);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(184,152,106,.35);border-radius:2px}
+.dup-fab{position:absolute;bottom:16px;right:64px;width:42px;height:42px;background:rgba(184,152,106,.95);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(184,152,106,.35);border-radius:2px}
 .dup-fab.on{opacity:1;pointer-events:all}
 .dup-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* RIGHT-EDGE MANIPULATION COLUMN — vertical strip of object controls.
-Tap = single step, press-and-hold = continuous. */
-.elev-fab{position:absolute;right:14px;width:42px;height:42px;background:rgba(28,27,24,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:opacity .25s, background .15s;box-shadow:0 2px 10px rgba(0,0,0,.18);border-radius:2px;-webkit-user-select:none;user-select:none}
-.elev-fab.on{opacity:1;pointer-events:all}
-.elev-fab:active,.elev-fab.holding{background:var(–accent)}
-.elev-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.elev-up   {bottom:64px}
-.elev-down {bottom:16px}
-/* Rotation buttons sit above the elevation pair, with a small visual gap.
-Slight tint shift makes the two clusters readable at a glance. */
-.rot-cw    {bottom:166px}
-.rot-ccw   {bottom:116px}
-.rot-cw,.rot-ccw{background:rgba(45,42,36,.85)}
-
-/* ZOOM SLIDER — discrete vertical control on the right edge for one-handed
-zoom on mobile. Visible only when nothing is selected (so it never
-competes with object actions). No panel background — it floats minimally
-over the canvas with just a hair-line track and a small accent thumb. */
-.zoom-slider{position:absolute;right:14px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(250,250,248,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 6px;border-radius:4px;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:4;-webkit-user-select:none;user-select:none}
-.zoom-slider.on{opacity:1;pointer-events:all}
-.zoom-btn{width:22px;height:22px;background:transparent;border:none;color:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
-.zoom-btn:hover,.zoom-btn:active{color:var(–accent)}
-.zoom-btn svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.zoom-track{position:relative;width:18px;height:96px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:none}
-.zoom-track::before{content:””;position:absolute;width:1px;height:100%;background:rgba(255,255,255,.4);left:50%;transform:translateX(-50%);filter:drop-shadow(0 0 1px rgba(0,0,0,.5))}
-.zoom-thumb{position:absolute;width:10px;height:10px;background:var(–accent);border-radius:50%;box-shadow:0 0 0 1.5px rgba(28,27,24,.5),0 1px 3px rgba(0,0,0,.35);left:50%;top:50%;transform:translate(-50%,-50%);transition:box-shadow .15s;will-change:top;pointer-events:none}
-.zoom-thumb.dragging{box-shadow:0 0 0 1.5px rgba(28,27,24,.5),0 0 0 5px rgba(184,152,106,.22),0 1px 3px rgba(0,0,0,.35)}
-
 /* UNDO */
-.undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(–border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
+.undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
 .undo-fab.on{opacity:1;pointer-events:all}
-.undo-fab svg{width:15px;height:15px;fill:none;stroke:var(–muted);stroke-width:1.8;stroke-linecap:round}
+.undo-fab svg{width:15px;height:15px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round}
 
 /* BOTTOM */
-.bottom{background:var(–white);border-top:1px solid var(–border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0)}
+.bottom{background:var(--white);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0)}
 
 /* VIEW BAR */
-.view-bar{display:flex;border-bottom:1px solid var(–border);background:rgba(245,242,236,.55)}
-.view-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;background:none;border:none;cursor:pointer;font-family:var(–sans);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(–muted);border-right:1px solid var(–border);transition:all .2s;position:relative}
+.view-bar{display:flex;border-bottom:1px solid var(--border);background:rgba(245,242,236,.55)}
+.view-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--border);transition:all .2s;position:relative}
 .view-btn:last-child{border-right:none}
-.view-btn:hover{color:var(–ink);background:rgba(184,152,106,.08)}
-.view-btn.active{color:var(–accent);background:var(–white)}
-.view-btn.active::after{content:””;position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(–accent)}
+.view-btn:hover{color:var(--ink);background:rgba(184,152,106,.08)}
+.view-btn.active{color:var(--accent);background:var(--white)}
+.view-btn.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent)}
 .view-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
 .tray-row{display:flex;align-items:center;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none}
 .tray-row::-webkit-scrollbar{display:none}
 .tray-add{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
-.tray-add-box{width:52px;height:52px;border:1.5px dashed rgba(184,152,106,.45);background:rgba(184,152,106,.05);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(–accent);transition:all .2s}
-.tray-add-box:hover{border-color:var(–accent);background:rgba(184,152,106,.12)}
-.tray-lbl{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(–muted)}
+.tray-add-box{width:52px;height:52px;border:1.5px dashed rgba(184,152,106,.45);background:rgba(184,152,106,.05);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent);transition:all .2s}
+.tray-add-box:hover{border-color:var(--accent);background:rgba(184,152,106,.12)}
+.tray-lbl{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .tray-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;position:relative}
-.tray-thumb{width:52px;height:52px;border:1.5px solid var(–border);background:var(–bg);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;overflow:hidden}
+.tray-thumb{width:52px;height:52px;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;overflow:hidden}
 .tray-thumb img{width:100%;height:100%;object-fit:cover}
-.tray-item.sel .tray-thumb{border-color:var(–accent);background:rgba(184,152,106,.1)}
-.tray-item.placed .tray-thumb::after{content:””;position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:var(–green);border-radius:50%;border:1.5px solid var(–white)}
-.tray-name{font-size:8px;letter-spacing:.04em;color:var(–muted);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-.tray-hint{font-size:9px;letter-spacing:.06em;color:var(–muted);padding:0 14px 8px;text-align:center;text-transform:uppercase}
+.tray-item.sel .tray-thumb{border-color:var(--accent);background:rgba(184,152,106,.1)}
+.tray-item.placed .tray-thumb::after{content:"";position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:var(--green);border-radius:50%;border:1.5px solid var(--white)}
+.tray-name{font-size:8px;letter-spacing:.04em;color:var(--muted);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.tray-hint{font-size:9px;letter-spacing:.06em;color:var(--muted);padding:0 14px 8px;text-align:center;text-transform:uppercase}
 
 /* CATALOGUE */
 #catOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
 #catOv.open{display:flex}
-.cov-head{background:var(–white);padding:12px 16px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;padding-top:calc(12px + env(safe-area-inset-top,0))}
-.cov-title{font-family:var(–serif);font-size:20px;font-weight:400}
-.cov-title em{font-style:italic;color:var(–accent)}
-.cov-x{background:none;border:1px solid var(–border);width:30px;height:30px;cursor:pointer;font-size:13px;color:var(–muted);display:flex;align-items:center;justify-content:center}
-.cov-body{flex:1;overflow-y:auto;padding:12px;background:var(–bg)}
-.cov-search{display:flex;align-items:center;gap:8px;border:1px solid var(–border);background:var(–white);padding:9px 12px;margin-bottom:10px}
-.cov-search svg{width:13px;height:13px;stroke:var(–muted);fill:none;stroke-width:1.5;flex-shrink:0}
-.cov-search input{border:none;outline:none;background:transparent;font-family:var(–sans);font-size:13px;color:var(–ink);flex:1;font-weight:300}
-.cov-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(–border)}
-.cov-card{background:var(–white);padding:12px;display:flex;flex-direction:column;gap:5px}
+.cov-head{background:var(--white);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding-top:calc(12px + env(safe-area-inset-top,0))}
+.cov-title{font-family:var(--serif);font-size:20px;font-weight:400}
+.cov-title em{font-style:italic;color:var(--accent)}
+.cov-x{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.cov-body{flex:1;overflow-y:auto;padding:12px;background:var(--bg)}
+.cov-search{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:9px 12px;margin-bottom:10px}
+.cov-search svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
+.cov-search input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
+.cov-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
+.cov-card{background:var(--white);padding:12px;display:flex;flex-direction:column;gap:5px}
 .cov-img{aspect-ratio:4/3;background:#EDEAE2;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
 .cov-img img{width:100%;height:100%;object-fit:cover}
-.cov-brand{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(–accent)}
-.cov-name{font-family:var(–serif);font-size:15px;color:var(–ink)}
-.cov-btn{padding:8px;background:var(–ink);color:var(–white);border:none;font-family:var(–sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
-.cov-btn:hover,.cov-btn.added{background:var(–accent)}
+.cov-brand{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.cov-name{font-family:var(--serif);font-size:15px;color:var(--ink)}
+.cov-btn{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
+.cov-btn:hover,.cov-btn.added{background:var(--accent)}
 
 /* SCENES MODAL — reuses .cov-head / .cov-title / .cov-x */
 #scnOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
 #scnOv.open{display:flex}
-.sov-body{flex:1;overflow-y:auto;padding:14px;background:var(–bg)}
-.sov-section-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(–muted);margin:0 0 8px 0;font-weight:500}
+.sov-body{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
+.sov-section-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 0;font-weight:500}
 .sov-section-title:not(:first-child){margin-top:18px}
-.sov-save-block{background:var(–white);border:1px solid var(–border);padding:14px}
-.sov-input{width:100%;border:1px solid var(–border);background:var(–bg);padding:10px 12px;font-family:var(–sans);font-size:13px;color:var(–ink);outline:none;font-weight:300;margin-bottom:10px;transition:border-color .15s}
-.sov-input:focus{border-color:var(–accent);background:var(–white)}
-.sov-save-btn{width:100%;padding:11px;background:var(–ink);color:var(–white);border:none;font-family:var(–sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
-.sov-save-btn:hover{background:var(–accent)}
+.sov-save-block{background:var(--white);border:1px solid var(--border);padding:14px}
+.sov-input{width:100%;border:1px solid var(--border);background:var(--bg);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;font-weight:300;margin-bottom:10px;transition:border-color .15s}
+.sov-input:focus{border-color:var(--accent);background:var(--white)}
+.sov-save-btn{width:100%;padding:11px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.sov-save-btn:hover{background:var(--accent)}
 .sov-save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .sov-save-btn:disabled{opacity:.4;cursor:not-allowed}
 .sov-list{display:flex;flex-direction:column;gap:8px}
-.sov-item{background:var(–white);border:1px solid var(–border);padding:10px;display:flex;align-items:center;gap:12px}
-.sov-item-thumb{width:64px;height:48px;border:1px solid var(–border);background:var(–bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(–muted);font-size:18px}
+.sov-item{background:var(--white);border:1px solid var(--border);padding:10px;display:flex;align-items:center;gap:12px}
+.sov-item-thumb{width:64px;height:48px;border:1px solid var(--border);background:var(--bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
 .sov-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .sov-item-info{flex:1;min-width:0}
-.sov-item-name{font-family:var(–serif);font-size:15px;color:var(–ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
-.sov-item-meta{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(–muted);margin-top:3px}
+.sov-item-name{font-family:var(--serif);font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+.sov-item-meta{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 .sov-item-actions{display:flex;gap:6px;flex-shrink:0}
-.sov-item-btn{width:32px;height:32px;border:1px solid var(–border);background:var(–white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(–muted);transition:all .15s}
+.sov-item-btn{width:32px;height:32px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s}
 .sov-item-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.sov-item-btn.load:hover{color:var(–green);border-color:var(–green)}
+.sov-item-btn.load:hover{color:var(--green);border-color:var(--green)}
 .sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
-.sov-empty{padding:32px 16px;text-align:center;color:var(–muted);font-size:11px;letter-spacing:.06em;background:var(–white);border:1px dashed var(–border);text-transform:uppercase}
-
-/* MANIPULATION LABELS — invisible until activated, opacity fades.
-Position is set via transform:translate(xpx,ypx) with a 60ms ease so the
-label glides instead of jittering when the underlying world point ticks. */
-.manip-label{
-position:absolute;top:0;left:0;
-background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
-color:rgba(255,255,255,.94);
-font-family:var(–sans);font-size:10px;font-weight:400;
-letter-spacing:.08em;
-padding:4px 8px;
-border-left:1.5px solid var(–accent);
-pointer-events:none;
-white-space:nowrap;
-opacity:0;
-transition:opacity .25s ease, transform 60ms linear;
-z-index:5;
-will-change:transform,opacity;
-}
-.manip-label.on{opacity:1}
-.manip-label.angle{
-border-left:none;
-border-bottom:1.5px solid var(–accent);
-padding:4px 9px;
-}
-.manip-label.dist{
-border-left:none;
-border-top:1.5px solid var(–accent);
-background:rgba(28,27,24,.78);
-padding:3px 8px;
-font-size:9.5px;
-}
+.sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
 
 /* LOADER + TOAST */
 #ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #ldr.on{display:flex}
-.spin{width:32px;height:32px;border:2px solid rgba(184,152,106,.2);border-top-color:var(–accent);border-radius:50%;animation:sp .8s linear infinite}
-.spin-txt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(–muted)}
+.spin{width:32px;height:32px;border:2px solid rgba(184,152,106,.2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+.spin-txt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 @keyframes sp{to{transform:rotate(360deg)}}
-#tst{position:fixed;bottom:calc(120px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%) translateY(6px);background:var(–ink);color:var(–white);padding:9px 16px;font-size:11px;letter-spacing:.05em;opacity:0;transition:all .3s;z-index:300;border-left:2px solid var(–accent);white-space:nowrap;pointer-events:none}
+#tst{position:fixed;bottom:calc(120px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%) translateY(6px);background:var(--ink);color:var(--white);padding:9px 16px;font-size:11px;letter-spacing:.05em;opacity:0;transition:all .3s;z-index:300;border-left:2px solid var(--accent);white-space:nowrap;pointer-events:none}
 #tst.on{opacity:1;transform:translateX(-50%) translateY(0)}
-#tst.ok{border-left-color:var(–green)}
+#tst.ok{border-left-color:var(--green)}
 #tst.err{border-left-color:#C0392B}
 </style>
-
 </head>
 <body>
 <div class="app">
@@ -248,7 +189,6 @@ font-size:9.5px;
   </div>
 
   <!-- STUDIO -->
-
   <div class="studio">
     <canvas id="c"></canvas>
     <div class="status" id="st">Ajoutez des meubles pour commencer</div>
@@ -257,24 +197,6 @@ font-size:9.5px;
     <button class="dup-fab" id="dupFab" onclick="doDuplicate()" title="Dupliquer">
       <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="1.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     </button>
-    <!-- ELEVATION FABs (lift up / down) — visible when something is selected -->
-    <button class="elev-fab elev-up" id="elevUp" title="Lever +5cm">
-      <svg viewBox="0 0 24 24"><polyline points="6 14 12 8 18 14"/><line x1="12" y1="8" x2="12" y2="20"/><line x1="6" y1="4" x2="18" y2="4"/></svg>
-    </button>
-    <button class="elev-fab elev-down" id="elevDown" title="Baisser -5cm">
-      <svg viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/><line x1="12" y1="16" x2="12" y2="4"/><line x1="6" y1="20" x2="18" y2="20"/></svg>
-    </button>
-    <!-- ROTATION FABs (clockwise / counter-clockwise) — useful on desktop where there's no 2-finger gesture -->
-    <button class="elev-fab rot-ccw" id="rotCcw" title="Pivoter -15°">
-      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
-    </button>
-    <button class="elev-fab rot-cw" id="rotCw" title="Pivoter +15°">
-      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg>
-    </button>
-    <!-- Manipulation labels (height + rotation angle + distance to nearest object) -->
-    <div class="manip-label" id="hLabel"></div>
-    <div class="manip-label angle" id="aLabel"></div>
-    <div class="manip-label dist" id="dLabel"></div>
     <!-- DELETE FAB -->
     <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -283,24 +205,9 @@ font-size:9.5px;
     <button class="undo-fab" id="undoFab" onclick="doUndo()" title="Annuler">
       <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
     </button>
-    <!-- ZOOM SLIDER — visible only when no model is selected, lets the user
-         zoom one-handed without pinch. Located on the left edge to stay out
-         of the right-side action column. -->
-    <div class="zoom-slider" id="zoomSlider">
-      <button class="zoom-btn" id="zoomIn" title="Zoom +">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <div class="zoom-track" id="zoomTrack">
-        <div class="zoom-thumb" id="zoomThumb"></div>
-      </div>
-      <button class="zoom-btn" id="zoomOut" title="Zoom -">
-        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-    </div>
   </div>
 
   <!-- BOTTOM (view bar + tray) -->
-
   <div class="bottom">
     <!-- VIEW MODE BAR -->
     <div class="view-bar">
@@ -318,21 +225,17 @@ font-size:9.5px;
       </button>
     </div>
 
-```
-<div class="tray-row" id="tray">
-  <div class="tray-add" onclick="openCat()">
-    <div class="tray-add-box">+</div>
-    <div class="tray-lbl">Ajouter</div>
-  </div>
-</div>
-<div class="tray-hint" id="trayHint">Appuyez sur + pour choisir un meuble</div>
-```
-
+    <div class="tray-row" id="tray">
+      <div class="tray-add" onclick="openCat()">
+        <div class="tray-add-box">+</div>
+        <div class="tray-lbl">Ajouter</div>
+      </div>
+    </div>
+    <div class="tray-hint" id="trayHint">Appuyez sur + pour choisir un meuble</div>
   </div>
 </div>
 
 <!-- CATALOGUE -->
-
 <div id="catOv">
   <div class="cov-head">
     <div class="cov-title">Choisir un <em>meuble</em></div>
@@ -350,7 +253,6 @@ font-size:9.5px;
 </div>
 
 <!-- SCENES (save / load) -->
-
 <div id="scnOv">
   <div class="cov-head">
     <div class="cov-title">Mes <em>scenes</em></div>
@@ -505,807 +407,6 @@ scene.add(grid);
 
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-/* ========================================================================
-   MANIPULATION HELPERS — "Natural Minimal"
-   Visual repères + audio/haptic feedback for precise but free movement.
-   Spec: silk-thin XYZ axes, dropline+H label, ground angle ring with degree
-   tooltip, all faded in only during drag/rotate. Sensory crantage at every
-   10cm translated and 15° rotated, never blocking the gesture itself.
-   ======================================================================== */
-const HELPER = (() => {
-  const root = new THREE.Group();
-  root.name = 'manip-helpers';
-  root.visible = false;
-  scene.add(root);
-
-  /* Three thin lines through the object center on each axis. We use
-     LineBasicMaterial — looks like a 0.5px hair line on retina.
-     Each axis gets its own material so we can independently highlight one
-     axis when the trajectory lock engages. */
-  const axisMatX = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const axisMatY = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const axisMatZ = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const dashMat  = new THREE.LineDashedMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.55,
-    dashSize: 0.04, gapSize: 0.04, depthTest: false
-  });
-
-  function makeLine(mat) {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-    const l = new THREE.Line(g, mat);
-    l.frustumCulled = false;
-    l.renderOrder = 999;
-    return l;
-  }
-  const xAxis = makeLine(axisMatX);
-  const yAxis = makeLine(axisMatY);
-  const zAxis = makeLine(axisMatZ);
-  const dropY = makeLine(dashMat); /* Y dropline: object base -> ground shadow */
-  root.add(xAxis, yAxis, zAxis, dropY);
-
-  /* Rotation ring — graduated circle on the floor, visible during rotate */
-  const ringGroup = new THREE.Group();
-  ringGroup.visible = false;
-  ringGroup.renderOrder = 998;
-  root.add(ringGroup);
-
-  const ringSegs = 96;
-  const ringRadius = 1; /* dynamic, scaled per-object below */
-  const ringPos = new Float32Array((ringSegs + 1) * 3);
-  for (let i = 0; i <= ringSegs; i++) {
-    const a = (i / ringSegs) * Math.PI * 2;
-    ringPos[i * 3]     = Math.cos(a) * ringRadius;
-    ringPos[i * 3 + 1] = 0.001;
-    ringPos[i * 3 + 2] = Math.sin(a) * ringRadius;
-  }
-  const ringGeo = new THREE.BufferGeometry();
-  ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
-  const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.55, depthTest: false
-  }));
-  ringLine.renderOrder = 998;
-  ringGroup.add(ringLine);
-
-  /* Tick marks every 15° */
-  const tickMat = new THREE.LineBasicMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.65, depthTest: false
-  });
-  const tickMatMajor = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.85, depthTest: false
-  });
-  for (let deg = 0; deg < 360; deg += 15) {
-    const a = deg * Math.PI / 180;
-    const major = (deg % 90) === 0;
-    const inner = major ? 0.92 : 0.95;
-    const outer = 1.02;
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-      Math.cos(a) * inner, 0.001, Math.sin(a) * inner,
-      Math.cos(a) * outer, 0.001, Math.sin(a) * outer
-    ]), 3));
-    const t = new THREE.Line(g, major ? tickMatMajor : tickMat);
-    t.renderOrder = 998;
-    ringGroup.add(t);
-  }
-
-  /* HTML labels */
-  const hLabel = document.getElementById('hLabel');
-  const aLabel = document.getElementById('aLabel');
-  const dLabel = document.getElementById('dLabel');
-  /* Smoothed display values — avoids flicker on jitter */
-  let hDisplay = 0, hTarget = 0;
-  let aDisplay = 0, aTarget = 0;
-  let dDisplay = 0, dTarget = 0;
-
-  /* Distance line — connects the closest points of the selected object's
-     bounding box to the nearest other object's box during drag. */
-  const distGeo = new THREE.BufferGeometry();
-  distGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-  const distMat = new THREE.LineDashedMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.7,
-    dashSize: 0.05, gapSize: 0.04, depthTest: false
-  });
-  const distLine = new THREE.Line(distGeo, distMat);
-  distLine.frustumCulled = false;
-  distLine.renderOrder = 999;
-  distLine.visible = false;
-  /* This line is in WORLD space, so we attach it to the scene root, not the
-     helper group (which moves with the selected object). */
-  scene.add(distLine);
-
-  /* Helper state */
-  let mode = 'none'; /* 'drag' | 'rotate' | 'none' */
-  let target = null;
-
-  /* Per-frame label tweening (ticks via animation loop) */
-  function tweenLabels() {
-    /* Lerp text values toward target so they never strobe */
-    if (Math.abs(hTarget - hDisplay) > 0.05) {
-      hDisplay += (hTarget - hDisplay) * 0.35;
-    } else hDisplay = hTarget;
-    if (Math.abs(aTarget - aDisplay) > 0.1) {
-      aDisplay += (aTarget - aDisplay) * 0.35;
-    } else aDisplay = aTarget;
-    if (Math.abs(dTarget - dDisplay) > 0.05) {
-      dDisplay += (dTarget - dDisplay) * 0.35;
-    } else dDisplay = dTarget;
-
-    if (hLabel.classList.contains('on')) {
-      hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
-    }
-    if (aLabel.classList.contains('on')) {
-      let deg = ((aDisplay % 360) + 360) % 360;
-      if (deg > 180) deg -= 360;
-      aLabel.textContent = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
-    }
-    if (dLabel.classList.contains('on')) {
-      const cm = Math.round(dDisplay);
-      dLabel.textContent = (cm >= 100)
-        ? '↔ ' + (cm / 100).toFixed(2) + ' m'
-        : '↔ ' + cm + ' cm';
-    }
-  }
-
-  /* Box-to-box edge distance (zero if overlapping) */
-  function boxEdgeDistance(a, b) {
-    const dx = Math.max(0, Math.max(a.min.x - b.max.x, b.min.x - a.max.x));
-    const dy = Math.max(0, Math.max(a.min.y - b.max.y, b.min.y - a.max.y));
-    const dz = Math.max(0, Math.max(a.min.z - b.max.z, b.min.z - a.max.z));
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
-  }
-  /* Closest point on box B to a reference point */
-  function closestPointOnBox(box, ref, out) {
-    out.set(
-      Math.max(box.min.x, Math.min(ref.x, box.max.x)),
-      Math.max(box.min.y, Math.min(ref.y, box.max.y)),
-      Math.max(box.min.z, Math.min(ref.z, box.max.z))
-    );
-    return out;
-  }
-
-  /* Find the nearest other placed object to `target`, plus the connection segment */
-  const _otherCenter = new THREE.Vector3();
-  const _selfCenter  = new THREE.Vector3();
-  const _ptA = new THREE.Vector3();
-  const _ptB = new THREE.Vector3();
-  function nearestNeighbour(selfBox) {
-    if (!target) return null;
-    selfBox.getCenter(_selfCenter);
-    let bestDist = Infinity;
-    let bestObj  = null;
-    let bestBox  = null;
-    for (const o of placed) {
-      if (o.sceneId === target.sceneId) continue;
-      const ob = new THREE.Box3().setFromObject(o.mesh);
-      const d  = boxEdgeDistance(selfBox, ob);
-      if (d < bestDist) { bestDist = d; bestObj = o; bestBox = ob; }
-    }
-    if (!bestObj) return null;
-    bestBox.getCenter(_otherCenter);
-    /* Closest point on each box pointing toward the other's center */
-    closestPointOnBox(selfBox,  _otherCenter, _ptA);
-    closestPointOnBox(bestBox, _selfCenter,   _ptB);
-    return { obj: bestObj, distance: bestDist, a: _ptA.clone(), b: _ptB.clone() };
-  }
-
-  function project(v3) {
-    const v = v3.clone().project(activeCam);
-    const w = canvas.parentElement.clientWidth;
-    const h = canvas.parentElement.clientHeight;
-    return {
-      x: (v.x * 0.5 + 0.5) * w,
-      y: (-v.y * 0.5 + 0.5) * h
-    };
-  }
-
-  /* Compute the object's bottom-center world position */
-  const _bx = new THREE.Box3();
-  const _ctr = new THREE.Vector3();
-  const _bot = new THREE.Vector3();
-  function objCenter(obj) {
-    _bx.setFromObject(obj.mesh);
-    _bx.getCenter(_ctr);
-    _bot.set(_ctr.x, _bx.min.y, _ctr.z);
-    return { center: _ctr.clone(), bottom: _bot.clone(), box: _bx.clone() };
-  }
-
-  /* Adapt axis line length to scene scale — based on object size + camera zoom */
-  function axisExtent(box) {
-    const sz = new THREE.Vector3();
-    box.getSize(sz);
-    /* Whichever is bigger: 1.5× the largest object dimension or 1.5× radius */
-    const objScale = Math.max(sz.x, sz.y, sz.z) * 1.5;
-    /* Cap relative to the camera distance so axes stay readable when zoomed out */
-    const camScale = Math.max(0.6, Math.min(camDist * 0.4, 5));
-    return Math.max(objScale, camScale, 0.5);
-  }
-
-  function update() {
-    if (!target || !root.visible) return;
-
-    const info = objCenter(target);
-    const ext  = axisExtent(info.box);
-
-    /* Position helpers at the bottom-center (on the ground when posed) */
-    root.position.copy(info.bottom);
-
-    /* Update axis lines: X red? no — we keep neutral as per spec (white/taupe) */
-    const xp = xAxis.geometry.attributes.position;
-    xp.array[0] = -ext; xp.array[1] = 0.001; xp.array[2] = 0;
-    xp.array[3] =  ext; xp.array[4] = 0.001; xp.array[5] = 0;
-    xp.needsUpdate = true;
-
-    const yp = yAxis.geometry.attributes.position;
-    yp.array[0] = 0; yp.array[1] = 0.001; yp.array[2] = 0;
-    yp.array[3] = 0; yp.array[4] = ext;   yp.array[5] = 0;
-    yp.needsUpdate = true;
-
-    const zp = zAxis.geometry.attributes.position;
-    zp.array[0] = 0; zp.array[1] = 0.001; zp.array[2] = -ext;
-    zp.array[3] = 0; zp.array[4] = 0.001; zp.array[5] =  ext;
-    zp.needsUpdate = true;
-
-    /* Y dropline: only meaningful when the bottom is above the floor.
-       Even at floor level, we keep it visible during drag with the H label
-       because dragging on uneven future terrain might lift the object. */
-    const liftedH = info.bottom.y;
-    const showDrop = (mode === 'drag') && (viewMode === 'persp') && liftedH > 0.005;
-    dropY.visible = showDrop;
-    if (showDrop) {
-      const dp = dropY.geometry.attributes.position;
-      dp.array[0] = 0; dp.array[1] = 0;       dp.array[2] = 0;
-      dp.array[3] = 0; dp.array[4] = liftedH; dp.array[5] = 0;
-      dp.needsUpdate = true;
-      dropY.computeLineDistances();
-    }
-
-    /* Adjust ring radius to ~1.1× the object's footprint in plan */
-    const sz = new THREE.Vector3();
-    info.box.getSize(sz);
-    const ringR = Math.max(0.4, Math.hypot(sz.x, sz.z) * 0.55);
-    ringGroup.scale.setScalar(ringR);
-
-    /* H label — shown only in perspective view during drag.
-       In plan/axo, height is not meaningful (we look straight down or near-down)
-       and we replace it with the inter-object distance label below. */
-    if (mode === 'drag' && viewMode === 'persp') {
-      hTarget = info.bottom.y * 100;
-      const wp = info.bottom.clone(); wp.y += 0.04;
-      const sc = project(wp);
-      hLabel.style.transform = 'translate(' + (sc.x + 14) + 'px,' + (sc.y - 26) + 'px)';
-      if (!hLabel.classList.contains('on')) hLabel.classList.add('on');
-    } else if (hLabel.classList.contains('on')) {
-      hLabel.classList.remove('on');
-    }
-
-    /* Distance to nearest other object — shown during drag in ALL view modes.
-       This is what an architect needs for placement: "I have 30cm between this
-       chair and that table." */
-    if (mode === 'drag' && placed.length > 1) {
-      const nn = nearestNeighbour(info.box);
-      if (nn) {
-        dTarget = nn.distance * 100;
-        /* Draw segment between the two closest box-points */
-        const dp = distGeo.attributes.position;
-        dp.array[0] = nn.a.x; dp.array[1] = Math.max(nn.a.y, 0.005); dp.array[2] = nn.a.z;
-        dp.array[3] = nn.b.x; dp.array[4] = Math.max(nn.b.y, 0.005); dp.array[5] = nn.b.z;
-        dp.needsUpdate = true;
-        distLine.computeLineDistances();
-        distLine.visible = true;
-
-        /* Anchor the distance label to the midpoint, projected to screen */
-        const mid = nn.a.clone().add(nn.b).multiplyScalar(0.5);
-        mid.y = Math.max(mid.y, 0.005);
-        const sc = project(mid);
-        dLabel.style.transform = 'translate(' + (sc.x - 30) + 'px,' + (sc.y - 28) + 'px)';
-        if (!dLabel.classList.contains('on')) dLabel.classList.add('on');
-      } else {
-        if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
-        distLine.visible = false;
-      }
-    } else {
-      if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
-      distLine.visible = false;
-    }
-
-    /* Angle label — anchor near object center (in plan) at ring edge */
-    if (mode === 'rotate') {
-      const wp = info.bottom.clone();
-      wp.x += ringR * 0.7;
-      wp.z += ringR * 0.7;
-      wp.y += 0.04;
-      const sc = project(wp);
-      aLabel.style.transform = 'translate(' + (sc.x + 12) + 'px,' + (sc.y - 22) + 'px)';
-    }
-
-    tweenLabels();
-  }
-
-  function show(obj, m) {
-    target = obj;
-    mode = m;
-    root.visible = true;
-    /* Mode-specific overlay visibility */
-    ringGroup.visible = (m === 'rotate');
-    /* dropY and label visibility are handled per-frame in update() based on
-       view mode and object state, so we just clear stale state here. */
-
-    if (m === 'drag') {
-      hTarget = (objCenter(obj).bottom.y) * 100;
-      hDisplay = hTarget;
-      aLabel.classList.remove('on');
-      /* hLabel + dLabel get added back by update() when applicable */
-    } else if (m === 'rotate') {
-      aTarget = (obj.mesh.rotation.y * 180 / Math.PI);
-      aDisplay = aTarget;
-      aLabel.classList.add('on');
-      hLabel.classList.remove('on');
-      dLabel.classList.remove('on');
-      distLine.visible = false;
-    }
-    update();
-  }
-
-  function setRotationLabel(rad) {
-    aTarget = rad * 180 / Math.PI;
-  }
-
-  /* Axis lock visual cue: brighten and accent-tint the locked X or Z axis line.
-     Subtle — the eye picks it up without it competing with the model itself. */
-  let lockState = null;
-  function setAxisLock(axis) {
-    if (axis === lockState) return;
-    lockState = axis;
-    /* Reset both horizontal axes to neutral */
-    axisMatX.color.set(0xF0EDE5); axisMatX.opacity = 0.30;
-    axisMatZ.color.set(0xF0EDE5); axisMatZ.opacity = 0.30;
-    if (axis === 'x') {
-      axisMatX.color.set(0xB8986A);
-      axisMatX.opacity = 0.85;
-    } else if (axis === 'z') {
-      axisMatZ.color.set(0xB8986A);
-      axisMatZ.opacity = 0.85;
-    }
-  }
-
-  function hide() {
-    /* Spec: 400ms fade out on deselect.
-       CSS transitions on .manip-label give us the label fades for free.
-       For the 3D helpers we tween opacity manually. */
-    mode = 'none';
-    hLabel.classList.remove('on');
-    aLabel.classList.remove('on');
-    dLabel.classList.remove('on');
-    distLine.visible = false;
-    /* Reset any axis lock highlight before fading out */
-    setAxisLock(null);
-    /* Tween mesh opacity down */
-    const start = performance.now();
-    const dur = 400;
-    const initial = {
-      x: axisMatX.opacity,
-      y: axisMatY.opacity,
-      z: axisMatZ.opacity,
-      d: dashMat.opacity,
-      r: ringLine.material.opacity,
-      tk: tickMat.opacity,
-      tj: tickMatMajor.opacity
-    };
-    function step() {
-      const t = Math.min(1, (performance.now() - start) / dur);
-      const k = 1 - t;
-      axisMatX.opacity     = initial.x  * k;
-      axisMatY.opacity     = initial.y  * k;
-      axisMatZ.opacity     = initial.z  * k;
-      dashMat.opacity      = initial.d  * k;
-      ringLine.material.opacity = initial.r * k;
-      tickMat.opacity      = initial.tk * k;
-      tickMatMajor.opacity = initial.tj * k;
-      if (t < 1 && mode === 'none') {
-        requestAnimationFrame(step);
-      } else if (mode === 'none') {
-        root.visible = false;
-        target = null;
-        /* restore original opacities for next show() */
-        axisMatX.opacity = 0.30;
-        axisMatY.opacity = 0.30;
-        axisMatZ.opacity = 0.30;
-        dashMat.opacity = 0.55;
-        ringLine.material.opacity = 0.55;
-        tickMat.opacity = 0.65; tickMatMajor.opacity = 0.85;
-      }
-    }
-    requestAnimationFrame(step);
-  }
-
-  return { show, hide, update, setRotationLabel, setAxisLock };
-})();
-
-/* ========================================================================
-   FEEDBACK — "Thock" sound + haptic at translation/rotation thresholds.
-   - Sound is synthesised on AudioContext (no asset loading, zero latency).
-   - Tracking uses cumulative distance/angle so we never miss a notch even
-     during fast gestures, and we never spam the user with overlapping ticks.
-   ======================================================================== */
-const FEEDBACK = (() => {
-  let ctx = null;
-  let lastTickAt = 0;
-  const minIntervalMs = 35; /* never two thocks closer than this */
-
-  function ensureCtx() {
-    if (ctx) return ctx;
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) ctx = new AC();
-    } catch(_) {}
-    return ctx;
-  }
-
-  /* Synthesise a wheel "tick" — iPhone Taptic Engine-style:
-     - Pure sine tone, no noise component
-     - Ultra-short envelope (~12ms total): 1ms attack, 12ms exponential release
-     - Frequency around 800Hz (matching the perceived pitch of UIPickerView ticks)
-     - Volume kept low so it feels like a digital wheel detent, not an alert */
-  function thock() {
-    const ac = ensureCtx();
-    if (!ac) return;
-    if (ac.state === 'suspended') { try { ac.resume(); } catch(_){} }
-    const now = ac.currentTime;
-
-    /* Pure tone — no noise, no harmonics. Just a clean digital tick. */
-    const osc = ac.createOscillator();
-    const oscGain = ac.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(820, now);
-    oscGain.gain.setValueAtTime(0.0001, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.10, now + 0.001); /* fast attack */
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.014); /* fast release */
-    osc.connect(oscGain);
-
-    /* Subtle low-pass to soften the high frequency edge — feels less brittle */
-    const lp = ac.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 2400;
-    lp.Q.value = 0.4;
-    oscGain.connect(lp);
-
-    /* Master attenuation */
-    const out = ac.createGain();
-    out.gain.value = 0.55;
-    lp.connect(out);
-    out.connect(ac.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.025);
-  }
-
-  function haptic() {
-    /* Web Vibration API — works on Android. iOS Safari ignores it silently
-       (no error). 5ms = the lightest tap the API can request, matching the
-       new pure-tone tick's brevity. */
-    try { if (navigator.vibrate) navigator.vibrate(5); } catch(_){}
-  }
-
-  /* Two cue flavours:
-     - tickSilent: haptic only (used during translation)
-     - tickFull:   thock + haptic (used during rotation) */
-  function tickSilent() {
-    const now = performance.now();
-    if (now - lastTickAt < minIntervalMs) return;
-    lastTickAt = now;
-    haptic();
-  }
-  function tickFull() {
-    const now = performance.now();
-    if (now - lastTickAt < minIntervalMs) return;
-    lastTickAt = now;
-    thock();
-    haptic();
-  }
-
-  /* Translation tracker — ticks every 10cm of cumulative XZ travel.
-     SILENT tick (haptic only) — the user feels precision without audio. */
-  const TRANS_THRESHOLD = 0.10; /* meters */
-  let lastPos = null, transAccum = 0;
-  function startTranslate(pos) { lastPos = pos.clone(); transAccum = 0; }
-  function updateTranslate(pos) {
-    if (!lastPos) { startTranslate(pos); return; }
-    transAccum += Math.hypot(pos.x - lastPos.x, pos.z - lastPos.z);
-    lastPos.copy(pos);
-    while (transAccum >= TRANS_THRESHOLD) {
-      transAccum -= TRANS_THRESHOLD;
-      tickSilent();
-    }
-  }
-  function endTranslate() { lastPos = null; transAccum = 0; }
-
-  /* Rotation tracker — ticks every 15° of cumulative |Δθ|.
-     FULL tick (thock + haptic) — rotation is the only gesture with audio. */
-  const ROT_THRESHOLD = 15 * Math.PI / 180;
-  let lastRot = null, rotAccum = 0;
-  function startRotate(rad) { lastRot = rad; rotAccum = 0; }
-  function updateRotate(rad) {
-    if (lastRot === null) { startRotate(rad); return; }
-    let d = rad - lastRot;
-    /* Wrap-safe shortest-path delta */
-    while (d > Math.PI)  d -= Math.PI * 2;
-    while (d < -Math.PI) d += Math.PI * 2;
-    rotAccum += Math.abs(d);
-    lastRot = rad;
-    while (rotAccum >= ROT_THRESHOLD) {
-      rotAccum -= ROT_THRESHOLD;
-      tickFull();
-    }
-  }
-  function endRotate() { lastRot = null; rotAccum = 0; }
-
-  /* Audio context unlock on first user interaction (Safari requirement) */
-  function unlock() {
-    ensureCtx();
-    if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch(_){} }
-    window.removeEventListener('touchstart', unlock);
-    window.removeEventListener('mousedown',   unlock);
-  }
-  window.addEventListener('touchstart', unlock, { once: false, passive: true });
-  window.addEventListener('mousedown',   unlock, { once: false });
-
-  return { startTranslate, updateTranslate, endTranslate,
-           startRotate,    updateRotate,    endRotate };
-})();
-
-/* ========================================================================
-   ELEVATION CONTROLS — vertical translation (Y) for the selected object.
-   Tap = ±5cm step. Press-and-hold = continuous lift/lower at ~30cm/s.
-   Tied directly to selected.mesh.position.y, clamped to [0, 3m]. */
-(function elevationControls() {
-  const STEP_M    = 0.05;  /* 5cm per tap */
-  const SPEED_M_S = 0.30;  /* 30cm per second when held */
-  const Y_MIN = 0;
-  const Y_MAX = 3.0;
-
-  const upBtn   = document.getElementById('elevUp');
-  const downBtn = document.getElementById('elevDown');
-
-  function clampY(y) { return Math.max(Y_MIN, Math.min(Y_MAX, y)); }
-
-  function nudge(deltaM) {
-    if (!selected) return;
-    const before = selected.mesh.position.y;
-    const after  = clampY(before + deltaM);
-    if (after === before) return;
-    selected.mesh.position.y = after;
-    /* Show drag helper while elevating so the user sees H label + dropline */
-    HELPER.show(selected, 'drag');
-  }
-
-  /* Hold-to-continuous: rAF loop while button is pressed */
-  let holdRAF = null;
-  let holdLastT = 0;
-  let holdDir = 0;
-  function holdLoop() {
-    const now = performance.now();
-    const dt = Math.min(0.05, (now - holdLastT) / 1000);
-    holdLastT = now;
-    nudge(holdDir * SPEED_M_S * dt);
-    holdRAF = requestAnimationFrame(holdLoop);
-  }
-  function startHold(dir, btn) {
-    if (!selected) return;
-    btn.classList.add('holding');
-    holdDir = dir;
-    holdLastT = performance.now();
-    /* Immediate snap-tap so a quick tap moves at least one step */
-    nudge(dir * STEP_M);
-    /* After a short pause, kick off continuous mode */
-    holdRAF = setTimeout(() => {
-      holdLastT = performance.now();
-      holdRAF = requestAnimationFrame(holdLoop);
-    }, 280);
-  }
-  function endHold(btn) {
-    btn.classList.remove('holding');
-    if (holdRAF) {
-      /* holdRAF can be either a setTimeout id or rAF id — clear both safely */
-      clearTimeout(holdRAF);
-      cancelAnimationFrame(holdRAF);
-      holdRAF = null;
-    }
-    /* Cue at end of gesture so the user feels the action settled */
-    HELPER.show(selected, 'drag');
-  }
-
-  /* Pointer events handle mouse + touch uniformly */
-  function bind(btn, dir) {
-    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
-    btn.addEventListener('pointerup',   ()  => endHold(btn));
-    btn.addEventListener('pointercancel', () => endHold(btn));
-    btn.addEventListener('pointerleave', () => endHold(btn));
-  }
-  bind(upBtn,   +1);
-  bind(downBtn, -1);
-})();
-
-/* ========================================================================
-   ROTATION CONTROLS — Y-axis rotation of the selected object via buttons.
-   Mirrors the elevation hold pattern: tap = ±15° (matches the touch crantage),
-   press-and-hold = continuous rotation at 90°/s.
-   On desktop, also enables right-click + horizontal drag for fluid rotation. */
-(function rotationControls() {
-  const STEP_RAD    = 15 * Math.PI / 180;     /* same step as the touch tick */
-  const SPEED_RAD_S = 90 * Math.PI / 180;     /* 90° per second when held */
-
-  const ccwBtn = document.getElementById('rotCcw');
-  const cwBtn  = document.getElementById('rotCw');
-
-  function nudge(deltaRad) {
-    if (!selected) return;
-    selected.mesh.rotation.y += deltaRad;
-    HELPER.show(selected, 'rotate');
-    HELPER.setRotationLabel(selected.mesh.rotation.y);
-    FEEDBACK.updateRotate(selected.mesh.rotation.y);
-  }
-
-  let holdRAF = null, holdLastT = 0, holdDir = 0;
-  function holdLoop() {
-    const now = performance.now();
-    const dt = Math.min(0.05, (now - holdLastT) / 1000);
-    holdLastT = now;
-    nudge(holdDir * SPEED_RAD_S * dt);
-    holdRAF = requestAnimationFrame(holdLoop);
-  }
-  function startHold(dir, btn) {
-    if (!selected) return;
-    btn.classList.add('holding');
-    holdDir = dir;
-    holdLastT = performance.now();
-    /* Start the rotation tracker so the tick fires correctly on continuous hold */
-    FEEDBACK.startRotate(selected.mesh.rotation.y);
-    nudge(dir * STEP_RAD);
-    holdRAF = setTimeout(() => {
-      holdLastT = performance.now();
-      holdRAF = requestAnimationFrame(holdLoop);
-    }, 280);
-  }
-  function endHold(btn) {
-    btn.classList.remove('holding');
-    if (holdRAF) {
-      clearTimeout(holdRAF);
-      cancelAnimationFrame(holdRAF);
-      holdRAF = null;
-    }
-    FEEDBACK.endRotate();
-  }
-
-  function bind(btn, dir) {
-    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
-    btn.addEventListener('pointerup',   ()  => endHold(btn));
-    btn.addEventListener('pointercancel', () => endHold(btn));
-    btn.addEventListener('pointerleave', () => endHold(btn));
-  }
-  bind(ccwBtn, -1);
-  bind(cwBtn,  +1);
-})();
-
-/* ========================================================================
-   ZOOM SLIDER — one-handed camera zoom for mobile.
-   Visible only when no object is selected (the right-side action column
-   then has nothing to do, and the user is just navigating the scene).
-   The thumb position is bound to camDist on a logarithmic scale, so a
-   small drag at the top zooms in finely while a small drag at the bottom
-   zooms out coarsely — feels like a physical lens zoom ring. */
-(function zoomSlider() {
-  const root  = document.getElementById('zoomSlider');
-  const track = document.getElementById('zoomTrack');
-  const thumb = document.getElementById('zoomThumb');
-  const inBtn = document.getElementById('zoomIn');
-  const outBtn= document.getElementById('zoomOut');
-
-  /* Logarithmic mapping: t in [0,1] -> camDist in [DIST_MIN, DIST_MAX].
-     t=0 (top of slider) = closest, t=1 (bottom) = farthest. */
-  function bounds() {
-    const max = (viewMode === 'persp') ? 12 : 20;
-    return { min: 1, max };
-  }
-  function distToT(d) {
-    const b = bounds();
-    const k = Math.log(d / b.min) / Math.log(b.max / b.min);
-    return Math.max(0, Math.min(1, k));
-  }
-  function tToDist(t) {
-    const b = bounds();
-    return b.min * Math.pow(b.max / b.min, t);
-  }
-
-  function syncThumbToCam() {
-    const t = distToT(camDist);
-    /* t=0 (closest, zoom-in) at TOP, t=1 (farthest) at BOTTOM */
-    thumb.style.top = (t * 100) + '%';
-  }
-
-  function setDistFromT(t) {
-    camDist = tToDist(Math.max(0, Math.min(1, t)));
-    applyCamera();
-    syncThumbToCam();
-  }
-
-  /* Tap-to-jump + drag on the track */
-  let dragging = false;
-  function trackEventToT(clientY) {
-    const r = track.getBoundingClientRect();
-    return (clientY - r.top) / r.height;
-  }
-  track.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    dragging = true;
-    track.setPointerCapture(e.pointerId);
-    thumb.classList.add('dragging');
-    setDistFromT(trackEventToT(e.clientY));
-  });
-  track.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    setDistFromT(trackEventToT(e.clientY));
-  });
-  function stopDrag() {
-    dragging = false;
-    thumb.classList.remove('dragging');
-  }
-  track.addEventListener('pointerup', stopDrag);
-  track.addEventListener('pointercancel', stopDrag);
-
-  /* +/- buttons: small step. Press-and-hold supported. */
-  const STEP = 0.04;          /* 4% of slider range per tap */
-  let holdRAF = null;
-  function stepBy(deltaT) {
-    setDistFromT(distToT(camDist) + deltaT);
-  }
-  function bindBtn(btn, sign) {
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      btn.setPointerCapture(e.pointerId);
-      stepBy(sign * STEP);
-      /* hold-to-repeat after a short pause */
-      holdRAF = setTimeout(function tick() {
-        stepBy(sign * STEP);
-        holdRAF = setTimeout(tick, 90);
-      }, 320);
-    });
-    const stop = () => { if (holdRAF) { clearTimeout(holdRAF); holdRAF = null; } };
-    btn.addEventListener('pointerup', stop);
-    btn.addEventListener('pointercancel', stop);
-    btn.addEventListener('pointerleave', stop);
-  }
-  /* zoomIn = closer = smaller camDist = thumb moves UP = negative deltaT */
-  bindBtn(inBtn,  -1);
-  bindBtn(outBtn, +1);
-
-  /* Keep the thumb in sync when camDist changes via pinch / wheel / view switch */
-  const _origApplyCamera = applyCamera;
-  /* We can't override applyCamera (it's a const), but we can call sync from
-     here whenever it makes sense. Hook into the animation loop frame budget
-     by polling once per RAF — cheap (one DOM write only when value changes). */
-  let lastSyncedT = -1;
-  (function syncLoop() {
-    requestAnimationFrame(syncLoop);
-    if (root.classList.contains('on')) {
-      const t = distToT(camDist);
-      if (Math.abs(t - lastSyncedT) > 0.001) {
-        thumb.style.top = (t * 100) + '%';
-        lastSyncedT = t;
-      }
-    }
-  })();
-
-  /* Initial sync */
-  syncThumbToCam();
-})();
-
 /* RESIZE */
 function resize() {
   const w = canvas.parentElement.clientWidth;
@@ -1319,7 +420,7 @@ window.addEventListener('resize', resize);
 resize();
 
 /* ANIMATE */
-(function loop(){ requestAnimationFrame(loop); HELPER.update(); renderer.render(scene, activeCam); })();
+(function loop(){ requestAnimationFrame(loop); renderer.render(scene, activeCam); })();
 
 /* WebGL context loss safety net */
 canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); console.warn('WebGL context lost'); });
@@ -1346,59 +447,6 @@ let tAngle0    = 0;
 let tMid0      = null; /* midpoint between 2 fingers, used for camera panning */
 let tMode      = 'none';
 
-/* Drag offset (XZ): preserves the visual offset between the finger and the
-   object center, so the model never snaps to be centered under the finger. */
-const dragOffset = new THREE.Vector3();
-let dragOffsetSet = false;
-/* Drag start point (object's XZ when the gesture began) — used for the
-   subtle trajectory axis-lock: if the cumulative displacement stays within
-   ±12° of an axis we project onto it; outside that cone the move is free. */
-const dragStart = new THREE.Vector3();
-let currentAxisLock = null; /* 'x' | 'z' | null */
-const AXIS_LOCK_DEG    = 12;     /* engage cone half-angle */
-const AXIS_LOCK_MIN_M  = 0.05;   /* don't lock until 5cm of travel */
-const AXIS_LOCK_TAN    = Math.tan(AXIS_LOCK_DEG * Math.PI / 180);
-
-/* Apply trajectory-based axis lock to a desired XZ position.
-   Mutates `desired` in place. Returns the resulting lock state ('x'|'z'|null). */
-function applyAxisLock(desired) {
-  const dx = desired.x - dragStart.x;
-  const dz = desired.z - dragStart.z;
-  const total = Math.hypot(dx, dz);
-  if (total < AXIS_LOCK_MIN_M) return null;
-  const ax = Math.abs(dx), az = Math.abs(dz);
-  /* "Within 12° of X axis" means az/ax < tan(12°). Same logic mirrored for Z. */
-  if (ax > az && (az / ax) < AXIS_LOCK_TAN) {
-    desired.z = dragStart.z;
-    return 'x';
-  }
-  if (az > ax && (ax / az) < AXIS_LOCK_TAN) {
-    desired.x = dragStart.x;
-    return 'z';
-  }
-  return null;
-}
-
-/* Picking — bounding-box based for forgiving selection.
-   Mesh-precise raycasts force the user to tap exactly on slim chair legs;
-   we expand each placed item's box by ~5cm so even an approximate tap works. */
-const _pickBox = new THREE.Box3();
-const _pickHit = new THREE.Vector3();
-function pickPlaced(nx, ny, requireSelected) {
-  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
-  let best = null, bestDist = Infinity;
-  const list = requireSelected ? (selected ? [selected] : []) : placed;
-  for (const obj of list) {
-    _pickBox.setFromObject(obj.mesh);
-    _pickBox.expandByScalar(0.05); /* ~5cm forgiveness on each side */
-    if (raycaster.ray.intersectBox(_pickBox, _pickHit)) {
-      const d = raycaster.ray.origin.distanceTo(_pickHit);
-      if (d < bestDist) { bestDist = d; best = obj; }
-    }
-  }
-  return best;
-}
-
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   if (e.touches.length === 1) {
@@ -1406,17 +454,12 @@ canvas.addEventListener('touchstart', (e) => {
     tDragging = false;
     tMode = 'none';
     orbitStart = { theta:camTheta, elev:camElev, x:e.touches[0].clientX, y:e.touches[0].clientY };
-    dragOffsetSet = false;
-    /* If we have a selection, prime the translation tracker — the actual
-       drag mode is decided in touchmove. */
-    if (selected) FEEDBACK.startTranslate(selected.mesh.position);
   } else if (e.touches.length === 2) {
     tPinch0 = getPinch(e);
     tAngle0 = getAngle(e);
     tMid0   = getMidpoint(e);
     /* If an object is selected, 2 fingers rotate it; otherwise pan + zoom the camera together */
     tMode = selected ? 'rotate' : 'panZoom';
-    if (tMode === 'rotate') FEEDBACK.startRotate(selected.mesh.rotation.y);
   }
 }, { passive:false });
 
@@ -1435,41 +478,14 @@ canvas.addEventListener('touchmove', (e) => {
       raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
       const pt = new THREE.Vector3();
       if (raycaster.ray.intersectPlane(groundPlane, pt)) {
-        /* On the very first move of a drag, snapshot the offset between
-           the finger world-position and the object's current XZ. From now on
-           we move the object so this offset stays constant — finger can be
-           anywhere on/around the model, the model never recenters under it. */
-        if (!dragOffsetSet) {
-          dragOffset.set(
-            selected.mesh.position.x - pt.x,
-            0,
-            selected.mesh.position.z - pt.z
-          );
-          dragStart.copy(selected.mesh.position);
-          dragOffsetSet = true;
-        }
-        const desired = new THREE.Vector3(
-          pt.x + dragOffset.x,
-          selected.mesh.position.y,
-          pt.z + dragOffset.z
-        );
-        currentAxisLock = applyAxisLock(desired);
-        selected.mesh.position.x = desired.x;
-        selected.mesh.position.z = desired.z;
+        selected.mesh.position.x = pt.x;
+        selected.mesh.position.z = pt.z;
         const bx = new THREE.Box3().setFromObject(selected.mesh);
         if (bx.min.y < 0) selected.mesh.position.y -= bx.min.y;
-        /* feedback + helpers */
-        HELPER.show(selected, 'drag');
-        HELPER.setAxisLock(currentAxisLock);
-        FEEDBACK.updateTranslate(selected.mesh.position);
       }
     } else {
       tMode = 'orbit';
-      /* In plan view, only the camera ROTATION is locked — pan and zoom
-         remain free so the map can be moved horizontally/vertically. */
-      if (viewMode !== 'plan') {
-        camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
-      }
+      camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       /* Elevation only adjustable in perspective mode — Plan/Axo elevations are fixed */
       if (viewMode === 'persp') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
@@ -1482,18 +498,13 @@ canvas.addEventListener('touchmove', (e) => {
       const da = getAngle(e) - tAngle0;
       selected.mesh.rotation.y -= da;
       tAngle0 = getAngle(e);
-      /* feedback + helpers */
-      HELPER.show(selected, 'rotate');
-      HELPER.setRotationLabel(selected.mesh.rotation.y);
-      FEEDBACK.updateRotate(selected.mesh.rotation.y);
     } else if (tMode === 'panZoom') {
-      /* Pinch -> zoom (always available, even in plan view) */
+      /* Pinch -> zoom */
       const dp = getPinch(e);
       const maxD = (viewMode === 'persp') ? 12 : 20;
       camDist = Math.max(1, Math.min(maxD, camDist * (tPinch0 / dp)));
       tPinch0 = dp;
-      /* Midpoint translation -> pan camera horizontally + vertically.
-         Available in all view modes — only rotation is locked in plan view. */
+      /* Midpoint translation -> pan camera horizontally + vertically */
       const mid = getMidpoint(e);
       const dx = mid.x - tMid0.x;
       const dy = mid.y - tMid0.y;
@@ -1508,17 +519,7 @@ canvas.addEventListener('touchend', (e) => {
   if (!tDragging && t0 && e.changedTouches.length === 1 && (Date.now() - t0.t) < 280) {
     handleTap(e.changedTouches[0]);
   }
-  if (e.touches.length === 0) {
-    /* Hide manipulation helpers when gesture really ends.
-       We keep them visible if the user remains in active drag mode (e.g.
-       lifting one finger of a 2-finger rotate to a 1-finger drag). */
-    if (tMode === 'drag' || tMode === 'rotate') HELPER.hide();
-    if (tMode === 'drag')   FEEDBACK.endTranslate();
-    if (tMode === 'rotate') FEEDBACK.endRotate();
-    currentAxisLock = null;
-    HELPER.setAxisLock(null);
-    t0 = null; tDragging = false; tMode = 'none';
-  }
+  if (e.touches.length === 0) { t0 = null; tDragging = false; tMode = 'none'; }
 }, { passive:false });
 
 function getPinch(e) {
@@ -1562,31 +563,7 @@ function panCamera(dx, dy) {
 
 /* MOUSE for desktop */
 let mDown = false, mDragging = false, mOrbitStart = null, mObjDrag = false, mPan = false, mPanStart = null;
-/* Right-click + horizontal drag = rotate the selected object around Y.
-   Power-user shortcut on desktop where there's no native 2-finger gesture. */
-let mObjRotate = false, mRotStartX = 0, mRotStartAngle = 0;
-const ROT_SENSITIVITY = 0.012; /* rad per pixel — feels like a smooth dial */
-
 canvas.addEventListener('mousedown', (e) => {
-  /* Right-click on the selected object: enter rotate mode, no other behaviour */
-  if (e.button === 2 && selected) {
-    const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
-    const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
-    if (pickPlaced(nx, ny, true)) {
-      e.preventDefault();
-      mDown = true;
-      mObjRotate = true;
-      mRotStartX = e.clientX;
-      mRotStartAngle = selected.mesh.rotation.y;
-      FEEDBACK.startRotate(mRotStartAngle);
-      HELPER.show(selected, 'rotate');
-      HELPER.setRotationLabel(mRotStartAngle);
-      return;
-    }
-    /* Right-click outside the selection: do nothing (let context menu suppression run) */
-    return;
-  }
-
   mDown = true; mDragging = false;
   /* Shift+drag or middle-mouse-drag = pan camera (desktop convention) */
   mPan = e.shiftKey || e.button === 1;
@@ -1598,14 +575,9 @@ canvas.addEventListener('mousedown', (e) => {
   const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
   const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
   raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
-  /* Forgiving pick for drag-on-selected: if the cursor lands inside the
-     selection's expanded bounding box, we drag — even if the precise mesh
-     ray-test would miss thin geometry like chair legs. */
-  if (selected && pickPlaced(nx, ny, true)) {
-    mObjDrag = true;
-    dragOffsetSet = false;
-    FEEDBACK.startTranslate(selected.mesh.position);
-    return;
+  if (selected) {
+    const hits = raycaster.intersectObjects([selected.mesh], true);
+    if (hits.length) { mObjDrag = true; return; }
   }
   mObjDrag = false;
   mOrbitStart = { theta:camTheta, elev:camElev, x:e.clientX, y:e.clientY };
@@ -1613,15 +585,6 @@ canvas.addEventListener('mousedown', (e) => {
 window.addEventListener('mousemove', (e) => {
   if (!mDown) return;
   mDragging = true;
-  if (mObjRotate && selected) {
-    /* Horizontal drag drives Y rotation. Right = clockwise. */
-    const dx = e.clientX - mRotStartX;
-    selected.mesh.rotation.y = mRotStartAngle - dx * ROT_SENSITIVITY;
-    HELPER.show(selected, 'rotate');
-    HELPER.setRotationLabel(selected.mesh.rotation.y);
-    FEEDBACK.updateRotate(selected.mesh.rotation.y);
-    return;
-  }
   if (mPan && mPanStart) {
     const dx = e.clientX - mPanStart.x;
     const dy = e.clientY - mPanStart.y;
@@ -1634,32 +597,11 @@ window.addEventListener('mousemove', (e) => {
     raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
     const pt = new THREE.Vector3();
     if (raycaster.ray.intersectPlane(groundPlane, pt)) {
-      if (!dragOffsetSet) {
-        dragOffset.set(
-          selected.mesh.position.x - pt.x,
-          0,
-          selected.mesh.position.z - pt.z
-        );
-        dragStart.copy(selected.mesh.position);
-        dragOffsetSet = true;
-      }
-      const desired = new THREE.Vector3(
-        pt.x + dragOffset.x,
-        selected.mesh.position.y,
-        pt.z + dragOffset.z
-      );
-      currentAxisLock = applyAxisLock(desired);
-      selected.mesh.position.x = desired.x;
-      selected.mesh.position.z = desired.z;
-      HELPER.show(selected, 'drag');
-      HELPER.setAxisLock(currentAxisLock);
-      FEEDBACK.updateTranslate(selected.mesh.position);
+      selected.mesh.position.x = pt.x;
+      selected.mesh.position.z = pt.z;
     }
   } else if (mOrbitStart) {
-    /* Plan view: camera rotation locked. Pan and zoom remain free. */
-    if (viewMode !== 'plan') {
-      camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
-    }
+    camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     if (viewMode === 'persp') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
         mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
@@ -1668,10 +610,8 @@ window.addEventListener('mousemove', (e) => {
   }
 });
 window.addEventListener('mouseup', (e) => {
-  if (!mDragging && mDown && !mObjRotate) handleMouseClick(e);
-  if (mObjRotate) { HELPER.hide(); FEEDBACK.endRotate(); }
-  if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); currentAxisLock = null; HELPER.setAxisLock(null); }
-  mDown = false; mDragging = false; mObjDrag = false; mObjRotate = false; mPan = false; mPanStart = null;
+  if (!mDragging && mDown) handleMouseClick(e);
+  mDown = false; mDragging = false; mObjDrag = false; mPan = false; mPanStart = null;
 });
 /* Suppress browser context menu so middle/right-click pan is usable */
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -1705,8 +645,14 @@ function handleMouseClick(e) {
     const hf = raycaster.intersectObject(floorMesh);
     if (hf.length) { doPlace(hf[0].point); return; }
   }
-  const hit = pickPlaced(nx, ny, false);
-  if (hit) { selectObj(hit); return; }
+  const meshes = placed.map(o => o.mesh);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (hits.length) {
+    let m = hits[0].object;
+    while (m.parent && !placed.find(o => o.mesh === m)) m = m.parent;
+    const f = placed.find(o => o.mesh === m);
+    if (f) { selectObj(f); return; }
+  }
   selectObj(null);
 }
 function handleTap(t) {
@@ -1717,8 +663,14 @@ function handleTap(t) {
     const hf = raycaster.intersectObject(floorMesh);
     if (hf.length) { doPlace(hf[0].point); return; }
   }
-  const hit = pickPlaced(nx, ny, false);
-  if (hit) { selectObj(hit); return; }
+  const meshes = placed.map(o => o.mesh);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (hits.length) {
+    let m = hits[0].object;
+    while (m.parent && !placed.find(o => o.mesh === m)) m = m.parent;
+    const f = placed.find(o => o.mesh === m);
+    if (f) { selectObj(f); return; }
+  }
   selectObj(null);
 }
 
@@ -1775,20 +727,9 @@ function selectObj(obj) {
   selected = obj;
   document.getElementById('delFab').classList.toggle('on', !!obj);
   document.getElementById('dupFab').classList.toggle('on', !!obj);
-  document.getElementById('elevUp').classList.toggle('on', !!obj);
-  document.getElementById('elevDown').classList.toggle('on', !!obj);
-  document.getElementById('rotCw').classList.toggle('on', !!obj);
-  document.getElementById('rotCcw').classList.toggle('on', !!obj);
-  /* The zoom slider shows only when no object is selected — gives a clean
-     navigation mode for one-handed mobile use, then steps aside when the
-     user picks a piece to edit. */
-  document.getElementById('zoomSlider').classList.toggle('on', !obj);
   const tag = document.getElementById('selTag');
   tag.classList.toggle('on', !!obj);
   if (obj) tag.textContent = obj.name;
-  /* Hide manipulation helpers when nothing is selected — they only show
-     during an active drag/rotate gesture, never just from a selection. */
-  if (!obj) HELPER.hide();
 }
 
 /* DELETE */
@@ -1815,10 +756,6 @@ window.doDelete = function() {
   selected = null;
   document.getElementById('delFab').classList.remove('on');
   document.getElementById('dupFab').classList.remove('on');
-  document.getElementById('elevUp').classList.remove('on');
-  document.getElementById('elevDown').classList.remove('on');
-  document.getElementById('rotCw').classList.remove('on');
-  document.getElementById('rotCcw').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
   updateBadge();
@@ -1883,10 +820,6 @@ window.doUndo = function() {
     selected = null;
     document.getElementById('delFab').classList.remove('on');
     document.getElementById('dupFab').classList.remove('on');
-    document.getElementById('elevUp').classList.remove('on');
-    document.getElementById('elevDown').classList.remove('on');
-    document.getElementById('rotCw').classList.remove('on');
-    document.getElementById('rotCcw').classList.remove('on');
     document.getElementById('selTag').classList.remove('on');
   }
   /* Update tray indicator */
@@ -1940,6 +873,7 @@ async function loadModel(item) {
     pending = { mesh, id:item.id, name:item.name, icon:item.icon || '\u25C7', imgUrl:item.imgUrl || null };
     spin(false);
     setStatus('Touchez le sol pour placer ' + item.name, true);
+    toast(item.name + ' charge - touchez le sol pour placer', 'ok');
   } catch(e) {
     spin(false);
     toast('Erreur: ' + e.message, 'err');
@@ -2375,10 +1309,6 @@ function clearScene() {
   pending  = null;
   document.getElementById('delFab').classList.remove('on');
   document.getElementById('dupFab').classList.remove('on');
-  document.getElementById('elevUp').classList.remove('on');
-  document.getElementById('elevDown').classList.remove('on');
-  document.getElementById('rotCw').classList.remove('on');
-  document.getElementById('rotCcw').classList.remove('on');
   document.getElementById('selTag').classList.remove('on');
   document.getElementById('undoFab').classList.remove('on');
   document.querySelectorAll('.tray-item').forEach(el => el.remove());
@@ -2426,8 +1356,6 @@ function renderScenesModal() {
 
 /* INIT */
 loadCatalogue();
-/* Show the zoom slider at boot — no selection yet, so navigation mode is on */
-document.getElementById('zoomSlider').classList.add('on');
 const q = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
 if (q.length) {
   localStorage.removeItem('tadam_ar_scene');
@@ -2441,6 +1369,5 @@ if (q.length) {
   });
 }
 </script>
-
 </body>
 </html>
