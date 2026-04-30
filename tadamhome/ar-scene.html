@@ -423,12 +423,6 @@ window.setView = function(mode) {
   camDist  = s.dist;
   activeCam = (mode === 'persp') ? perspCam : orthoCam;
 
-  /* Plan view is meant to be a fixed top-down map: re-center the camera
-     on world origin so prior camera pans don't carry over. */
-  if (mode === 'plan') {
-    camTarget.set(0, 0, 0);
-  }
-
   /* button states */
   document.querySelectorAll('.view-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.view === mode);
@@ -1321,8 +1315,8 @@ canvas.addEventListener('touchmove', (e) => {
       }
     } else {
       tMode = 'orbit';
-      /* In plan view, the camera is fully locked (pure top-down 2D feel).
-         Only zoom is allowed — horizontal rotation and elevation are frozen. */
+      /* In plan view, only the camera ROTATION is locked — pan and zoom
+         remain free so the map can be moved horizontally/vertically. */
       if (viewMode !== 'plan') {
         camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       }
@@ -1348,15 +1342,13 @@ canvas.addEventListener('touchmove', (e) => {
       const maxD = (viewMode === 'persp') ? 12 : 20;
       camDist = Math.max(1, Math.min(maxD, camDist * (tPinch0 / dp)));
       tPinch0 = dp;
-      /* Midpoint translation -> pan camera. Disabled in plan view to keep
-         the map perfectly fixed — only zoom should change there. */
+      /* Midpoint translation -> pan camera horizontally + vertically.
+         Available in all view modes — only rotation is locked in plan view. */
       const mid = getMidpoint(e);
-      if (viewMode !== 'plan') {
-        const dx = mid.x - tMid0.x;
-        const dy = mid.y - tMid0.y;
-        panCamera(dx, dy);
-      }
+      const dx = mid.x - tMid0.x;
+      const dy = mid.y - tMid0.y;
       tMid0 = mid;
+      panCamera(dx, dy);
       applyCamera();
     }
   }
@@ -1484,11 +1476,8 @@ window.addEventListener('mousemove', (e) => {
     const dx = e.clientX - mPanStart.x;
     const dy = e.clientY - mPanStart.y;
     mPanStart = { x:e.clientX, y:e.clientY };
-    /* Plan view stays fixed — pan disabled, only zoom is interactive */
-    if (viewMode !== 'plan') {
-      panCamera(dx, dy);
-      applyCamera();
-    }
+    panCamera(dx, dy);
+    applyCamera();
   } else if (mObjDrag && selected) {
     const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
     const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
@@ -1517,7 +1506,7 @@ window.addEventListener('mousemove', (e) => {
       FEEDBACK.updateTranslate(selected.mesh.position);
     }
   } else if (mOrbitStart) {
-    /* Plan view: camera fully locked, only zoom + object actions allowed */
+    /* Plan view: camera rotation locked. Pan and zoom remain free. */
     if (viewMode !== 'plan') {
       camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     }
@@ -1546,9 +1535,8 @@ canvas.addEventListener('wheel', (e) => {
     applyCamera();
     return;
   }
-  /* Trackpad two-finger drag (deltaX != 0) or shift+wheel = pan.
-     Disabled in plan view to keep the map fixed. */
-  if ((e.shiftKey || Math.abs(e.deltaX) > 0) && viewMode !== 'plan') {
+  /* Trackpad two-finger drag (deltaX != 0) or shift+wheel = pan */
+  if (e.shiftKey || Math.abs(e.deltaX) > 0) {
     panCamera(-e.deltaX, -e.deltaY);
     applyCamera();
     return;
