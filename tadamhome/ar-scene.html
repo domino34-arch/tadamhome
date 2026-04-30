@@ -470,12 +470,18 @@ const HELPER = (() => {
   scene.add(root);
 
   /* Three thin lines through the object center on each axis. We use
-     LineBasicMaterial — looks like a 0.5px hair line on retina. */
-  const axisMat = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30,
-    depthTest: false /* always visible through geometry, like a CAD overlay */
+     LineBasicMaterial — looks like a 0.5px hair line on retina.
+     Each axis gets its own material so we can independently highlight one
+     axis when the trajectory lock engages. */
+  const axisMatX = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
   });
-  const yAxisMat = axisMat.clone(); yAxisMat.opacity = 0.30;
+  const axisMatY = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
+  });
+  const axisMatZ = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
+  });
   const dashMat  = new THREE.LineDashedMaterial({
     color: 0xF0EDE5, transparent: true, opacity: 0.55,
     dashSize: 0.04, gapSize: 0.04, depthTest: false
@@ -489,9 +495,9 @@ const HELPER = (() => {
     l.renderOrder = 999;
     return l;
   }
-  const xAxis = makeLine(axisMat);
-  const yAxis = makeLine(yAxisMat);
-  const zAxis = makeLine(axisMat);
+  const xAxis = makeLine(axisMatX);
+  const yAxis = makeLine(axisMatY);
+  const zAxis = makeLine(axisMatZ);
   const dropY = makeLine(dashMat); /* Y dropline: object base -> ground shadow */
   root.add(xAxis, yAxis, zAxis, dropY);
 
@@ -802,6 +808,24 @@ const HELPER = (() => {
     aTarget = rad * 180 / Math.PI;
   }
 
+  /* Axis lock visual cue: brighten and accent-tint the locked X or Z axis line.
+     Subtle — the eye picks it up without it competing with the model itself. */
+  let lockState = null;
+  function setAxisLock(axis) {
+    if (axis === lockState) return;
+    lockState = axis;
+    /* Reset both horizontal axes to neutral */
+    axisMatX.color.set(0xF0EDE5); axisMatX.opacity = 0.30;
+    axisMatZ.color.set(0xF0EDE5); axisMatZ.opacity = 0.30;
+    if (axis === 'x') {
+      axisMatX.color.set(0xB8986A);
+      axisMatX.opacity = 0.85;
+    } else if (axis === 'z') {
+      axisMatZ.color.set(0xB8986A);
+      axisMatZ.opacity = 0.85;
+    }
+  }
+
   function hide() {
     /* Spec: 400ms fade out on deselect.
        CSS transitions on .manip-label give us the label fades for free.
@@ -811,11 +835,15 @@ const HELPER = (() => {
     aLabel.classList.remove('on');
     dLabel.classList.remove('on');
     distLine.visible = false;
+    /* Reset any axis lock highlight before fading out */
+    setAxisLock(null);
     /* Tween mesh opacity down */
     const start = performance.now();
     const dur = 400;
     const initial = {
-      x: axisMat.opacity,
+      x: axisMatX.opacity,
+      y: axisMatY.opacity,
+      z: axisMatZ.opacity,
       d: dashMat.opacity,
       r: ringLine.material.opacity,
       tk: tickMat.opacity,
@@ -824,8 +852,9 @@ const HELPER = (() => {
     function step() {
       const t = Math.min(1, (performance.now() - start) / dur);
       const k = 1 - t;
-      axisMat.opacity      = initial.x  * k;
-      yAxisMat.opacity     = initial.x  * k;
+      axisMatX.opacity     = initial.x  * k;
+      axisMatY.opacity     = initial.y  * k;
+      axisMatZ.opacity     = initial.z  * k;
       dashMat.opacity      = initial.d  * k;
       ringLine.material.opacity = initial.r * k;
       tickMat.opacity      = initial.tk * k;
@@ -836,7 +865,9 @@ const HELPER = (() => {
         root.visible = false;
         target = null;
         /* restore original opacities for next show() */
-        axisMat.opacity = 0.30; yAxisMat.opacity = 0.30;
+        axisMatX.opacity = 0.30;
+        axisMatY.opacity = 0.30;
+        axisMatZ.opacity = 0.30;
         dashMat.opacity = 0.55;
         ringLine.material.opacity = 0.55;
         tickMat.opacity = 0.65; tickMatMajor.opacity = 0.85;
@@ -845,7 +876,7 @@ const HELPER = (() => {
     requestAnimationFrame(step);
   }
 
-  return { show, hide, update, setRotationLabel };
+  return { show, hide, update, setRotationLabel, setAxisLock };
 })();
 
 /* ========================================================================
@@ -868,60 +899,49 @@ const FEEDBACK = (() => {
     return ctx;
   }
 
-  /* Synthesise a wooden "thock":
-     - very short percussive envelope (20-30ms)
-     - low fundamental ~180Hz with quick decay
-     - a tiny noise burst at the front for the wood "click"
-     Volumes intentionally low — the cue should feel implicit, not announced. */
+  /* Synthesise a wheel "tick" — iPhone Taptic Engine-style:
+     - Pure sine tone, no noise component
+     - Ultra-short envelope (~12ms total): 1ms attack, 12ms exponential release
+     - Frequency around 800Hz (matching the perceived pitch of UIPickerView ticks)
+     - Volume kept low so it feels like a digital wheel detent, not an alert */
   function thock() {
     const ac = ensureCtx();
     if (!ac) return;
     if (ac.state === 'suspended') { try { ac.resume(); } catch(_){} }
     const now = ac.currentTime;
 
-    /* Tonal body — quieter than before */
+    /* Pure tone — no noise, no harmonics. Just a clean digital tick. */
     const osc = ac.createOscillator();
     const oscGain = ac.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(120, now + 0.022);
+    osc.frequency.setValueAtTime(820, now);
     oscGain.gain.setValueAtTime(0.0001, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.06, now + 0.002);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+    oscGain.gain.exponentialRampToValueAtTime(0.10, now + 0.001); /* fast attack */
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.014); /* fast release */
     osc.connect(oscGain);
 
-    /* Click attack (filtered noise burst) — also quieter */
-    const noiseBuf = ac.createBuffer(1, 256, ac.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-    const noise = ac.createBufferSource();
-    noise.buffer = noiseBuf;
-    const noiseFilter = ac.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = 2200;
-    noiseFilter.Q.value = 1.2;
-    const noiseGain = ac.createGain();
-    noiseGain.gain.setValueAtTime(0.018, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
-    noise.connect(noiseFilter); noiseFilter.connect(noiseGain);
+    /* Subtle low-pass to soften the high frequency edge — feels less brittle */
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2400;
+    lp.Q.value = 0.4;
+    oscGain.connect(lp);
 
-    /* Output bus — overall master attenuation for "subtle" feel */
+    /* Master attenuation */
     const out = ac.createGain();
-    out.gain.value = 0.4;
-    oscGain.connect(out);
-    noiseGain.connect(out);
+    out.gain.value = 0.55;
+    lp.connect(out);
     out.connect(ac.destination);
 
     osc.start(now);
-    osc.stop(now + 0.04);
-    noise.start(now);
-    noise.stop(now + 0.02);
+    osc.stop(now + 0.025);
   }
 
   function haptic() {
     /* Web Vibration API — works on Android. iOS Safari ignores it silently
-       (no error), and that's fine: the cue is felt-only there. */
-    try { if (navigator.vibrate) navigator.vibrate(8); } catch(_){}
+       (no error). 5ms = the lightest tap the API can request, matching the
+       new pure-tone tick's brevity. */
+    try { if (navigator.vibrate) navigator.vibrate(5); } catch(_){}
   }
 
   /* Two cue flavours:
@@ -1107,6 +1127,34 @@ let tMode      = 'none';
    object center, so the model never snaps to be centered under the finger. */
 const dragOffset = new THREE.Vector3();
 let dragOffsetSet = false;
+/* Drag start point (object's XZ when the gesture began) — used for the
+   subtle trajectory axis-lock: if the cumulative displacement stays within
+   ±12° of an axis we project onto it; outside that cone the move is free. */
+const dragStart = new THREE.Vector3();
+let currentAxisLock = null; /* 'x' | 'z' | null */
+const AXIS_LOCK_DEG    = 12;     /* engage cone half-angle */
+const AXIS_LOCK_MIN_M  = 0.05;   /* don't lock until 5cm of travel */
+const AXIS_LOCK_TAN    = Math.tan(AXIS_LOCK_DEG * Math.PI / 180);
+
+/* Apply trajectory-based axis lock to a desired XZ position.
+   Mutates `desired` in place. Returns the resulting lock state ('x'|'z'|null). */
+function applyAxisLock(desired) {
+  const dx = desired.x - dragStart.x;
+  const dz = desired.z - dragStart.z;
+  const total = Math.hypot(dx, dz);
+  if (total < AXIS_LOCK_MIN_M) return null;
+  const ax = Math.abs(dx), az = Math.abs(dz);
+  /* "Within 12° of X axis" means az/ax < tan(12°). Same logic mirrored for Z. */
+  if (ax > az && (az / ax) < AXIS_LOCK_TAN) {
+    desired.z = dragStart.z;
+    return 'x';
+  }
+  if (az > ax && (ax / az) < AXIS_LOCK_TAN) {
+    desired.x = dragStart.x;
+    return 'z';
+  }
+  return null;
+}
 
 /* Picking — bounding-box based for forgiving selection.
    Mesh-precise raycasts force the user to tap exactly on slim chair legs;
@@ -1174,14 +1222,22 @@ canvas.addEventListener('touchmove', (e) => {
             0,
             selected.mesh.position.z - pt.z
           );
+          dragStart.copy(selected.mesh.position);
           dragOffsetSet = true;
         }
-        selected.mesh.position.x = pt.x + dragOffset.x;
-        selected.mesh.position.z = pt.z + dragOffset.z;
+        const desired = new THREE.Vector3(
+          pt.x + dragOffset.x,
+          selected.mesh.position.y,
+          pt.z + dragOffset.z
+        );
+        currentAxisLock = applyAxisLock(desired);
+        selected.mesh.position.x = desired.x;
+        selected.mesh.position.z = desired.z;
         const bx = new THREE.Box3().setFromObject(selected.mesh);
         if (bx.min.y < 0) selected.mesh.position.y -= bx.min.y;
         /* feedback + helpers */
         HELPER.show(selected, 'drag');
+        HELPER.setAxisLock(currentAxisLock);
         FEEDBACK.updateTranslate(selected.mesh.position);
       }
     } else {
@@ -1231,6 +1287,8 @@ canvas.addEventListener('touchend', (e) => {
     if (tMode === 'drag' || tMode === 'rotate') HELPER.hide();
     if (tMode === 'drag')   FEEDBACK.endTranslate();
     if (tMode === 'rotate') FEEDBACK.endRotate();
+    currentAxisLock = null;
+    HELPER.setAxisLock(null);
     t0 = null; tDragging = false; tMode = 'none';
   }
 }, { passive:false });
@@ -1321,11 +1379,19 @@ window.addEventListener('mousemove', (e) => {
           0,
           selected.mesh.position.z - pt.z
         );
+        dragStart.copy(selected.mesh.position);
         dragOffsetSet = true;
       }
-      selected.mesh.position.x = pt.x + dragOffset.x;
-      selected.mesh.position.z = pt.z + dragOffset.z;
+      const desired = new THREE.Vector3(
+        pt.x + dragOffset.x,
+        selected.mesh.position.y,
+        pt.z + dragOffset.z
+      );
+      currentAxisLock = applyAxisLock(desired);
+      selected.mesh.position.x = desired.x;
+      selected.mesh.position.z = desired.z;
       HELPER.show(selected, 'drag');
+      HELPER.setAxisLock(currentAxisLock);
       FEEDBACK.updateTranslate(selected.mesh.position);
     }
   } else if (mOrbitStart) {
@@ -1339,7 +1405,7 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mouseup', (e) => {
   if (!mDragging && mDown) handleMouseClick(e);
-  if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); }
+  if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); currentAxisLock = null; HELPER.setAxisLock(null); }
   mDown = false; mDragging = false; mObjDrag = false; mPan = false; mPanStart = null;
 });
 /* Suppress browser context menu so middle/right-click pan is usable */
