@@ -2,1236 +2,2434 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TadamHome — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>TadamHome - Studio AR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#F5F2EC;--white:#FAFAF8;--ink:#1C1B18;--dark:#111;
-  --accent:#B8986A;--acc2:#D4B896;--acc3:#8A6A40;
-  --muted:#8A8880;--border:rgba(28,27,24,.1);
-  --green:#27704A;--red:#C0392B;
-  --sidebar:#1C1B18;
+  --bg:#F5F2EC;--ink:#1C1B18;--white:#FAFAF8;
+  --accent:#B8986A;--acc3:#A07A4A;--muted:#8A8880;
+  --border:rgba(28,27,24,.12);--green:#27704A;
   --serif:'Cormorant Garamond',serif;--sans:'Outfit',sans-serif;
 }
+html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidden}
 
-/* LOCK */
-#lock{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
-.lock-box{width:100%;max-width:340px;padding:0 28px;text-align:center}
-.lock-sub{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:40px;font-family:var(--sans)}
-.lock-input{width:100%;padding:14px 18px;background:rgba(255,255,255,.05);border:1px solid rgba(184,152,106,.2);color:var(--white);font-family:var(--sans);font-size:14px;outline:none;text-align:center;letter-spacing:.06em;margin-bottom:12px;transition:border-color .2s}
-.lock-input:focus{border-color:var(--accent)}
-.lock-btn{width:100%;padding:14px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s}
-.lock-btn:hover{background:var(--acc3)}
-.lock-err{font-size:12px;color:rgba(192,57,43,.8);min-height:20px;margin-top:8px;font-family:var(--sans)}
+/* TOPBAR - logo réduit + écarts plus serrés pour libérer la place du X */
+.topbar{height:50px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 8px;flex-shrink:0;padding-top:env(safe-area-inset-top,0);gap:4px}
+.topbar-left{display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;overflow:hidden}
+.topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.t-logo{height:14px;object-fit:contain;flex-shrink:0}
+.t-sep{width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0}
+.t-label{font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Boutons icône-seule sur mobile */
+.t-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:32px;height:32px;padding:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative}
+.t-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
+.t-btn-lbl{display:none}
+.t-btn:hover{background:rgba(184,152,106,.2);border-color:var(--accent);color:var(--accent)}
+.t-btn.ar{background:rgba(39,112,74,.25);border-color:rgba(39,112,74,.5);color:#6dcf95}
+.t-btn.ar:hover{background:rgba(39,112,74,.4)}
+.t-badge{background:var(--green);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(--sans);display:none;flex-shrink:0;position:absolute;top:-3px;right:-3px}
+.t-badge.on{display:inline}
+.t-icon-btn{width:32px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s;flex-shrink:0}
+.t-icon-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.t-icon-btn:hover{background:rgba(255,255,255,.18)}
+@media (min-width:540px){
+  .t-btn{width:auto;padding:0 10px;gap:5px}
+  .t-btn-lbl{display:inline}
+  .t-btn.ar .t-badge{position:static}
+  .topbar{padding:0 14px;gap:6px}
+  .t-logo{height:16px}
+}
 
 /* LAYOUT */
-body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
-.app{display:flex;height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.studio{flex:1;position:relative;overflow:hidden;min-height:0}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
 
-/* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;overflow:hidden}
-.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
-.sidebar-logo img{height:22px;object-fit:contain;display:block}
-.sidebar-section{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:20px 20px 8px;font-family:var(--sans)}
-.nav-btn{width:100%;padding:10px 20px;background:transparent;border:none;color:rgba(255,255,255,.5);font-family:var(--sans);font-size:12px;font-weight:300;text-align:left;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;letter-spacing:.02em}
-.nav-btn:hover{color:var(--white);background:rgba(255,255,255,.04)}
-.nav-btn.active{color:var(--accent);background:rgba(184,152,106,.08)}
-.nav-btn .ico{font-size:14px;width:18px;text-align:center}
-.sidebar-badge{background:var(--accent);color:var(--white);font-size:9px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:auto}
-.sidebar-divider{height:1px;background:rgba(255,255,255,.06);margin:8px 20px}
-.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.06)}
-.sidebar-user{font-size:11px;color:rgba(255,255,255,.3);margin-bottom:8px;font-family:var(--sans)}
-.sidebar-logout{background:none;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all .2s;width:100%}
-.sidebar-logout:hover{border-color:rgba(184,152,106,.3);color:var(--accent)}
+/* STATUS */
+.status{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.78);backdrop-filter:blur(8px);padding:6px 14px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);white-space:nowrap;border:1px solid rgba(255,255,255,.1);pointer-events:none;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.status.accent{color:var(--accent);border-color:rgba(184,152,106,.3)}
 
-/* MAIN */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{height:52px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
-.topbar-title{font-family:var(--serif);font-size:22px;font-weight:300}
-.topbar-right{display:flex;gap:10px}
-.topbar-btn{padding:8px 16px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .3s}
-.topbar-btn:hover{background:var(--accent)}
-.topbar-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.topbar-btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+/* SELECTED NAME TAG */
+.sel-tag{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.85);backdrop-filter:blur(8px);padding:5px 14px;font-size:11px;color:var(--white);letter-spacing:.05em;opacity:0;transition:opacity .2s;pointer-events:none;border-left:2px solid var(--accent);white-space:nowrap}
+.sel-tag.on{opacity:1}
 
-.content{flex:1;overflow-y:auto;padding:24px}
+/* ACTION FABs (delete + duplicate) */
+.del-fab{position:absolute;bottom:16px;right:114px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
+.del-fab.on{opacity:1;pointer-events:all}
+.del-fab svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
-/* PANELS */
-.panel{display:none}
-.panel.active{display:block}
+.dup-fab{position:absolute;bottom:16px;right:162px;width:42px;height:42px;background:rgba(184,152,106,.95);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(184,152,106,.35);border-radius:2px}
+.dup-fab.on{opacity:1;pointer-events:all}
+.dup-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* STAT CARDS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:2px}
-.stat-card{background:var(--white);padding:20px;border:1px solid var(--border)}
-.stat-ico{font-size:20px;margin-bottom:10px;opacity:.5}
-.stat-val{font-family:var(--serif);font-size:36px;font-weight:300;line-height:1;color:var(--ink);margin-bottom:4px}
-.stat-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
+/* RIGHT-EDGE MANIPULATION COLUMN — vertical strip of object controls.
+   Tap = single step, press-and-hold = continuous. */
+.elev-fab{position:absolute;right:14px;width:42px;height:42px;background:rgba(28,27,24,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:opacity .25s, background .15s;box-shadow:0 2px 10px rgba(0,0,0,.18);border-radius:2px;-webkit-user-select:none;user-select:none}
+.elev-fab.on{opacity:1;pointer-events:all}
+.elev-fab:active,.elev-fab.holding{background:var(--accent)}
+.elev-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.elev-up   {bottom:64px}
+.elev-down {bottom:16px}
+/* Rotation buttons sit above the elevation pair, with a small visual gap.
+   Slight tint shift makes the two clusters readable at a glance. */
+.rot-cw    {bottom:166px}
+.rot-ccw   {bottom:116px}
+.rot-cw,.rot-ccw{background:rgba(45,42,36,.85)}
 
-/* FORM CARDS */
-.form-card{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
-.form-card-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.form-card-head h3{font-family:var(--serif);font-size:20px;font-weight:300}
-.form-card-head span{font-size:11px;color:var(--muted);font-family:var(--sans)}
-.form-card-body{padding:20px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:0}
-.field label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
-.field input,.field select,.field textarea{padding:10px 12px;border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;font-weight:300}
-.field input:focus,.field select:focus{border-color:var(--accent)}
-.field textarea{resize:vertical;min-height:80px}
+/* ZOOM SLIDER — discrete vertical control on the right edge for one-handed
+   zoom on mobile. Visible only when nothing is selected (so it never
+   competes with object actions). No panel background — it floats minimally
+   over the canvas with just a hair-line track and a small accent thumb. */
+.zoom-slider{position:absolute;right:14px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(250,250,248,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 6px;border-radius:4px;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:4;-webkit-user-select:none;user-select:none}
+.zoom-slider.on{opacity:1;pointer-events:all}
+.zoom-btn{width:22px;height:22px;background:transparent;border:none;color:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.zoom-btn:hover,.zoom-btn:active{color:var(--accent)}
+.zoom-btn svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.zoom-track{position:relative;width:18px;height:96px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:none}
+.zoom-track::before{content:"";position:absolute;width:1px;height:100%;background:rgba(255,255,255,.4);left:50%;transform:translateX(-50%);filter:drop-shadow(0 0 1px rgba(0,0,0,.5))}
+.zoom-thumb{position:absolute;width:10px;height:10px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 1.5px rgba(28,27,24,.5),0 1px 3px rgba(0,0,0,.35);left:50%;top:50%;transform:translate(-50%,-50%);transition:box-shadow .15s;will-change:top;pointer-events:none}
+.zoom-thumb.dragging{box-shadow:0 0 0 1.5px rgba(28,27,24,.5),0 0 0 5px rgba(184,152,106,.22),0 1px 3px rgba(0,0,0,.35)}
 
-/* FILE DROP ZONES */
-.drop-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:2px}
-.drop-zone{border:1px dashed rgba(184,152,106,.3);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--white)}
-.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(184,152,106,.03)}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.drop-ico{font-size:22px;color:var(--accent);margin-bottom:8px;opacity:.6}
-.drop-name{font-size:13px;color:var(--ink);font-family:var(--serif);margin-bottom:4px}
-.drop-sub{font-size:11px;color:var(--muted);font-family:var(--sans);line-height:1.5}
-.drop-tags{display:flex;gap:4px;justify-content:center;margin:8px 0 0}
-.tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border);padding:2px 7px;color:var(--muted);font-family:var(--sans)}
-.tag.ok{border-color:rgba(39,112,74,.25);color:var(--green)}
-.drop-progress{height:2px;background:rgba(184,152,106,.15);margin-top:10px;display:none}
-.drop-bar{height:100%;background:var(--accent);width:0;transition:width .3s}
-.drop-done{font-size:11px;color:var(--green);margin-top:6px;display:none;font-family:var(--sans)}
-.url-input{width:100%;padding:10px 14px;border:1px solid var(--border);background:var(--bg2,#EDEAE2);font-family:var(--sans);font-size:12px;color:var(--muted);outline:none;margin-top:2px;font-style:italic}
-.url-input:focus{border-color:var(--accent);color:var(--ink)}
+/* UNDO */
+.undo-fab{position:absolute;bottom:16px;left:14px;width:42px;height:42px;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 8px rgba(0,0,0,.1);border-radius:2px}
+.undo-fab.on{opacity:1;pointer-events:all}
+.undo-fab svg{width:15px;height:15px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round}
 
-/* FORM ACTIONS */
-.form-actions{display:flex;align-items:center;gap:12px;padding:16px 0 0}
-.btn-primary{padding:12px 28px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;gap:8px}
-.btn-primary:hover{background:var(--accent)}
-.btn-secondary{padding:12px 20px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-.form-msg{font-size:12px;font-family:var(--sans)}
-.form-msg.ok{color:var(--green)}
-.form-msg.err{color:var(--red)}
-.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* BOTTOM */
+.bottom{background:var(--white);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0)}
 
-/* COLORS SECTION */
-.colors-section{margin-bottom:2px;background:var(--white);border:1px solid var(--border)}
-.colors-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.colors-head h4{font-family:var(--serif);font-size:18px;font-weight:300}
-.colors-head span{font-size:11px;color:var(--muted);font-family:var(--sans)}
-.colors-body{padding:16px 20px}
-.colors-list{margin-bottom:12px}
-.color-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);margin-bottom:2px}
-.color-swatch{width:30px;height:30px;border:1px solid var(--border);flex-shrink:0}
-.color-info{flex:1;min-width:0}
-.color-name{font-size:13px;color:var(--ink);font-family:var(--sans);font-weight:400}
-.color-status{font-size:10px;color:var(--muted);font-family:var(--sans);letter-spacing:.04em;margin-top:2px}
-.color-del{background:none;border:1px solid var(--border);padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s}
-.color-del:hover{border-color:var(--red);color:var(--red)}
-.color-empty{padding:16px;text-align:center;font-size:12px;color:var(--muted);font-family:var(--sans);border:1px dashed var(--border)}
-.color-form{background:var(--bg);border:1px solid var(--border);padding:16px;margin-top:2px}
-.color-form-grid{display:grid;grid-template-columns:40px 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px}
-.color-picker{width:40px;height:40px;border:1px solid var(--border);cursor:pointer;padding:2px;background:var(--bg)}
-.color-files{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.color-file-zone{border:1px dashed rgba(184,152,106,.3);padding:10px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
-.color-file-zone:hover{border-color:var(--accent);background:rgba(184,152,106,.03)}
-.color-file-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.color-file-label{font-size:10px;color:var(--muted);font-family:var(--sans)}
-.color-texture-zone{border:1px dashed rgba(184,152,106,.3);padding:14px;text-align:center;cursor:pointer;position:relative;transition:all .2s;margin-bottom:10px}
-.color-texture-zone:hover{border-color:var(--accent)}
-.color-texture-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.color-texture-prev{width:100%;height:50px;object-fit:cover;display:none;margin-top:6px;border:1px solid var(--border)}
+/* VIEW BAR */
+.view-bar{display:flex;border-bottom:1px solid var(--border);background:rgba(245,242,236,.55)}
+.view-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--border);transition:all .2s;position:relative}
+.view-btn:last-child{border-right:none}
+.view-btn:hover{color:var(--ink);background:rgba(184,152,106,.08)}
+.view-btn.active{color:var(--accent);background:var(--white)}
+.view-btn.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent)}
+.view-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
-/* PHOTOS SECTION */
-.photos-section{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
-.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:16px 20px}
-.photo-card{aspect-ratio:4/3;position:relative;border:1px solid var(--border);overflow:hidden}
-.photo-card img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-del{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(192,57,43,.85);border:none;cursor:pointer;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
-.photo-card:hover .photo-del{opacity:1}
-.photo-cover{position:absolute;bottom:4px;left:4px;background:var(--accent);color:white;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 5px;font-family:var(--sans)}
-.photo-add{aspect-ratio:4/3;border:1px dashed rgba(184,152,106,.35);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;gap:4px;transition:all .2s}
-.photo-add:hover{border-color:var(--accent);background:rgba(184,152,106,.03)}
-.photo-add input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.photo-add-ico{font-size:20px;color:var(--accent)}
-.photo-add-txt{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:center}
+.tray-row{display:flex;align-items:center;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none}
+.tray-row::-webkit-scrollbar{display:none}
+.tray-add{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.tray-add-box{width:52px;height:52px;border:1.5px dashed rgba(184,152,106,.45);background:rgba(184,152,106,.05);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent);transition:all .2s}
+.tray-add-box:hover{border-color:var(--accent);background:rgba(184,152,106,.12)}
+.tray-lbl{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tray-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;position:relative}
+.tray-thumb{width:52px;height:52px;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;overflow:hidden}
+.tray-thumb img{width:100%;height:100%;object-fit:cover}
+.tray-item.sel .tray-thumb{border-color:var(--accent);background:rgba(184,152,106,.1)}
+.tray-item.placed .tray-thumb::after{content:"";position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:var(--green);border-radius:50%;border:1.5px solid var(--white)}
+.tray-name{font-size:8px;letter-spacing:.04em;color:var(--muted);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.tray-hint{font-size:9px;letter-spacing:.06em;color:var(--muted);padding:0 14px 8px;text-align:center;text-transform:uppercase}
 
-/* TABLE */
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-th{padding:10px 14px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400;text-align:left;border-bottom:1px solid var(--border);font-family:var(--sans);background:var(--bg);white-space:nowrap}
-td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink);vertical-align:middle;font-family:var(--sans)}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(184,152,106,.03)}
-.td-brand{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-family:var(--sans);margin-bottom:2px}
-.td-name{font-family:var(--serif);font-size:16px;font-weight:400}
-.td-badge{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border);color:var(--muted);font-family:var(--sans)}
-.td-badge.ok{border-color:rgba(39,112,74,.25);color:var(--green)}
-.row-actions{display:flex;gap:4px;flex-wrap:nowrap}
-.row-btn{padding:5px 10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap}
-.row-btn:hover{border-color:var(--accent);color:var(--accent)}
-.row-btn.del:hover{border-color:var(--red);color:var(--red)}
+/* CATALOGUE */
+#catOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
+#catOv.open{display:flex}
+.cov-head{background:var(--white);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding-top:calc(12px + env(safe-area-inset-top,0))}
+.cov-title{font-family:var(--serif);font-size:20px;font-weight:400}
+.cov-title em{font-style:italic;color:var(--accent)}
+.cov-x{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.cov-body{flex:1;overflow-y:auto;padding:12px;background:var(--bg)}
+.cov-search{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:9px 12px;margin-bottom:10px}
+.cov-search svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
+.cov-search input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
+.cov-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
+.cov-card{background:var(--white);padding:12px;display:flex;flex-direction:column;gap:5px}
+.cov-img{aspect-ratio:4/3;background:#EDEAE2;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.cov-img img{width:100%;height:100%;object-fit:cover}
+.cov-brand{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.cov-name{font-family:var(--serif);font-size:15px;color:var(--ink)}
+.cov-btn{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
+.cov-btn:hover,.cov-btn.added{background:var(--accent)}
 
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
-.section-title{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--ink)}
-.section-title em{font-style:italic;color:var(--accent)}
-.recent-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:6px;margin-bottom:12px}
-.recent-label::before{content:'';display:block;width:20px;height:1px;background:var(--accent)}
+/* SCENES MODAL — reuses .cov-head / .cov-title / .cov-x */
+#scnOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
+#scnOv.open{display:flex}
+.sov-body{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
+.sov-section-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 0;font-weight:500}
+.sov-section-title:not(:first-child){margin-top:18px}
+.sov-save-block{background:var(--white);border:1px solid var(--border);padding:14px}
+.sov-input{width:100%;border:1px solid var(--border);background:var(--bg);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;font-weight:300;margin-bottom:10px;transition:border-color .15s}
+.sov-input:focus{border-color:var(--accent);background:var(--white)}
+.sov-save-btn{width:100%;padding:11px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.sov-save-btn:hover{background:var(--accent)}
+.sov-save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sov-save-btn:disabled{opacity:.4;cursor:not-allowed}
+.sov-list{display:flex;flex-direction:column;gap:8px}
+.sov-item{background:var(--white);border:1px solid var(--border);padding:10px;display:flex;align-items:center;gap:12px}
+.sov-item-thumb{width:64px;height:48px;border:1px solid var(--border);background:var(--bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+.sov-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sov-item-info{flex:1;min-width:0}
+.sov-item-name{font-family:var(--serif);font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+.sov-item-meta{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.sov-item-actions{display:flex;gap:6px;flex-shrink:0}
+.sov-item-btn{width:32px;height:32px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s}
+.sov-item-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sov-item-btn.load:hover{color:var(--green);border-color:var(--green)}
+.sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
+.sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
 
-/* CATALOGUE SEARCH */
-.search-bar{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);padding:10px 14px;margin-bottom:2px}
-.search-bar input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
-.search-bar input::placeholder{color:var(--muted)}
-
-/* MODALS */
-.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(28,27,24,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
-.modal-bg.show{display:flex}
-.modal{background:var(--white);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:popIn .25s ease}
-.modal-lg{max-width:680px}
-@keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
-.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
-.modal-head h3{font-family:var(--serif);font-size:22px;font-weight:300}
-.modal-close{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .2s}
-.modal-close:hover{border-color:var(--red);color:var(--red)}
-.modal-body{padding:20px 22px}
-.modal-section{margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-.modal-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.modal-section-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-family:var(--sans);display:flex;align-items:center;gap:6px}
-.modal-section-title::before{content:'';display:block;width:14px;height:1px;background:var(--accent)}
-.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--white)}
-.modal-file-current{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);margin-bottom:6px}
-.modal-file-info{flex:1;min-width:0}
-.modal-file-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
-.modal-file-name{font-size:12px;color:var(--ink);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-.modal-file-name.none{color:var(--muted);font-style:italic;font-family:var(--sans)}
-
-/* MESHY */
-.meshy-drop{border:1px dashed rgba(184,152,106,.3);background:var(--white);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:2px}
-.meshy-drop:hover,.meshy-drop.over{border-color:var(--accent);background:rgba(184,152,106,.03)}
-.meshy-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.meshy-prev{max-height:200px;max-width:100%;margin:12px auto 0;display:none;object-fit:contain}
-.meshy-status{margin-top:16px;padding:12px;background:var(--bg);border:1px solid var(--border);font-family:var(--sans);font-size:12px;display:none}
-.meshy-progress{height:3px;background:rgba(184,152,106,.15);margin-top:8px}
-.meshy-bar{height:100%;background:var(--accent);width:0;transition:width .5s}
-.meshy-api-row{display:flex;gap:8px;align-items:center;margin-bottom:2px;background:var(--white);border:1px solid var(--border);padding:12px 16px}
-.meshy-api-row label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);white-space:nowrap}
-.meshy-api-input{flex:1;border:none;background:transparent;font-family:monospace;font-size:12px;color:var(--ink);outline:none}
-
-/* QR MODAL */
-.qr-code-wrap{display:flex;justify-content:center;padding:20px 0;background:var(--bg);border:1px solid var(--border);margin-bottom:12px}
-.qr-url{font-size:11px;color:var(--muted);font-family:monospace;word-break:break-all;padding:8px;background:var(--bg);border:1px solid var(--border);text-align:center}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--white);padding:10px 20px;font-size:12px;letter-spacing:.04em;border-left:2px solid var(--accent);opacity:0;transition:all .3s;z-index:9000;pointer-events:none;font-family:var(--sans)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.ok{border-left-color:var(--green)}
-.toast.err{border-left-color:var(--red)}
-
-/* RESPONSIVE */
-@media(max-width:768px){
-  .sidebar{width:180px}
-  .stats-grid{grid-template-columns:1fr 1fr}
-  .form-grid{grid-template-columns:1fr}
-  .drop-grid{grid-template-columns:1fr}
+/* MANIPULATION LABELS — invisible until activated, opacity fades.
+   Position is set via transform:translate(xpx,ypx) with a 60ms ease so the
+   label glides instead of jittering when the underlying world point ticks. */
+.manip-label{
+  position:absolute;top:0;left:0;
+  background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
+  color:rgba(255,255,255,.94);
+  font-family:var(--sans);font-size:10px;font-weight:400;
+  letter-spacing:.08em;
+  padding:4px 8px;
+  border-left:1.5px solid var(--accent);
+  pointer-events:none;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .25s ease, transform 60ms linear;
+  z-index:5;
+  will-change:transform,opacity;
 }
+.manip-label.on{opacity:1}
+.manip-label.angle{
+  border-left:none;
+  border-bottom:1.5px solid var(--accent);
+  padding:4px 9px;
+}
+.manip-label.dist{
+  border-left:none;
+  border-top:1.5px solid var(--accent);
+  background:rgba(28,27,24,.78);
+  padding:3px 8px;
+  font-size:9.5px;
+}
+
+/* LOADER + TOAST */
+#ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#ldr.on{display:flex}
+.spin{width:32px;height:32px;border:2px solid rgba(184,152,106,.2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+.spin-txt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+@keyframes sp{to{transform:rotate(360deg)}}
+#tst{position:fixed;bottom:calc(120px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%) translateY(6px);background:var(--ink);color:var(--white);padding:9px 16px;font-size:11px;letter-spacing:.05em;opacity:0;transition:all .3s;z-index:300;border-left:2px solid var(--accent);white-space:nowrap;pointer-events:none}
+#tst.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#tst.ok{border-left-color:var(--green)}
+#tst.err{border-left-color:#C0392B}
 </style>
 </head>
 <body>
+<div class="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="logo_blanc.png" class="t-logo" alt="TadamHome" onerror="this.outerHTML='<span style=font-size:13px;color:#fff;font-family:serif;white-space:nowrap>TadamHome</span>'"/>
+      <div class="t-sep"></div>
+      <div class="t-label">Studio AR</div>
+    </div>
+    <div class="topbar-right">
+      <button class="t-btn" onclick="openScenes()" title="Mes scenes">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span class="t-btn-lbl">Scenes</span>
+      </button>
+      <button class="t-btn" onclick="doPhoto()" title="Photo">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span class="t-btn-lbl">Photo</span>
+      </button>
+      <button class="t-btn ar" onclick="doExportAR()" title="Voir en AR">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span class="t-btn-lbl">AR</span>
+        <span class="t-badge" id="badge">0</span>
+      </button>
+      <div class="t-icon-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+  </div>
 
-<!-- LOCK SCREEN -->
-<div id="lock" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#1C1B18;display:flex;align-items:center;justify-content:center">
-  <div class="lock-box">
-    <img src="logo_blanc.png" alt="TadamHome" style="height:26px;display:block;margin:0 auto 8px;object-fit:contain" onerror="this.style.display='none'"/>
-    <div class="lock-sub">Espace administration</div>
-    <input type="password" id="lockPw" class="lock-input" placeholder="Mot de passe admin" autocomplete="off"/>
-    <button class="lock-btn" onclick="unlock()">Accéder →</button>
-    <div class="lock-err" id="lockErr"></div>
+  <!-- STUDIO -->
+  <div class="studio">
+    <canvas id="c"></canvas>
+    <div class="status" id="st">Ajoutez des meubles pour commencer</div>
+    <div class="sel-tag" id="selTag"></div>
+    <!-- DUPLICATE FAB -->
+    <button class="dup-fab" id="dupFab" onclick="doDuplicate()" title="Dupliquer">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="1.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </button>
+    <!-- ELEVATION FABs (lift up / down) — visible when something is selected -->
+    <button class="elev-fab elev-up" id="elevUp" title="Lever +5cm">
+      <svg viewBox="0 0 24 24"><polyline points="6 14 12 8 18 14"/><line x1="12" y1="8" x2="12" y2="20"/><line x1="6" y1="4" x2="18" y2="4"/></svg>
+    </button>
+    <button class="elev-fab elev-down" id="elevDown" title="Baisser -5cm">
+      <svg viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/><line x1="12" y1="16" x2="12" y2="4"/><line x1="6" y1="20" x2="18" y2="20"/></svg>
+    </button>
+    <!-- ROTATION FABs (clockwise / counter-clockwise) — useful on desktop where there's no 2-finger gesture -->
+    <button class="elev-fab rot-ccw" id="rotCcw" title="Pivoter -15°">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
+    </button>
+    <button class="elev-fab rot-cw" id="rotCw" title="Pivoter +15°">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg>
+    </button>
+    <!-- Manipulation labels (height + rotation angle + distance to nearest object) -->
+    <div class="manip-label" id="hLabel"></div>
+    <div class="manip-label angle" id="aLabel"></div>
+    <div class="manip-label dist" id="dLabel"></div>
+    <!-- DELETE FAB -->
+    <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <!-- UNDO FAB -->
+    <button class="undo-fab" id="undoFab" onclick="doUndo()" title="Annuler">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+    </button>
+    <!-- ZOOM SLIDER — visible only when no model is selected, lets the user
+         zoom one-handed without pinch. Located on the left edge to stay out
+         of the right-side action column. -->
+    <div class="zoom-slider" id="zoomSlider">
+      <button class="zoom-btn" id="zoomIn" title="Zoom +">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="zoom-track" id="zoomTrack">
+        <div class="zoom-thumb" id="zoomThumb"></div>
+      </div>
+      <button class="zoom-btn" id="zoomOut" title="Zoom -">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTTOM (view bar + tray) -->
+  <div class="bottom">
+    <!-- VIEW MODE BAR -->
+    <div class="view-bar">
+      <button class="view-btn" data-view="plan" onclick="setView('plan')" title="Vue de dessus">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        <span>Plan</span>
+      </button>
+      <button class="view-btn" data-view="axo" onclick="setView('axo')" title="Vue axonométrique">
+        <svg viewBox="0 0 24 24"><path d="M12 3l9 5v8l-9 5-9-5V8z"/><path d="M12 3v10"/><path d="M3 8l9 5 9-5"/></svg>
+        <span>Axo</span>
+      </button>
+      <button class="view-btn active" data-view="persp" onclick="setView('persp')" title="Vue perspective">
+        <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/></svg>
+        <span>3D</span>
+      </button>
+    </div>
+
+    <div class="tray-row" id="tray">
+      <div class="tray-add" onclick="openCat()">
+        <div class="tray-add-box">+</div>
+        <div class="tray-lbl">Ajouter</div>
+      </div>
+    </div>
+    <div class="tray-hint" id="trayHint">Appuyez sur + pour choisir un meuble</div>
   </div>
 </div>
 
-<!-- APP -->
-<div class="app" id="app" style="display:none">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <img src="logo_blanc.png" alt="TadamHome" style="height:20px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=\'font-family:serif;color:#B8986A;font-size:16px\'>TadamHome</span>'"/>
+<!-- CATALOGUE -->
+<div id="catOv">
+  <div class="cov-head">
+    <div class="cov-title">Choisir un <em>meuble</em></div>
+    <button class="cov-x" onclick="closeCat()">x</button>
+  </div>
+  <div class="cov-body">
+    <div class="cov-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="csrch" placeholder="Rechercher..." oninput="filterCat()"/>
     </div>
-    <div class="sidebar-section">Gestion</div>
-    <button class="nav-btn active" onclick="showPanel('overview')"><span class="ico">◈</span>Vue d'ensemble</button>
-    <button class="nav-btn" onclick="showPanel('upload')"><span class="ico">↑</span>Ajouter un modèle</button>
-    <button class="nav-btn" onclick="showPanel('meshy')"><span class="ico">✦</span>Générer avec IA</button>
-    <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">Liens</div>
-    <button class="nav-btn" onclick="window.open('catalogue.html','_blank')"><span class="ico">←</span>Retour au site</button>
-    <button class="nav-btn" onclick="window.open('dashboard.html','_blank')"><span class="ico">◉</span>Dashboard</button>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">Administrateur</div>
-      <button class="sidebar-logout" onclick="logout()">← Verrouiller</button>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
-      <div class="topbar-title" id="topbarTitle">Vue d'<em style="font-style:italic;color:var(--accent)">ensemble</em></div>
-      <div class="topbar-right">
-        <button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button>
-        <button class="topbar-btn" onclick="showPanel('upload')">+ Ajouter</button>
-      </div>
-    </div>
-    <div class="content">
-
-      <!-- OVERVIEW -->
-      <div class="panel active" id="panelOverview">
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-ico">◈</div><div class="stat-val" id="stTotal">0</div><div class="stat-lbl">Produits total</div></div>
-          <div class="stat-card"><div class="stat-ico">▦</div><div class="stat-val" id="stGlb">0</div><div class="stat-lbl">Modèles GLB</div></div>
-          <div class="stat-card"><div class="stat-ico">◇</div><div class="stat-val" id="stUsdz">0</div><div class="stat-lbl">Fichiers USDZ</div></div>
-          <div class="stat-card"><div class="stat-ico">⊞</div><div class="stat-val" id="stQr">0</div><div class="stat-lbl">QR Codes actifs</div></div>
-        </div>
-        <div class="form-card" style="margin-top:2px">
-          <div class="form-card-head"><h3>Derniers ajouts</h3></div>
-          <div style="padding:8px"><div id="overviewTable"></div></div>
-        </div>
-      </div>
-
-      <!-- UPLOAD -->
-      <div class="panel" id="panelUpload">
-        <div class="form-card">
-          <div class="form-card-head"><h3>Informations produit</h3></div>
-          <div class="form-card-body">
-            <div class="form-grid" style="margin-bottom:12px">
-              <div class="field"><label>Nom *</label><input type="text" id="fNom" placeholder="ex. Canapé Mags"/></div>
-              <div class="field"><label>Marque *</label><input type="text" id="fMarque" placeholder="ex. Hay"/></div>
-              <div class="field"><label>Catégorie</label>
-                <select id="fCat">
-                  <option value="">Choisir…</option>
-                  <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-                  <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-                  <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                  <option>Lit</option><option>Autre</option>
-                </select>
-              </div>
-              <div class="field"><label>Prix (€)</label><input type="number" id="fPrix" placeholder="ex. 1290"/></div>
-            </div>
-            <div class="form-grid-3">
-              <div class="field"><label>Largeur (cm)</label><input type="number" id="fLarg" placeholder="ex. 220"/></div>
-              <div class="field"><label>Hauteur (cm)</label><input type="number" id="fHaut" placeholder="ex. 85"/></div>
-              <div class="field"><label>Profondeur (cm)</label><input type="number" id="fProf" placeholder="ex. 95"/></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="drop-grid">
-          <div class="drop-zone" id="zoneGlb">
-            <input type="file" id="fileGlb" accept=".glb,.gltf" onchange="uploadFile(this,'glb')"/>
-            <div class="drop-ico">◈</div>
-            <div class="drop-name">Fichier GLB</div>
-            <div class="drop-sub">Android & Web · Chrome</div>
-            <div class="drop-tags"><span class="tag">GLB</span><span class="tag">GLTF</span></div>
-            <div id="lblGlb" style="font-size:11px;color:var(--accent);margin-top:8px;font-family:var(--sans)">ou cliquez pour parcourir</div>
-            <div class="drop-progress" id="progGlb"><div class="drop-bar" id="barGlb"></div></div>
-            <div class="drop-done" id="doneGlb"></div>
-          </div>
-          <div class="drop-zone" id="zoneUsdz">
-            <input type="file" id="fileUsdz" accept=".usdz" onchange="uploadFile(this,'usdz')"/>
-            <div class="drop-ico">◇</div>
-            <div class="drop-name">Fichier USDZ</div>
-            <div class="drop-sub">iPhone & iPad · Safari</div>
-            <div class="drop-tags"><span class="tag">USDZ</span></div>
-            <div id="lblUsdz" style="font-size:11px;color:var(--accent);margin-top:8px;font-family:var(--sans)">ou cliquez pour parcourir</div>
-            <div class="drop-progress" id="progUsdz"><div class="drop-bar" id="barUsdz"></div></div>
-            <div class="drop-done" id="doneUsdz"></div>
-          </div>
-        </div>
-
-        <div class="form-card" style="margin-bottom:2px">
-          <div class="form-card-body" style="padding:12px 16px">
-            <div class="form-grid">
-              <div class="field"><label>URL GLB directe</label><input type="text" id="fGlbUrl" placeholder="https://…"/></div>
-              <div class="field"><label>URL USDZ directe</label><input type="text" id="fUsdzUrl" placeholder="https://…"/></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- PHOTOS -->
-        <div class="photos-section">
-          <div class="form-card-head"><h3>Photos produit</h3><span>La 1ère photo = visuel principal du catalogue</span></div>
-          <div class="photos-grid" id="uploadPhotosGrid">
-            <div class="photo-add" onclick="document.getElementById('uploadPhotoInput').click()">
-              <input type="file" id="uploadPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'upload')"/>
-              <div class="photo-add-ico">+</div>
-              <div class="photo-add-txt">Ajouter photos<br>JPG, PNG</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- COLORIS -->
-        <div class="colors-section">
-          <div class="colors-head"><h4>Coloris & textures</h4><span>Optionnel — permet le changement de tissu sur la page AR</span></div>
-          <div class="colors-body">
-            <div class="colors-list" id="uploadColorsList"><div class="color-empty">Aucun coloris ajouté</div></div>
-            <div class="color-form">
-              <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--sans)">Ajouter un coloris</div>
-              <div class="color-form-grid">
-                <input type="color" id="uHex" class="color-picker" value="#B8986A"/>
-                <div class="field" style="margin:0"><input type="text" id="uName" placeholder="ex. Noir Kvadrat"/></div>
-                <div class="field" style="margin:0"><input type="text" id="uMat" placeholder="ex. Tissu, Cuir…"/></div>
-              </div>
-              <div class="color-texture-zone">
-                <input type="file" id="uTexFile" accept=".jpg,.jpeg,.png,.webp" onchange="uploadColorTexture(this,'u')"/>
-                <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Texture (aperçu swatch) — JPG, PNG</div>
-                <img id="uTexPreview" class="color-texture-prev"/>
-                <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="uTexName">ou cliquez pour parcourir</div>
-              </div>
-              <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--sans)">Modèle 3D de ce coloris</div>
-              <div class="color-files">
-                <div>
-                  <div class="color-file-zone"><input type="file" id="uGlbFile" accept=".glb,.gltf" onchange="uploadColorFile(this,'u','glb')"/><div class="color-file-label">◈ GLB — Android</div><div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="uGlbLbl">cliquer/glisser</div></div>
-                  <input type="text" id="uGlbUrl2" placeholder="ou URL GLB…" class="url-input"/>
-                </div>
-                <div>
-                  <div class="color-file-zone"><input type="file" id="uUsdzFile" accept=".usdz" onchange="uploadColorFile(this,'u','usdz')"/><div class="color-file-label">◇ USDZ — iPhone</div><div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="uUsdzLbl">cliquer/glisser</div></div>
-                  <input type="text" id="uUsdzUrl2" placeholder="ou URL USDZ…" class="url-input"/>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-                <button class="btn-primary" style="padding:9px 18px;font-size:10px" onclick="addUploadColor()">+ Ajouter ce coloris</button>
-                <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="uColorMsg"></span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-card">
-          <div class="form-card-body">
-            <div class="form-actions">
-              <button class="btn-primary" id="btnAdd" onclick="addProduct()"><div class="spin" id="spinAdd"></div>Ajouter au catalogue</button>
-              <button class="btn-secondary" onclick="resetUploadForm()">Réinitialiser</button>
-              <span class="form-msg" id="formMsg"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MESHY -->
-      <div class="panel" id="panelMeshy">
-        <div class="meshy-api-row">
-          <label>Clé API Meshy</label>
-          <input type="text" id="meshyKey" class="meshy-api-input" placeholder="msy_…" onchange="localStorage.setItem('meshy_key',this.value)"/>
-          <button class="btn-secondary" style="padding:6px 12px;font-size:10px" onclick="document.getElementById('meshyKey').value='';localStorage.removeItem('meshy_key')">Effacer</button>
-        </div>
-        <div class="meshy-drop" id="meshyDrop">
-          <input type="file" id="meshyFile" accept=".jpg,.jpeg,.png,.webp" onchange="handleMeshyImage(this.files[0])"/>
-          <div style="font-size:28px;margin-bottom:10px;color:var(--accent);opacity:.6">◈</div>
-          <div style="font-family:var(--serif);font-size:18px;font-weight:300;margin-bottom:6px" id="meshyFileName">ou cliquez pour parcourir · JPG, PNG, WebP</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--sans)">Photo du produit sur fond blanc de préférence</div>
-          <img id="meshyPreview" class="meshy-prev"/>
-        </div>
-        <div style="margin-bottom:2px"><input type="text" id="meshyImgUrl" class="url-input" style="width:100%;padding:12px 16px;border:1px solid var(--border)" placeholder="ou URL directe de l'image…"/></div>
-
-        <div class="form-card">
-          <div class="form-card-head"><h3>Informations produit</h3></div>
-          <div class="form-card-body">
-            <div class="form-grid" style="margin-bottom:12px">
-              <div class="field"><label>Nom *</label><input type="text" id="mNom" placeholder="ex. Canapé Mags"/></div>
-              <div class="field"><label>Marque *</label><input type="text" id="mMarque" placeholder="ex. Hay"/></div>
-              <div class="field"><label>Catégorie</label>
-                <select id="mCat">
-                  <option value="">Choisir…</option>
-                  <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-                  <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-                  <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                  <option>Lit</option><option>Autre</option>
-                </select>
-              </div>
-              <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
-            </div>
-            <div class="form-grid-3" style="margin-bottom:12px">
-              <div class="field"><label>Largeur (cm)</label><input type="number" id="mLarg" placeholder="ex. 220"/></div>
-              <div class="field"><label>Hauteur (cm)</label><input type="number" id="mHaut" placeholder="ex. 85"/></div>
-              <div class="field"><label>Profondeur (cm)</label><input type="number" id="mProf" placeholder="ex. 95"/></div>
-            </div>
-            <div class="field"><label>Prompt IA (optionnel)</label><input type="text" id="mPrompt" placeholder="ex. modern sofa, fabric, clean design"/></div>
-            <div class="form-actions">
-              <button class="btn-primary" id="btnMeshy" onclick="generateMeshy()"><div class="spin" id="spinMeshy"></div>+ Générer le modèle 3D</button>
-              <span class="form-msg" id="meshyMsg"></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="meshy-status" id="meshyStatus">
-          <div id="meshyStatusTxt">Initialisation…</div>
-          <div class="meshy-progress"><div class="meshy-bar" id="meshyBar"></div></div>
-        </div>
-      </div>
-
-      <!-- CATALOGUE -->
-      <div class="panel" id="panelCatalogue">
-        <div class="section-head">
-          <div class="section-title">Vos <em>modèles</em></div>
-        </div>
-        <div class="recent-label">Catalogue complet</div>
-        <div class="search-bar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="catSearch" placeholder="Rechercher un produit…" oninput="filterTable()"/>
-          <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadProducts()">↺ Actualiser</button>
-          <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="showPanel('upload')">+ Ajouter</button>
-        </div>
-        <div class="form-card">
-          <div class="table-wrap" id="catTable"></div>
-        </div>
-      </div>
-
+    <div class="cov-grid" id="cgrid">
+      <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div>
     </div>
   </div>
 </div>
 
-<!-- QR MODAL -->
-<div class="modal-bg" id="qrModal">
-  <div class="modal">
-    <div class="modal-head"><h3 id="qrTitle">QR Code</h3><button class="modal-close" onclick="closeQR()">✕</button></div>
-    <div class="modal-body">
-      <div class="qr-code-wrap"><div id="qrContainer"></div></div>
-      <div class="qr-url" id="qrUrl"></div>
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="btn-primary" onclick="downloadQR()">Télécharger PNG</button>
-        <button class="btn-secondary" onclick="closeQR()">Fermer</button>
-      </div>
+<!-- SCENES (save / load) -->
+<div id="scnOv">
+  <div class="cov-head">
+    <div class="cov-title">Mes <em>scenes</em></div>
+    <button class="cov-x" onclick="closeScenes()">x</button>
+  </div>
+  <div class="sov-body">
+    <div class="sov-section-title">Sauvegarder la scene actuelle</div>
+    <div class="sov-save-block">
+      <input type="text" id="scnNameInput" class="sov-input" placeholder="Nom de la scene (optionnel)" maxlength="60"/>
+      <button class="sov-save-btn" id="scnSaveBtn" onclick="saveScene()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Sauvegarder
+      </button>
     </div>
+    <div class="sov-section-title">Scenes sauvegardees (<span id="scnCount">0</span>)</div>
+    <div class="sov-list" id="scnList"></div>
   </div>
 </div>
 
-<!-- CONFIRM DELETE -->
-<div class="modal-bg" id="confirmModal">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-head"><h3>Confirmer</h3><button class="modal-close" onclick="closeConfirm()">✕</button></div>
-    <div class="modal-body">
-      <p style="font-family:var(--sans);font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:16px" id="confirmTxt"></p>
-      <div style="display:flex;gap:8px">
-        <button class="btn-primary" style="background:var(--red)" onclick="confirmDelete()">Supprimer</button>
-        <button class="btn-secondary" onclick="closeConfirm()">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
+<div id="ldr"><div class="spin"></div><div class="spin-txt" id="ltxt">Chargement...</div></div>
+<div id="tst"></div>
 
-<!-- EDIT MODAL -->
-<div class="modal-bg" id="editModal">
-  <div class="modal modal-lg">
-    <div class="modal-head"><h3 id="editTitle">Modifier le produit</h3><button class="modal-close" onclick="closeEdit()">✕</button></div>
-    <div class="modal-body">
-      <!-- Infos -->
-      <div class="modal-section">
-        <div class="modal-section-title">Informations</div>
-        <div class="form-grid" style="margin-bottom:10px">
-          <div class="field"><label>Nom</label><input type="text" id="eName"/></div>
-          <div class="field"><label>Marque</label><input type="text" id="eMarque"/></div>
-          <div class="field"><label>Catégorie</label>
-            <select id="eCat">
-              <option value="">Choisir…</option>
-              <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-              <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-              <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-              <option>Lit</option><option>Autre</option>
-            </select>
-          </div>
-          <div class="field"><label>Prix (€)</label><input type="number" id="ePrix"/></div>
-        </div>
-        <div class="form-grid-3">
-          <div class="field"><label>Largeur (cm)</label><input type="number" id="eLarg"/></div>
-          <div class="field"><label>Hauteur (cm)</label><input type="number" id="eHaut"/></div>
-          <div class="field"><label>Profondeur (cm)</label><input type="number" id="eProf"/></div>
-        </div>
-      </div>
-      <!-- GLB -->
-      <div class="modal-section">
-        <div class="modal-section-title">Fichier GLB — Android & Web</div>
-        <div class="modal-file-current"><div class="modal-file-info"><div class="modal-file-label">Fichier actuel</div><div class="modal-file-name" id="eGlbCurrent">—</div></div></div>
-        <div class="drop-zone" style="margin-bottom:6px;padding:16px">
-          <input type="file" id="eFileGlb" accept=".glb,.gltf" onchange="uploadEditFile(this,'glb')"/>
-          <div style="font-size:12px;color:var(--muted);font-family:var(--sans)" id="eLblGlb">Glissez un nouveau GLB pour remplacer · ou cliquez</div>
-          <div class="drop-progress" id="eProgGlb"><div class="drop-bar" id="eBarGlb"></div></div>
-          <div class="drop-done" id="eDoneGlb"></div>
-        </div>
-        <div class="field"><label>ou URL GLB directe</label><input type="text" id="eGlbUrl"/></div>
-      </div>
-      <!-- USDZ -->
-      <div class="modal-section">
-        <div class="modal-section-title">Fichier USDZ — iPhone AR</div>
-        <div class="modal-file-current"><div class="modal-file-info"><div class="modal-file-label">Fichier actuel</div><div class="modal-file-name" id="eUsdzCurrent">—</div></div></div>
-        <div class="drop-zone" style="margin-bottom:6px;padding:16px">
-          <input type="file" id="eFileUsdz" accept=".usdz" onchange="uploadEditFile(this,'usdz')"/>
-          <div style="font-size:12px;color:var(--muted);font-family:var(--sans)" id="eLblUsdz">Glissez un nouveau USDZ pour remplacer · ou cliquez</div>
-          <div class="drop-progress" id="eProgUsdz"><div class="drop-bar" id="eBarUsdz"></div></div>
-          <div class="drop-done" id="eDoneUsdz"></div>
-        </div>
-        <div class="field"><label>ou URL USDZ directe</label><input type="text" id="eUsdzUrl"/></div>
-      </div>
-      <!-- Photos -->
-      <div class="modal-section">
-        <div class="modal-section-title">Photos produit</div>
-        <div class="photos-grid" id="editPhotosGrid" style="padding:0;margin-bottom:0">
-          <div class="photo-add" onclick="document.getElementById('editPhotoInput').click()">
-            <input type="file" id="editPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'edit')"/>
-            <div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter</div>
-          </div>
-        </div>
-      </div>
-      <!-- Coloris -->
-      <div class="modal-section">
-        <div class="modal-section-title">Coloris & textures</div>
-        <div id="editColorsList" style="margin-bottom:10px"><div class="color-empty">Aucun coloris</div></div>
-        <div class="color-form">
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--sans)">Ajouter / remplacer un coloris</div>
-          <div class="color-form-grid">
-            <input type="color" id="eColorHex" class="color-picker" value="#B8986A"/>
-            <div class="field" style="margin:0"><input type="text" id="eColorName" placeholder="ex. Noir Kvadrat"/></div>
-            <div class="field" style="margin:0"><input type="text" id="eColorMat" placeholder="ex. Tissu…"/></div>
-          </div>
-          <div class="color-texture-zone">
-            <input type="file" id="eTexFile" accept=".jpg,.jpeg,.png,.webp" onchange="uploadColorTexture(this,'e')"/>
-            <div style="font-size:12px;color:var(--muted);font-family:var(--sans)">Texture swatch — JPG, PNG</div>
-            <img id="eTexPreview" class="color-texture-prev"/>
-            <div style="font-size:10px;color:var(--accent);margin-top:4px;font-family:var(--sans)" id="eTexName">ou cliquer</div>
-          </div>
-          <div class="color-files">
-            <div>
-              <div class="color-file-zone"><input type="file" id="eGlbFileCo" accept=".glb,.gltf" onchange="uploadColorFile(this,'e','glb')"/><div class="color-file-label">◈ GLB</div><div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eGlbLbl">cliquer</div></div>
-              <input type="text" id="eGlbUrlCo" placeholder="ou URL GLB…" class="url-input"/>
-            </div>
-            <div>
-              <div class="color-file-zone"><input type="file" id="eUsdzFileCo" accept=".usdz" onchange="uploadColorFile(this,'e','usdz')"/><div class="color-file-label">◇ USDZ</div><div style="font-size:10px;color:var(--accent);margin-top:3px;font-family:var(--sans)" id="eUsdzLbl">cliquer</div></div>
-              <input type="text" id="eUsdzUrlCo" placeholder="ou URL USDZ…" class="url-input"/>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-            <button class="btn-primary" style="padding:9px 18px;font-size:10px" onclick="addEditColor()">+ Ajouter ce coloris</button>
-            <span style="font-size:11px;color:var(--muted);font-family:var(--sans)" id="eColorMsg"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeEdit()">Annuler</button>
-      <button class="btn-primary" id="btnEditSave" onclick="saveEdit()"><div class="spin" id="spinEdit"></div><span id="editSaveLbl">Enregistrer</span></button>
-    </div>
-  </div>
-</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}
+</script>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 
-<script>
-/* ══ CONFIG ══ */
-const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
-const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
-const ADMIN_PW = 'tadam2025';
-const BUCKET   = 'models';
-const BASE_URL = 'https://tadamhome.fr/scan';
-const MESHY_EP = 'https://api.meshy.ai';
+/* SUPABASE */
+const sb = supabase.createClient(
+  'https://wbunwfxecvxngypuehop.supabase.co',
+  'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P'
+);
 
-const {createClient} = supabase;
-const sb = createClient(SUPA_URL, SUPA_KEY);
+/* THREE */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 
-/* ══ STATE ══ */
-let allProducts = [];
-let deleteId    = null;
-let editId      = null;
-let editGlbUrl  = null;
-let editUsdzUrl = null;
-let editColors  = [];
-let editPhotos  = [];
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xEEEBE3);
+scene.fog = new THREE.FogExp2(0xEEEBE3, 0.04);
 
-let uploadColors = [];
-let uploadPhotos = [];
-let uTexUrl = null, uGlbUrlCo = null, uUsdzUrlCo = null;
-let eTexUrl = null, eGlbUrlCo = null, eUsdzUrlCo = null;
-let glbUrl = null, usdzUrl = null;
+/* PERSPECTIVE camera */
+const perspCam = new THREE.PerspectiveCamera(48, 1, 0.01, 80);
+perspCam.position.set(3, 2.2, 3);
 
-let meshyGlbUrl  = null;
-let meshyUsdzUrl = null;
-let meshyImgUrl  = null;
-let meshyTaskId  = null;
+/* ORTHOGRAPHIC camera (used for Plan + Axo) */
+const orthoCam = new THREE.OrthographicCamera(-5, 5, 5, -5, -50, 100);
 
-/* ══ LOCK ══ */
-function unlock() {
-  const pw = document.getElementById('lockPw').value.trim();
-  if (pw === ADMIN_PW) {
-    document.getElementById('lock').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    // Load Meshy key
-    const mk = localStorage.getItem('meshy_key');
-    if (mk) document.getElementById('meshyKey').value = mk;
-    loadProducts();
-  } else {
-    const el = document.getElementById('lockErr');
-    el.textContent = 'Mot de passe incorrect.';
-    setTimeout(() => el.textContent = '', 2000);
+/* Active camera reference */
+let activeCam = perspCam;
+
+/* CAMERA STATE */
+let viewMode = 'persp';                  // 'persp' | 'plan' | 'axo'
+let camTheta = Math.PI * 0.25;
+let camElev  = 0.55;
+let camDist  = 4.5;
+const camTarget = new THREE.Vector3(0, 0, 0);
+
+/* Per-mode saved state so switching back feels right */
+const viewState = {
+  persp: { theta: Math.PI * 0.25, elev: 0.55,                      dist: 4.5 },
+  plan:  { theta: 0,              elev: Math.PI / 2 - 0.001,       dist: 6   },
+  axo:   { theta: Math.PI / 4,    elev: Math.atan(1/Math.SQRT2),   dist: 7   }
+};
+
+function applyCamera() {
+  activeCam.position.x = camTarget.x + camDist * Math.sin(camTheta) * Math.cos(camElev);
+  activeCam.position.y = camTarget.y + camDist * Math.sin(camElev);
+  activeCam.position.z = camTarget.z + camDist * Math.cos(camTheta) * Math.cos(camElev);
+  activeCam.lookAt(camTarget);
+
+  /* ortho frustum scales with camDist for natural pinch-zoom */
+  if (activeCam === orthoCam) {
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    const aspect = w / h;
+    const size = camDist * 0.7;
+    orthoCam.left   = -size * aspect;
+    orthoCam.right  =  size * aspect;
+    orthoCam.top    =  size;
+    orthoCam.bottom = -size;
+    orthoCam.updateProjectionMatrix();
   }
 }
-document.addEventListener('DOMContentLoaded', () => {
-  const lp = document.getElementById('lockPw');
-  if (lp) lp.addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
-  // Drag & drop on GLB/USDZ zones
-  setupDropZone('zoneGlb','fileGlb','glb');
-  setupDropZone('zoneUsdz','fileUsdz','usdz');
-  setupDropZone('eZoneGlb','eFileGlb','eglb');
-  setupDropZone('eZoneUsdz','eFileUsdz','eusdz');
-});
-function logout() {
-  document.getElementById('lock').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('lockPw').value = '';
-}
+applyCamera();
 
-/* ══ PANELS ══ */
-const panelTitles = {
-  overview: 'Vue d\'<em style="font-style:italic;color:var(--accent)">ensemble</em>',
-  upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
-  meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
-  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>'
-};
-function showPanel(name) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const p = document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1));
-  if (p) p.classList.add('active');
-  document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
-  document.querySelector('.content').scrollTop = 0;
-  // Highlight nav
-  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'catalogue'};
-  document.querySelectorAll('.nav-btn').forEach(b => {
-    if (b.textContent.toLowerCase().includes(map[name]||'')) b.classList.add('active');
+/* SET VIEW MODE — exposed for the 3 buttons */
+window.setView = function(mode) {
+  if (mode === viewMode) return;
+  /* save current */
+  viewState[viewMode] = { theta: camTheta, elev: camElev, dist: camDist };
+  /* load new */
+  viewMode = mode;
+  const s = viewState[mode];
+  camTheta = s.theta;
+  camElev  = s.elev;
+  camDist  = s.dist;
+  activeCam = (mode === 'persp') ? perspCam : orthoCam;
+
+  /* button states */
+  document.querySelectorAll('.view-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === mode);
   });
+
+  applyCamera();
+
+  const labels = { persp: 'Vue 3D perspective', plan: 'Vue de dessus (plan)', axo: 'Vue axonométrique' };
+  toast(labels[mode], 'ok');
+};
+
+/* LIGHTS */
+scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+const sun = new THREE.DirectionalLight(0xfffbf0, 2.2);
+sun.position.set(5, 10, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 0.1;
+sun.shadow.camera.far  = 40;
+sun.shadow.camera.left = -8;
+sun.shadow.camera.right = 8;
+sun.shadow.camera.top = 8;
+sun.shadow.camera.bottom = -8;
+sun.shadow.bias = -0.001;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xfaf5eb, 0xcfc5b4, 0.7));
+
+/* FLOOR */
+const floorMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(14, 14),
+  new THREE.MeshLambertMaterial({ color:0xE4DFD6 })
+);
+floorMesh.rotation.x = -Math.PI / 2;
+floorMesh.receiveShadow = true;
+floorMesh.name = 'floor';
+scene.add(floorMesh);
+
+const grid = new THREE.GridHelper(14, 28, 0xBCB09A, 0xBCB09A);
+grid.material.opacity = 0.35;
+grid.material.transparent = true;
+grid.name = 'grid';
+scene.add(grid);
+
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+/* ========================================================================
+   MANIPULATION HELPERS — "Natural Minimal"
+   Visual repères + audio/haptic feedback for precise but free movement.
+   Spec: silk-thin XYZ axes, dropline+H label, ground angle ring with degree
+   tooltip, all faded in only during drag/rotate. Sensory crantage at every
+   10cm translated and 15° rotated, never blocking the gesture itself.
+   ======================================================================== */
+const HELPER = (() => {
+  const root = new THREE.Group();
+  root.name = 'manip-helpers';
+  root.visible = false;
+  scene.add(root);
+
+  /* Three thin lines through the object center on each axis. We use
+     LineBasicMaterial — looks like a 0.5px hair line on retina.
+     Each axis gets its own material so we can independently highlight one
+     axis when the trajectory lock engages. */
+  const axisMatX = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
+  });
+  const axisMatY = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
+  });
+  const axisMatZ = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
+  });
+  const dashMat  = new THREE.LineDashedMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.55,
+    dashSize: 0.04, gapSize: 0.04, depthTest: false
+  });
+
+  function makeLine(mat) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, mat);
+    l.frustumCulled = false;
+    l.renderOrder = 999;
+    return l;
+  }
+  const xAxis = makeLine(axisMatX);
+  const yAxis = makeLine(axisMatY);
+  const zAxis = makeLine(axisMatZ);
+  const dropY = makeLine(dashMat); /* Y dropline: object base -> ground shadow */
+  root.add(xAxis, yAxis, zAxis, dropY);
+
+  /* Rotation ring — graduated circle on the floor, visible during rotate */
+  const ringGroup = new THREE.Group();
+  ringGroup.visible = false;
+  ringGroup.renderOrder = 998;
+  root.add(ringGroup);
+
+  const ringSegs = 96;
+  const ringRadius = 1; /* dynamic, scaled per-object below */
+  const ringPos = new Float32Array((ringSegs + 1) * 3);
+  for (let i = 0; i <= ringSegs; i++) {
+    const a = (i / ringSegs) * Math.PI * 2;
+    ringPos[i * 3]     = Math.cos(a) * ringRadius;
+    ringPos[i * 3 + 1] = 0.001;
+    ringPos[i * 3 + 2] = Math.sin(a) * ringRadius;
+  }
+  const ringGeo = new THREE.BufferGeometry();
+  ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
+  const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.55, depthTest: false
+  }));
+  ringLine.renderOrder = 998;
+  ringGroup.add(ringLine);
+
+  /* Tick marks every 15° */
+  const tickMat = new THREE.LineBasicMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.65, depthTest: false
+  });
+  const tickMatMajor = new THREE.LineBasicMaterial({
+    color: 0xF0EDE5, transparent: true, opacity: 0.85, depthTest: false
+  });
+  for (let deg = 0; deg < 360; deg += 15) {
+    const a = deg * Math.PI / 180;
+    const major = (deg % 90) === 0;
+    const inner = major ? 0.92 : 0.95;
+    const outer = 1.02;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      Math.cos(a) * inner, 0.001, Math.sin(a) * inner,
+      Math.cos(a) * outer, 0.001, Math.sin(a) * outer
+    ]), 3));
+    const t = new THREE.Line(g, major ? tickMatMajor : tickMat);
+    t.renderOrder = 998;
+    ringGroup.add(t);
+  }
+
+  /* HTML labels */
+  const hLabel = document.getElementById('hLabel');
+  const aLabel = document.getElementById('aLabel');
+  const dLabel = document.getElementById('dLabel');
+  /* Smoothed display values — avoids flicker on jitter */
+  let hDisplay = 0, hTarget = 0;
+  let aDisplay = 0, aTarget = 0;
+  let dDisplay = 0, dTarget = 0;
+
+  /* Distance line — connects the closest points of the selected object's
+     bounding box to the nearest other object's box during drag. */
+  const distGeo = new THREE.BufferGeometry();
+  distGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const distMat = new THREE.LineDashedMaterial({
+    color: 0xB8986A, transparent: true, opacity: 0.7,
+    dashSize: 0.05, gapSize: 0.04, depthTest: false
+  });
+  const distLine = new THREE.Line(distGeo, distMat);
+  distLine.frustumCulled = false;
+  distLine.renderOrder = 999;
+  distLine.visible = false;
+  /* This line is in WORLD space, so we attach it to the scene root, not the
+     helper group (which moves with the selected object). */
+  scene.add(distLine);
+
+  /* Helper state */
+  let mode = 'none'; /* 'drag' | 'rotate' | 'none' */
+  let target = null;
+
+  /* Per-frame label tweening (ticks via animation loop) */
+  function tweenLabels() {
+    /* Lerp text values toward target so they never strobe */
+    if (Math.abs(hTarget - hDisplay) > 0.05) {
+      hDisplay += (hTarget - hDisplay) * 0.35;
+    } else hDisplay = hTarget;
+    if (Math.abs(aTarget - aDisplay) > 0.1) {
+      aDisplay += (aTarget - aDisplay) * 0.35;
+    } else aDisplay = aTarget;
+    if (Math.abs(dTarget - dDisplay) > 0.05) {
+      dDisplay += (dTarget - dDisplay) * 0.35;
+    } else dDisplay = dTarget;
+
+    if (hLabel.classList.contains('on')) {
+      hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
+    }
+    if (aLabel.classList.contains('on')) {
+      let deg = ((aDisplay % 360) + 360) % 360;
+      if (deg > 180) deg -= 360;
+      aLabel.textContent = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
+    }
+    if (dLabel.classList.contains('on')) {
+      const cm = Math.round(dDisplay);
+      dLabel.textContent = (cm >= 100)
+        ? '↔ ' + (cm / 100).toFixed(2) + ' m'
+        : '↔ ' + cm + ' cm';
+    }
+  }
+
+  /* Box-to-box edge distance (zero if overlapping) */
+  function boxEdgeDistance(a, b) {
+    const dx = Math.max(0, Math.max(a.min.x - b.max.x, b.min.x - a.max.x));
+    const dy = Math.max(0, Math.max(a.min.y - b.max.y, b.min.y - a.max.y));
+    const dz = Math.max(0, Math.max(a.min.z - b.max.z, b.min.z - a.max.z));
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+  /* Closest point on box B to a reference point */
+  function closestPointOnBox(box, ref, out) {
+    out.set(
+      Math.max(box.min.x, Math.min(ref.x, box.max.x)),
+      Math.max(box.min.y, Math.min(ref.y, box.max.y)),
+      Math.max(box.min.z, Math.min(ref.z, box.max.z))
+    );
+    return out;
+  }
+
+  /* Find the nearest other placed object to `target`, plus the connection segment */
+  const _otherCenter = new THREE.Vector3();
+  const _selfCenter  = new THREE.Vector3();
+  const _ptA = new THREE.Vector3();
+  const _ptB = new THREE.Vector3();
+  function nearestNeighbour(selfBox) {
+    if (!target) return null;
+    selfBox.getCenter(_selfCenter);
+    let bestDist = Infinity;
+    let bestObj  = null;
+    let bestBox  = null;
+    for (const o of placed) {
+      if (o.sceneId === target.sceneId) continue;
+      const ob = new THREE.Box3().setFromObject(o.mesh);
+      const d  = boxEdgeDistance(selfBox, ob);
+      if (d < bestDist) { bestDist = d; bestObj = o; bestBox = ob; }
+    }
+    if (!bestObj) return null;
+    bestBox.getCenter(_otherCenter);
+    /* Closest point on each box pointing toward the other's center */
+    closestPointOnBox(selfBox,  _otherCenter, _ptA);
+    closestPointOnBox(bestBox, _selfCenter,   _ptB);
+    return { obj: bestObj, distance: bestDist, a: _ptA.clone(), b: _ptB.clone() };
+  }
+
+  function project(v3) {
+    const v = v3.clone().project(activeCam);
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    return {
+      x: (v.x * 0.5 + 0.5) * w,
+      y: (-v.y * 0.5 + 0.5) * h
+    };
+  }
+
+  /* Compute the object's bottom-center world position */
+  const _bx = new THREE.Box3();
+  const _ctr = new THREE.Vector3();
+  const _bot = new THREE.Vector3();
+  function objCenter(obj) {
+    _bx.setFromObject(obj.mesh);
+    _bx.getCenter(_ctr);
+    _bot.set(_ctr.x, _bx.min.y, _ctr.z);
+    return { center: _ctr.clone(), bottom: _bot.clone(), box: _bx.clone() };
+  }
+
+  /* Adapt axis line length to scene scale — based on object size + camera zoom */
+  function axisExtent(box) {
+    const sz = new THREE.Vector3();
+    box.getSize(sz);
+    /* Whichever is bigger: 1.5× the largest object dimension or 1.5× radius */
+    const objScale = Math.max(sz.x, sz.y, sz.z) * 1.5;
+    /* Cap relative to the camera distance so axes stay readable when zoomed out */
+    const camScale = Math.max(0.6, Math.min(camDist * 0.4, 5));
+    return Math.max(objScale, camScale, 0.5);
+  }
+
+  function update() {
+    if (!target || !root.visible) return;
+
+    const info = objCenter(target);
+    const ext  = axisExtent(info.box);
+
+    /* Position helpers at the bottom-center (on the ground when posed) */
+    root.position.copy(info.bottom);
+
+    /* Update axis lines: X red? no — we keep neutral as per spec (white/taupe) */
+    const xp = xAxis.geometry.attributes.position;
+    xp.array[0] = -ext; xp.array[1] = 0.001; xp.array[2] = 0;
+    xp.array[3] =  ext; xp.array[4] = 0.001; xp.array[5] = 0;
+    xp.needsUpdate = true;
+
+    const yp = yAxis.geometry.attributes.position;
+    yp.array[0] = 0; yp.array[1] = 0.001; yp.array[2] = 0;
+    yp.array[3] = 0; yp.array[4] = ext;   yp.array[5] = 0;
+    yp.needsUpdate = true;
+
+    const zp = zAxis.geometry.attributes.position;
+    zp.array[0] = 0; zp.array[1] = 0.001; zp.array[2] = -ext;
+    zp.array[3] = 0; zp.array[4] = 0.001; zp.array[5] =  ext;
+    zp.needsUpdate = true;
+
+    /* Y dropline: only meaningful when the bottom is above the floor.
+       Even at floor level, we keep it visible during drag with the H label
+       because dragging on uneven future terrain might lift the object. */
+    const liftedH = info.bottom.y;
+    const showDrop = (mode === 'drag') && (viewMode === 'persp') && liftedH > 0.005;
+    dropY.visible = showDrop;
+    if (showDrop) {
+      const dp = dropY.geometry.attributes.position;
+      dp.array[0] = 0; dp.array[1] = 0;       dp.array[2] = 0;
+      dp.array[3] = 0; dp.array[4] = liftedH; dp.array[5] = 0;
+      dp.needsUpdate = true;
+      dropY.computeLineDistances();
+    }
+
+    /* Adjust ring radius to ~1.1× the object's footprint in plan */
+    const sz = new THREE.Vector3();
+    info.box.getSize(sz);
+    const ringR = Math.max(0.4, Math.hypot(sz.x, sz.z) * 0.55);
+    ringGroup.scale.setScalar(ringR);
+
+    /* H label — shown only in perspective view during drag.
+       In plan/axo, height is not meaningful (we look straight down or near-down)
+       and we replace it with the inter-object distance label below. */
+    if (mode === 'drag' && viewMode === 'persp') {
+      hTarget = info.bottom.y * 100;
+      const wp = info.bottom.clone(); wp.y += 0.04;
+      const sc = project(wp);
+      hLabel.style.transform = 'translate(' + (sc.x + 14) + 'px,' + (sc.y - 26) + 'px)';
+      if (!hLabel.classList.contains('on')) hLabel.classList.add('on');
+    } else if (hLabel.classList.contains('on')) {
+      hLabel.classList.remove('on');
+    }
+
+    /* Distance to nearest other object — shown during drag in ALL view modes.
+       This is what an architect needs for placement: "I have 30cm between this
+       chair and that table." */
+    if (mode === 'drag' && placed.length > 1) {
+      const nn = nearestNeighbour(info.box);
+      if (nn) {
+        dTarget = nn.distance * 100;
+        /* Draw segment between the two closest box-points */
+        const dp = distGeo.attributes.position;
+        dp.array[0] = nn.a.x; dp.array[1] = Math.max(nn.a.y, 0.005); dp.array[2] = nn.a.z;
+        dp.array[3] = nn.b.x; dp.array[4] = Math.max(nn.b.y, 0.005); dp.array[5] = nn.b.z;
+        dp.needsUpdate = true;
+        distLine.computeLineDistances();
+        distLine.visible = true;
+
+        /* Anchor the distance label to the midpoint, projected to screen */
+        const mid = nn.a.clone().add(nn.b).multiplyScalar(0.5);
+        mid.y = Math.max(mid.y, 0.005);
+        const sc = project(mid);
+        dLabel.style.transform = 'translate(' + (sc.x - 30) + 'px,' + (sc.y - 28) + 'px)';
+        if (!dLabel.classList.contains('on')) dLabel.classList.add('on');
+      } else {
+        if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
+        distLine.visible = false;
+      }
+    } else {
+      if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
+      distLine.visible = false;
+    }
+
+    /* Angle label — anchor near object center (in plan) at ring edge */
+    if (mode === 'rotate') {
+      const wp = info.bottom.clone();
+      wp.x += ringR * 0.7;
+      wp.z += ringR * 0.7;
+      wp.y += 0.04;
+      const sc = project(wp);
+      aLabel.style.transform = 'translate(' + (sc.x + 12) + 'px,' + (sc.y - 22) + 'px)';
+    }
+
+    tweenLabels();
+  }
+
+  function show(obj, m) {
+    target = obj;
+    mode = m;
+    root.visible = true;
+    /* Mode-specific overlay visibility */
+    ringGroup.visible = (m === 'rotate');
+    /* dropY and label visibility are handled per-frame in update() based on
+       view mode and object state, so we just clear stale state here. */
+
+    if (m === 'drag') {
+      hTarget = (objCenter(obj).bottom.y) * 100;
+      hDisplay = hTarget;
+      aLabel.classList.remove('on');
+      /* hLabel + dLabel get added back by update() when applicable */
+    } else if (m === 'rotate') {
+      aTarget = (obj.mesh.rotation.y * 180 / Math.PI);
+      aDisplay = aTarget;
+      aLabel.classList.add('on');
+      hLabel.classList.remove('on');
+      dLabel.classList.remove('on');
+      distLine.visible = false;
+    }
+    update();
+  }
+
+  function setRotationLabel(rad) {
+    aTarget = rad * 180 / Math.PI;
+  }
+
+  /* Axis lock visual cue: brighten and accent-tint the locked X or Z axis line.
+     Subtle — the eye picks it up without it competing with the model itself. */
+  let lockState = null;
+  function setAxisLock(axis) {
+    if (axis === lockState) return;
+    lockState = axis;
+    /* Reset both horizontal axes to neutral */
+    axisMatX.color.set(0xF0EDE5); axisMatX.opacity = 0.30;
+    axisMatZ.color.set(0xF0EDE5); axisMatZ.opacity = 0.30;
+    if (axis === 'x') {
+      axisMatX.color.set(0xB8986A);
+      axisMatX.opacity = 0.85;
+    } else if (axis === 'z') {
+      axisMatZ.color.set(0xB8986A);
+      axisMatZ.opacity = 0.85;
+    }
+  }
+
+  function hide() {
+    /* Spec: 400ms fade out on deselect.
+       CSS transitions on .manip-label give us the label fades for free.
+       For the 3D helpers we tween opacity manually. */
+    mode = 'none';
+    hLabel.classList.remove('on');
+    aLabel.classList.remove('on');
+    dLabel.classList.remove('on');
+    distLine.visible = false;
+    /* Reset any axis lock highlight before fading out */
+    setAxisLock(null);
+    /* Tween mesh opacity down */
+    const start = performance.now();
+    const dur = 400;
+    const initial = {
+      x: axisMatX.opacity,
+      y: axisMatY.opacity,
+      z: axisMatZ.opacity,
+      d: dashMat.opacity,
+      r: ringLine.material.opacity,
+      tk: tickMat.opacity,
+      tj: tickMatMajor.opacity
+    };
+    function step() {
+      const t = Math.min(1, (performance.now() - start) / dur);
+      const k = 1 - t;
+      axisMatX.opacity     = initial.x  * k;
+      axisMatY.opacity     = initial.y  * k;
+      axisMatZ.opacity     = initial.z  * k;
+      dashMat.opacity      = initial.d  * k;
+      ringLine.material.opacity = initial.r * k;
+      tickMat.opacity      = initial.tk * k;
+      tickMatMajor.opacity = initial.tj * k;
+      if (t < 1 && mode === 'none') {
+        requestAnimationFrame(step);
+      } else if (mode === 'none') {
+        root.visible = false;
+        target = null;
+        /* restore original opacities for next show() */
+        axisMatX.opacity = 0.30;
+        axisMatY.opacity = 0.30;
+        axisMatZ.opacity = 0.30;
+        dashMat.opacity = 0.55;
+        ringLine.material.opacity = 0.55;
+        tickMat.opacity = 0.65; tickMatMajor.opacity = 0.85;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  return { show, hide, update, setRotationLabel, setAxisLock };
+})();
+
+/* ========================================================================
+   FEEDBACK — "Thock" sound + haptic at translation/rotation thresholds.
+   - Sound is synthesised on AudioContext (no asset loading, zero latency).
+   - Tracking uses cumulative distance/angle so we never miss a notch even
+     during fast gestures, and we never spam the user with overlapping ticks.
+   ======================================================================== */
+const FEEDBACK = (() => {
+  let ctx = null;
+  let lastTickAt = 0;
+  const minIntervalMs = 35; /* never two thocks closer than this */
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) ctx = new AC();
+    } catch(_) {}
+    return ctx;
+  }
+
+  /* Synthesise a wheel "tick" — iPhone Taptic Engine-style:
+     - Pure sine tone, no noise component
+     - Ultra-short envelope (~12ms total): 1ms attack, 12ms exponential release
+     - Frequency around 800Hz (matching the perceived pitch of UIPickerView ticks)
+     - Volume kept low so it feels like a digital wheel detent, not an alert */
+  function thock() {
+    const ac = ensureCtx();
+    if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch(_){} }
+    const now = ac.currentTime;
+
+    /* Pure tone — no noise, no harmonics. Just a clean digital tick. */
+    const osc = ac.createOscillator();
+    const oscGain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(820, now);
+    oscGain.gain.setValueAtTime(0.0001, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.10, now + 0.001); /* fast attack */
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.014); /* fast release */
+    osc.connect(oscGain);
+
+    /* Subtle low-pass to soften the high frequency edge — feels less brittle */
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2400;
+    lp.Q.value = 0.4;
+    oscGain.connect(lp);
+
+    /* Master attenuation */
+    const out = ac.createGain();
+    out.gain.value = 0.55;
+    lp.connect(out);
+    out.connect(ac.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.025);
+  }
+
+  function haptic() {
+    /* Web Vibration API — works on Android. iOS Safari ignores it silently
+       (no error). 5ms = the lightest tap the API can request, matching the
+       new pure-tone tick's brevity. */
+    try { if (navigator.vibrate) navigator.vibrate(5); } catch(_){}
+  }
+
+  /* Two cue flavours:
+     - tickSilent: haptic only (used during translation)
+     - tickFull:   thock + haptic (used during rotation) */
+  function tickSilent() {
+    const now = performance.now();
+    if (now - lastTickAt < minIntervalMs) return;
+    lastTickAt = now;
+    haptic();
+  }
+  function tickFull() {
+    const now = performance.now();
+    if (now - lastTickAt < minIntervalMs) return;
+    lastTickAt = now;
+    thock();
+    haptic();
+  }
+
+  /* Translation tracker — ticks every 10cm of cumulative XZ travel.
+     SILENT tick (haptic only) — the user feels precision without audio. */
+  const TRANS_THRESHOLD = 0.10; /* meters */
+  let lastPos = null, transAccum = 0;
+  function startTranslate(pos) { lastPos = pos.clone(); transAccum = 0; }
+  function updateTranslate(pos) {
+    if (!lastPos) { startTranslate(pos); return; }
+    transAccum += Math.hypot(pos.x - lastPos.x, pos.z - lastPos.z);
+    lastPos.copy(pos);
+    while (transAccum >= TRANS_THRESHOLD) {
+      transAccum -= TRANS_THRESHOLD;
+      tickSilent();
+    }
+  }
+  function endTranslate() { lastPos = null; transAccum = 0; }
+
+  /* Rotation tracker — ticks every 15° of cumulative |Δθ|.
+     FULL tick (thock + haptic) — rotation is the only gesture with audio. */
+  const ROT_THRESHOLD = 15 * Math.PI / 180;
+  let lastRot = null, rotAccum = 0;
+  function startRotate(rad) { lastRot = rad; rotAccum = 0; }
+  function updateRotate(rad) {
+    if (lastRot === null) { startRotate(rad); return; }
+    let d = rad - lastRot;
+    /* Wrap-safe shortest-path delta */
+    while (d > Math.PI)  d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    rotAccum += Math.abs(d);
+    lastRot = rad;
+    while (rotAccum >= ROT_THRESHOLD) {
+      rotAccum -= ROT_THRESHOLD;
+      tickFull();
+    }
+  }
+  function endRotate() { lastRot = null; rotAccum = 0; }
+
+  /* Audio context unlock on first user interaction (Safari requirement) */
+  function unlock() {
+    ensureCtx();
+    if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch(_){} }
+    window.removeEventListener('touchstart', unlock);
+    window.removeEventListener('mousedown',   unlock);
+  }
+  window.addEventListener('touchstart', unlock, { once: false, passive: true });
+  window.addEventListener('mousedown',   unlock, { once: false });
+
+  return { startTranslate, updateTranslate, endTranslate,
+           startRotate,    updateRotate,    endRotate };
+})();
+
+/* ========================================================================
+   ELEVATION CONTROLS — vertical translation (Y) for the selected object.
+   Tap = ±5cm step. Press-and-hold = continuous lift/lower at ~30cm/s.
+   Tied directly to selected.mesh.position.y, clamped to [0, 3m]. */
+(function elevationControls() {
+  const STEP_M    = 0.05;  /* 5cm per tap */
+  const SPEED_M_S = 0.30;  /* 30cm per second when held */
+  const Y_MIN = 0;
+  const Y_MAX = 3.0;
+
+  const upBtn   = document.getElementById('elevUp');
+  const downBtn = document.getElementById('elevDown');
+
+  function clampY(y) { return Math.max(Y_MIN, Math.min(Y_MAX, y)); }
+
+  function nudge(deltaM) {
+    if (!selected) return;
+    const before = selected.mesh.position.y;
+    const after  = clampY(before + deltaM);
+    if (after === before) return;
+    selected.mesh.position.y = after;
+    /* Show drag helper while elevating so the user sees H label + dropline */
+    HELPER.show(selected, 'drag');
+  }
+
+  /* Hold-to-continuous: rAF loop while button is pressed */
+  let holdRAF = null;
+  let holdLastT = 0;
+  let holdDir = 0;
+  function holdLoop() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - holdLastT) / 1000);
+    holdLastT = now;
+    nudge(holdDir * SPEED_M_S * dt);
+    holdRAF = requestAnimationFrame(holdLoop);
+  }
+  function startHold(dir, btn) {
+    if (!selected) return;
+    btn.classList.add('holding');
+    holdDir = dir;
+    holdLastT = performance.now();
+    /* Immediate snap-tap so a quick tap moves at least one step */
+    nudge(dir * STEP_M);
+    /* After a short pause, kick off continuous mode */
+    holdRAF = setTimeout(() => {
+      holdLastT = performance.now();
+      holdRAF = requestAnimationFrame(holdLoop);
+    }, 280);
+  }
+  function endHold(btn) {
+    btn.classList.remove('holding');
+    if (holdRAF) {
+      /* holdRAF can be either a setTimeout id or rAF id — clear both safely */
+      clearTimeout(holdRAF);
+      cancelAnimationFrame(holdRAF);
+      holdRAF = null;
+    }
+    /* Cue at end of gesture so the user feels the action settled */
+    HELPER.show(selected, 'drag');
+  }
+
+  /* Pointer events handle mouse + touch uniformly */
+  function bind(btn, dir) {
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerup',   ()  => endHold(btn));
+    btn.addEventListener('pointercancel', () => endHold(btn));
+    btn.addEventListener('pointerleave', () => endHold(btn));
+  }
+  bind(upBtn,   +1);
+  bind(downBtn, -1);
+})();
+
+/* ========================================================================
+   ROTATION CONTROLS — Y-axis rotation of the selected object via buttons.
+   Mirrors the elevation hold pattern: tap = ±15° (matches the touch crantage),
+   press-and-hold = continuous rotation at 90°/s.
+   On desktop, also enables right-click + horizontal drag for fluid rotation. */
+(function rotationControls() {
+  const STEP_RAD    = 15 * Math.PI / 180;     /* same step as the touch tick */
+  const SPEED_RAD_S = 90 * Math.PI / 180;     /* 90° per second when held */
+
+  const ccwBtn = document.getElementById('rotCcw');
+  const cwBtn  = document.getElementById('rotCw');
+
+  function nudge(deltaRad) {
+    if (!selected) return;
+    selected.mesh.rotation.y += deltaRad;
+    HELPER.show(selected, 'rotate');
+    HELPER.setRotationLabel(selected.mesh.rotation.y);
+    FEEDBACK.updateRotate(selected.mesh.rotation.y);
+  }
+
+  let holdRAF = null, holdLastT = 0, holdDir = 0;
+  function holdLoop() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - holdLastT) / 1000);
+    holdLastT = now;
+    nudge(holdDir * SPEED_RAD_S * dt);
+    holdRAF = requestAnimationFrame(holdLoop);
+  }
+  function startHold(dir, btn) {
+    if (!selected) return;
+    btn.classList.add('holding');
+    holdDir = dir;
+    holdLastT = performance.now();
+    /* Start the rotation tracker so the tick fires correctly on continuous hold */
+    FEEDBACK.startRotate(selected.mesh.rotation.y);
+    nudge(dir * STEP_RAD);
+    holdRAF = setTimeout(() => {
+      holdLastT = performance.now();
+      holdRAF = requestAnimationFrame(holdLoop);
+    }, 280);
+  }
+  function endHold(btn) {
+    btn.classList.remove('holding');
+    if (holdRAF) {
+      clearTimeout(holdRAF);
+      cancelAnimationFrame(holdRAF);
+      holdRAF = null;
+    }
+    FEEDBACK.endRotate();
+  }
+
+  function bind(btn, dir) {
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerup',   ()  => endHold(btn));
+    btn.addEventListener('pointercancel', () => endHold(btn));
+    btn.addEventListener('pointerleave', () => endHold(btn));
+  }
+  bind(ccwBtn, -1);
+  bind(cwBtn,  +1);
+})();
+
+/* ========================================================================
+   ZOOM SLIDER — one-handed camera zoom for mobile.
+   Visible only when no object is selected (the right-side action column
+   then has nothing to do, and the user is just navigating the scene).
+   The thumb position is bound to camDist on a logarithmic scale, so a
+   small drag at the top zooms in finely while a small drag at the bottom
+   zooms out coarsely — feels like a physical lens zoom ring. */
+(function zoomSlider() {
+  const root  = document.getElementById('zoomSlider');
+  const track = document.getElementById('zoomTrack');
+  const thumb = document.getElementById('zoomThumb');
+  const inBtn = document.getElementById('zoomIn');
+  const outBtn= document.getElementById('zoomOut');
+
+  /* Logarithmic mapping: t in [0,1] -> camDist in [DIST_MIN, DIST_MAX].
+     t=0 (top of slider) = closest, t=1 (bottom) = farthest. */
+  function bounds() {
+    const max = (viewMode === 'persp') ? 12 : 20;
+    return { min: 1, max };
+  }
+  function distToT(d) {
+    const b = bounds();
+    const k = Math.log(d / b.min) / Math.log(b.max / b.min);
+    return Math.max(0, Math.min(1, k));
+  }
+  function tToDist(t) {
+    const b = bounds();
+    return b.min * Math.pow(b.max / b.min, t);
+  }
+
+  function syncThumbToCam() {
+    const t = distToT(camDist);
+    /* t=0 (closest, zoom-in) at TOP, t=1 (farthest) at BOTTOM */
+    thumb.style.top = (t * 100) + '%';
+  }
+
+  function setDistFromT(t) {
+    camDist = tToDist(Math.max(0, Math.min(1, t)));
+    applyCamera();
+    syncThumbToCam();
+  }
+
+  /* Tap-to-jump + drag on the track */
+  let dragging = false;
+  function trackEventToT(clientY) {
+    const r = track.getBoundingClientRect();
+    return (clientY - r.top) / r.height;
+  }
+  track.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    track.setPointerCapture(e.pointerId);
+    thumb.classList.add('dragging');
+    setDistFromT(trackEventToT(e.clientY));
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    setDistFromT(trackEventToT(e.clientY));
+  });
+  function stopDrag() {
+    dragging = false;
+    thumb.classList.remove('dragging');
+  }
+  track.addEventListener('pointerup', stopDrag);
+  track.addEventListener('pointercancel', stopDrag);
+
+  /* +/- buttons: small step. Press-and-hold supported. */
+  const STEP = 0.04;          /* 4% of slider range per tap */
+  let holdRAF = null;
+  function stepBy(deltaT) {
+    setDistFromT(distToT(camDist) + deltaT);
+  }
+  function bindBtn(btn, sign) {
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.setPointerCapture(e.pointerId);
+      stepBy(sign * STEP);
+      /* hold-to-repeat after a short pause */
+      holdRAF = setTimeout(function tick() {
+        stepBy(sign * STEP);
+        holdRAF = setTimeout(tick, 90);
+      }, 320);
+    });
+    const stop = () => { if (holdRAF) { clearTimeout(holdRAF); holdRAF = null; } };
+    btn.addEventListener('pointerup', stop);
+    btn.addEventListener('pointercancel', stop);
+    btn.addEventListener('pointerleave', stop);
+  }
+  /* zoomIn = closer = smaller camDist = thumb moves UP = negative deltaT */
+  bindBtn(inBtn,  -1);
+  bindBtn(outBtn, +1);
+
+  /* Keep the thumb in sync when camDist changes via pinch / wheel / view switch */
+  const _origApplyCamera = applyCamera;
+  /* We can't override applyCamera (it's a const), but we can call sync from
+     here whenever it makes sense. Hook into the animation loop frame budget
+     by polling once per RAF — cheap (one DOM write only when value changes). */
+  let lastSyncedT = -1;
+  (function syncLoop() {
+    requestAnimationFrame(syncLoop);
+    if (root.classList.contains('on')) {
+      const t = distToT(camDist);
+      if (Math.abs(t - lastSyncedT) > 0.001) {
+        thumb.style.top = (t * 100) + '%';
+        lastSyncedT = t;
+      }
+    }
+  })();
+
+  /* Initial sync */
+  syncThumbToCam();
+})();
+
+/* RESIZE */
+function resize() {
+  const w = canvas.parentElement.clientWidth;
+  const h = canvas.parentElement.clientHeight;
+  renderer.setSize(w, h, false);
+  perspCam.aspect = w / h;
+  perspCam.updateProjectionMatrix();
+  applyCamera(); /* updates ortho frustum too */
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ANIMATE */
+(function loop(){ requestAnimationFrame(loop); HELPER.update(); renderer.render(scene, activeCam); })();
+
+/* WebGL context loss safety net */
+canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); console.warn('WebGL context lost'); });
+canvas.addEventListener('webglcontextrestored', () => { console.log('WebGL context restored'); });
+
+/* STATE */
+const gltfLoader = new GLTFLoader();
+const usdzEx     = new USDZExporter();
+const raycaster  = new THREE.Raycaster();
+let products   = [];
+let placed     = []; /* { mesh, id, name, sceneId, icon, imgUrl, sourceData } */
+let snapList   = [];
+let selected   = null;
+let pending    = null;
+
+/* ============================
+   TOUCH STATE
+   ============================ */
+let t0 = null;
+let orbitStart = null;
+let tDragging  = false;
+let tPinch0    = 0;
+let tAngle0    = 0;
+let tMid0      = null; /* midpoint between 2 fingers, used for camera panning */
+let tMode      = 'none';
+
+/* Drag offset (XZ): preserves the visual offset between the finger and the
+   object center, so the model never snaps to be centered under the finger. */
+const dragOffset = new THREE.Vector3();
+let dragOffsetSet = false;
+/* Drag start point (object's XZ when the gesture began) — used for the
+   subtle trajectory axis-lock: if the cumulative displacement stays within
+   ±12° of an axis we project onto it; outside that cone the move is free. */
+const dragStart = new THREE.Vector3();
+let currentAxisLock = null; /* 'x' | 'z' | null */
+const AXIS_LOCK_DEG    = 12;     /* engage cone half-angle */
+const AXIS_LOCK_MIN_M  = 0.05;   /* don't lock until 5cm of travel */
+const AXIS_LOCK_TAN    = Math.tan(AXIS_LOCK_DEG * Math.PI / 180);
+
+/* Apply trajectory-based axis lock to a desired XZ position.
+   Mutates `desired` in place. Returns the resulting lock state ('x'|'z'|null). */
+function applyAxisLock(desired) {
+  const dx = desired.x - dragStart.x;
+  const dz = desired.z - dragStart.z;
+  const total = Math.hypot(dx, dz);
+  if (total < AXIS_LOCK_MIN_M) return null;
+  const ax = Math.abs(dx), az = Math.abs(dz);
+  /* "Within 12° of X axis" means az/ax < tan(12°). Same logic mirrored for Z. */
+  if (ax > az && (az / ax) < AXIS_LOCK_TAN) {
+    desired.z = dragStart.z;
+    return 'x';
+  }
+  if (az > ax && (ax / az) < AXIS_LOCK_TAN) {
+    desired.x = dragStart.x;
+    return 'z';
+  }
+  return null;
 }
 
-/* ══ PRODUCTS ══ */
-async function loadProducts() {
-  const {data} = await sb.from('products').select('*').order('created_at',{ascending:false});
-  allProducts = data || [];
-  document.getElementById('stTotal').textContent  = allProducts.length;
-  document.getElementById('stGlb').textContent    = allProducts.filter(p=>p.model_glb_url).length;
-  document.getElementById('stUsdz').textContent   = allProducts.filter(p=>p.model_usdz_url).length;
-  document.getElementById('stQr').textContent     = allProducts.length;
-  document.getElementById('navBadge').textContent = allProducts.length;
-  renderTable(allProducts.slice(0,6), 'overviewTable');
-  renderTable(allProducts, 'catTable');
+/* Picking — bounding-box based for forgiving selection.
+   Mesh-precise raycasts force the user to tap exactly on slim chair legs;
+   we expand each placed item's box by ~5cm so even an approximate tap works. */
+const _pickBox = new THREE.Box3();
+const _pickHit = new THREE.Vector3();
+function pickPlaced(nx, ny, requireSelected) {
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+  let best = null, bestDist = Infinity;
+  const list = requireSelected ? (selected ? [selected] : []) : placed;
+  for (const obj of list) {
+    _pickBox.setFromObject(obj.mesh);
+    _pickBox.expandByScalar(0.05); /* ~5cm forgiveness on each side */
+    if (raycaster.ray.intersectBox(_pickBox, _pickHit)) {
+      const d = raycaster.ray.origin.distanceTo(_pickHit);
+      if (d < bestDist) { bestDist = d; best = obj; }
+    }
+  }
+  return best;
 }
-function filterTable() {
-  const q = document.getElementById('catSearch').value.toLowerCase();
-  renderTable(allProducts.filter(p =>
-    (p.name||'').toLowerCase().includes(q)||
-    (p.enseigne_name||'').toLowerCase().includes(q)||
-    (p.category||'').toLowerCase().includes(q)
-  ), 'catTable');
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    t0 = { x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now() };
+    tDragging = false;
+    tMode = 'none';
+    orbitStart = { theta:camTheta, elev:camElev, x:e.touches[0].clientX, y:e.touches[0].clientY };
+    dragOffsetSet = false;
+    /* If we have a selection, prime the translation tracker — the actual
+       drag mode is decided in touchmove. */
+    if (selected) FEEDBACK.startTranslate(selected.mesh.position);
+  } else if (e.touches.length === 2) {
+    tPinch0 = getPinch(e);
+    tAngle0 = getAngle(e);
+    tMid0   = getMidpoint(e);
+    /* If an object is selected, 2 fingers rotate it; otherwise pan + zoom the camera together */
+    tMode = selected ? 'rotate' : 'panZoom';
+    if (tMode === 'rotate') FEEDBACK.startRotate(selected.mesh.rotation.y);
+  }
+}, { passive:false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && t0) {
+    const dx = e.touches[0].clientX - t0.x;
+    const dy = e.touches[0].clientY - t0.y;
+    if (!tDragging && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    tDragging = true;
+
+    if (selected && tMode !== 'orbit') {
+      tMode = 'drag';
+      const nx = (e.touches[0].clientX / canvas.parentElement.clientWidth) * 2 - 1;
+      const ny = -((e.touches[0].clientY / canvas.parentElement.clientHeight) * 2 - 1);
+      raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+      const pt = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(groundPlane, pt)) {
+        /* On the very first move of a drag, snapshot the offset between
+           the finger world-position and the object's current XZ. From now on
+           we move the object so this offset stays constant — finger can be
+           anywhere on/around the model, the model never recenters under it. */
+        if (!dragOffsetSet) {
+          dragOffset.set(
+            selected.mesh.position.x - pt.x,
+            0,
+            selected.mesh.position.z - pt.z
+          );
+          dragStart.copy(selected.mesh.position);
+          dragOffsetSet = true;
+        }
+        const desired = new THREE.Vector3(
+          pt.x + dragOffset.x,
+          selected.mesh.position.y,
+          pt.z + dragOffset.z
+        );
+        currentAxisLock = applyAxisLock(desired);
+        selected.mesh.position.x = desired.x;
+        selected.mesh.position.z = desired.z;
+        const bx = new THREE.Box3().setFromObject(selected.mesh);
+        if (bx.min.y < 0) selected.mesh.position.y -= bx.min.y;
+        /* feedback + helpers */
+        HELPER.show(selected, 'drag');
+        HELPER.setAxisLock(currentAxisLock);
+        FEEDBACK.updateTranslate(selected.mesh.position);
+      }
+    } else {
+      tMode = 'orbit';
+      /* In plan view, only the camera ROTATION is locked — pan and zoom
+         remain free so the map can be moved horizontally/vertically. */
+      if (viewMode !== 'plan') {
+        camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
+      }
+      /* Elevation only adjustable in perspective mode — Plan/Axo elevations are fixed */
+      if (viewMode === 'persp') {
+        camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
+          orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
+      }
+      applyCamera();
+    }
+  } else if (e.touches.length === 2) {
+    if (tMode === 'rotate' && selected) {
+      const da = getAngle(e) - tAngle0;
+      selected.mesh.rotation.y -= da;
+      tAngle0 = getAngle(e);
+      /* feedback + helpers */
+      HELPER.show(selected, 'rotate');
+      HELPER.setRotationLabel(selected.mesh.rotation.y);
+      FEEDBACK.updateRotate(selected.mesh.rotation.y);
+    } else if (tMode === 'panZoom') {
+      /* Pinch -> zoom (always available, even in plan view) */
+      const dp = getPinch(e);
+      const maxD = (viewMode === 'persp') ? 12 : 20;
+      camDist = Math.max(1, Math.min(maxD, camDist * (tPinch0 / dp)));
+      tPinch0 = dp;
+      /* Midpoint translation -> pan camera horizontally + vertically.
+         Available in all view modes — only rotation is locked in plan view. */
+      const mid = getMidpoint(e);
+      const dx = mid.x - tMid0.x;
+      const dy = mid.y - tMid0.y;
+      tMid0 = mid;
+      panCamera(dx, dy);
+      applyCamera();
+    }
+  }
+}, { passive:false });
+
+canvas.addEventListener('touchend', (e) => {
+  if (!tDragging && t0 && e.changedTouches.length === 1 && (Date.now() - t0.t) < 280) {
+    handleTap(e.changedTouches[0]);
+  }
+  if (e.touches.length === 0) {
+    /* Hide manipulation helpers when gesture really ends.
+       We keep them visible if the user remains in active drag mode (e.g.
+       lifting one finger of a 2-finger rotate to a 1-finger drag). */
+    if (tMode === 'drag' || tMode === 'rotate') HELPER.hide();
+    if (tMode === 'drag')   FEEDBACK.endTranslate();
+    if (tMode === 'rotate') FEEDBACK.endRotate();
+    currentAxisLock = null;
+    HELPER.setAxisLock(null);
+    t0 = null; tDragging = false; tMode = 'none';
+  }
+}, { passive:false });
+
+function getPinch(e) {
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
-function renderTable(products, id) {
-  const el = document.getElementById(id);
-  if (!products.length) {
-    el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun produit — ajoutez votre premier modèle 3D</div>';
+function getAngle(e) {
+  return Math.atan2(
+    e.touches[1].clientY - e.touches[0].clientY,
+    e.touches[1].clientX - e.touches[0].clientX
+  );
+}
+function getMidpoint(e) {
+  return {
+    x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+    y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+  };
+}
+
+/* Pan the camera target horizontally + vertically based on screen-pixel deltas.
+   The scene visually follows the fingers (target moves opposite to finger direction). */
+const _panRight = new THREE.Vector3();
+const _panUp    = new THREE.Vector3();
+function panCamera(dx, dy) {
+  const h = canvas.parentElement.clientHeight;
+  let worldPerPixel;
+  if (activeCam === orthoCam) {
+    /* Ortho: 1px = (frustum height) / (canvas height) world units */
+    worldPerPixel = (orthoCam.top - orthoCam.bottom) / h;
+  } else {
+    /* Perspective: world units per pixel scale with FOV and distance to target */
+    const vFov = perspCam.fov * Math.PI / 180;
+    worldPerPixel = (2 * Math.tan(vFov / 2) * camDist) / h;
+  }
+  _panRight.setFromMatrixColumn(activeCam.matrixWorld, 0);
+  _panUp.setFromMatrixColumn(activeCam.matrixWorld, 1);
+  camTarget.addScaledVector(_panRight, -dx * worldPerPixel);
+  camTarget.addScaledVector(_panUp,     dy * worldPerPixel);
+}
+
+/* MOUSE for desktop */
+let mDown = false, mDragging = false, mOrbitStart = null, mObjDrag = false, mPan = false, mPanStart = null;
+/* Right-click + horizontal drag = rotate the selected object around Y.
+   Power-user shortcut on desktop where there's no native 2-finger gesture. */
+let mObjRotate = false, mRotStartX = 0, mRotStartAngle = 0;
+const ROT_SENSITIVITY = 0.012; /* rad per pixel — feels like a smooth dial */
+
+canvas.addEventListener('mousedown', (e) => {
+  /* Right-click on the selected object: enter rotate mode, no other behaviour */
+  if (e.button === 2 && selected) {
+    const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+    const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+    if (pickPlaced(nx, ny, true)) {
+      e.preventDefault();
+      mDown = true;
+      mObjRotate = true;
+      mRotStartX = e.clientX;
+      mRotStartAngle = selected.mesh.rotation.y;
+      FEEDBACK.startRotate(mRotStartAngle);
+      HELPER.show(selected, 'rotate');
+      HELPER.setRotationLabel(mRotStartAngle);
+      return;
+    }
+    /* Right-click outside the selection: do nothing (let context menu suppression run) */
     return;
   }
-  let h = '<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
-  products.forEach(p => {
-    const nm = (p.name||'').replace(/'/g,"\\'");
-    h += `<tr>
-      <td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td>
-      <td>${p.category||'—'}</td>
-      <td>${p.price?p.price+'€':'—'}</td>
-      <td><span class="td-badge ${p.model_glb_url?'ok':''}">${p.model_glb_url?'✓ GLB':'✗'}</span></td>
-      <td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td>
-      <td><div class="row-actions">
-        <button class="row-btn" onclick="openEdit('${p.id}')">✏ Éditer</button>
-        <button class="row-btn" onclick="showQR('${p.id}','${nm}')">QR</button>
-        <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button>
-        <button class="row-btn del" onclick="askDelete('${p.id}','${nm}')">✕</button>
-      </div></td>
-    </tr>`;
-  });
-  h += '</tbody></table>';
-  el.innerHTML = h;
-}
 
-/* ══ FILE UPLOAD ══ */
-async function uploadFile(input, type) {
-  const file = input.files[0]; if(!file) return;
-  const lblId  = type==='glb'?'lblGlb':'lblUsdz';
-  const progId = type==='glb'?'progGlb':'progUsdz';
-  const barId  = type==='glb'?'barGlb':'barUsdz';
-  const doneId = type==='glb'?'doneGlb':'doneUsdz';
-  document.getElementById(progId).style.display='block';
-  document.getElementById(barId).style.width='20%';
-  document.getElementById(lblId).textContent='⏳ Upload en cours…';
-  const ext = file.name.split('.').pop();
-  const path= `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error} = await sb.storage.from(BUCKET).upload(path, file, {upsert:true});
-  document.getElementById(barId).style.width='100%';
-  if (error) { document.getElementById(lblId).textContent='✗ Erreur'; return; }
-  const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl;
-  if (type==='glb') glbUrl=url; else usdzUrl=url;
-  document.getElementById(doneId).style.display='block';
-  document.getElementById(doneId).textContent='✓ '+file.name;
-  document.getElementById(lblId).textContent='Prêt';
-}
-function setupDropZone(zoneId, inputId) {
-  const zone = document.getElementById(zoneId); if(!zone) return;
-  zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('over')});
-  zone.addEventListener('dragleave', ()=>zone.classList.remove('over'));
-  zone.addEventListener('drop', e=>{
-    e.preventDefault(); zone.classList.remove('over');
-    const input = document.getElementById(inputId); if(!input) return;
-    if(e.dataTransfer.files[0]){ input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
-  });
-}
-
-/* ══ ADD PRODUCT ══ */
-async function addProduct() {
-  const nom = document.getElementById('fNom').value.trim();
-  const marque = document.getElementById('fMarque').value.trim();
-  if (!nom||!marque) { showMsg('Nom et Marque sont requis','err'); return; }
-  const cat  = document.getElementById('fCat').value;
-  const prix = parseFloat(document.getElementById('fPrix').value)||null;
-  const larg = parseFloat(document.getElementById('fLarg').value)||null;
-  const haut = parseFloat(document.getElementById('fHaut').value)||null;
-  const prof = parseFloat(document.getElementById('fProf').value)||null;
-  const finalGlb  = glbUrl  || document.getElementById('fGlbUrl').value.trim()  || null;
-  const finalUsdz = usdzUrl || document.getElementById('fUsdzUrl').value.trim() || null;
-
-  setSpin('spinAdd', true); setSpin('btnAdd', false);
-  const {error} = await sb.from('products').insert([{
-    name: nom, enseigne_name: marque, category: cat||null, price: prix,
-    model_glb_url: finalGlb, model_usdz_url: finalUsdz, is_active: true,
-    dimensions: (larg||haut||prof)?{l:larg,h:haut,p:prof}:null,
-    colors: uploadColors.length?uploadColors:null,
-    images: uploadPhotos.length?uploadPhotos.map(p=>p.url):null
-  }]);
-  setSpin('spinAdd', false);
-  if (error) { showMsg('Erreur : '+error.message,'err'); return; }
-  showMsg('✓ '+nom+' ajouté !','ok');
-  toast('✓ Produit ajouté au catalogue', 'ok');
-  resetUploadForm();
-  loadProducts();
-}
-function resetUploadForm() {
-  ['fNom','fMarque','fPrix','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>{
-    const el=document.getElementById(id); if(el)el.value='';
-  });
-  document.getElementById('fCat').value='';
-  ['Glb','Usdz'].forEach(t=>{
-    document.getElementById('prog'+t).style.display='none';
-    document.getElementById('bar'+t).style.width='0';
-    document.getElementById('done'+t).style.display='none';
-    document.getElementById('file'+t).value='';
-    document.getElementById('lbl'+t).textContent='ou cliquez pour parcourir';
-  });
-  glbUrl=null; usdzUrl=null;
-  uploadColors=[]; renderColorsList('upload');
-  uploadPhotos=[]; renderPhotosGrid('upload');
-  document.getElementById('formMsg').textContent='';
-}
-function showMsg(msg, type) {
-  const el = document.getElementById('formMsg');
-  el.textContent=msg; el.className='form-msg '+(type||'');
-  if(type==='ok') setTimeout(()=>el.textContent='', 3000);
-}
-
-/* ══ COLORS ══ */
-async function uploadColorTexture(input, prefix) {
-  const file=input.files[0]; if(!file) return;
-  const prevId=prefix+'TexPreview', nameId=prefix+'TexName';
-  const reader=new FileReader();
-  reader.onload=e=>{ const p=document.getElementById(prevId); p.src=e.target.result; p.style.display='block'; };
-  reader.readAsDataURL(file);
-  document.getElementById(nameId).textContent='⏳ Upload…';
-  const ext=file.name.split('.').pop();
-  const path=`textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-  if(error){document.getElementById(nameId).textContent='✗ Erreur';return;}
-  const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  const url=pub.publicUrl;
-  if(prefix==='u') uTexUrl=url;
-  else eTexUrl=url;
-  document.getElementById(nameId).textContent='✓ '+file.name;
-}
-async function uploadColorFile(input, prefix, type) {
-  const file=input.files[0]; if(!file) return;
-  const lblId = (prefix==='u'?'u':'e')+(type==='glb'?'GlbLbl':'UsdzLbl');
-  document.getElementById(lblId).textContent='⏳ Upload…';
-  const ext=file.name.split('.').pop();
-  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-  if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
-  const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  const url=pub.publicUrl;
-  if(prefix==='u'){ if(type==='glb') uGlbUrlCo=url; else uUsdzUrlCo=url; }
-  else { if(type==='glb') eGlbUrlCo=url; else eUsdzUrlCo=url; }
-  document.getElementById(lblId).textContent='✓ '+file.name;
-}
-function addUploadColor() {
-  const name=document.getElementById('uName').value.trim();
-  if(!name){document.getElementById('uColorMsg').textContent='Nom requis';return;}
-  const hex=document.getElementById('uHex').value;
-  const mat=document.getElementById('uMat').value.trim();
-  const glb=uGlbUrlCo||document.getElementById('uGlbUrl2').value.trim()||null;
-  const usdz=uUsdzUrlCo||document.getElementById('uUsdzUrl2').value.trim()||null;
-  uploadColors.push({name,hex,mat:mat||null,texture:uTexUrl||null,glb,usdz});
-  renderColorsList('upload');
-  document.getElementById('uName').value='';
-  document.getElementById('uMat').value='';
-  document.getElementById('uGlbUrl2').value='';
-  document.getElementById('uUsdzUrl2').value='';
-  document.getElementById('uTexPreview').style.display='none';
-  document.getElementById('uTexName').textContent='ou cliquez pour parcourir';
-  document.getElementById('uColorMsg').textContent='';
-  uTexUrl=null; uGlbUrlCo=null; uUsdzUrlCo=null;
-}
-function addEditColor() {
-  const name=document.getElementById('eColorName').value.trim();
-  if(!name){document.getElementById('eColorMsg').textContent='Nom requis';return;}
-  const hex=document.getElementById('eColorHex').value;
-  const mat=document.getElementById('eColorMat').value.trim();
-  const glb=eGlbUrlCo||document.getElementById('eGlbUrlCo').value.trim()||null;
-  const usdz=eUsdzUrlCo||document.getElementById('eUsdzUrlCo').value.trim()||null;
-  editColors.push({name,hex,mat:mat||null,texture:eTexUrl||null,glb,usdz});
-  renderColorsList('edit');
-  document.getElementById('eColorName').value='';
-  document.getElementById('eColorMat').value='';
-  document.getElementById('eGlbUrlCo').value='';
-  document.getElementById('eUsdzUrlCo').value='';
-  document.getElementById('eTexPreview').style.display='none';
-  document.getElementById('eTexName').textContent='ou cliquer';
-  document.getElementById('eColorMsg').textContent='';
-  eTexUrl=null; eGlbUrlCo=null; eUsdzUrlCo=null;
-}
-function removeColor(panel,idx) {
-  if(panel==='upload') uploadColors.splice(idx,1);
-  else editColors.splice(idx,1);
-  renderColorsList(panel);
-}
-function renderColorsList(panel) {
-  const arr = panel==='upload'?uploadColors:editColors;
-  const id  = panel==='upload'?'uploadColorsList':'editColorsList';
-  const el  = document.getElementById(id); if(!el) return;
-  if(!arr.length){el.innerHTML='<div class="color-empty">Aucun coloris ajouté</div>';return;}
-  el.innerHTML=arr.map((c,i)=>`
-    <div class="color-row">
-      <div class="color-swatch" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}"></div>
-      <div class="color-info">
-        <div class="color-name">${c.name}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
-        <div class="color-status">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
-      </div>
-      <button class="color-del" onclick="removeColor('${panel}',${i})">✕</button>
-    </div>`).join('');
-}
-
-/* ══ PHOTOS ══ */
-async function handlePhotoUpload(files, panel) {
-  if(!files||!files.length) return;
-  const arr = panel==='upload'?uploadPhotos:editPhotos;
-  for(const file of Array.from(files)){
-    if(arr.length>=6){toast('Maximum 6 photos','err');break;}
-    const ext=file.name.split('.').pop();
-    const path=`photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    toast('Upload photo…');
-    const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-    if(error){toast('Erreur upload photo','err');continue;}
-    const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-    arr.push({url:pub.publicUrl,name:file.name});
+  mDown = true; mDragging = false;
+  /* Shift+drag or middle-mouse-drag = pan camera (desktop convention) */
+  mPan = e.shiftKey || e.button === 1;
+  if (mPan) {
+    mPanStart = { x:e.clientX, y:e.clientY };
+    mObjDrag = false;
+    return;
   }
-  renderPhotosGrid(panel);
-}
-function removePhoto(panel,idx){
-  if(panel==='upload') uploadPhotos.splice(idx,1);
-  else editPhotos.splice(idx,1);
-  renderPhotosGrid(panel);
-}
-function renderPhotosGrid(panel){
-  const arr=panel==='upload'?uploadPhotos:editPhotos;
-  const id =panel==='upload'?'uploadPhotosGrid':'editPhotosGrid';
-  const el =document.getElementById(id); if(!el) return;
-  const inputId=panel==='upload'?'uploadPhotoInput':'editPhotoInput';
-  let h=arr.map((p,i)=>`
-    <div class="photo-card">
-      <img src="${p.url}" alt="${p.name}" loading="lazy"/>
-      ${i===0?'<div class="photo-cover">Principale</div>':''}
-      <button class="photo-del" onclick="removePhoto('${panel}',${i})">✕</button>
-    </div>`).join('');
-  if(arr.length<6) h+=`<div class="photo-add" onclick="document.getElementById('${inputId}').click()">
-    <input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'${panel}')"/>
-    <div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter<br>photos</div>
-  </div>`;
-  el.innerHTML=h;
-}
-
-/* ══ QR ══ */
-function showQR(id,nom){
-  const url=BASE_URL+'?id='+id;
-  document.getElementById('qrTitle').textContent=nom;
-  document.getElementById('qrUrl').textContent=url;
-  const c=document.getElementById('qrContainer'); c.innerHTML='';
-  try{new QRCode(c,{text:url,width:200,height:200,colorDark:'#1C1B18',colorLight:'#FAFAF8',correctLevel:QRCode.CorrectLevel.M});}
-  catch(e){c.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(url)+'" width="200" height="200"/>';}
-  document.getElementById('qrModal').classList.add('show');
-}
-function closeQR(){document.getElementById('qrModal').classList.remove('show');}
-function downloadQR(){
-  const c=document.getElementById('qrContainer');
-  const canvas=c.querySelector('canvas'); const img=c.querySelector('img');
-  const a=document.createElement('a'); a.download='qr-tadamhome.png';
-  if(canvas) a.href=canvas.toDataURL(); else if(img) a.href=img.src; else return;
-  a.click(); toast('QR Code téléchargé','ok');
-}
-
-/* ══ DELETE ══ */
-function askDelete(id,nom){
-  deleteId=id;
-  document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Cette action est irréversible.`;
-  document.getElementById('confirmModal').classList.add('show');
-}
-function closeConfirm(){document.getElementById('confirmModal').classList.remove('show');deleteId=null;}
-async function confirmDelete(){
-  if(!deleteId) return;
-  const {error}=await sb.from('products').delete().eq('id',deleteId);
-  closeConfirm();
-  if(error){toast('Erreur : '+error.message,'err');}
-  else{toast('Produit supprimé','ok');loadProducts();}
-}
-
-/* ══ EDIT ══ */
-function openEdit(id){
-  const p=allProducts.find(x=>x.id===id); if(!p) return;
-  editId=id; editGlbUrl=null; editUsdzUrl=null;
-  editColors=JSON.parse(JSON.stringify(p.colors||[]));
-  editPhotos=(p.images||[]).map(url=>({url,name:url.split('/').pop()}));
-
-  document.getElementById('editTitle').textContent='Modifier — '+(p.name||'');
-  document.getElementById('eName').value=p.name||'';
-  document.getElementById('eMarque').value=p.enseigne_name||'';
-  document.getElementById('eCat').value=p.category||'';
-  document.getElementById('ePrix').value=p.price||'';
-  document.getElementById('eLarg').value=p.dimensions?.l||'';
-  document.getElementById('eHaut').value=p.dimensions?.h||'';
-  document.getElementById('eProf').value=p.dimensions?.p||'';
-
-  const glbEl=document.getElementById('eGlbCurrent');
-  glbEl.textContent=p.model_glb_url?p.model_glb_url.split('/').pop():'Aucun';
-  glbEl.className='modal-file-name'+(p.model_glb_url?'':' none');
-  const usdzEl=document.getElementById('eUsdzCurrent');
-  usdzEl.textContent=p.model_usdz_url?p.model_usdz_url.split('/').pop():'Aucun';
-  usdzEl.className='modal-file-name'+(p.model_usdz_url?'':' none');
-
-  ['eFileGlb','eFileUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['eLblGlb','eLblUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Glissez pour remplacer · ou cliquez';});
-  ['eProgGlb','eProgUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-  ['eDoneGlb','eDoneUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-  document.getElementById('eGlbUrl').value='';
-  document.getElementById('eUsdzUrl').value='';
-
-  renderColorsList('edit');
-  renderPhotosGrid('edit');
-  document.getElementById('editModal').classList.add('show');
-}
-function closeEdit(){
-  document.getElementById('editModal').classList.remove('show');
-  editId=null; editGlbUrl=null; editUsdzUrl=null;
-  editColors=[]; editPhotos=[];
-  eTexUrl=null; eGlbUrlCo=null; eUsdzUrlCo=null;
-}
-async function uploadEditFile(input, type){
-  const file=input.files[0]; if(!file) return;
-  const isGlb=type==='glb';
-  const lblId=isGlb?'eLblGlb':'eLblUsdz';
-  const progId=isGlb?'eProgGlb':'eProgUsdz';
-  const barId =isGlb?'eBarGlb':'eBarUsdz';
-  const doneId=isGlb?'eDoneGlb':'eDoneUsdz';
-  document.getElementById(progId).style.display='block';
-  document.getElementById(barId).style.width='20%';
-  document.getElementById(lblId).textContent='⏳ Upload…';
-  const ext=file.name.split('.').pop();
-  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-  document.getElementById(barId).style.width='100%';
-  if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
-  const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  if(isGlb) editGlbUrl=pub.publicUrl; else editUsdzUrl=pub.publicUrl;
-  document.getElementById(doneId).style.display='block';
-  document.getElementById(doneId).textContent='✓ '+file.name;
-}
-async function saveEdit(){
-  if(!editId) return;
-  const nom=document.getElementById('eName').value.trim();
-  if(!nom){toast('Nom requis','err');return;}
-  setSpin('spinEdit',true);
-  const larg=parseFloat(document.getElementById('eLarg').value)||null;
-  const haut=parseFloat(document.getElementById('eHaut').value)||null;
-  const prof=parseFloat(document.getElementById('eProf').value)||null;
-  const payload={
-    name:nom,
-    enseigne_name:document.getElementById('eMarque').value.trim()||null,
-    category:document.getElementById('eCat').value||null,
-    price:parseFloat(document.getElementById('ePrix').value)||null,
-    dimensions:(larg||haut||prof)?{l:larg,h:haut,p:prof}:null,
-    colors:editColors.length?editColors:null,
-    images:editPhotos.length?editPhotos.map(p=>p.url):null
-  };
-  const g=editGlbUrl||document.getElementById('eGlbUrl').value.trim()||undefined;
-  const u=editUsdzUrl||document.getElementById('eUsdzUrl').value.trim()||undefined;
-  if(g) payload.model_glb_url=g;
-  if(u) payload.model_usdz_url=u;
-  const {error}=await sb.from('products').update(payload).eq('id',editId);
-  setSpin('spinEdit',false);
-  if(error){toast('Erreur : '+error.message,'err');return;}
-  toast('✓ '+nom+' mis à jour !','ok');
-  closeEdit(); loadProducts();
-}
-
-/* ══ MESHY ══ */
-function handleMeshyImage(file){
-  if(!file) return;
-  document.getElementById('meshyFileName').textContent='✓ '+file.name;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const p=document.getElementById('meshyPreview');
-    p.src=e.target.result; p.style.display='block';
-  };
-  reader.readAsDataURL(file);
-  // Upload to Supabase for Meshy URL
-  uploadMeshyImage(file);
-}
-async function uploadMeshyImage(file){
-  const ext=file.name.split('.').pop();
-  const path=`meshy/${Date.now()}.${ext}`;
-  const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-  if(error) return;
-  const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  meshyImgUrl=pub.publicUrl;
-}
-async function generateMeshy(){
-  const key=document.getElementById('meshyKey').value.trim();
-  if(!key){toast('Clé API Meshy requise','err');return;}
-  localStorage.setItem('meshy_key',key);
-
-  const nom=document.getElementById('mNom').value.trim();
-  const marque=document.getElementById('mMarque').value.trim();
-  if(!nom||!marque){toast('Nom et Marque requis','err');return;}
-
-  const imgUrl=meshyImgUrl||document.getElementById('meshyImgUrl').value.trim();
-  if(!imgUrl){toast('Image requise','err');return;}
-
-  const haut=parseFloat(document.getElementById('mHaut').value)||null;
-  const cat=document.getElementById('mCat').value;
-
-  setSpin('spinMeshy',true);
-  const statusEl=document.getElementById('meshyStatus');
-  statusEl.style.display='block';
-  document.getElementById('meshyStatusTxt').textContent='Envoi à Meshy AI…';
-  document.getElementById('meshyBar').style.width='10%';
-
-  const body={
-    image_url:imgUrl,
-    ai_model:'meshy-6',
-    topology:'quad',
-    target_polycount:30000,
-    enable_pbr:true,
-    auto_size:haut?false:true,
-    origin_at:'bottom',
-    target_formats:['glb','usdz']
-  };
-  if(haut) body.resize_height=haut/100;
-  if(document.getElementById('mPrompt').value.trim()) body.prompt=document.getElementById('mPrompt').value.trim();
-
-  try{
-    const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d`,{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-    const data=await resp.json();
-    if(!data.result){throw new Error(data.message||'Erreur Meshy');}
-    meshyTaskId=data.result;
-    document.getElementById('meshyStatusTxt').textContent='Génération en cours… (2-5 min)';
-    pollMeshy(key, nom, marque);
-  }catch(e){
-    setSpin('spinMeshy',false);
-    toast('Erreur Meshy : '+e.message,'err');
+  const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+  const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+  /* Forgiving pick for drag-on-selected: if the cursor lands inside the
+     selection's expanded bounding box, we drag — even if the precise mesh
+     ray-test would miss thin geometry like chair legs. */
+  if (selected && pickPlaced(nx, ny, true)) {
+    mObjDrag = true;
+    dragOffsetSet = false;
+    FEEDBACK.startTranslate(selected.mesh.position);
+    return;
   }
-}
-async function pollMeshy(key, nom, marque){
-  let progress=10;
-  const interval=setInterval(async()=>{
-    try{
-      const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d/${meshyTaskId}`,{
-        headers:{'Authorization':'Bearer '+key}
-      });
-      const data=await resp.json();
-      progress=data.progress||progress;
-      document.getElementById('meshyBar').style.width=progress+'%';
-      document.getElementById('meshyStatusTxt').textContent=`Génération : ${progress}%`;
-
-      if(data.status==='SUCCEEDED'){
-        clearInterval(interval);
-        meshyGlbUrl=data.model_urls?.glb||null;
-        meshyUsdzUrl=data.model_urls?.usdz||null;
-        document.getElementById('meshyStatusTxt').textContent='✓ Modèle généré ! Sauvegarde…';
-        document.getElementById('meshyBar').style.width='100%';
-        await saveMeshyProduct(nom, marque);
-      } else if(data.status==='FAILED'){
-        clearInterval(interval);
-        setSpin('spinMeshy',false);
-        toast('Génération échouée','err');
+  mObjDrag = false;
+  mOrbitStart = { theta:camTheta, elev:camElev, x:e.clientX, y:e.clientY };
+});
+window.addEventListener('mousemove', (e) => {
+  if (!mDown) return;
+  mDragging = true;
+  if (mObjRotate && selected) {
+    /* Horizontal drag drives Y rotation. Right = clockwise. */
+    const dx = e.clientX - mRotStartX;
+    selected.mesh.rotation.y = mRotStartAngle - dx * ROT_SENSITIVITY;
+    HELPER.show(selected, 'rotate');
+    HELPER.setRotationLabel(selected.mesh.rotation.y);
+    FEEDBACK.updateRotate(selected.mesh.rotation.y);
+    return;
+  }
+  if (mPan && mPanStart) {
+    const dx = e.clientX - mPanStart.x;
+    const dy = e.clientY - mPanStart.y;
+    mPanStart = { x:e.clientX, y:e.clientY };
+    panCamera(dx, dy);
+    applyCamera();
+  } else if (mObjDrag && selected) {
+    const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+    const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+    raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+    const pt = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(groundPlane, pt)) {
+      if (!dragOffsetSet) {
+        dragOffset.set(
+          selected.mesh.position.x - pt.x,
+          0,
+          selected.mesh.position.z - pt.z
+        );
+        dragStart.copy(selected.mesh.position);
+        dragOffsetSet = true;
       }
-    }catch(e){ clearInterval(interval); setSpin('spinMeshy',false); }
-  }, 8000);
-}
-async function saveMeshyProduct(nom, marque){
-  const larg=parseFloat(document.getElementById('mLarg').value)||null;
-  const haut=parseFloat(document.getElementById('mHaut').value)||null;
-  const prof=parseFloat(document.getElementById('mProf').value)||null;
-  const {error}=await sb.from('products').insert([{
-    name:nom, enseigne_name:marque,
-    category:document.getElementById('mCat').value||null,
-    price:parseFloat(document.getElementById('mPrix').value)||null,
-    model_glb_url:meshyGlbUrl, model_usdz_url:meshyUsdzUrl||null,
-    is_active:true,
-    dimensions:(larg||haut||prof)?{l:larg,h:haut,p:prof}:null
-  }]);
-  setSpin('spinMeshy',false);
-  if(error){toast('Erreur sauvegarde : '+error.message,'err');return;}
-  toast('✓ '+nom+' généré et sauvegardé !','ok');
-  loadProducts();
-  showPanel('catalogue');
-}
-
-/* ══ DRAG & DROP MESHY ══ */
-document.addEventListener('DOMContentLoaded',()=>{
-  const meshyDrop=document.getElementById('meshyDrop');
-  if(meshyDrop){
-    meshyDrop.addEventListener('dragover',e=>{e.preventDefault();meshyDrop.classList.add('over');});
-    meshyDrop.addEventListener('dragleave',()=>meshyDrop.classList.remove('over'));
-    meshyDrop.addEventListener('drop',e=>{
-      e.preventDefault(); meshyDrop.classList.remove('over');
-      const f=e.dataTransfer.files[0];
-      if(f){ document.getElementById('meshyFile').files=e.dataTransfer.files; handleMeshyImage(f); }
-    });
+      const desired = new THREE.Vector3(
+        pt.x + dragOffset.x,
+        selected.mesh.position.y,
+        pt.z + dragOffset.z
+      );
+      currentAxisLock = applyAxisLock(desired);
+      selected.mesh.position.x = desired.x;
+      selected.mesh.position.z = desired.z;
+      HELPER.show(selected, 'drag');
+      HELPER.setAxisLock(currentAxisLock);
+      FEEDBACK.updateTranslate(selected.mesh.position);
+    }
+  } else if (mOrbitStart) {
+    /* Plan view: camera rotation locked. Pan and zoom remain free. */
+    if (viewMode !== 'plan') {
+      camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
+    }
+    if (viewMode === 'persp') {
+      camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
+        mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
+    }
+    applyCamera();
   }
 });
+window.addEventListener('mouseup', (e) => {
+  if (!mDragging && mDown && !mObjRotate) handleMouseClick(e);
+  if (mObjRotate) { HELPER.hide(); FEEDBACK.endRotate(); }
+  if (mObjDrag) { HELPER.hide(); FEEDBACK.endTranslate(); currentAxisLock = null; HELPER.setAxisLock(null); }
+  mDown = false; mDragging = false; mObjDrag = false; mObjRotate = false; mPan = false; mPanStart = null;
+});
+/* Suppress browser context menu so middle/right-click pan is usable */
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-/* ══ UTILS ══ */
-function setSpin(id, show){
-  const el=document.getElementById(id); if(!el) return;
-  el.style.display=show?'block':'none';
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  /* Trackpad pinch-to-zoom: browsers send wheel + ctrlKey */
+  if (e.ctrlKey) {
+    const maxD = (viewMode === 'persp') ? 12 : 20;
+    camDist = Math.max(1, Math.min(maxD, camDist * (1 + e.deltaY * 0.01)));
+    applyCamera();
+    return;
+  }
+  /* Trackpad two-finger drag (deltaX != 0) or shift+wheel = pan */
+  if (e.shiftKey || Math.abs(e.deltaX) > 0) {
+    panCamera(-e.deltaX, -e.deltaY);
+    applyCamera();
+    return;
+  }
+  /* Plain mouse wheel = zoom */
+  const maxD = (viewMode === 'persp') ? 12 : 20;
+  camDist = Math.max(1, Math.min(maxD, camDist + e.deltaY * 0.005));
+  applyCamera();
+}, { passive:false });
+
+function handleMouseClick(e) {
+  const nx = (e.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+  const ny = -((e.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+  if (pending) {
+    const hf = raycaster.intersectObject(floorMesh);
+    if (hf.length) { doPlace(hf[0].point); return; }
+  }
+  const hit = pickPlaced(nx, ny, false);
+  if (hit) { selectObj(hit); return; }
+  selectObj(null);
 }
-let toastT;
-function toast(msg, type=''){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.className='toast show'+(type?' '+type:'');
-  clearTimeout(toastT);
-  toastT=setTimeout(()=>el.classList.remove('show'),3000);
+function handleTap(t) {
+  const nx = (t.clientX / canvas.parentElement.clientWidth) * 2 - 1;
+  const ny = -((t.clientY / canvas.parentElement.clientHeight) * 2 - 1);
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+  if (pending) {
+    const hf = raycaster.intersectObject(floorMesh);
+    if (hf.length) { doPlace(hf[0].point); return; }
+  }
+  const hit = pickPlaced(nx, ny, false);
+  if (hit) { selectObj(hit); return; }
+  selectObj(null);
+}
+
+/* PLACE */
+function doPlace(pt) {
+  const m = pending.mesh.clone(true);
+  /* Each placed copy gets its OWN materials so per-instance work
+     (selection highlight, AR export prep…) never pollutes the source. */
+  m.traverse((c) => {
+    if (!c.isMesh) return;
+    c.castShadow = c.receiveShadow = true;
+    if (Array.isArray(c.material)) {
+      c.material = c.material.map(mat => mat.clone());
+    } else if (c.material) {
+      c.material = c.material.clone();
+    }
+    c.userData.origMat = c.material;
+  });
+  m.position.set(pt.x, 0, pt.z);
+  const b = new THREE.Box3().setFromObject(m);
+  m.position.y -= b.min.y;
+  scene.add(m);
+
+  const sid = Date.now() + Math.floor(Math.random() * 1000);
+  const p = {
+    mesh: m,
+    id: pending.id,
+    name: pending.name,
+    icon: pending.icon,
+    imgUrl: pending.imgUrl,
+    sceneId: sid
+  };
+  placed.push(p);
+  snapList.push(p);
+
+  const tel = document.querySelector('.tray-item[data-id="' + pending.id + '"]');
+  if (tel) { tel.dataset.sid = sid; tel.classList.add('placed'); }
+  pending = null;
+  selectObj(p);
+  document.getElementById('undoFab').classList.add('on');
+  updateBadge();
+  setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' - Touchez pour selectionner');
+  document.getElementById('trayHint').textContent = 'Glissez pour deplacer - 2 doigts pour pivoter';
+  toast(p.name + ' place', 'ok');
+}
+
+/* SELECT */
+function selectObj(obj) {
+  if (selected) {
+    selected.mesh.traverse((c) => {
+      if (c.isMesh && c.userData.origMat) c.material = c.userData.origMat;
+    });
+  }
+  selected = obj;
+  document.getElementById('delFab').classList.toggle('on', !!obj);
+  document.getElementById('dupFab').classList.toggle('on', !!obj);
+  document.getElementById('elevUp').classList.toggle('on', !!obj);
+  document.getElementById('elevDown').classList.toggle('on', !!obj);
+  document.getElementById('rotCw').classList.toggle('on', !!obj);
+  document.getElementById('rotCcw').classList.toggle('on', !!obj);
+  /* The zoom slider shows only when no object is selected — gives a clean
+     navigation mode for one-handed mobile use, then steps aside when the
+     user picks a piece to edit. */
+  document.getElementById('zoomSlider').classList.toggle('on', !obj);
+  const tag = document.getElementById('selTag');
+  tag.classList.toggle('on', !!obj);
+  if (obj) tag.textContent = obj.name;
+  /* Hide manipulation helpers when nothing is selected — they only show
+     during an active drag/rotate gesture, never just from a selection. */
+  if (!obj) HELPER.hide();
+}
+
+/* DELETE */
+window.doDelete = function() {
+  if (!selected) return;
+  scene.remove(selected.mesh);
+  /* Dispose this instance's cloned materials (textures stay shared with sources) */
+  selected.mesh.traverse((c) => {
+    if (c.isMesh && c.material) {
+      if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+      else c.material.dispose();
+    }
+  });
+  const removedId = selected.sceneId;
+  const removedSrcId = selected.id;
+  placed   = placed.filter(o => o.sceneId !== removedId);
+  snapList = snapList.filter(o => o.sceneId !== removedId);
+  /* Tray indicator: only un-mark if no other instance of this product remains */
+  const stillPlaced = placed.some(o => o.id === removedSrcId);
+  if (!stillPlaced) {
+    const tel = document.querySelector('.tray-item[data-id="' + removedSrcId + '"]');
+    if (tel) { tel.removeAttribute('data-sid'); tel.classList.remove('placed'); }
+  }
+  selected = null;
+  document.getElementById('delFab').classList.remove('on');
+  document.getElementById('dupFab').classList.remove('on');
+  document.getElementById('elevUp').classList.remove('on');
+  document.getElementById('elevDown').classList.remove('on');
+  document.getElementById('rotCw').classList.remove('on');
+  document.getElementById('rotCcw').classList.remove('on');
+  document.getElementById('selTag').classList.remove('on');
+  if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
+  updateBadge();
+  setStatus(placed.length > 0 ? placed.length + ' meuble' + (placed.length > 1 ? 's' : '') : 'Ajoutez des meubles pour commencer');
+  toast('Meuble supprime');
+};
+
+/* DUPLICATE — clone the selected placed item, materials included */
+window.doDuplicate = function() {
+  if (!selected) return;
+  const src = selected;
+  const m = src.mesh.clone(true);
+  m.traverse((c) => {
+    if (!c.isMesh) return;
+    c.castShadow = c.receiveShadow = true;
+    if (Array.isArray(c.material)) {
+      c.material = c.material.map(mat => mat.clone());
+    } else if (c.material) {
+      c.material = c.material.clone();
+    }
+    c.userData.origMat = c.material;
+  });
+  /* offset 50cm right/forward so the duplicate is visible */
+  m.position.copy(src.mesh.position);
+  m.position.x += 0.5;
+  m.position.z += 0.5;
+  m.rotation.copy(src.mesh.rotation);
+  m.scale.copy(src.mesh.scale);
+  scene.add(m);
+
+  const sid = Date.now() + Math.floor(Math.random() * 1000);
+  const p = {
+    mesh: m,
+    id: src.id,
+    name: src.name,
+    icon: src.icon,
+    imgUrl: src.imgUrl,
+    sceneId: sid
+  };
+  placed.push(p);
+  snapList.push(p);
+  selectObj(p);
+  document.getElementById('undoFab').classList.add('on');
+  updateBadge();
+  setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : ''));
+  toast(src.name + ' duplique', 'ok');
+};
+
+/* UNDO */
+window.doUndo = function() {
+  if (!snapList.length) return;
+  const last = snapList.pop();
+  scene.remove(last.mesh);
+  last.mesh.traverse((c) => {
+    if (c.isMesh && c.material) {
+      if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+      else c.material.dispose();
+    }
+  });
+  placed = placed.filter(o => o.sceneId !== last.sceneId);
+  if (selected && selected.sceneId === last.sceneId) {
+    selected = null;
+    document.getElementById('delFab').classList.remove('on');
+    document.getElementById('dupFab').classList.remove('on');
+    document.getElementById('elevUp').classList.remove('on');
+    document.getElementById('elevDown').classList.remove('on');
+    document.getElementById('rotCw').classList.remove('on');
+    document.getElementById('rotCcw').classList.remove('on');
+    document.getElementById('selTag').classList.remove('on');
+  }
+  /* Update tray indicator */
+  const stillPlaced = placed.some(o => o.id === last.id);
+  if (!stillPlaced) {
+    const tel = document.querySelector('.tray-item[data-id="' + last.id + '"]');
+    if (tel) { tel.removeAttribute('data-sid'); tel.classList.remove('placed'); }
+  }
+  if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
+  updateBadge();
+  toast('Annule: ' + last.name);
+};
+
+/* LOAD GLB */
+async function loadModel(item) {
+  spin(true, 'Chargement ' + item.name + '...');
+  try {
+    const gltf = await new Promise((ok, fail) => {
+      gltfLoader.load(item.glb, ok, null, fail);
+    });
+    const mesh = gltf.scene;
+
+    /* real 1:1 scale */
+    const box = new THREE.Box3().setFromObject(mesh);
+    const mh  = box.max.y - box.min.y;
+    const th  = item.h ? (item.h / 100) : realH(item.category);
+    if (mh > 0.001) mesh.scale.setScalar(th / mh);
+
+    const box2 = new THREE.Box3().setFromObject(mesh);
+    mesh.position.y -= box2.min.y;
+
+    /* Set proper texture color spaces — sRGB for color maps, linear for data maps */
+    mesh.traverse((c) => {
+      if (!c.isMesh) return;
+      c.castShadow = c.receiveShadow = true;
+      if (!c.material) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      mats.forEach((mat) => {
+        /* color maps: sRGB */
+        ['map', 'emissiveMap'].forEach((k) => {
+          if (mat[k]) { mat[k].colorSpace = THREE.SRGBColorSpace; mat[k].needsUpdate = true; }
+        });
+        /* data maps: linear (NoColorSpace) */
+        ['normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach((k) => {
+          if (mat[k]) { mat[k].colorSpace = THREE.NoColorSpace; mat[k].needsUpdate = true; }
+        });
+        mat.needsUpdate = true;
+      });
+    });
+
+    pending = { mesh, id:item.id, name:item.name, icon:item.icon || '\u25C7', imgUrl:item.imgUrl || null };
+    spin(false);
+    setStatus('Touchez le sol pour placer ' + item.name, true);
+  } catch(e) {
+    spin(false);
+    toast('Erreur: ' + e.message, 'err');
+  }
+}
+
+/* ========================================
+   EXPORT USDZ — fully isolated deep clone
+   ========================================
+   Bug fixed: previously shallow-cloned materials shared textures with the
+   live scene; modifying their needsUpdate / colorSpace at export time was
+   triggering re-uploads that occasionally lost the GPU-side scene when many
+   models were present. We now build a self-contained group with cloned
+   materials, unique mesh names (USD requires unique paths) and never touch
+   the source scene. */
+window.doExportAR = async function() {
+  if (!placed.length) { toast('Ajoutez des meubles d\'abord', 'err'); return; }
+  spin(true, 'Generation USDZ (' + placed.length + ' modeles)...');
+
+  const grp = new THREE.Group();
+  grp.name = 'TadamHomeScene';
+  /* Track cloned materials so we can dispose them after export */
+  const clonedMats = [];
+
+  try {
+    placed.forEach((obj, idx) => {
+      const cl = obj.mesh.clone(true);
+      cl.position.copy(obj.mesh.position);
+      cl.rotation.copy(obj.mesh.rotation);
+      cl.scale.copy(obj.mesh.scale);
+      cl.name = 'object_' + idx + '_' + sanitize(obj.name);
+
+      let meshIdx = 0;
+      cl.traverse((c) => {
+        /* Make every node name unique inside the export group — USD hates duplicates */
+        if (c.name) {
+          c.name = 'o' + idx + '_' + sanitize(c.name);
+        } else {
+          c.name = 'o' + idx + '_n' + meshIdx;
+        }
+        if (!c.isMesh) return;
+        meshIdx++;
+        /* Skip empty meshes that would crash the exporter */
+        if (!c.geometry || !c.material) {
+          if (c.parent) c.parent.remove(c);
+          return;
+        }
+        /* Clone material(s) so the live scene is never modified */
+        if (Array.isArray(c.material)) {
+          c.material = c.material.map((m) => {
+            const cm = m.clone();
+            clonedMats.push(cm);
+            return cm;
+          });
+        } else {
+          c.material = c.material.clone();
+          clonedMats.push(c.material);
+        }
+      });
+      grp.add(cl);
+    });
+
+    grp.updateMatrixWorld(true);
+
+    const buf = await usdzEx.parse(grp, { maxTextureSize: 1024 });
+
+    spin(false);
+
+    const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
+    const url  = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+
+    if (isIOS) {
+      const a = document.createElement('a');
+      a.setAttribute('rel', 'ar');
+      a.href = url;
+      /* iOS requires an <img> child to trigger AR Quick Look */
+      const img = document.createElement('img');
+      img.style.display = 'none';
+      a.appendChild(img);
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 8000);
+      toast('Ouverture AR Quick Look...', 'ok');
+    } else {
+      const a2 = document.createElement('a');
+      a2.href = url;
+      a2.download = 'TadamHome-scene-' + Date.now() + '.usdz';
+      document.body.appendChild(a2);
+      a2.click();
+      setTimeout(() => {
+        if (a2.parentNode) a2.parentNode.removeChild(a2);
+        URL.revokeObjectURL(url);
+      }, 5000);
+      toast('Fichier USDZ telecharge', 'ok');
+    }
+  } catch(err) {
+    spin(false);
+    console.error('[AR Export] failed:', err);
+    toast('Erreur AR: ' + (err.message || 'echec export'), 'err');
+  } finally {
+    /* Dispose only the cloned materials — keeps live scene intact */
+    clonedMats.forEach((m) => { try { m.dispose(); } catch(_){} });
+  }
+};
+
+function sanitize(s) {
+  return String(s || 'item').replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 40);
+}
+
+/* PHOTO */
+window.doPhoto = function() {
+  renderer.render(scene, activeCam);
+  const a = document.createElement('a');
+  a.download = 'TadamHome-' + Date.now() + '.jpg';
+  a.href = canvas.toDataURL('image/jpeg', 0.92);
+  a.click();
+  toast('Photo enregistree', 'ok');
+};
+
+/* CATALOGUE */
+async function loadCatalogue() {
+  const res = await sb.from('products').select('*').order('created_at', { ascending:false });
+  products = (res.data || []).filter(p => p.model_glb_url);
+  renderGrid(products);
+}
+window.filterCat = function() {
+  const q = document.getElementById('csrch').value.toLowerCase();
+  renderGrid(products.filter(p =>
+    (p.name||'').toLowerCase().includes(q) || (p.enseigne_name||'').toLowerCase().includes(q)
+  ));
+};
+function renderGrid(list) {
+  const g = document.getElementById('cgrid');
+  if (!list.length) { g.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun modele</div>'; return; }
+  g.innerHTML = list.map((p) => {
+    const imgHtml = (p.images && p.images[0])
+      ? '<img src="' + p.images[0] + '" style="width:100%;height:100%;object-fit:cover"/>'
+      : catIco(p.category);
+    return '<div class="cov-card">'
+      + '<div class="cov-img">' + imgHtml + '</div>'
+      + '<div class="cov-brand">' + (p.enseigne_name||'') + '</div>'
+      + '<div class="cov-name">' + (p.name||'') + '</div>'
+      + '<button class="cov-btn" onclick="addFromCat(\'' + p.id + '\')">+ Ajouter</button>'
+      + '</div>';
+  }).join('');
+}
+window.addFromCat = async function(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  closeCat();
+  const trayImg = (p.images && p.images[0]) ? p.images[0] : null;
+  await loadModel({
+    id: p.id, name: p.name,
+    glb: p.model_glb_url,
+    category: p.category,
+    h: p.dimensions && p.dimensions.h ? p.dimensions.h : null,
+    icon: catIco(p.category),
+    imgUrl: trayImg
+  });
+  addTrayItem({ id:p.id, name:p.name, icon:catIco(p.category), imgUrl:trayImg });
+};
+window.openCat  = function() { document.getElementById('catOv').classList.add('open'); };
+window.closeCat = function() { document.getElementById('catOv').classList.remove('open'); };
+
+/* TRAY */
+function addTrayItem(item) {
+  const tray = document.getElementById('tray');
+  if (document.querySelector('.tray-item[data-id="' + item.id + '"]')) return;
+  const d = document.createElement('div');
+  d.className = 'tray-item sel';
+  d.dataset.id = item.id;
+  const thumbHtml = item.imgUrl
+    ? '<img src="' + item.imgUrl + '" style="width:100%;height:100%;object-fit:cover"/>'
+    : item.icon;
+  d.innerHTML = '<div class="tray-thumb">' + thumbHtml + '</div><div class="tray-name">' + item.name + '</div>';
+  d.addEventListener('click', () => {
+    document.querySelectorAll('.tray-item').forEach(t => t.classList.remove('sel'));
+    d.classList.add('sel');
+    if (pending && pending.id === item.id) {
+      setStatus('Touchez le sol pour placer ' + item.name, true);
+    }
+  });
+  tray.appendChild(d);
+}
+
+/* UTILS */
+function realH(cat) {
+  const h = { sofa:.85, canape:.85, fauteuil:.90, chaise:.90,
+              'table basse':.45, table:.75, bureau:.75,
+              luminaire:1.70, rangement:1.20, lit:.55 };
+  return h[(cat||'').toLowerCase()] || 0.80;
+}
+function catIco(cat) {
+  const i = { sofa:'\uD83D\uDECB', canape:'\uD83D\uDECB', fauteuil:'\uD83E\uDE91', chaise:'\uD83E\uDE91',
+              table:'\uD83E\uDD55', luminaire:'\uD83D\uDCA1', rangement:'\uD83D\uDCE6', lit:'\uD83D\uDECF' };
+  return i[(cat||'').toLowerCase()] || '\u25C7';
+}
+function updateBadge() {
+  const b = document.getElementById('badge');
+  if (placed.length > 0) { b.textContent = placed.length; b.classList.add('on'); }
+  else b.classList.remove('on');
+}
+function setStatus(txt, accent) {
+  const s = document.getElementById('st');
+  s.textContent = txt;
+  s.className = 'status' + (accent ? ' accent' : '');
+}
+let tT;
+function toast(txt, type) {
+  const t = document.getElementById('tst');
+  t.textContent = txt;
+  t.className = 'on' + (type ? ' ' + type : '');
+  clearTimeout(tT);
+  tT = setTimeout(() => { t.className = ''; }, 3000);
+}
+function spin(show, txt) {
+  document.getElementById('ldr').className = show ? 'on' : '';
+  if (txt) document.getElementById('ltxt').textContent = txt;
+}
+
+/* ====================================
+   SCENES — save / load / delete
+   Stored in localStorage under SCENES_KEY.
+   Each scene captures every placed item's
+   product reference + transform + a small
+   thumbnail rendered from the active camera.
+   ==================================== */
+const SCENES_KEY = 'tadam_saved_scenes';
+
+function listScenes() {
+  try { return JSON.parse(localStorage.getItem(SCENES_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function persistScenes(arr) {
+  try {
+    localStorage.setItem(SCENES_KEY, JSON.stringify(arr));
+    return true;
+  } catch(e) {
+    /* QuotaExceededError */
+    toast('Espace de stockage plein', 'err');
+    console.warn(e);
+    return false;
+  }
+}
+function captureThumbnail(maxW, maxH) {
+  /* preserveDrawingBuffer is enabled on the renderer, so we can read it back */
+  renderer.render(scene, activeCam);
+  const sw = canvas.width;
+  const sh = canvas.height;
+  const k  = Math.min(maxW / sw, maxH / sh, 1);
+  const tw = Math.max(1, Math.round(sw * k));
+  const th = Math.max(1, Math.round(sh * k));
+  const c = document.createElement('canvas');
+  c.width = tw; c.height = th;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(canvas, 0, 0, tw, th);
+  try { return c.toDataURL('image/jpeg', 0.65); }
+  catch(_) { return null; }
+}
+
+window.openScenes = function() {
+  document.getElementById('scnNameInput').value = '';
+  renderScenesModal();
+  document.getElementById('scnOv').classList.add('open');
+};
+window.closeScenes = function() {
+  document.getElementById('scnOv').classList.remove('open');
+};
+
+window.saveScene = function() {
+  if (!placed.length) {
+    toast('Aucun meuble a sauvegarder', 'err');
+    return;
+  }
+  const input = document.getElementById('scnNameInput');
+  let name = (input.value || '').trim();
+  if (!name) {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    name = 'Scene ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1)
+         + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /* Render thumbnail BEFORE we (potentially) close the modal so the live scene is visible */
+  const thumb = captureThumbnail(280, 180);
+
+  const scn = {
+    id: 'scene_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    name,
+    savedAt: Date.now(),
+    thumb,
+    items: placed.map((p) => {
+      const prod = products.find(x => x.id === p.id);
+      return {
+        productId: p.id,
+        name: p.name,
+        glbUrl:   prod ? prod.model_glb_url : null,
+        category: prod ? prod.category : null,
+        heightCm: prod && prod.dimensions && prod.dimensions.h ? prod.dimensions.h : null,
+        imgUrl: p.imgUrl || (prod && prod.images && prod.images[0]) || null,
+        position: { x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z },
+        rotationY: p.mesh.rotation.y || 0,
+        scale: p.mesh.scale.x || 1
+      };
+    })
+  };
+
+  /* Drop scenes that lost their glbUrl reference (impossible to restore) */
+  const restorable = scn.items.filter(it => it.glbUrl);
+  if (!restorable.length) {
+    toast('Aucun modele restaurable (catalogue introuvable)', 'err');
+    return;
+  }
+  scn.items = restorable;
+
+  const arr = listScenes();
+  arr.unshift(scn);
+  if (persistScenes(arr)) {
+    input.value = '';
+    renderScenesModal();
+    toast('Scene "' + name + '" sauvegardee', 'ok');
+  }
+};
+
+window.deleteScene = function(id) {
+  const arr = listScenes().filter(s => s.id !== id);
+  if (persistScenes(arr)) {
+    renderScenesModal();
+    toast('Scene supprimee');
+  }
+};
+
+window.loadSavedScene = async function(id) {
+  const arr = listScenes();
+  const scn = arr.find(s => s.id === id);
+  if (!scn) { toast('Scene introuvable', 'err'); return; }
+  closeScenes();
+  spin(true, 'Chargement de la scene...');
+
+  /* Make sure the catalogue is loaded so we can resolve glbUrls if missing */
+  if (!products.length) {
+    try { await loadCatalogue(); } catch(_) {}
+  }
+
+  clearScene();
+
+  for (const it of scn.items) {
+    if (!it.glbUrl) {
+      const p = products.find(x => x.id === it.productId);
+      if (p) it.glbUrl = p.model_glb_url;
+    }
+    if (!it.glbUrl) { console.warn('Skipping unrestorable item', it.name); continue; }
+    try {
+      await restoreSavedItem(it);
+    } catch(e) {
+      console.warn('Failed to restore item', it.name, e);
+    }
+  }
+
+  spin(false);
+  toast('Scene "' + scn.name + '" chargee', 'ok');
+  setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' charge' + (placed.length > 1 ? 's' : ''));
+};
+
+/* Headless equivalent of loadModel + doPlace, applies saved transform */
+async function restoreSavedItem(it) {
+  const gltf = await new Promise((ok, fail) => {
+    gltfLoader.load(it.glbUrl, ok, null, fail);
+  });
+  const mesh = gltf.scene;
+
+  /* Real-world height scaling */
+  const box = new THREE.Box3().setFromObject(mesh);
+  const mh  = box.max.y - box.min.y;
+  const th  = it.heightCm ? (it.heightCm / 100) : realH(it.category);
+  if (mh > 0.001) mesh.scale.setScalar(th / mh);
+
+  /* Anchor to floor */
+  const box2 = new THREE.Box3().setFromObject(mesh);
+  mesh.position.y -= box2.min.y;
+
+  /* Texture color spaces */
+  mesh.traverse((c) => {
+    if (!c.isMesh) return;
+    c.castShadow = c.receiveShadow = true;
+    if (!c.material) return;
+    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    mats.forEach((mat) => {
+      ['map', 'emissiveMap'].forEach((k) => {
+        if (mat[k]) { mat[k].colorSpace = THREE.SRGBColorSpace; mat[k].needsUpdate = true; }
+      });
+      ['normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach((k) => {
+        if (mat[k]) { mat[k].colorSpace = THREE.NoColorSpace; mat[k].needsUpdate = true; }
+      });
+      mat.needsUpdate = true;
+    });
+  });
+
+  /* Stage as pending then place at saved position with saved rotation */
+  pending = {
+    mesh,
+    id: it.productId,
+    name: it.name,
+    icon: catIco(it.category),
+    imgUrl: it.imgUrl || null
+  };
+  pending.mesh.rotation.y = it.rotationY || 0;
+  doPlace({ x: it.position.x, z: it.position.z });
+
+  addTrayItem({ id: it.productId, name: it.name, icon: catIco(it.category), imgUrl: it.imgUrl });
+}
+
+/* Wipe the active scene before loading another one */
+function clearScene() {
+  placed.forEach((p) => {
+    scene.remove(p.mesh);
+    p.mesh.traverse((c) => {
+      if (c.isMesh && c.material) {
+        if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+        else c.material.dispose();
+      }
+    });
+  });
+  placed   = [];
+  snapList = [];
+  selected = null;
+  pending  = null;
+  document.getElementById('delFab').classList.remove('on');
+  document.getElementById('dupFab').classList.remove('on');
+  document.getElementById('elevUp').classList.remove('on');
+  document.getElementById('elevDown').classList.remove('on');
+  document.getElementById('rotCw').classList.remove('on');
+  document.getElementById('rotCcw').classList.remove('on');
+  document.getElementById('selTag').classList.remove('on');
+  document.getElementById('undoFab').classList.remove('on');
+  document.querySelectorAll('.tray-item').forEach(el => el.remove());
+  updateBadge();
+  setStatus('Ajoutez des meubles pour commencer');
+}
+
+function renderScenesModal() {
+  const arr = listScenes();
+  const list = document.getElementById('scnList');
+  document.getElementById('scnCount').textContent = arr.length;
+  /* Disable save when scene is empty */
+  document.getElementById('scnSaveBtn').disabled = (placed.length === 0);
+
+  if (!arr.length) {
+    list.innerHTML = '<div class="sov-empty">Aucune scene sauvegardee</div>';
+    return;
+  }
+  list.innerHTML = arr.map((s) => {
+    const d = new Date(s.savedAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const cnt = s.items.length;
+    const safeName = String(s.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const thumbHtml = s.thumb
+      ? '<img src="' + s.thumb + '" alt=""/>'
+      : '\u25C7';
+    return '<div class="sov-item">'
+      + '<div class="sov-item-thumb">' + thumbHtml + '</div>'
+      + '<div class="sov-item-info">'
+        + '<div class="sov-item-name">' + safeName + '</div>'
+        + '<div class="sov-item-meta">' + dateStr + ' &middot; ' + cnt + ' meuble' + (cnt > 1 ? 's' : '') + '</div>'
+      + '</div>'
+      + '<div class="sov-item-actions">'
+        + '<button class="sov-item-btn load" onclick="loadSavedScene(\'' + s.id + '\')" title="Charger">'
+          + '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>'
+        + '</button>'
+        + '<button class="sov-item-btn del" onclick="deleteScene(\'' + s.id + '\')" title="Supprimer">'
+          + '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>'
+        + '</button>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+/* INIT */
+loadCatalogue();
+/* Show the zoom slider at boot — no selection yet, so navigation mode is on */
+document.getElementById('zoomSlider').classList.add('on');
+const q = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
+if (q.length) {
+  localStorage.removeItem('tadam_ar_scene');
+  q.forEach((item) => {
+    if (item.glb) {
+      loadModel({ id:item.id, name:item.name, glb:item.glb, category:item.category,
+                  h: item.dimensions && item.dimensions.h ? item.dimensions.h : null,
+                  icon: catIco(item.category) });
+      addTrayItem({ id:item.id, name:item.name, icon:catIco(item.category) });
+    }
+  });
 }
 </script>
 </body>
