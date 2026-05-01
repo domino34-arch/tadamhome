@@ -2021,13 +2021,16 @@ window.doExportAR = async function() {
       }, 8000);
       toast('Ouverture AR Quick Look...', 'ok');
     } else {
-      } else if (isAndroid) {
-  // 1. Logique pour exporter en GLB (au lieu de USDZ)
-  // 2. Logique pour envoyer vers Supabase Storage
-  // 3. window.location.href = `intent://arvr.google.com/scene-viewer/...`;
-} else {
-  // Optionnel : ce qu'on fait si ce n'est ni iOS ni Android (Desktop)
-}
+      const a2 = document.createElement('a');
+      a2.href = url;
+      a2.download = 'TadamHome-scene-' + Date.now() + '.usdz';
+      document.body.appendChild(a2);
+      a2.click();
+      setTimeout(() => {
+        if (a2.parentNode) a2.parentNode.removeChild(a2);
+        URL.revokeObjectURL(url);
+      }, 5000);
+      toast('Fichier USDZ telecharge', 'ok');
     }
   } catch(err) {
     spin(false);
