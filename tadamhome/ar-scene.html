@@ -2422,14 +2422,48 @@ document.getElementById('zoomSlider').classList.add('on');
 const q = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
 if (q.length) {
   localStorage.removeItem('tadam_ar_scene');
-  q.forEach((item) => {
-    if (item.glb) {
-      loadModel({ id:item.id, name:item.name, glb:item.glb, category:item.category,
-                  h: item.dimensions && item.dimensions.h ? item.dimensions.h : null,
-                  icon: catIco(item.category) });
-      addTrayItem({ id:item.id, name:item.name, icon:catIco(item.category) });
+  
+  /* Placement automatique des modèles venant de scan.html */
+  (async function autoPlaceModels() {
+    spin(true, 'Chargement de la scène...');
+    
+    for (let i = 0; i < q.length; i++) {
+      const item = q[i];
+      if (!item.glb) continue;
+      
+      try {
+        /* Charger le modèle */
+        await loadModel({ 
+          id: item.id, 
+          name: item.name, 
+          glb: item.glb, 
+          category: item.category,
+          h: item.dimensions && typeof item.dimensions === 'object' && item.dimensions.h ? item.dimensions.h : null,
+          icon: catIco(item.category) 
+        });
+        
+        /* Placer automatiquement sur le sol */
+        const angle = (i / Math.max(q.length, 1)) * Math.PI * 2;
+        const radius = q.length > 1 ? 1.5 : 0;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        
+        doPlace({ x, y: 0, z });
+        
+        /* Ajouter à la barre d'outils */
+        addTrayItem({ id: item.id, name: item.name, icon: catIco(item.category) });
+      } catch(e) {
+        console.error('Erreur placement auto:', e);
+        toast('Erreur: ' + item.name, 'err');
+      }
     }
-  });
+    
+    spin(false);
+    if (placed.length > 0) {
+      toast('Scène chargée: ' + placed.length + ' meuble' + (placed.length > 1 ? 's' : ''), 'ok');
+      setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' placé' + (placed.length > 1 ? 's' : ''));
+    }
+  })();
 }
 </script>
 </body>
