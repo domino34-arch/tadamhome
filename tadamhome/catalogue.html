@@ -67,10 +67,77 @@ nav {
   font-family: var(--sans);
 }
 
+/* ── BURGER MENU ── */
+.burger-btn {
+  width: 32px; height: 32px; border: 1px solid var(--border);
+  background: transparent; cursor: pointer; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 0; transition: all .2s; margin-right: 12px;
+}
+.burger-btn:hover { border-color: var(--accent); }
+.burger-btn span {
+  width: 16px; height: 2px; background: var(--ink3);
+  transition: all .3s var(--ease);
+}
+.burger-btn:hover span { background: var(--accent); }
+.burger-btn.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.burger-btn.open span:nth-child(2) { opacity: 0; }
+.burger-btn.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.burger-menu {
+  position: fixed; left: 0; top: 56px; bottom: 0;
+  width: 280px; background: var(--white);
+  border-right: 1px solid var(--border);
+  z-index: 190; transform: translateX(-100%);
+  transition: transform .3s var(--ease);
+  overflow-y: auto; padding: 24px 0;
+}
+.burger-menu.open { transform: translateX(0); }
+.burger-overlay {
+  position: fixed; inset: 0; top: 56px;
+  background: rgba(28,27,24,.3); backdrop-filter: blur(2px);
+  z-index: 180; opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+.burger-overlay.open { opacity: 1; pointer-events: all; }
+
+.burger-cat {
+  padding: 0 20px; margin-bottom: 8px;
+}
+.burger-cat-title {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 12px; cursor: pointer; transition: background .2s;
+  font-size: 13px; font-weight: 400; color: var(--ink);
+  letter-spacing: .04em;
+}
+.burger-cat-title:hover { background: var(--bg2); }
+.burger-cat-title svg {
+  width: 12px; height: 12px; stroke: var(--ink3);
+  fill: none; stroke-width: 2; stroke-linecap: round;
+  transition: transform .2s;
+}
+.burger-cat.open .burger-cat-title svg { transform: rotate(180deg); }
+.burger-subcats {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s var(--ease);
+  padding-left: 16px;
+}
+.burger-cat.open .burger-subcats { max-height: 500px; }
+.burger-subcat {
+  padding: 8px 12px; cursor: pointer;
+  font-size: 12px; color: var(--ink3);
+  transition: all .2s; display: block;
+  text-decoration: none;
+}
+.burger-subcat:hover { color: var(--accent); background: var(--bg2); }
+
 /* ── CATEGORY BAR ── */
-.cat-bar {
+.cat-bar-wrapper {
   background: var(--white); border-bottom: 1px solid var(--border);
-  padding: 0 32px; display: flex; align-items: center;
+  position: sticky; top: 56px; z-index: 150;
+}
+.cat-bar {
+  padding: 0 80px; display: flex; align-items: center;
   gap: 0; overflow-x: auto; scrollbar-width: none;
 }
 .cat-bar::-webkit-scrollbar { display: none; }
@@ -83,14 +150,39 @@ nav {
 .cat-btn:hover { color: var(--ink); }
 .cat-btn.act { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
 
+/* Subcat slider */
+.subcat-slider {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s var(--ease);
+  background: var(--bg2); border-top: 1px solid var(--border);
+}
+.subcat-slider.open { max-height: 60px; }
+.subcat-slider-inner {
+  display: flex; gap: 0; padding: 0 80px;
+  overflow-x: auto; scrollbar-width: thin;
+}
+.subcat-slider-inner::-webkit-scrollbar { height: 4px; }
+.subcat-slider-inner::-webkit-scrollbar-track { background: var(--bg3); }
+.subcat-slider-inner::-webkit-scrollbar-thumb { background: var(--accent); }
+.subcat-btn {
+  flex-shrink: 0; padding: 12px 18px;
+  font-size: 10px; font-weight: 400; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink2);
+  background: transparent; border: none; cursor: pointer;
+  font-family: var(--sans); transition: all .2s;
+  white-space: nowrap;
+}
+.subcat-btn:hover { color: var(--accent); }
+.subcat-btn.act { color: var(--accent); font-weight: 500; }
+
 /* ── LAYOUT ── */
-.layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 96px); }
+.layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 116px); }
 
 /* ── SIDEBAR FILTERS ── */
 .filters {
   background: var(--white); border-right: 1px solid var(--border);
-  padding: 24px 0; position: sticky; top: 96px;
-  height: calc(100vh - 96px); overflow-y: auto; scrollbar-width: thin;
+  padding: 24px 0; position: sticky; top: 116px;
+  height: calc(100vh - 116px); overflow-y: auto; scrollbar-width: thin;
 }
 .filter-section { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .filter-section:last-child { border-bottom: none; }
@@ -142,11 +234,57 @@ nav {
 /* ── MAIN CONTENT ── */
 .main { padding: 0; }
 
+/* ── INSPIRATION GRID (Landing) ── */
+.inspiration-section {
+  padding: 40px 32px;
+}
+.inspiration-header {
+  text-align: center; margin-bottom: 32px;
+}
+.inspiration-header h1 {
+  font-family: var(--serif); font-size: 42px;
+  font-weight: 300; color: var(--ink); margin-bottom: 8px;
+}
+.inspiration-header p {
+  font-size: 14px; color: var(--ink3);
+  letter-spacing: .04em;
+}
+.inspiration-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; max-width: 1200px; margin: 0 auto;
+}
+.inspiration-card {
+  position: relative; aspect-ratio: 4/3;
+  background: var(--bg2); overflow: hidden;
+  cursor: pointer; transition: transform .3s var(--ease);
+}
+.inspiration-card:hover { transform: translateY(-4px); }
+.inspiration-card img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .5s var(--ease);
+}
+.inspiration-card:hover img { transform: scale(1.06); }
+.inspiration-card-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(28,27,24,.7) 0%, transparent 60%);
+  display: flex; flex-direction: column;
+  justify-content: flex-end; padding: 24px;
+}
+.inspiration-card-title {
+  font-family: var(--serif); font-size: 24px;
+  font-weight: 400; color: var(--white);
+  margin-bottom: 4px;
+}
+.inspiration-card-subtitle {
+  font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.7);
+}
+
 /* Top toolbar */
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 24px; border-bottom: 1px solid var(--border);
-  background: var(--bg); position: sticky; top: 96px; z-index: 100;
+  background: var(--bg); position: sticky; top: 116px; z-index: 100;
 }
 .toolbar-left { display: flex; align-items: center; gap: 16px; }
 .result-count { font-family: var(--serif); font-size: 18px; font-weight: 300; color: var(--ink); }
@@ -228,14 +366,6 @@ nav {
 .ar-overlay-btn:hover { background: var(--accent); color: var(--white); }
 .ar-overlay-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
 
-/* Category chip on image */
-.prod-cat-chip {
-  position: absolute; top: 12px; left: 12px;
-  background: rgba(245,242,236,.92); backdrop-filter: blur(6px);
-  padding: 3px 9px; font-size: 9px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--ink3); font-family: var(--sans);
-}
-
 /* Card info */
 .prod-card-info { padding: 16px 18px 18px; border-top: 1px solid var(--border); }
 .prod-card-brand { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
@@ -292,18 +422,26 @@ nav {
 .toast.show { opacity: 1; transform: translateY(0); }
 
 /* ── MOBILE ── */
-@media (max-width: 1024px) { .prod-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 1024px) { 
+  .prod-grid { grid-template-columns: repeat(2,1fr); }
+  .inspiration-grid { grid-template-columns: repeat(2,1fr); }
+}
 @media (max-width: 768px) {
   nav { padding: 0 18px; }
   .nav-search { display: none; }
   .layout { grid-template-columns: 1fr; }
-  .filters { display: none; position: fixed; inset: 0; top: 96px; z-index: 300; background: var(--white); height: calc(100vh - 96px); }
+  .filters { display: none; position: fixed; inset: 0; top: 116px; z-index: 300; background: var(--white); height: calc(100vh - 116px); }
   .filters.open { display: block; }
   .prod-grid { grid-template-columns: repeat(2,1fr); }
-  .toolbar { padding: 12px 16px; top: 56px; }
+  .inspiration-grid { grid-template-columns: 1fr; }
+  .toolbar { padding: 12px 16px; top: 116px; }
   .cat-bar { padding: 0 16px; }
+  .subcat-slider-inner { padding: 0 16px; }
 }
-@media (max-width: 480px) { .prod-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { 
+  .prod-grid { grid-template-columns: 1fr; }
+  .inspiration-grid { grid-template-columns: 1fr; }
+}
 
 @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 </style>
@@ -312,10 +450,17 @@ nav {
 
 <!-- NAV -->
 <nav>
-  <a href="index.html" class="nav-logo">
-    <img src="logo.png" alt="TadamHome" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
-    <span style="font-family:var(--serif);font-size:20px;font-weight:500">Tadam<span style="color:var(--accent)">Home</span></span>
-  </a>
+  <div style="display:flex;align-items:center">
+    <button class="burger-btn" id="burgerBtn" onclick="toggleBurger()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="TadamHome" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+      <span style="font-family:var(--serif);font-size:20px;font-weight:500">Tadam<span style="color:var(--accent)">Home</span></span>
+    </a>
+  </div>
   <div class="nav-search">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input type="text" id="searchInput" placeholder="Rechercher un meuble, une marque…" oninput="handleSearch()"/>
@@ -329,94 +474,171 @@ nav {
   </div>
 </nav>
 
-<!-- CATEGORY BAR -->
-<div class="cat-bar" id="catBar">
-  <button class="cat-btn act" data-cat="all" onclick="setCategory('all', this)">Tout</button>
-  <button class="cat-btn" data-cat="sofa"      onclick="setCategory('sofa', this)">Canapés</button>
-  <button class="cat-btn" data-cat="fauteuil"  onclick="setCategory('fauteuil', this)">Fauteuils</button>
-  <button class="cat-btn" data-cat="chaise"    onclick="setCategory('chaise', this)">Chaises</button>
-  <button class="cat-btn" data-cat="table"     onclick="setCategory('table', this)">Tables</button>
-  <button class="cat-btn" data-cat="luminaire" onclick="setCategory('luminaire', this)">Luminaires</button>
-  <button class="cat-btn" data-cat="rangement" onclick="setCategory('rangement', this)">Rangements</button>
-  <button class="cat-btn" data-cat="lit"       onclick="setCategory('lit', this)">Lits</button>
-  <button class="cat-btn" data-cat="autre"     onclick="setCategory('autre', this)">Autre</button>
+<!-- BURGER MENU -->
+<div class="burger-overlay" id="burgerOverlay" onclick="toggleBurger()"></div>
+<div class="burger-menu" id="burgerMenu">
+  <div class="burger-cat">
+    <div class="burger-cat-title" onclick="toggleBurgerCat(this)">
+      Canapés et fauteuils
+      <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+    </div>
+    <div class="burger-subcats">
+      <a class="burger-subcat" onclick="selectSubcategory('canapes-fauteuils', 'canapes')">Canapés</a>
+      <a class="burger-subcat" onclick="selectSubcategory('canapes-fauteuils', 'fauteuils')">Fauteuils</a>
+      <a class="burger-subcat" onclick="selectSubcategory('canapes-fauteuils', 'petits-fauteuils')">Petits fauteuils</a>
+      <a class="burger-subcat" onclick="selectSubcategory('canapes-fauteuils', 'chaises-longues')">Chaises longues</a>
+    </div>
+  </div>
+  
+  <div class="burger-cat">
+    <div class="burger-cat-title" onclick="toggleBurgerCat(this)">
+      Tables et chaises
+      <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+    </div>
+    <div class="burger-subcats">
+      <a class="burger-subcat" onclick="selectSubcategory('tables-chaises', 'chaises')">Chaises</a>
+      <a class="burger-subcat" onclick="selectSubcategory('tables-chaises', 'tabourets')">Tabourets</a>
+      <a class="burger-subcat" onclick="selectSubcategory('tables-chaises', 'tables')">Tables</a>
+      <a class="burger-subcat" onclick="selectSubcategory('tables-chaises', 'tables-basses')">Tables basses</a>
+    </div>
+  </div>
+  
+  <div class="burger-cat">
+    <div class="burger-cat-title" onclick="toggleBurgerCat(this)">
+      Éléments de rangement
+      <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+    </div>
+    <div class="burger-subcats">
+      <a class="burger-subcat" onclick="selectSubcategory('rangement', 'bibliotheques')">Bibliothèques</a>
+      <a class="burger-subcat" onclick="selectSubcategory('rangement', 'ensembles-muraux')">Ensembles muraux</a>
+      <a class="burger-subcat" onclick="selectSubcategory('rangement', 'buffets')">Buffets</a>
+      <a class="burger-subcat" onclick="selectSubcategory('rangement', 'meubles-tv')">Meubles TV</a>
+    </div>
+  </div>
+  
+  <div class="burger-cat">
+    <div class="burger-cat-title" onclick="toggleBurgerCat(this)">
+      Espace nuit
+      <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+    </div>
+    <div class="burger-subcats">
+      <a class="burger-subcat" onclick="selectSubcategory('espace-nuit', 'lits')">Lits</a>
+      <a class="burger-subcat" onclick="selectSubcategory('espace-nuit', 'tables-chevet')">Tables de chevet</a>
+      <a class="burger-subcat" onclick="selectSubcategory('espace-nuit', 'armoires')">Armoires</a>
+      <a class="burger-subcat" onclick="selectSubcategory('espace-nuit', 'chiffonniers')">Chiffonniers</a>
+    </div>
+  </div>
+  
+  <div class="burger-cat">
+    <div class="burger-cat-title" onclick="window.location='#marques'">
+      Marques
+    </div>
+  </div>
 </div>
 
-<!-- LAYOUT -->
-<div class="layout">
-
-  <!-- SIDEBAR FILTERS -->
-  <aside class="filters" id="filtersSidebar">
-
-    <div class="filter-section">
-      <div class="filter-title open" onclick="toggleSection(this)">
-        Marque
-        <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
-      </div>
-      <div class="filter-opts" id="brandFilters">
-        <!-- Populated by JS -->
-      </div>
+<!-- CATEGORY BAR -->
+<div class="cat-bar-wrapper">
+  <div class="cat-bar" id="catBar">
+    <button class="cat-btn act" data-cat="all" onclick="setCategory('all', this)">Tout</button>
+    <button class="cat-btn" data-cat="canapes-fauteuils" onclick="setCategory('canapes-fauteuils', this)">Canapés et fauteuils</button>
+    <button class="cat-btn" data-cat="tables-chaises" onclick="setCategory('tables-chaises', this)">Tables et chaises</button>
+    <button class="cat-btn" data-cat="rangement" onclick="setCategory('rangement', this)">Éléments de rangement</button>
+    <button class="cat-btn" data-cat="espace-nuit" onclick="setCategory('espace-nuit', this)">Espace nuit</button>
+    <button class="cat-btn" data-cat="marques" onclick="setCategory('marques', this)">Marques</button>
+  </div>
+  
+  <!-- SUBCAT SLIDER -->
+  <div class="subcat-slider" id="subcatSlider">
+    <div class="subcat-slider-inner" id="subcatSliderInner">
+      <!-- Populated by JS -->
     </div>
+  </div>
+</div>
 
-    <div class="filter-section">
-      <div class="filter-title open" onclick="toggleSection(this)">
-        Prix
-        <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
-      </div>
-      <div class="price-range">
-        <div class="price-inputs">
-          <input type="number" id="priceMin" placeholder="Min" oninput="applyFilters()"/>
-          <span>—</span>
-          <input type="number" id="priceMax" placeholder="Max" oninput="applyFilters()"/>
-          <span style="font-size:11px;color:var(--ink3)">€</span>
+<!-- MAIN CONTENT CONTAINER -->
+<div id="mainContainer">
+  <!-- INSPIRATION LANDING (default view) -->
+  <div class="inspiration-section" id="inspirationSection">
+    <div class="inspiration-header">
+      <h1>Explorez notre catalogue</h1>
+      <p>Découvrez nos dernières collections et trouvez l'inspiration pour votre intérieur</p>
+    </div>
+    <div class="inspiration-grid" id="inspirationGrid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- CATALOG VIEW (hidden by default) -->
+  <div class="layout" id="catalogView" style="display:none">
+    <!-- SIDEBAR FILTERS -->
+    <aside class="filters" id="filtersSidebar">
+      <div class="filter-section">
+        <div class="filter-title open" onclick="toggleSection(this)">
+          Marque
+          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="filter-opts" id="brandFilters">
+          <!-- Populated by JS -->
         </div>
       </div>
-    </div>
 
-    <div class="filter-section">
-      <div class="filter-title open" onclick="toggleSection(this)">
-        Matière
-        <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
-      </div>
-      <div class="filter-opts" id="matFilters">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-
-    <button class="filter-reset" onclick="resetFilters()">Réinitialiser les filtres</button>
-  </aside>
-
-  <!-- MAIN -->
-  <div class="main">
-
-    <!-- TOOLBAR -->
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <div class="result-count" id="resultCount">— <span>produits</span></div>
-        <div class="active-filters" id="activeTags"></div>
-      </div>
-      <div class="toolbar-right">
-        <select class="sort-select" id="sortSelect" onchange="applyFilters()">
-          <option value="new">Plus récents</option>
-          <option value="price_asc">Prix croissant</option>
-          <option value="price_desc">Prix décroissant</option>
-          <option value="name">A — Z</option>
-        </select>
-        <div class="view-btns">
-          <button class="view-btn act" id="btnGrid" onclick="setView('grid')" title="Grille">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          </button>
-          <button class="view-btn" id="btnList" onclick="setView('list')" title="Liste">
-            <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          </button>
+      <div class="filter-section">
+        <div class="filter-title open" onclick="toggleSection(this)">
+          Prix
+          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="price-range">
+          <div class="price-inputs">
+            <input type="number" id="priceMin" placeholder="Min" oninput="applyFilters()"/>
+            <span>—</span>
+            <input type="number" id="priceMax" placeholder="Max" oninput="applyFilters()"/>
+            <span style="font-size:11px;color:var(--ink3)">€</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- GRID -->
-    <div id="prodGrid" class="prod-grid">
-      <!-- Loading skeletons -->
-      ${Array(6).fill(0).map(() => `
+      <div class="filter-section">
+        <div class="filter-title open" onclick="toggleSection(this)">
+          Matière
+          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="filter-opts" id="matFilters">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <button class="filter-reset" onclick="resetFilters()">Réinitialiser les filtres</button>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="result-count" id="resultCount">— <span>produits</span></div>
+          <div class="active-filters" id="activeTags"></div>
+        </div>
+        <div class="toolbar-right">
+          <select class="sort-select" id="sortSelect" onchange="applyFilters()">
+            <option value="new">Plus récents</option>
+            <option value="price_asc">Prix croissant</option>
+            <option value="price_desc">Prix décroissant</option>
+            <option value="name">A — Z</option>
+          </select>
+          <div class="view-btns">
+            <button class="view-btn act" id="btnGrid" onclick="setView('grid')" title="Grille">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
+            <button class="view-btn" id="btnList" onclick="setView('list')" title="Liste">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID -->
+      <div id="prodGrid" class="prod-grid">
+        <!-- Loading skeletons -->
         <div class="skeleton">
           <div class="skeleton-img"></div>
           <div class="skeleton-info">
@@ -424,11 +646,27 @@ nav {
             <div class="skeleton-line"></div>
             <div class="skeleton-line short"></div>
           </div>
-        </div>`).join('')}
+        </div>
+        <div class="skeleton">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagination" id="pagination"></div>
     </div>
-
-    <div class="pagination" id="pagination"></div>
-
   </div>
 </div>
 
@@ -437,22 +675,64 @@ nav {
 <script>
 /* ── SUPABASE ── */
 const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
-const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndidW53ZnhlY3Z4bmd5cHVlaG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0MTI5NjUsImV4cCI6MjA1MDk4ODk2NX0.b6W3kQJvJTAXPqQVd0eLVq-l2bCq-Y8LGGy7uPL8YYE';
 const { createClient } = supabase;
 const sb = createClient(SB_URL, SB_KEY);
 
 const SCAN_BASE = 'https://tadamhome.fr/scan';
 const PER_PAGE  = 24;
 
+/* ── CATEGORIES ── */
+const CATEGORIES = {
+  'canapes-fauteuils': {
+    label: 'Canapés et fauteuils',
+    subs: [
+      { key: 'canapes', label: 'Canapés', keywords: ['canapé', 'canape', 'sofa'] },
+      { key: 'fauteuils', label: 'Fauteuils', keywords: ['fauteuil'] },
+      { key: 'petits-fauteuils', label: 'Petits fauteuils', keywords: ['petit fauteuil', 'fauteuil petit'] },
+      { key: 'chaises-longues', label: 'Chaises longues', keywords: ['chaise longue', 'meridienne'] }
+    ]
+  },
+  'tables-chaises': {
+    label: 'Tables et chaises',
+    subs: [
+      { key: 'chaises', label: 'Chaises', keywords: ['chaise'] },
+      { key: 'tabourets', label: 'Tabourets', keywords: ['tabouret'] },
+      { key: 'tables', label: 'Tables', keywords: ['table'] },
+      { key: 'tables-basses', label: 'Tables basses', keywords: ['table basse', 'table de salon'] }
+    ]
+  },
+  'rangement': {
+    label: 'Éléments de rangement',
+    subs: [
+      { key: 'bibliotheques', label: 'Bibliothèques', keywords: ['bibliothèque', 'bibliotheque', 'étagère', 'etagere'] },
+      { key: 'ensembles-muraux', label: 'Ensembles muraux', keywords: ['ensemble mural', 'meuble mural'] },
+      { key: 'buffets', label: 'Buffets', keywords: ['buffet', 'bahut'] },
+      { key: 'meubles-tv', label: 'Meubles TV', keywords: ['meuble tv', 'meuble télé', 'banc tv'] }
+    ]
+  },
+  'espace-nuit': {
+    label: 'Espace nuit',
+    subs: [
+      { key: 'lits', label: 'Lits', keywords: ['lit'] },
+      { key: 'tables-chevet', label: 'Tables de chevet', keywords: ['table de chevet', 'chevet'] },
+      { key: 'armoires', label: 'Armoires', keywords: ['armoire'] },
+      { key: 'chiffonniers', label: 'Chiffonniers', keywords: ['chiffonnier', 'commode'] }
+    ]
+  }
+};
+
 /* ── STATE ── */
 let allProducts   = [];
 let filtered      = [];
 let currentCat    = 'all';
+let currentSubcat = null;
 let selectedBrands= new Set();
 let selectedMats  = new Set();
 let currentView   = 'grid';
 let currentPage   = 1;
 let searchQ       = '';
+let isInspirationMode = true;
 
 /* ── AUTH CHECK ── */
 (async () => {
@@ -470,12 +750,109 @@ async function loadProducts() {
     if (error) throw error;
     allProducts = data || [];
     buildSidebarFilters();
-    applyFilters();
+    buildInspirationGrid();
   } catch(e) {
     console.error(e);
     showToast('Erreur de chargement');
-    document.getElementById('prodGrid').innerHTML = `<div class="empty"><div class="empty-ico">◇</div><div class="empty-h">Impossible de charger le catalogue</div><p class="empty-p">Vérifiez votre connexion et réessayez.</p></div>`;
   }
+}
+
+/* ── INSPIRATION GRID ── */
+function buildInspirationGrid() {
+  const grid = document.getElementById('inspirationGrid');
+  
+  // Get featured brands/categories
+  const inspirations = [
+    {
+      title: 'Canapés & Fauteuils',
+      subtitle: 'Collection confort',
+      cat: 'canapes-fauteuils',
+      subcat: null,
+      img: null // Will use first product image
+    },
+    {
+      title: 'Tables & Chaises',
+      subtitle: 'Salle à manger',
+      cat: 'tables-chaises',
+      subcat: null,
+      img: null
+    },
+    {
+      title: 'Rangements',
+      subtitle: 'Organisation élégante',
+      cat: 'rangement',
+      subcat: null,
+      img: null
+    },
+    {
+      title: 'Espace Nuit',
+      subtitle: 'Chambres à coucher',
+      cat: 'espace-nuit',
+      subcat: null,
+      img: null
+    },
+    {
+      title: 'Nouveautés',
+      subtitle: 'Dernières arrivées',
+      cat: 'all',
+      subcat: null,
+      img: null
+    },
+    {
+      title: 'Toutes les marques',
+      subtitle: 'Découvrir le catalogue',
+      cat: 'marques',
+      subcat: null,
+      img: null
+    }
+  ];
+
+  grid.innerHTML = inspirations.map(insp => {
+    const card = `
+      <div class="inspiration-card" onclick="goToCategory('${insp.cat}', ${insp.subcat ? `'${insp.subcat}'` : 'null'})">
+        <img src="${insp.img || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23E4E0D6\' width=\'400\' height=\'300\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Cormorant Garamond, serif\' font-size=\'48\' fill=\'%23B8986A\' opacity=\'.3\'%3E${insp.title}%3C/text%3E%3C/svg%3E'}" 
+             alt="${insp.title}" 
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23E4E0D6\' width=\'400\' height=\'300\'/%3E%3C/svg%3E'"/>
+        <div class="inspiration-card-overlay">
+          <div class="inspiration-card-title">${insp.title}</div>
+          <div class="inspiration-card-subtitle">${insp.subtitle}</div>
+        </div>
+      </div>`;
+    return card;
+  }).join('');
+}
+
+function goToCategory(cat, subcat) {
+  isInspirationMode = false;
+  currentCat = cat;
+  currentSubcat = subcat;
+  
+  // Switch views
+  document.getElementById('inspirationSection').style.display = 'none';
+  document.getElementById('catalogView').style.display = 'grid';
+  
+  // Update category buttons
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
+  const btn = document.querySelector(`.cat-btn[data-cat="${cat}"]`);
+  if (btn) btn.classList.add('act');
+  
+  // Show subcategories if applicable
+  if (cat !== 'all' && cat !== 'marques' && CATEGORIES[cat]) {
+    showSubcategories(cat);
+    if (subcat) {
+      // Highlight the subcat
+      setTimeout(() => {
+        const subcatBtn = document.querySelector(`.subcat-btn[data-subcat="${subcat}"]`);
+        if (subcatBtn) {
+          document.querySelectorAll('.subcat-btn').forEach(b => b.classList.remove('act'));
+          subcatBtn.classList.add('act');
+        }
+      }, 100);
+    }
+  }
+  
+  currentPage = 1;
+  applyFilters();
 }
 
 /* ── SIDEBAR FILTERS ── */
@@ -507,11 +884,74 @@ function buildSidebarFilters() {
 
 /* ── CATEGORY ── */
 function setCategory(cat, el) {
+  if (isInspirationMode) {
+    goToCategory(cat, null);
+    return;
+  }
+  
   currentCat = cat;
+  currentSubcat = null;
   currentPage = 1;
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
   el.classList.add('act');
+  
+  // Show/hide subcategories
+  if (cat !== 'all' && cat !== 'marques' && CATEGORIES[cat]) {
+    showSubcategories(cat);
+  } else {
+    hideSubcategories();
+  }
+  
   applyFilters();
+}
+
+function showSubcategories(cat) {
+  const slider = document.getElementById('subcatSlider');
+  const inner = document.getElementById('subcatSliderInner');
+  
+  const catData = CATEGORIES[cat];
+  if (!catData) return;
+  
+  inner.innerHTML = catData.subs.map(sub => 
+    `<button class="subcat-btn" data-subcat="${sub.key}" onclick="selectSubcategory('${cat}', '${sub.key}')">${sub.label}</button>`
+  ).join('');
+  
+  slider.classList.add('open');
+}
+
+function hideSubcategories() {
+  document.getElementById('subcatSlider').classList.remove('open');
+  document.querySelectorAll('.subcat-btn').forEach(b => b.classList.remove('act'));
+}
+
+function selectSubcategory(cat, subcat) {
+  if (isInspirationMode) {
+    goToCategory(cat, subcat);
+    return;
+  }
+  
+  currentSubcat = subcat;
+  currentPage = 1;
+  document.querySelectorAll('.subcat-btn').forEach(b => b.classList.remove('act'));
+  const btn = document.querySelector(`.subcat-btn[data-subcat="${subcat}"]`);
+  if (btn) btn.classList.add('act');
+  applyFilters();
+}
+
+/* ── BURGER MENU ── */
+function toggleBurger() {
+  const menu = document.getElementById('burgerMenu');
+  const overlay = document.getElementById('burgerOverlay');
+  const btn = document.getElementById('burgerBtn');
+  
+  menu.classList.toggle('open');
+  overlay.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+function toggleBurgerCat(el) {
+  const parent = el.parentElement;
+  parent.classList.toggle('open');
 }
 
 /* ── BRAND FILTER ── */
@@ -535,6 +975,12 @@ function toggleMat(mat, el) {
 /* ── SEARCH ── */
 function handleSearch() {
   searchQ = document.getElementById('searchInput').value.toLowerCase().trim();
+  
+  if (searchQ && isInspirationMode) {
+    // Switch to catalog view when searching
+    goToCategory('all', null);
+  }
+  
   currentPage = 1;
   applyFilters();
 }
@@ -552,11 +998,24 @@ function applyFilters() {
     const mat    = (p.matiere || p.material || '').toLowerCase();
     const price  = p.price || p.prix || 0;
 
-    // Category
-    if (currentCat !== 'all') {
-      const catMap = { sofa: ['sofa','canapé','canape'], fauteuil: ['fauteuil'], chaise: ['chaise'], table: ['table'], luminaire: ['luminaire'], rangement: ['rangement'], lit: ['lit'], autre: ['autre'] };
-      const cats = catMap[currentCat] || [currentCat];
-      if (!cats.some(c => cat.includes(c))) return false;
+    // Category filtering
+    if (currentCat !== 'all' && currentCat !== 'marques') {
+      const catData = CATEGORIES[currentCat];
+      if (catData) {
+        // If subcategory selected, filter by that
+        if (currentSubcat) {
+          const subData = catData.subs.find(s => s.key === currentSubcat);
+          if (subData) {
+            const matches = subData.keywords.some(kw => cat.includes(kw.toLowerCase()) || name.includes(kw.toLowerCase()));
+            if (!matches) return false;
+          }
+        } else {
+          // Filter by any subcategory in this category
+          const allKeywords = catData.subs.flatMap(s => s.keywords);
+          const matches = allKeywords.some(kw => cat.includes(kw.toLowerCase()) || name.includes(kw.toLowerCase()));
+          if (!matches) return false;
+        }
+      }
     }
 
     // Search
@@ -582,7 +1041,7 @@ function applyFilters() {
     if (sort === 'price_asc')  return (a.price||a.prix||0) - (b.price||b.prix||0);
     if (sort === 'price_desc') return (b.price||b.prix||0) - (a.price||a.prix||0);
     if (sort === 'name')       return (a.name||a.nom||'').localeCompare(b.name||b.nom||'');
-    return 0; // newest first (already sorted by Supabase)
+    return 0;
   });
 
   updateResultCount();
@@ -614,11 +1073,17 @@ function renderPage() {
     const mat    = p.matiere  || p.material  || '';
     const price  = p.price    || p.prix;
     const hasGlb = !!(p.model_glb_url);
+    
+    // Get image URL - try multiple possible field names
+    const imgUrl = p.image_url || p.photo_url || p.thumbnail_url || p.img_url || null;
 
     return `
       <div class="prod-card" onclick="goProduct('${p.id}')">
         <div class="prod-card-img">
-          <div class="no-img">
+          ${imgUrl ? 
+            `<img src="${imgUrl}" alt="${name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : 
+            ''}
+          <div class="no-img" style="${imgUrl ? 'display:none' : ''}">
             <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="20" y="70" width="160" height="55" rx="12" fill="#C4B896"/>
               <rect x="20" y="55" width="160" height="22" rx="6" fill="#D4C8A8"/>
@@ -626,7 +1091,6 @@ function renderPage() {
               <rect x="162" y="55" width="18" height="70" rx="4" fill="#B4A888"/>
             </svg>
           </div>
-          ${cat ? `<div class="prod-cat-chip">${cat}</div>` : ''}
           <div class="ar-overlay">
             <a href="${SCAN_BASE}?id=${p.id}" class="ar-overlay-btn" onclick="event.stopPropagation()">
               <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -637,7 +1101,7 @@ function renderPage() {
         <div class="prod-card-info">
           <div class="prod-card-brand">${brand}</div>
           <div class="prod-card-name">${name}</div>
-          <div class="prod-card-meta">${[cat, mat].filter(Boolean).join(' · ')}</div>
+          <div class="prod-card-meta">${[mat].filter(Boolean).join(' · ')}</div>
           <div class="prod-card-footer">
             <div class="prod-card-price">${price ? price.toLocaleString('fr-FR') + ' €' : '—'}</div>
             <div class="prod-card-actions">
@@ -686,9 +1150,52 @@ function updateResultCount() {
 
 function updateActiveTags() {
   const tags = [];
-  if (currentCat !== 'all') tags.push({ label: document.querySelector(`.cat-btn[data-cat="${currentCat}"]`)?.textContent || currentCat, action: () => setCategory('all', document.querySelector('.cat-btn[data-cat="all"]')) });
-  selectedBrands.forEach(b => tags.push({ label: b, action: () => { selectedBrands.delete(b); document.querySelectorAll('.filter-opt').forEach(el => { if(el.textContent.trim().startsWith(b)) el.classList.remove('sel'); }); applyFilters(); } }));
-  if (searchQ) tags.push({ label: `"${searchQ}"`, action: () => { searchQ=''; document.getElementById('searchInput').value=''; applyFilters(); } });
+  if (currentCat !== 'all') {
+    const catLabel = CATEGORIES[currentCat]?.label || currentCat;
+    tags.push({ 
+      label: catLabel, 
+      action: () => {
+        currentCat = 'all';
+        currentSubcat = null;
+        hideSubcategories();
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
+        document.querySelector('.cat-btn[data-cat="all"]').classList.add('act');
+        applyFilters();
+      }
+    });
+  }
+  if (currentSubcat) {
+    const catData = CATEGORIES[currentCat];
+    const subData = catData?.subs.find(s => s.key === currentSubcat);
+    if (subData) {
+      tags.push({ 
+        label: subData.label, 
+        action: () => {
+          currentSubcat = null;
+          document.querySelectorAll('.subcat-btn').forEach(b => b.classList.remove('act'));
+          applyFilters();
+        }
+      });
+    }
+  }
+  selectedBrands.forEach(b => tags.push({ 
+    label: b, 
+    action: () => { 
+      selectedBrands.delete(b); 
+      document.querySelectorAll('.filter-opt').forEach(el => { 
+        if(el.textContent.trim().startsWith(b)) el.classList.remove('sel'); 
+      }); 
+      applyFilters(); 
+    } 
+  }));
+  if (searchQ) tags.push({ 
+    label: `"${searchQ}"`, 
+    action: () => { 
+      searchQ=''; 
+      document.getElementById('searchInput').value=''; 
+      applyFilters(); 
+    } 
+  });
 
   document.getElementById('activeTags').innerHTML = tags.map((t, i) => `
     <div class="filter-tag" onclick="removeTag(${i})">
@@ -704,13 +1211,18 @@ function removeTag(i) {
 }
 
 function resetFilters() {
-  currentCat = 'all'; selectedBrands.clear(); selectedMats.clear(); searchQ = '';
+  currentCat = 'all'; 
+  currentSubcat = null;
+  selectedBrands.clear(); 
+  selectedMats.clear(); 
+  searchQ = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('priceMin').value = '';
   document.getElementById('priceMax').value = '';
   document.querySelectorAll('.filter-opt').forEach(el => el.classList.remove('sel'));
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
   document.querySelector('.cat-btn[data-cat="all"]').classList.add('act');
+  hideSubcategories();
   currentPage = 1;
   applyFilters();
 }
