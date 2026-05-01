@@ -382,6 +382,9 @@ function toggleInfo(){
   const mv = document.getElementById('mv');
   const cta = document.querySelector('.cta-zone');
   const sub = document.getElementById('s-header-sub');
+  const btnContact = document.querySelector('.btn-contact');
+  const addedConfirm = document.getElementById('added-confirm');
+  
   HIDEABLE.forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
@@ -389,15 +392,31 @@ function toggleInfo(){
     else el.classList.remove('hidden');
   });
   if(sub) sub.style.display = infoVisible ? '' : 'none';
+  
   if(!infoVisible){
-    const ctaHeight = cta.offsetHeight + 20;
-    const topbarHeight = 52;
-    const header = document.getElementById('s-header');
-    const colors = document.getElementById('s-colors');
-    const headerH = (header?.offsetHeight||0) + (colors?.offsetHeight||0);
-    const newH = window.innerHeight - topbarHeight - ctaHeight - headerH - 12;
-    mv.style.height = Math.max(newH, 200) + 'px';
-    mv.style.maxHeight = 'none';
+    // Masquer les boutons supplémentaires en mode focus 3D
+    if(btnContact) btnContact.style.display = 'none';
+    if(addedConfirm) addedConfirm.style.display = 'none';
+    
+    // Attendre que les éléments soient cachés pour recalculer
+    setTimeout(() => {
+      const topbarHeight = 52;
+      const header = document.getElementById('s-header');
+      const colors = document.getElementById('s-colors');
+      const headerH = (header?.offsetHeight||0);
+      const colorsH = (colors?.offsetHeight||0);
+      
+      // Calculer la hauteur de la CTA zone une fois les boutons cachés
+      const ctaHeight = cta.offsetHeight;
+      
+      // Hauteur disponible pour le viewer = hauteur fenêtre - topbar - header - coloris - CTA
+      const availableHeight = window.innerHeight - topbarHeight - headerH - colorsH - ctaHeight;
+      
+      // Appliquer la nouvelle hauteur (minimum 200px)
+      mv.style.height = Math.max(availableHeight, 200) + 'px';
+      mv.style.maxHeight = 'none';
+    }, 10);
+    
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
     cta.style.left = '0';
@@ -410,6 +429,15 @@ function toggleInfo(){
     label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   } else {
+    // Restaurer les boutons
+    if(btnContact) btnContact.style.display = '';
+    // Pour addedConfirm, on restaure seulement si le bouton a la classe "show"
+    if(addedConfirm && addedConfirm.classList.contains('show')) {
+      addedConfirm.style.display = '';
+    } else if(addedConfirm) {
+      addedConfirm.style.display = 'none';
+    }
+    
     mv.style.height = '260px';
     mv.style.maxHeight = '';
     cta.style.position = '';cta.style.bottom = '';cta.style.left = '';
