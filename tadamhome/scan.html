@@ -384,6 +384,9 @@ function toggleInfo(){
   const sub = document.getElementById('s-header-sub');
   const btnContact = document.querySelector('.btn-contact');
   const addedConfirm = document.getElementById('added-confirm');
+  const priceEl = document.getElementById('prod-price');
+  const priceNote = document.getElementById('prod-price-note');
+  const colorSection = document.getElementById('s-colors');
   
   HIDEABLE.forEach(id=>{
     const el = document.getElementById(id);
@@ -398,33 +401,37 @@ function toggleInfo(){
     if(btnContact) btnContact.style.display = 'none';
     if(addedConfirm) addedConfirm.style.display = 'none';
     
-    // Attendre que les éléments soient cachés pour recalculer
-    setTimeout(() => {
-      const topbarHeight = 52;
-      const header = document.getElementById('s-header');
-      const colors = document.getElementById('s-colors');
-      const headerH = (header?.offsetHeight||0);
-      const colorsH = (colors?.offsetHeight||0);
-      
-      // Calculer la hauteur de la CTA zone une fois les boutons cachés
-      const ctaHeight = cta.offsetHeight;
-      
-      // Hauteur disponible pour le viewer = hauteur fenêtre - topbar - header - coloris - CTA
-      const availableHeight = window.innerHeight - topbarHeight - headerH - colorsH - ctaHeight;
-      
-      // Appliquer la nouvelle hauteur (minimum 200px)
-      mv.style.height = Math.max(availableHeight, 200) + 'px';
-      mv.style.maxHeight = 'none';
-    }, 10);
+    // Réduire la taille du prix pour gagner de l'espace
+    if(priceEl) {
+      priceEl.style.fontSize = '24px';
+      priceEl.style.marginBottom = '0';
+    }
+    if(priceNote) {
+      priceNote.style.fontSize = '10px';
+    }
     
+    // Ajouter un margin-bottom aux coloris pour qu'ils ne soient pas cachés par la CTA
+    if(colorSection) {
+      colorSection.style.marginBottom = '8px';
+      colorSection.style.paddingBottom = '12px';
+    }
+    
+    // Réduire le padding de la CTA zone en mode masqué
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
     cta.style.left = '0';
     cta.style.right = '0';
     cta.style.background = 'var(--bg)';
     cta.style.borderTop = '1px solid var(--border)';
-    cta.style.padding = '14px 18px 24px';
+    cta.style.padding = '10px 18px 20px'; // Réduit de 14px à 10px en haut
     cta.style.zIndex = '20';
+    
+    // Réduire l'espace du price-row
+    const priceRow = document.querySelector('.price-row');
+    if(priceRow) {
+      priceRow.style.marginBottom = '8px'; // Réduit de 12px à 8px
+    }
+    
     btn.classList.add('hidden-mode');
     label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
@@ -438,8 +445,27 @@ function toggleInfo(){
       addedConfirm.style.display = 'none';
     }
     
-    mv.style.height = '260px';
-    mv.style.maxHeight = '';
+    // Restaurer la taille du prix
+    if(priceEl) {
+      priceEl.style.fontSize = '';
+      priceEl.style.marginBottom = '';
+    }
+    if(priceNote) {
+      priceNote.style.fontSize = '';
+    }
+    
+    // Restaurer les marges des coloris
+    if(colorSection) {
+      colorSection.style.marginBottom = '';
+      colorSection.style.paddingBottom = '';
+    }
+    
+    // Restaurer le price-row
+    const priceRow = document.querySelector('.price-row');
+    if(priceRow) {
+      priceRow.style.marginBottom = '';
+    }
+    
     cta.style.position = '';cta.style.bottom = '';cta.style.left = '';
     cta.style.right = '';cta.style.background = '';cta.style.borderTop = '';
     cta.style.padding = '';cta.style.zIndex = '';
