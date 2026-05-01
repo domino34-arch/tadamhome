@@ -410,27 +410,57 @@ function toggleInfo(){
       priceNote.style.fontSize = '10px';
     }
     
-    // Ajouter un margin-bottom aux coloris pour qu'ils ne soient pas cachés par la CTA
+    // Positionner les coloris en fixed juste au-dessus de la CTA
     if(colorSection) {
-      colorSection.style.marginBottom = '8px';
-      colorSection.style.paddingBottom = '12px';
+      colorSection.style.position = 'fixed';
+      colorSection.style.left = '0';
+      colorSection.style.right = '0';
+      colorSection.style.background = 'var(--bg)';
+      colorSection.style.borderTop = '1px solid var(--border)';
+      colorSection.style.zIndex = '19';
+      colorSection.style.margin = '0';
+      colorSection.style.padding = '12px 18px 10px';
     }
     
-    // Réduire le padding de la CTA zone en mode masqué
+    // Fixer la CTA en bas
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
     cta.style.left = '0';
     cta.style.right = '0';
     cta.style.background = 'var(--bg)';
-    cta.style.borderTop = '1px solid var(--border)';
-    cta.style.padding = '10px 18px 20px'; // Réduit de 14px à 10px en haut
+    cta.style.borderTop = 'none'; // Pas de bordure car les coloris ont déjà une bordure
+    cta.style.padding = '10px 18px 20px';
     cta.style.zIndex = '20';
     
     // Réduire l'espace du price-row
     const priceRow = document.querySelector('.price-row');
     if(priceRow) {
-      priceRow.style.marginBottom = '8px'; // Réduit de 12px à 8px
+      priceRow.style.marginBottom = '8px';
     }
+    
+    // Calculer et appliquer la nouvelle hauteur du viewer
+    setTimeout(() => {
+      const topbarHeight = 52;
+      const header = document.getElementById('s-header');
+      const headerH = (header?.offsetHeight || 0);
+      
+      // Hauteur de la section coloris + CTA combinées
+      const colorH = colorSection ? colorSection.offsetHeight : 0;
+      const ctaH = cta.offsetHeight;
+      const bottomZoneH = colorH + ctaH;
+      
+      // Hauteur disponible pour le viewer = tout sauf topbar + header + zone du bas
+      const availableHeight = window.innerHeight - topbarHeight - headerH - bottomZoneH - 4;
+      
+      // Appliquer la nouvelle hauteur (minimum 200px)
+      mv.style.height = Math.max(availableHeight, 200) + 'px';
+      mv.style.maxHeight = 'none';
+      
+      // Positionner les coloris juste au-dessus de la CTA
+      if(colorSection) {
+        colorSection.style.bottom = ctaH + 'px';
+      }
+    }, 10);
     
     btn.classList.add('hidden-mode');
     label.textContent = 'Afficher les informations';
@@ -438,7 +468,6 @@ function toggleInfo(){
   } else {
     // Restaurer les boutons
     if(btnContact) btnContact.style.display = '';
-    // Pour addedConfirm, on restaure seulement si le bouton a la classe "show"
     if(addedConfirm && addedConfirm.classList.contains('show')) {
       addedConfirm.style.display = '';
     } else if(addedConfirm) {
@@ -454,10 +483,17 @@ function toggleInfo(){
       priceNote.style.fontSize = '';
     }
     
-    // Restaurer les marges des coloris
+    // Restaurer les coloris à leur position normale
     if(colorSection) {
-      colorSection.style.marginBottom = '';
-      colorSection.style.paddingBottom = '';
+      colorSection.style.position = '';
+      colorSection.style.left = '';
+      colorSection.style.right = '';
+      colorSection.style.bottom = '';
+      colorSection.style.background = '';
+      colorSection.style.borderTop = '';
+      colorSection.style.zIndex = '';
+      colorSection.style.margin = '';
+      colorSection.style.padding = '';
     }
     
     // Restaurer le price-row
@@ -466,9 +502,20 @@ function toggleInfo(){
       priceRow.style.marginBottom = '';
     }
     
-    cta.style.position = '';cta.style.bottom = '';cta.style.left = '';
-    cta.style.right = '';cta.style.background = '';cta.style.borderTop = '';
-    cta.style.padding = '';cta.style.zIndex = '';
+    // Restaurer la hauteur du viewer
+    mv.style.height = '260px';
+    mv.style.maxHeight = '';
+    
+    // Restaurer la CTA
+    cta.style.position = '';
+    cta.style.bottom = '';
+    cta.style.left = '';
+    cta.style.right = '';
+    cta.style.background = '';
+    cta.style.borderTop = '';
+    cta.style.padding = '';
+    cta.style.zIndex = '';
+    
     btn.classList.remove('hidden-mode');
     label.textContent = 'Masquer les informations';
     icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
