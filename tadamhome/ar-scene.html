@@ -956,7 +956,7 @@ const FEEDBACK = (() => {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(820, now);
     oscGain.gain.setValueAtTime(0.0001, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.18, now + 0.001); /* fast attack */
+    oscGain.gain.exponentialRampToValueAtTime(0.40, now + 0.001); /* fast attack */
     oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.014); /* fast release */
     osc.connect(oscGain);
 
@@ -969,7 +969,7 @@ const FEEDBACK = (() => {
 
     /* Master attenuation */
     const out = ac.createGain();
-    out.gain.value = 0.75;
+    out.gain.value = 0.60;
     lp.connect(out);
     out.connect(ac.destination);
 
@@ -981,7 +981,7 @@ const FEEDBACK = (() => {
     /* Web Vibration API — works on Android. iOS Safari ignores it silently
        (no error). 5ms = the lightest tap the API can request, matching the
        new pure-tone tick's brevity. */
-    try { if (navigator.vibrate) navigator.vibrate(20); } catch(_){}
+    try { if (navigator.vibrate) navigator.vibrate(45); } catch(_){}
   }
 
   /* Two cue flavours:
