@@ -529,16 +529,17 @@ function openStudio(){
     return;
   }
 
-  // Préparer les données
+  // Préparer les données - SEULEMENT le produit actuel avec le coloris sélectionné
   const sceneData = [{
-    id: prod.id, name: prod.name,
-    glb: prod.model_url, usdz: prod.usdz_url||null,
-    category: prod.category||'meuble', dimensions: prod.dimensions||null
+    id: prod.id, 
+    name: prod.name,
+    // Utiliser le GLB du coloris sélectionné si disponible, sinon le modèle de base
+    glb: col && col.glb ? col.glb : prod.model_url,
+    usdz: col && col.usdz ? col.usdz : (prod.usdz_url || null),
+    category: prod.category || 'meuble', 
+    dimensions: prod.dimensions || null
   }];
-  getW().forEach(item => {
-    if(item.id !== prod.id && item.model_url)
-      sceneData.push({id:item.id,name:item.name,glb:item.model_url,category:'meuble',dimensions:null});
-  });
+  
   localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneData));
   localStorage.setItem('tadam_studio_entry', JSON.stringify({name:prod.name,t:Date.now()}));
 
