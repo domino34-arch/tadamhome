@@ -179,9 +179,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   position:absolute;top:0;left:0;
   background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
   color:rgba(255,255,255,.94);
-  font-family:var(--sans);font-size:10px;font-weight:400;
-  letter-spacing:.08em;
-  padding:4px 8px;
+  font-family:var(--sans);font-size:9px;font-weight:400;
+  letter-spacing:.06em;
+  padding:3px 7px;
   border-left:1.5px solid var(--accent);
   pointer-events:none;
   white-space:nowrap;
@@ -194,14 +194,14 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .manip-label.angle{
   border-left:none;
   border-bottom:1.5px solid var(--accent);
-  padding:4px 9px;
+  padding:3px 8px;
 }
 .manip-label.dist{
   border-left:none;
   border-top:1.5px solid var(--accent);
-  background:rgba(28,27,24,.78);
-  padding:3px 8px;
-  font-size:9.5px;
+  background:rgba(28,27,24,.75);
+  padding:2px 7px;
+  font-size:8.5px;
 }
 
 /* LOADER + TOAST */
@@ -779,7 +779,8 @@ const HELPER = (() => {
 
     /* Distance to nearest other object — shown during drag in ALL view modes.
        This is what an architect needs for placement: "I have 30cm between this
-       chair and that table." */
+       chair and that table." 
+       MODIFICATION: Positionner le label en dehors du modèle pour ne pas gêner la vue */
     if (mode === 'drag' && placed.length > 1) {
       const nn = nearestNeighbour(info.box);
       if (nn) {
@@ -792,11 +793,13 @@ const HELPER = (() => {
         distLine.computeLineDistances();
         distLine.visible = true;
 
-        /* Anchor the distance label to the midpoint, projected to screen */
-        const mid = nn.a.clone().add(nn.b).multiplyScalar(0.5);
-        mid.y = Math.max(mid.y, 0.005);
-        const sc = project(mid);
-        dLabel.style.transform = 'translate(' + (sc.x - 30) + 'px,' + (sc.y - 28) + 'px)';
+        /* MODIFICATION: Positionner le label au-dessus et à droite du modèle 
+           pour qu'il ne cache pas le modèle pendant la manipulation */
+        const topRight = info.box.max.clone();
+        topRight.y = info.box.max.y + 0.15; // Au-dessus du modèle
+        topRight.x += 0.1; // Décalé à droite
+        const sc = project(topRight);
+        dLabel.style.transform = 'translate(' + (sc.x + 5) + 'px,' + (sc.y - 35) + 'px)';
         if (!dLabel.classList.contains('on')) dLabel.classList.add('on');
       } else {
         if (dLabel.classList.contains('on')) dLabel.classList.remove('on');
@@ -982,7 +985,7 @@ const FEEDBACK = (() => {
     /* Web Vibration API — works on Android. iOS Safari ignores it silently
        (no error). 5ms = the lightest tap the API can request, matching the
        new pure-tone tick's brevity. */
-    try { if (navigator.vibrate) navigator.vibrate(45); } catch(_){}
+    try { if (navigator.vibrate) navigator.vibrate(18); } catch(_){}
   }
 
   /* Two cue flavours:
@@ -1940,12 +1943,28 @@ async function loadModel(item) {
 }
 
 /* ========================================
-   EXPORT AR — iOS (USDZ) + Android (GLB)
+   EXPORT AR — iOS (USDZ) + Android (GLB via Web Share)
    ========================================
    Détecte la plateforme et exporte dans le bon format :
    - iOS : USDZ via AR Quick Look
-   - Android : GLB via Google Scene Viewer
+   - Android : GLB via Web Share API pour Scene Viewer
    */
+
+/* Fonction helper pour télécharger un fichier GLB */
+function downloadGLB(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'TadamHome-scene-' + Date.now() + '.glb';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 5000);
+  toast('Téléchargez le fichier, puis ouvrez-le avec Scene Viewer', 'ok');
+}
+
 window.doExportAR = async function() {
   if (!placed.length) { toast('Ajoutez des meubles d\'abord', 'err'); return; }
   
@@ -2020,7 +2039,7 @@ window.doExportAR = async function() {
       toast('Ouverture AR Quick Look...', 'ok');
       
     } else if (isAndroid) {
-      // Android : Export GLB et lancer Scene Viewer
+      // Android : Export GLB et utiliser Web Share API pour Scene Viewer
       const exporter = new GLTFExporter();
       exporter.parse(
         grp,
@@ -2028,20 +2047,29 @@ window.doExportAR = async function() {
           spin(false);
           
           const blob = new Blob([result], { type: 'model/gltf-binary' });
-          const url = URL.createObjectURL(blob);
+          const file = new File([blob], 'TadamHome-scene.glb', { type: 'model/gltf-binary' });
           
-          // Construire l'URL Scene Viewer de Google
-          const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(url)}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent('https://arvr.google.com/')};end;`;
-          
-          // Ouvrir Scene Viewer
-          window.location.href = sceneViewerUrl;
-          
-          toast('Lancement de Scene Viewer...', 'ok');
-          
-          // Nettoyer après un délai
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-          }, 10000);
+          // Utiliser Web Share API si disponible
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Scene AR TadamHome',
+                text: 'Voir en AR'
+              });
+              toast('Fichier partagé avec Scene Viewer', 'ok');
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                console.error('Erreur Web Share:', err);
+                // Fallback: télécharger le fichier
+                downloadGLB(blob);
+              }
+            }
+          } else {
+            // Fallback: télécharger le fichier GLB
+            toast('Téléchargement du fichier GLB...', 'ok');
+            downloadGLB(blob);
+          }
         },
         function(error) {
           spin(false);
@@ -2060,19 +2088,7 @@ window.doExportAR = async function() {
           spin(false);
           
           const blob = new Blob([result], { type: 'model/gltf-binary' });
-          const url = URL.createObjectURL(blob);
-          
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'TadamHome-scene-' + Date.now() + '.glb';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            if (a.parentNode) a.parentNode.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 5000);
-          
-          toast('Fichier GLB telecharge', 'ok');
+          downloadGLB(blob);
         },
         function(error) {
           spin(false);
@@ -2253,7 +2269,7 @@ window.openScenes = function() {
   document.getElementById('scnOv').classList.add('open');
 };
 window.closeScenes = function() {
-  document.getElementById('scnOv').classList.remove('open');
+  document.getElementById('scnOv').classList.remove('on');
 };
 
 window.saveScene = function() {
