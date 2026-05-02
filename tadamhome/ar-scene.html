@@ -1956,7 +1956,7 @@ window.doExportAR = async function() {
           console.error('[AR Export GLB] failed:', error);
           toast('Erreur export GLB : ' + (error.message || 'inconnu'), 'err');
         },
-        { binary: true }
+        { binary: true, maxTextureSize: 1024, forcePowerOfTwoTextures: false, embedImages: true, truncateDrawRange: true }
       );
 
     } else {
@@ -1975,7 +1975,7 @@ window.doExportAR = async function() {
           console.error('[AR Export GLB] failed:', error);
           toast('Erreur: ' + (error.message || 'echec export'), 'err');
         },
-        { binary: true }
+        { binary: true, maxTextureSize: 1024, forcePowerOfTwoTextures: false, embedImages: true, truncateDrawRange: true }
       );
     }
 
