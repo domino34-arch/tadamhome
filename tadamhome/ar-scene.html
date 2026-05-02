@@ -1885,84 +1885,47 @@ window.doExportAR = async function() {
       }, 8000);
       toast('Ouverture AR Quick Look...', 'ok');
 
-    } else if (isAndroid) {
-      // Android : Export GLB → Upload Supabase → model-viewer.activateAR()
-      // Utilise la même méthode que scan.html (qui fonctionne)
-      const exporter = new GLTFExporter();
-      exporter.parse(
-        grp,
-        async function(result) {
-          try {
-            const blob = new Blob([result], { type: 'model/gltf-binary' });
-            const fileName = 'ar-scene-' + Date.now() + '-' + Math.floor(Math.random() * 1000) + '.glb';
-
-            spin(true, 'Téléversement vers AR...');
-
-            // 1. Upload vers Supabase Storage (bucket public "ar-scenes")
-            const { error: upErr } = await sb.storage
-              .from('ar-scenes')
-              .upload(fileName, blob, {
-                contentType: 'model/gltf-binary',
-                cacheControl: '3600',
-                upsert: false
-              });
-            if (upErr) throw new Error('Upload échoué : ' + upErr.message);
-
-            // 2. Récupère l'URL publique HTTPS
-            const { data: pub } = sb.storage
-              .from('ar-scenes')
-              .getPublicUrl(fileName);
-            if (!pub || !pub.publicUrl) throw new Error('URL publique introuvable');
-
-            const glbUrl = pub.publicUrl;
-
-            spin(false);
-            toast('Ouverture de Scene Viewer...', 'ok');
-
-            // 3. Crée un model-viewer invisible et lance AR (même méthode que scan.html)
-            let mv = document.getElementById('ar-temp-viewer');
-            if (!mv) {
-              mv = document.createElement('model-viewer');
-              mv.id = 'ar-temp-viewer';
-              mv.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none';
-              mv.setAttribute('ar', '');
-              mv.setAttribute('ar-modes', 'scene-viewer');
-              mv.setAttribute('ar-scale', 'fixed');
-              document.body.appendChild(mv);
-            }
-
-            // 4. Charge le modèle et lance AR
-            mv.setAttribute('src', glbUrl);
-            
-            // Attendre que le modèle soit chargé avant de lancer AR
-            const launchAR = () => {
-              if (mv.canActivateAR) {
-                mv.activateAR();
-              } else {
-                toast('ARCore non disponible', 'err');
-              }
-            };
-
-            if (mv.loaded) {
-              launchAR();
-            } else {
-              mv.addEventListener('load', launchAR, { once: true });
-            }
-
-          } catch (err) {
-            spin(false);
-            console.error('[AR Android]', err);
-            toast('Erreur AR : ' + (err.message || 'inconnu'), 'err');
-          }
-        },
-        function(error) {
-          spin(false);
-          console.error('[AR Export GLB] failed:', error);
-          toast('Erreur export GLB : ' + (error.message || 'inconnu'), 'err');
-        },
-        { binary: true }
-      );
-
+   } else if (isAndroid) {
+  // Android : model-viewer.activateAR() (même méthode que scan.html)
+  const exporter = new GLTFExporter();
+  exporter.parse(grp, async function(result) {
+    try {
+      const blob = new Blob([result], { type: 'model/gltf-binary' });
+      const fileName = 'ar-scene-' + Date.now() + '-' + Math.floor(Math.random() * 1000) + '.glb';
+      
+      spin(true, 'Téléversement vers AR...');
+      
+      const { error: upErr } = await sb.storage.from('ar-scenes').upload(fileName, blob, {
+        contentType: 'model/gltf-binary', cacheControl: '3600', upsert: false
+      });
+      if (upErr) throw new Error('Upload échoué : ' + upErr.message);
+      
+      const { data: pub } = sb.storage.from('ar-scenes').getPublicUrl(fileName);
+      if (!pub || !pub.publicUrl) throw new Error('URL publique introuvable');
+      
+      spin(false);
+      toast('Ouverture de Scene Viewer...', 'ok');
+      
+      let mv = document.getElementById('ar-temp-viewer');
+      if (!mv) {
+        mv = document.createElement('model-viewer');
+        mv.id = 'ar-temp-viewer';
+        mv.style.cssText = 'position:fixed;top:-9999px;width:1px;height:1px';
+        mv.setAttribute('ar', '');
+        mv.setAttribute('ar-modes', 'scene-viewer');
+        document.body.appendChild(mv);
+      }
+      
+      mv.setAttribute('src', pub.publicUrl);
+      const launchAR = () => { if (mv.canActivateAR) mv.activateAR(); };
+      if (mv.loaded) launchAR(); else mv.addEventListener('load', launchAR, { once: true });
+      
+    } catch (err) {
+      spin(false);
+      toast('Erreur AR : ' + (err.message || 'inconnu'), 'err');
+    }
+  }, null, { binary: true });
+} else {
     } else {
       // Desktop / autre : téléchargement GLB
       const exporter = new GLTFExporter();
