@@ -1920,27 +1920,31 @@ window.doExportAR = async function() {
 
             spin(false);
 
-toast('Ouverture de Scene Viewer...', 'ok');
-
-            // 3. Lance Scene Viewer via URL HTTPS standard
-            //    Chrome Android la convertit automatiquement en intent vers Scene Viewer
-            //    mode=ar_preferred = AR avec échelle réelle si dispo, sinon vue 3D
+            // 3. Affiche un overlay avec un bouton AR à toucher
+            //    Indispensable car le user gesture initial est perdu après l'await upload
+            //    Le clic utilisateur sur le lien <a> préserve un user gesture frais
             const sceneViewerUrl =
               'https://arvr.google.com/scene-viewer/1.0' +
               '?file=' + encodeURIComponent(glbUrl) +
               '&mode=ar_preferred' +
-              '&title=' + encodeURIComponent('Scène TadamHome') +
-              '&resizable=false' +
-              '&link=' + encodeURIComponent(window.location.href);
+              '&title=' + encodeURIComponent('Scene TadamHome');
 
-            const a = document.createElement('a');
-            a.href = sceneViewerUrl;
-            a.target = '_blank';
-            a.rel = 'noopener';
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 2000);
+            const arOverlay = document.createElement('div');
+            arOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(28,27,24,.94);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;animation:fadeIn .3s ease';
+            arOverlay.innerHTML =
+              '<div style="font-family:Cormorant Garamond,serif;font-size:26px;color:#fff;text-align:center;font-weight:300">Scene prete</div>' +
+              '<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);text-align:center">Touchez le bouton pour lancer la realite augmentee</div>' +
+              '<a id="ar-launch-btn" href="' + sceneViewerUrl + '" style="display:flex;align-items:center;gap:12px;background:#B8986A;color:#fff;padding:18px 36px;text-decoration:none;font-family:Outfit,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;box-shadow:0 4px 20px rgba(184,152,106,.4)">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>' +
+                'Lancer l\'AR' +
+              '</a>' +
+              '<button id="ar-cancel-btn" style="background:none;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.7);padding:10px 24px;font-family:Outfit,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer">Annuler</button>';
+            document.body.appendChild(arOverlay);
+
+            arOverlay.querySelector('#ar-cancel-btn').onclick = () => arOverlay.remove();
+            arOverlay.querySelector('#ar-launch-btn').onclick = () => {
+              setTimeout(() => arOverlay.remove(), 1000);
+            };
           } catch (err) {
             spin(false);
             console.error('[AR Android]', err);
