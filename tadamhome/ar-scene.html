@@ -1922,28 +1922,21 @@ window.doExportAR = async function() {
 
 toast('Ouverture de Scene Viewer...', 'ok');
 
-            // 3. Lance Scene Viewer via intent URL avec lien <a> cliqué
-            //    (préserve le user gesture, contrairement à activateAR() après await)
-            //    mode=ar_only force l'AR (échelle réelle, pas vue 3D miniature)
+            // 3. Lance Scene Viewer via URL HTTPS standard
+            //    Chrome Android la convertit automatiquement en intent vers Scene Viewer
+            //    mode=ar_preferred = AR avec échelle réelle si dispo, sinon vue 3D
             const sceneViewerUrl =
               'https://arvr.google.com/scene-viewer/1.0' +
               '?file=' + encodeURIComponent(glbUrl) +
-              '&mode=ar_only' +
-              '&title=' + encodeURIComponent('Scène TadamHome');
-
-            const intentUrl =
-              'intent://arvr.google.com/scene-viewer/1.0' +
-              '?file=' + encodeURIComponent(glbUrl) +
-              '&mode=ar_only' +
+              '&mode=ar_preferred' +
               '&title=' + encodeURIComponent('Scène TadamHome') +
-              '#Intent;scheme=https' +
-              ';package=com.google.android.googlequicksearchbox' +
-              ';action=android.intent.action.VIEW' +
-              ';S.browser_fallback_url=' + encodeURIComponent(sceneViewerUrl) +
-              ';end;';
+              '&resizable=false' +
+              '&link=' + encodeURIComponent(window.location.href);
 
             const a = document.createElement('a');
-            a.href = intentUrl;
+            a.href = sceneViewerUrl;
+            a.target = '_blank';
+            a.rel = 'noopener';
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
