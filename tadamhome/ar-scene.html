@@ -371,6 +371,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 
 /* SUPABASE */
@@ -1318,6 +1319,7 @@ canvas.addEventListener('webglcontextrestored', () => { console.log('WebGL conte
 
 /* STATE */
 const gltfLoader = new GLTFLoader();
+const gltfExporter = new GLTFExporter();
 const usdzEx     = new USDZExporter();
 const raycaster  = new THREE.Raycaster();
 let products   = [];
@@ -1938,21 +1940,23 @@ async function loadModel(item) {
 }
 
 /* ========================================
-   EXPORT USDZ — fully isolated deep clone
+   EXPORT AR — iOS (USDZ) + Android (GLB)
    ========================================
-   Bug fixed: previously shallow-cloned materials shared textures with the
-   live scene; modifying their needsUpdate / colorSpace at export time was
-   triggering re-uploads that occasionally lost the GPU-side scene when many
-   models were present. We now build a self-contained group with cloned
-   materials, unique mesh names (USD requires unique paths) and never touch
-   the source scene. */
+   Détecte la plateforme et exporte dans le bon format :
+   - iOS : USDZ via AR Quick Look
+   - Android : GLB via Google Scene Viewer
+   */
 window.doExportAR = async function() {
   if (!placed.length) { toast('Ajoutez des meubles d\'abord', 'err'); return; }
-  spin(true, 'Generation USDZ (' + placed.length + ' modeles)...');
+  
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  
+  spin(true, 'Generation AR (' + placed.length + ' modeles)...');
 
   const grp = new THREE.Group();
   grp.name = 'TadamHomeScene';
-  /* Track cloned materials so we can dispose them after export */
   const clonedMats = [];
 
   try {
@@ -1965,7 +1969,6 @@ window.doExportAR = async function() {
 
       let meshIdx = 0;
       cl.traverse((c) => {
-        /* Make every node name unique inside the export group — USD hates duplicates */
         if (c.name) {
           c.name = 'o' + idx + '_' + sanitize(c.name);
         } else {
@@ -1973,12 +1976,10 @@ window.doExportAR = async function() {
         }
         if (!c.isMesh) return;
         meshIdx++;
-        /* Skip empty meshes that would crash the exporter */
         if (!c.geometry || !c.material) {
           if (c.parent) c.parent.remove(c);
           return;
         }
-        /* Clone material(s) so the live scene is never modified */
         if (Array.isArray(c.material)) {
           c.material = c.material.map((m) => {
             const cm = m.clone();
@@ -1995,20 +1996,17 @@ window.doExportAR = async function() {
 
     grp.updateMatrixWorld(true);
 
-    const buf = await usdzEx.parse(grp, { maxTextureSize: 1024 });
-
-    spin(false);
-
-    const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
-    const url  = URL.createObjectURL(blob);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-
     if (isIOS) {
+      // iOS : Export USDZ
+      const buf = await usdzEx.parse(grp, { maxTextureSize: 1024 });
+      spin(false);
+
+      const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
+      const url  = URL.createObjectURL(blob);
+
       const a = document.createElement('a');
       a.setAttribute('rel', 'ar');
       a.href = url;
-      /* iOS requires an <img> child to trigger AR Quick Look */
       const img = document.createElement('img');
       img.style.display = 'none';
       a.appendChild(img);
@@ -2020,24 +2018,76 @@ window.doExportAR = async function() {
         URL.revokeObjectURL(url);
       }, 8000);
       toast('Ouverture AR Quick Look...', 'ok');
+      
+    } else if (isAndroid) {
+      // Android : Export GLB et lancer Scene Viewer
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        grp,
+        async function(result) {
+          spin(false);
+          
+          const blob = new Blob([result], { type: 'model/gltf-binary' });
+          const url = URL.createObjectURL(blob);
+          
+          // Construire l'URL Scene Viewer de Google
+          const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(url)}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent('https://arvr.google.com/')};end;`;
+          
+          // Ouvrir Scene Viewer
+          window.location.href = sceneViewerUrl;
+          
+          toast('Lancement de Scene Viewer...', 'ok');
+          
+          // Nettoyer après un délai
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 10000);
+        },
+        function(error) {
+          spin(false);
+          console.error('[AR Export GLB] failed:', error);
+          toast('Erreur AR: ' + (error.message || 'echec export GLB'), 'err');
+        },
+        { binary: true }
+      );
+      
     } else {
-      const a2 = document.createElement('a');
-      a2.href = url;
-      a2.download = 'TadamHome-scene-' + Date.now() + '.usdz';
-      document.body.appendChild(a2);
-      a2.click();
-      setTimeout(() => {
-        if (a2.parentNode) a2.parentNode.removeChild(a2);
-        URL.revokeObjectURL(url);
-      }, 5000);
-      toast('Fichier USDZ telecharge', 'ok');
+      // Navigateur desktop ou autre : télécharger GLB
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        grp,
+        function(result) {
+          spin(false);
+          
+          const blob = new Blob([result], { type: 'model/gltf-binary' });
+          const url = URL.createObjectURL(blob);
+          
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'TadamHome-scene-' + Date.now() + '.glb';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            if (a.parentNode) a.parentNode.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 5000);
+          
+          toast('Fichier GLB telecharge', 'ok');
+        },
+        function(error) {
+          spin(false);
+          console.error('[AR Export GLB] failed:', error);
+          toast('Erreur: ' + (error.message || 'echec export'), 'err');
+        },
+        { binary: true }
+      );
     }
+    
   } catch(err) {
     spin(false);
     console.error('[AR Export] failed:', err);
     toast('Erreur AR: ' + (err.message || 'echec export'), 'err');
   } finally {
-    /* Dispose only the cloned materials — keeps live scene intact */
     clonedMats.forEach((m) => { try { m.dispose(); } catch(_){} });
   }
 };
