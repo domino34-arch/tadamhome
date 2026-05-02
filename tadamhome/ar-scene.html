@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>TadamHome - Studio AR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1885,9 +1886,8 @@ window.doExportAR = async function() {
       toast('Ouverture AR Quick Look...', 'ok');
 
     } else if (isAndroid) {
-      // Android : Export GLB → Upload Supabase Storage → Scene Viewer Intent.
-      // Scene Viewer requiert une URL HTTPS publique : on uploade dans le
-      // bucket public "ar-scenes" puis on lance l'intent ARCore.
+      // Android : Export GLB → Upload Supabase → model-viewer.activateAR()
+      // Utilise la même méthode que scan.html (qui fonctionne)
       const exporter = new GLTFExporter();
       exporter.parse(
         grp,
@@ -1915,27 +1915,40 @@ window.doExportAR = async function() {
             if (!pub || !pub.publicUrl) throw new Error('URL publique introuvable');
 
             const glbUrl = pub.publicUrl;
-            const fallbackUrl = window.location.href;
 
             spin(false);
-
-            // 3. Construit l'intent URL Scene Viewer
-            //    mode=ar_preferred : ouvre en AR si ARCore dispo, sinon vue 3D
-            const intentUrl =
-              'intent://arvr.google.com/scene-viewer/1.0' +
-              '?file=' + encodeURIComponent(glbUrl) +
-              '&mode=ar_preferred' +
-              '&title=' + encodeURIComponent('Scène TadamHome') +
-              '#Intent;scheme=https' +
-              ';package=com.google.ar.core' +
-              ';action=android.intent.action.VIEW' +
-              ';S.browser_fallback_url=' + encodeURIComponent(fallbackUrl) +
-              ';end;';
-
             toast('Ouverture de Scene Viewer...', 'ok');
 
-            // 4. Lance Scene Viewer
-            window.location.href = intentUrl;
+            // 3. Crée un model-viewer invisible et lance AR (même méthode que scan.html)
+            let mv = document.getElementById('ar-temp-viewer');
+            if (!mv) {
+              mv = document.createElement('model-viewer');
+              mv.id = 'ar-temp-viewer';
+              mv.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none';
+              mv.setAttribute('ar', '');
+              mv.setAttribute('ar-modes', 'scene-viewer');
+              mv.setAttribute('ar-scale', 'fixed');
+              document.body.appendChild(mv);
+            }
+
+            // 4. Charge le modèle et lance AR
+            mv.setAttribute('src', glbUrl);
+            
+            // Attendre que le modèle soit chargé avant de lancer AR
+            const launchAR = () => {
+              if (mv.canActivateAR) {
+                mv.activateAR();
+              } else {
+                toast('ARCore non disponible', 'err');
+              }
+            };
+
+            if (mv.loaded) {
+              launchAR();
+            } else {
+              mv.addEventListener('load', launchAR, { once: true });
+            }
+
           } catch (err) {
             spin(false);
             console.error('[AR Android]', err);
