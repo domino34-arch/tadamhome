@@ -854,7 +854,10 @@ async function track(pid){try{await SB.from('scans').insert({product_id:pid,sess
 let tt;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
 
-loadProduct();updateWalletUI();
+loadProduct();
+updateWalletUI();
+// ✦ Démarrer automatiquement en mode épuré (sans informations)
+setTimeout(() => toggleInfo(), 100);
 </script>
 
 <!-- ✦ TADAM TRANSITION OVERLAY -->
