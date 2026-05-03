@@ -4,9 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>LC2 Grand Confort — Cassina · TadamHome</title>
-<meta name="description" content="LC2 Grand Confort par Le Corbusier pour Cassina. Configurez en 3D, posez chez vous en AR.">
-<link rel="icon" href="logo.png">
+<meta name="description" content="LC2 Grand Confort par Le Corbusier, Pierre Jeanneret et Charlotte Perriand pour Cassina. Configurez en 3D, posez chez vous en réalité augmentée.">
+<link rel="icon" type="image/png" href="logo.png">
+
+<!-- model-viewer (Google) — viewer 3D + AR (WebXR / Scene Viewer / Quick Look) -->
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+
 <style>
 /* ═══════════════════════════════════════════════════════════════
    TadamHome — Colors & Type
@@ -459,268 +463,778 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   SCAN — page produit AR
-   ═══════════════════════════════════════════════════════════════ */
-body { background: var(--th-paper); }
 
-/* Topnav scan */
-.topnav.scan-nav .btn-back { display:none; width:32px; height:32px; align-items:center; justify-content:center; color:var(--th-ink); font-size:18px; }
-.topnav.scan-nav .breadcrumb { flex:1; text-align:center; font-size:10px; letter-spacing:.20em; text-transform:uppercase; color:var(--th-ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 18px; }
-.topnav.scan-nav .breadcrumb a { color:inherit; }
-.topnav.scan-nav .breadcrumb em { font-style:normal; color:var(--th-accent); }
-.topnav.scan-nav .icobtn { width:38px; height:38px; border:1px solid var(--th-border); background:var(--th-paper); color:var(--th-ink-2); display:inline-flex; align-items:center; justify-content:center; position:relative; cursor:pointer; transition:border-color .25s,color .25s; }
-.topnav.scan-nav .icobtn:hover { border-color:var(--th-accent); color:var(--th-accent); }
-.topnav.scan-nav .icobtn .badge { position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--th-accent); color:var(--th-white); font-size:9px; font-weight:500; display:none; align-items:center; justify-content:center; }
-.topnav.scan-nav .icobtn .badge.on { display:inline-flex; }
+  /* ═══════════════════════════════════════════════════════
+     SCAN — Editorial Showcase (desktop) + Mobile compact
+     ═══════════════════════════════════════════════════════ */
 
-/* Viewer 3D */
-.viewer3d { position:relative; background:var(--th-paper-2); overflow:hidden; }
-.viewer3d::before { content:''; position:absolute; inset:0; background: repeating-linear-gradient(0deg,transparent 0 49px,rgba(184,152,106,.08) 49px 50px), repeating-linear-gradient(90deg,transparent 0 49px,rgba(184,152,106,.08) 49px 50px); pointer-events:none; }
-.viewer3d model-viewer { width:100%; height:720px; display:block; background:linear-gradient(160deg,#EAE6DE,#D8D4CB); --poster-color:transparent; }
-model-viewer::part(default-ar-button) { display:none !important; }
-.viewer3d .floor { position:absolute; left:50%; bottom:18%; width:74%; height:14%; transform:translateX(-50%); background:radial-gradient(ellipse at center,rgba(28,27,24,.20) 0%,transparent 70%); pointer-events:none; }
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.35} }
+  body { background: var(--th-paper); }
 
-/* Hero split */
-.hero-split { display:grid; grid-template-columns:1.4fr 1fr; min-height:720px; border-bottom:1px solid var(--th-border); }
-.hero-split .v3d { min-height:720px; }
-.hero-split .info { padding:56px 48px; background:var(--th-paper); display:flex; flex-direction:column; gap:28px; border-left:1px solid var(--th-border); }
-.hero-split .info .meta-line { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--th-ink-3); display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
-.hero-split .info .meta-line .ref { color:var(--th-accent); }
-.hero-split .info h1 { font-family:var(--th-serif); font-size:clamp(36px,4vw,54px); font-weight:300; line-height:1.0; letter-spacing:-.02em; }
-.hero-split .info h1 em { font-style:italic; color:var(--th-accent); }
-.hero-split .info .designer { font-size:12px; color:var(--th-ink-2); margin-top:-16px; }
-.hero-split .info .designer em { font-style:italic; color:var(--th-accent); font-family:var(--th-serif); font-size:14px; }
-.hero-split .info .brand { display:flex; align-items:center; gap:16px; padding:18px 0; border-top:1px solid var(--th-border); border-bottom:1px solid var(--th-border); }
-.hero-split .info .brand .lm { width:44px; height:44px; border:1px solid var(--th-border); display:inline-flex; align-items:center; justify-content:center; font-family:var(--th-serif); font-style:italic; font-size:22px; color:var(--th-accent); }
-.hero-split .info .brand .stack .nm { font-family:var(--th-serif); font-size:17px; }
-.hero-split .info .brand .stack .sub { font-size:10px; color:var(--th-ink-3); letter-spacing:.16em; text-transform:uppercase; margin-top:3px; }
-.hero-split .info .brand .arr { margin-left:auto; color:var(--th-accent); font-family:var(--th-serif); font-style:italic; font-size:22px; transition:transform .25s; }
-.hero-split .info .brand:hover .arr { transform:translateX(4px); }
-.hero-split .info .price { display:flex; align-items:flex-end; gap:12px; }
-.hero-split .info .price .num { font-family:var(--th-serif); font-size:44px; font-weight:400; line-height:1; letter-spacing:-.01em; }
-.hero-split .info .price .unit { font-size:10px; color:var(--th-ink-3); letter-spacing:.16em; text-transform:uppercase; padding-bottom:8px; }
+  /* ─── TOPNAV : version produit (back · logo · breadcrumb · icons) ─── */
+  .topnav.scan-nav .btn-back {
+    display: none;
+    width: 32px; height: 32px;
+    align-items: center;
+    justify-content: center;
+    color: var(--th-ink);
+    font-size: 18px;
+    margin-right: 4px;
+  }
+  .topnav.scan-nav .breadcrumb {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 18px;
+  }
+  .topnav.scan-nav .breadcrumb a { color: inherit; }
+  .topnav.scan-nav .breadcrumb a:hover { color: var(--th-accent); }
+  .topnav.scan-nav .breadcrumb em { font-style: normal; color: var(--th-accent); }
+  .topnav.scan-nav .icobtn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--th-border);
+    background: var(--th-paper);
+    color: var(--th-ink-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+  }
+  .topnav.scan-nav .icobtn:hover { border-color: var(--th-accent); color: var(--th-accent); }
+  .topnav.scan-nav .icobtn .badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--th-accent);
+    color: var(--th-white);
+    font-size: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+  .topnav.scan-nav .icobtn .badge.on { display: inline-flex; }
 
-/* CTA block */
-.cta-block { display:flex; flex-direction:column; gap:14px; margin-top:auto; }
-.save-row { display:flex; gap:10px; }
-.save-row button { flex:1; font-size:10px; letter-spacing:.14em; text-transform:uppercase; padding:12px 14px; background:transparent; border:1px solid var(--th-border); color:var(--th-ink-2); display:inline-flex; align-items:center; gap:8px; justify-content:center; cursor:pointer; transition:border-color .25s,color .25s; font-family:inherit; }
-.save-row button:hover { border-color:var(--th-accent); color:var(--th-accent); }
-.save-row button.added { border-color:var(--th-success); color:var(--th-success); }
-.ar-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.ar-pair .ar-cta { display:flex; flex-direction:column; gap:8px; padding:22px; border:1px solid var(--th-ink); background:var(--th-paper); position:relative; cursor:pointer; text-align:left; color:inherit; transition:background .25s; font-family:inherit; }
-.ar-pair .ar-cta:hover { background:var(--th-paper-2); }
-.ar-pair .ar-cta.primary { background:var(--th-ink); color:var(--th-white); border-color:var(--th-ink); }
-.ar-pair .ar-cta.primary:hover { background:#2a2820; }
-.ar-pair .ar-cta.primary .lbl { color:rgba(255,255,255,.55); }
-.ar-pair .ar-cta .lbl { font-size:10px; letter-spacing:.20em; text-transform:uppercase; color:var(--th-accent); }
-.ar-pair .ar-cta .nm { font-family:var(--th-serif); font-size:21px; font-weight:400; line-height:1.15; }
-.ar-pair .ar-cta .nm em { font-style:italic; color:var(--th-accent); }
-.ar-pair .ar-cta.primary .nm em { color:var(--th-accent-2); }
-.ar-pair .ar-cta .desc { font-size:11px; color:var(--th-ink-2); line-height:1.6; }
-.ar-pair .ar-cta.primary .desc { color:rgba(255,255,255,.65); }
-.ar-pair .ar-cta .arrow { position:absolute; bottom:18px; right:18px; font-family:var(--th-serif); font-style:italic; font-size:22px; color:var(--th-accent); transition:transform .25s; }
-.ar-pair .ar-cta:hover .arrow { transform:translateX(4px); }
-.ar-pair .ar-cta .badge-new { position:absolute; top:14px; right:14px; font-size:9px; letter-spacing:.14em; text-transform:uppercase; padding:4px 7px; background:var(--th-accent); color:var(--th-white); }
-.opt-mobile { display:none; }
-.opt-desktop { display:inline; }
+  /* ─── 3D VIEWER WRAPPER ─── */
+  .viewer3d {
+    position: relative;
+    background: var(--th-paper-2);
+    overflow: hidden;
+  }
+  .viewer3d::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px),
+      repeating-linear-gradient(90deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .viewer3d > model-viewer {
+    position: absolute !important;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(160deg, #EAE6DE, #D8D4CB);
+    --poster-color: transparent;
+    z-index: 1;
+  }
+  /* Hide the native AR floating button (we have our own CTA) */
+  model-viewer::part(default-ar-button) { display: none !important; }
 
-/* Nom + brand sur la même ligne */
-.name-brand-row { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
-.name-brand-row h1 { flex:1; font-family:var(--th-serif); font-size:clamp(30px,3.5vw,50px); font-weight:300; line-height:1.0; letter-spacing:-.02em; }
-.name-brand-row h1 em { font-style:italic; color:var(--th-accent); }
+  .viewer3d .floor {
+    position: absolute;
+    left: 50%; bottom: 18%;
+    width: 74%; height: 14%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(28,27,24,.20) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+  }
 
-/* Brand compact (coin haut-droite du titre) */
-.brand-mini { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; text-decoration:none; color:inherit; padding-top:4px; transition:opacity .2s; }
-.brand-mini:hover { opacity:.7; }
-.brand-mini .lm { width:36px; height:36px; border:1px solid var(--th-border); display:inline-flex; align-items:center; justify-content:center; font-family:var(--th-serif); font-style:italic; font-size:18px; color:var(--th-accent); }
-.brand-mini .nm { font-family:var(--th-serif); font-size:13px; text-align:center; line-height:1.2; }
-.brand-mini .sub { font-size:9px; color:var(--th-ink-3); letter-spacing:.14em; text-transform:uppercase; text-align:center; }
 
-/* Coloris inline dans le panneau info */
-.colors-inline { display:flex; flex-direction:column; gap:12px; }
-.colors-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--th-ink-3); }
-.colors-head strong { font-family:var(--th-serif); font-style:italic; font-size:15px; font-weight:400; text-transform:none; letter-spacing:0; color:var(--th-accent); }
-.colors-inline .swatches { grid-template-columns:repeat(8,1fr); }
 
-/* Masquer les anciens sélecteurs devenus inutiles */
-.hero-split .info .brand { display:none; }
-section.colors { display:none !important; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
-/* Attrs */
-.attrs { padding:44px 48px; border-bottom:1px solid var(--th-border); display:grid; grid-template-columns:repeat(4,1fr); gap:36px; background:var(--th-paper); }
-.attrs .col .key { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--th-ink-3); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
-.attrs .col .key::before { content:''; width:6px; height:6px; background:var(--th-accent); border-radius:50%; }
-.attrs .col .val { font-family:var(--th-serif); font-size:19px; line-height:1.3; }
-.attrs .col .val em { font-style:italic; color:var(--th-accent); }
-.attrs .col .val.green { color:var(--th-success); }
-.attrs .col .sub { font-size:11px; color:var(--th-ink-3); margin-top:6px; line-height:1.5; }
 
-/* Colors / Swatches */
-.colors { padding:48px; border-bottom:1px solid var(--th-border); background:var(--th-paper-2); }
-.colors .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:30px; gap:18px; flex-wrap:wrap; }
-.colors .head h3 { font-family:var(--th-serif); font-size:26px; font-weight:400; }
-.colors .head h3 em { font-style:italic; color:var(--th-accent); }
-.colors .head .sel { font-size:12px; color:var(--th-ink-2); }
-.colors .head .sel strong { font-weight:500; font-family:var(--th-serif); font-style:italic; color:var(--th-accent); }
-.swatches { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; }
-.swatch { aspect-ratio:1; position:relative; cursor:pointer; transition:transform .25s; background:none; border:none; padding:0; }
-.swatch:hover { transform:scale(1.04); }
-.swatch .chip { position:absolute; inset:8px; background-size:cover; background-position:center; }
-.swatch.act .chip { outline:1px solid var(--th-accent); outline-offset:5px; }
-.swatch .nm { position:absolute; bottom:-22px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:.10em; color:var(--th-ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.swatch.act .nm { color:var(--th-accent); }
 
-/* Story dark */
-.story { padding:110px 48px; background:var(--th-ink); color:var(--th-white); display:grid; grid-template-columns:1fr 1.2fr; gap:80px; align-items:flex-start; border-bottom:1px solid rgba(255,255,255,.08); }
-.story .pinned { position:sticky; top:100px; }
-.story .pinned h2 { font-family:var(--th-serif); font-size:clamp(32px,3.4vw,46px); font-weight:300; line-height:1.1; margin-top:18px; letter-spacing:-.01em; }
-.story .pinned h2 em { font-style:italic; color:var(--th-accent-2); }
-.story .pinned p { font-size:13px; color:rgba(245,242,236,.65); line-height:1.85; margin-top:18px; max-width:380px; }
-.story .pinned .index { margin-top:36px; border-top:1px solid rgba(255,255,255,.15); }
-.story .pinned .index a { display:flex; justify-content:space-between; align-items:baseline; padding:14px 0; border-bottom:1px solid rgba(255,255,255,.15); font-size:12px; color:rgba(245,242,236,.72); transition:color .25s; }
-.story .pinned .index a .n { font-family:var(--th-serif); font-style:italic; color:var(--th-accent-2); margin-right:14px; }
-.story .scenes { display:flex; flex-direction:column; gap:64px; }
-.story .scene .nb { font-family:var(--th-serif); font-style:italic; color:var(--th-accent-2); font-size:14px; }
-.story .scene h3 { font-family:var(--th-serif); font-size:28px; font-weight:400; line-height:1.2; margin-top:10px; }
-.story .scene h3 em { font-style:italic; color:var(--th-accent-2); }
-.story .scene .img { aspect-ratio:16/10; background:rgba(245,242,236,.04); border:1px solid rgba(255,255,255,.08); margin-top:22px; }
-.story .scene p { font-size:13px; color:rgba(245,242,236,.60); line-height:1.8; margin-top:16px; max-width:540px; }
 
-/* Similar */
-.similar { padding:100px 48px; background:var(--th-paper); }
-.similar .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:36px; gap:18px; flex-wrap:wrap; }
-.similar .head h2 { font-family:var(--th-serif); font-size:clamp(28px,3vw,38px); font-weight:300; letter-spacing:-.01em; }
-.similar .head h2 em { font-style:italic; color:var(--th-accent); }
-.similar .row { display:grid; grid-template-columns:repeat(4,1fr); gap:22px; }
-.similar .card { text-decoration:none; color:inherit; display:block; transition:transform .25s; }
-.similar .card:hover { transform:translateY(-3px); }
-.similar .card .img { aspect-ratio:4/3; background:var(--th-paper-2); border:1px solid var(--th-border); position:relative; overflow:hidden; transition:border-color .25s; }
-.similar .card:hover .img { border-color:var(--th-accent); }
-.similar .card .img::after { content:'◫'; position:absolute; bottom:10px; right:12px; font-size:16px; color:var(--th-accent); }
-.similar .card .meta { padding-top:16px; }
-.similar .card .meta .br { font-size:10px; letter-spacing:.20em; text-transform:uppercase; color:var(--th-ink-3); }
-.similar .card .meta .nm { font-family:var(--th-serif); font-size:17px; margin-top:6px; }
-.similar .card .meta .pr { font-size:12px; color:var(--th-ink-2); margin-top:8px; }
 
-/* Toast */
-.toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(10px); background:var(--th-ink); color:var(--th-white); padding:12px 22px; font-size:12px; letter-spacing:.04em; z-index:500; opacity:0; pointer-events:none; white-space:nowrap; max-width:calc(100vw - 40px); transition:opacity .25s,transform .25s; }
-.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-/* CTA block toujours visible en bas */
-@media (min-width: 769px) {
-  .cta-block {
-    position: fixed;
-    bottom: 0; right: 0;
-    width: 41.67vw; /* 1fr de la grille 1.4fr + 1fr */
-    background: rgba(245,242,236,.96);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+
+
+
+ 50% { opacity: .65; } }
+
+
+
+  /* Tab panels */
+
+
+
+
+
+
+  /* ─── HERO SPLIT ─── */
+  .hero-split {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 0;
+    min-height: 720px;
+    border-bottom: 1px solid var(--th-border);
+  }
+  .hero-split .v3d { min-height: 720px; }
+  .hero-split .v3d model-viewer { height: 720px; }
+  .hero-split .info {
+    padding: 56px 48px;
+    background: var(--th-paper);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    border-left: 1px solid var(--th-border);
+  }
+  .hero-split .info .meta-line {
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .hero-split .info .meta-line .ref { color: var(--th-accent); }
+  .hero-split .info h1 {
+    font-family: var(--th-serif);
+    font-size: clamp(36px, 4vw, 54px);
+    font-weight: 300;
+    line-height: 1.0;
+    letter-spacing: -.02em;
+  }
+  .hero-split .info h1 em { font-style: italic; color: var(--th-accent); }
+  .hero-split .info .designer {
+    font-size: 12px;
+    color: var(--th-ink-2);
+    margin-top: -16px;
+  }
+  .hero-split .info .designer em {
+    font-style: italic;
+    color: var(--th-accent);
+    font-family: var(--th-serif);
+    font-size: 14px;
+  }
+  .hero-split .info .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 0;
     border-top: 1px solid var(--th-border);
-    padding: 16px 48px 24px;
-    z-index: 50;
-    margin: 0;
+    border-bottom: 1px solid var(--th-border);
   }
-  /* Compenser l'espace pris par la CTA fixe dans le panneau info */
-  .hero-split .info { padding-bottom: 220px; }
-  .similar, .story { padding-bottom: 100px; }
-}
-
-/* Responsive tablet */
-@media (max-width:1100px) {
-  .hero-split { grid-template-columns:1fr; min-height:0; }
-  .hero-split .v3d { min-height:520px; }
-  .hero-split .v3d model-viewer { height:520px; }
-  .hero-split .info { border-left:none; border-top:1px solid var(--th-border); }
-  .cta-block { margin-top:8px; }
-  .story { grid-template-columns:1fr; gap:36px; padding:70px 32px; }
-  .story .pinned { position:static; }
-  .similar .row { grid-template-columns:repeat(2,1fr); }
-}
-@media (max-width:1024px) {
-  .topnav.scan-nav .breadcrumb { display:none; }
-  .attrs { padding:32px; gap:22px; }
-  .similar { padding:70px 32px; }
-}
-@media (max-width:900px) {
-  .attrs { grid-template-columns:1fr 1fr; }
-  .swatches { grid-template-columns:repeat(6,1fr); }
-}
-
-/* Mobile ≤ 768px */
-@media (max-width:768px) {
-  .topnav.scan-nav { padding:12px 16px; }
-  /* Topnav toujours visible */
-  .topnav { position: sticky !important; top: 0 !important; z-index: 80 !important; }
-  .topnav.scan-nav .btn-back { display:inline-flex; }
-  .topnav.scan-nav .brand { flex:1; display:flex; justify-content:center; }
-  .topnav.scan-nav .brand img { height:22px; }
-  .topnav.scan-nav .icobtn-search,
-  .topnav.scan-nav .pill,
-  .topnav.scan-nav .burger { display:none !important; }
-  .topnav.scan-nav .right { gap:6px; }
-  .topnav.scan-nav .icobtn { width:34px; height:34px; border:none; background:var(--th-paper-2); }
-
-  .hero-split { grid-template-columns:1fr; }
-  .hero-split .v3d { min-height:320px; }
-  .hero-split .v3d model-viewer { height:320px; }
-  .hero-split .info { padding:22px 22px 200px; gap:16px; }
-  .hero-split .info h1 { font-size:28px; }
-  .hero-split .info .designer { font-size:11px; margin-top:-8px; }
-  .hero-split .info .brand { padding:14px 0; }
-  .hero-split .info .brand .lm { width:36px; height:36px; font-size:18px; }
-  .hero-split .info .brand .stack .nm { font-size:15px; }
-  .hero-split .info .price .num { font-size:30px; }
-
-  .cta-block { position:fixed; bottom:0; left:0; right:0; background:rgba(245,242,236,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-top:1px solid var(--th-border); padding:12px 16px 16px; gap:10px; z-index:50; margin:0; }
-  .save-row { gap:6px; }
-  .save-row button { padding:9px 4px; font-size:9px; letter-spacing:.10em; gap:4px; }
-  .ar-pair { gap:6px; }
-  .ar-pair .ar-cta { padding:12px 14px; gap:5px; }
-  .ar-pair .ar-cta .lbl { font-size:8px; letter-spacing:.14em; }
-  .ar-pair .ar-cta .nm { font-size:14px; line-height:1.1; }
-  .ar-pair .ar-cta .desc { font-size:10px; line-height:1.4; }
-  .ar-pair .ar-cta .arrow { display:none; }
-  .ar-pair .ar-cta .badge-new { font-size:7px; padding:2px 5px; top:8px; right:8px; }
-
-  .opt-desktop { display:none; }
-  .opt-mobile { display:inline; }
-
-  .colors-inline .swatches { grid-template-columns:repeat(6,1fr); gap:8px; }
-  .colors-head { font-size:9px; }
-  .name-brand-row h1 { font-size:24px; }
-  .brand-mini .lm { width:30px; height:30px; font-size:15px; }
-  .brand-mini .nm { font-size:11px; }
-  .attrs { padding:32px 22px; gap:18px 16px; }
-  .attrs .col .val { font-size:16px; }
-  .colors { padding:32px 22px 40px; }
-  .colors .head h3 { font-size:20px; }
-  .swatches { grid-template-columns:repeat(4,1fr); gap:12px; }
-  .story { padding:56px 22px; }
-  .story .pinned h2 { font-size:26px; }
-  .story .scenes { gap:36px; }
-  .story .scene h3 { font-size:20px; }
-  .similar { padding:56px 22px; }
-  .similar .row { grid-template-columns:1fr 1fr; gap:12px; }
-  .footer { padding-bottom:calc(180px + env(safe-area-inset-bottom,0px)) !important; }
-  .toast { bottom:calc(180px + env(safe-area-inset-bottom,12px)); }
-}
-@media (max-width:500px) { .similar .row { grid-template-columns:1fr; } }
-@supports (padding:env(safe-area-inset-bottom)) {
-  @media (max-width:768px) {
-    .cta-block { padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+  .hero-split .info .brand .lm {
+    width: 44px; height: 44px;
+    border: 1px solid var(--th-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--th-accent);
   }
-}
+  .hero-split .info .brand .stack .nm {
+    font-family: var(--th-serif);
+    font-size: 17px;
+  }
+  .hero-split .info .brand .stack .sub {
+    font-size: 10px;
+    color: var(--th-ink-3);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .hero-split .info .brand .arr {
+    margin-left: auto;
+    color: var(--th-accent);
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .hero-split .info .brand:hover .arr { transform: translateX(4px); }
+  .hero-split .info .price {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+  .hero-split .info .price .num {
+    font-family: var(--th-serif);
+    font-size: 44px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .hero-split .info .price .unit {
+    font-size: 10px;
+    color: var(--th-ink-3);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+  }
+
+  /* ─── CTA-BLOCK : devient sticky-bottom sur mobile ─── */
+  .cta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: auto;
+  }
+  .save-row {
+    display: flex;
+    gap: 10px;
+  }
+  .save-row button {
+    flex: 1;
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--th-border);
+    color: var(--th-ink-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+    font-family: inherit;
+  }
+  .save-row button:hover {
+    border-color: var(--th-accent);
+    color: var(--th-accent);
+  }
+  .save-row button.added {
+    border-color: var(--th-success);
+    color: var(--th-success);
+  }
+
+  /* AR pair — 2 colonnes TOUJOURS (desktop ET mobile) */
+  .ar-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ar-pair .ar-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px;
+    border: 1px solid var(--th-ink);
+    background: var(--th-paper);
+    position: relative;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    transition: background var(--th-dur-base) var(--th-ease);
+    font-family: inherit;
+  }
+  .ar-pair .ar-cta:hover { background: var(--th-paper-2); }
+  .ar-pair .ar-cta.primary {
+    background: var(--th-ink);
+    color: var(--th-white);
+    border-color: var(--th-ink);
+  }
+  .ar-pair .ar-cta.primary:hover { background: #2a2820; }
+  .ar-pair .ar-cta.primary .lbl { color: rgba(255, 255, 255, .55); }
+  .ar-pair .ar-cta.primary .nm em { color: var(--th-accent-2); }
+  .ar-pair .ar-cta .lbl {
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ar-pair .ar-cta .nm {
+    font-family: var(--th-serif);
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.15;
+  }
+  .ar-pair .ar-cta .nm em { font-style: italic; color: var(--th-accent); }
+  .ar-pair .ar-cta .desc {
+    font-size: 11px;
+    color: var(--th-ink-2);
+    line-height: 1.6;
+  }
+  .ar-pair .ar-cta.primary .desc { color: rgba(255, 255, 255, .65); }
+  .ar-pair .ar-cta .arrow {
+    position: absolute;
+    bottom: 18px; right: 18px;
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--th-accent);
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .ar-pair .ar-cta:hover .arrow { transform: translateX(4px); }
+  .ar-pair .ar-cta .badge-new {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    background: var(--th-accent);
+    color: var(--th-white);
+  }
+
+  /* Helpers : copies longues vs courtes */
+  .opt-mobile { display: none; }
+  .opt-desktop { display: inline; }
+
+  /* ─── ATTRS ROW ─── */
+  .attrs {
+    padding: 44px 48px;
+    border-bottom: 1px solid var(--th-border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+    background: var(--th-paper);
+  }
+  .attrs .col .key {
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .attrs .col .key::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--th-accent);
+    border-radius: 50%;
+  }
+  .attrs .col .val {
+    font-family: var(--th-serif);
+    font-size: 19px;
+    line-height: 1.3;
+  }
+  .attrs .col .val em { font-style: italic; color: var(--th-accent); }
+  .attrs .col .val.green { color: var(--th-success); }
+  .attrs .col .sub {
+    font-size: 11px;
+    color: var(--th-ink-3);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ─── COLORS / SWATCHES ─── */
+  .colors {
+    padding: 48px;
+    border-bottom: 1px solid var(--th-border);
+    background: var(--th-paper-2);
+  }
+  .colors .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .colors .head h3 {
+    font-family: var(--th-serif);
+    font-size: 26px;
+    font-weight: 400;
+  }
+  .colors .head h3 em { font-style: italic; color: var(--th-accent); }
+  .colors .head .sel {
+    font-size: 12px;
+    color: var(--th-ink-2);
+  }
+  .colors .head .sel strong {
+    font-weight: 500;
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent);
+  }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+  }
+  .swatch {
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    transition: transform var(--th-dur-base) var(--th-ease);
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .swatch:hover { transform: scale(1.04); }
+  .swatch .chip {
+    position: absolute;
+    inset: 8px;
+    background-size: cover;
+    background-position: center;
+  }
+  .swatch.act .chip {
+    outline: 1px solid var(--th-accent);
+    outline-offset: 5px;
+  }
+  .swatch .nm {
+    position: absolute;
+    bottom: -22px; left: 0; right: 0;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: .10em;
+    color: var(--th-ink-3);
+    transition: color var(--th-dur-base) var(--th-ease);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .swatch.act .nm { color: var(--th-accent); }
+
+  /* ─── STORY DARK ─── */
+  .story {
+    padding: 110px 48px;
+    background: var(--th-ink);
+    color: var(--th-white);
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 80px;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+  }
+  .story .pinned { position: sticky; top: 100px; }
+  .story .pinned h2 {
+    font-family: var(--th-serif);
+    font-size: clamp(32px, 3.4vw, 46px);
+    font-weight: 300;
+    line-height: 1.1;
+    margin-top: 18px;
+    letter-spacing: -.01em;
+  }
+  .story .pinned h2 em { font-style: italic; color: var(--th-accent-2); }
+  .story .pinned p {
+    font-size: 13px;
+    color: rgba(245, 242, 236, .65);
+    line-height: 1.85;
+    margin-top: 18px;
+    max-width: 380px;
+  }
+  .story .pinned .index {
+    margin-top: 36px;
+    border-top: 1px solid rgba(255, 255, 255, .15);
+  }
+  .story .pinned .index a {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .15);
+    font-size: 12px;
+    color: rgba(245, 242, 236, .72);
+    transition: color var(--th-dur-base) var(--th-ease);
+  }
+  .story .pinned .index a:hover { color: var(--th-accent-2); }
+  .story .pinned .index a .n {
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent-2);
+    margin-right: 14px;
+  }
+  .story .scenes { display: flex; flex-direction: column; gap: 64px; }
+  .story .scene .nb {
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent-2);
+    font-size: 14px;
+  }
+  .story .scene h3 {
+    font-family: var(--th-serif);
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-top: 10px;
+  }
+  .story .scene h3 em { font-style: italic; color: var(--th-accent-2); }
+  .story .scene .img {
+    aspect-ratio: 16/10;
+    background: rgba(245, 242, 236, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    margin-top: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .story .scene .img::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 47px, rgba(184,152,106,.06) 47px 48px),
+      repeating-linear-gradient(90deg, transparent 0 47px, rgba(184,152,106,.06) 47px 48px);
+  }
+  .story .scene p {
+    font-size: 13px;
+    color: rgba(245, 242, 236, .60);
+    line-height: 1.8;
+    margin-top: 16px;
+    max-width: 540px;
+  }
+
+  /* ─── SIMILAR ─── */
+  .similar { padding: 100px 48px; background: var(--th-paper); }
+  .similar .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .similar .head h2 {
+    font-family: var(--th-serif);
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 300;
+    letter-spacing: -.01em;
+  }
+  .similar .head h2 em { font-style: italic; color: var(--th-accent); }
+  .similar .row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+  .similar .card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .similar .card:hover { transform: translateY(-3px); }
+  .similar .card .img {
+    aspect-ratio: 4/3;
+    background: var(--th-paper-2);
+    border: 1px solid var(--th-border);
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--th-dur-base) var(--th-ease);
+  }
+  .similar .card:hover .img { border-color: var(--th-accent); }
+  .similar .card .img::after {
+    content: '◫';
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-size: 16px;
+    color: var(--th-accent);
+  }
+  .similar .card .meta { padding-top: 16px; }
+  .similar .card .meta .br {
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+  }
+  .similar .card .meta .nm {
+    font-family: var(--th-serif);
+    font-size: 17px;
+    margin-top: 6px;
+  }
+  .similar .card .meta .pr {
+    font-size: 12px;
+    color: var(--th-ink-2);
+    margin-top: 8px;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--th-ink);
+    color: var(--th-white);
+    padding: 12px 22px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: .04em;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity .25s var(--th-ease), transform .25s var(--th-ease);
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE — DESKTOP / TABLET
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 1100px) {
+    .hero-split { grid-template-columns: 1fr; min-height: 0; }
+    .hero-split .v3d { min-height: 520px; }
+    .hero-split .info { border-left: none; border-top: 1px solid var(--th-border); }
+    .cta-block { margin-top: 8px; }
+    .story { grid-template-columns: 1fr; gap: 36px; padding: 70px 32px; }
+    .story .pinned { position: static; }
+    .similar .row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 1024px) {
+    .topnav.scan-nav .breadcrumb { display: none; }
+    .attrs { padding: 32px; gap: 22px; }
+    .similar { padding: 70px 32px; }
+  }
+  @media (max-width: 900px) {
+    .attrs { grid-template-columns: 1fr 1fr; }
+    .swatches { grid-template-columns: repeat(6, 1fr); }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE — MOBILE (≤ 768px)
+     Topbar compact · 3D 320px · CTA collante en bas
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    /* — TOPNAV : retour gauche, logo centré, ♡ + panier droite — */
+    .topnav.scan-nav {
+      padding: 12px 16px;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .topnav.scan-nav .btn-back { display: inline-flex; }
+    .topnav.scan-nav .brand { flex: 1; display: flex; justify-content: center; }
+    .topnav.scan-nav .brand img { height: 22px; }
+    .topnav.scan-nav .icobtn-search,
+    .topnav.scan-nav .pill,
+    .topnav.scan-nav .burger { display: none !important; }
+    .topnav.scan-nav .right { gap: 6px; }
+    .topnav.scan-nav .icobtn { width: 34px; height: 34px; border: none; background: var(--th-paper-2); }
+
+    /* — HERO SPLIT : viewer + info empilés — */
+    .hero-split { grid-template-columns: 1fr; }
+    .hero-split .v3d { min-height: 320px; }
+    .hero-split .v3d model-viewer { height: 320px; }
+    .hero-split .info {
+      padding: 22px 22px 0;
+      gap: 18px;
+      /* Espace pour la CTA collante en bas */
+      padding-bottom: 200px;
+    }
+    .hero-split .info h1 { font-size: 28px; }
+    .hero-split .info .designer { font-size: 11px; margin-top: -10px; }
+    .hero-split .info .brand { padding: 14px 0; }
+    .hero-split .info .brand .lm { width: 36px; height: 36px; font-size: 18px; }
+    .hero-split .info .brand .stack .nm { font-size: 15px; }
+    .hero-split .info .brand .stack .sub { font-size: 9px; }
+    .hero-split .info .price .num { font-size: 30px; }
+
+    /* — CTA BAR COLLANTE : save-row + AR pair — */
+    .cta-block {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(245, 242, 236, .96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--th-border);
+      padding: 12px 16px 16px;
+      gap: 10px;
+      z-index: 50;
+      margin: 0;
+    }
+    .save-row { gap: 6px; }
+    .save-row button {
+      padding: 9px 4px;
+      font-size: 9px;
+      letter-spacing: .10em;
+      gap: 4px;
+    }
+    .ar-pair { gap: 6px; }
+    .ar-pair .ar-cta {
+      padding: 12px 14px;
+      gap: 5px;
+    }
+    .ar-pair .ar-cta .lbl { font-size: 8px; letter-spacing: .14em; gap: 5px; }
+    .ar-pair .ar-cta .nm { font-size: 14px; line-height: 1.1; }
+    .ar-pair .ar-cta .desc { font-size: 10px; line-height: 1.4; }
+    .ar-pair .ar-cta .arrow { display: none; }
+    .ar-pair .ar-cta .badge-new {
+      font-size: 7px; padding: 2px 5px;
+      top: 8px; right: 8px;
+      letter-spacing: .10em;
+    }
+
+    /* Bascule des copies : court sur mobile */
+    .opt-desktop { display: none; }
+    .opt-mobile { display: inline; }
+
+    /* — Sections en dessous — */
+    .attrs { padding: 32px 22px; gap: 18px 16px; }
+    .attrs .col .val { font-size: 16px; }
+    .colors { padding: 32px 22px 40px; }
+    .colors .head h3 { font-size: 20px; }
+    .swatches { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .story { padding: 56px 22px; }
+    .story .pinned h2 { font-size: 26px; }
+    .story .scenes { gap: 36px; }
+    .story .scene h3 { font-size: 20px; }
+    .similar { padding: 56px 22px; }
+    .similar .row { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .similar .card .meta .nm { font-size: 14px; }
+
+    /* Le footer doit avoir un padding-bottom pour ne pas être caché par la CTA collante */
+    .footer { padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Viewer chrome plus discret sur mobile */
+  
+  
+  
+  
+  
+
+    /* Toast remonte au-dessus de la CTA collante */
+    .toast { bottom: calc(180px + env(safe-area-inset-bottom, 12px)); }
+  }
+  @media (max-width: 500px) {
+    .similar .row { grid-template-columns: 1fr; }
+  }
+
+  /* iOS safe-area pour la CTA collante */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    @media (max-width: 768px) {
+      .cta-block { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+      .topnav { padding-top: env(safe-area-inset-top, 0); }
+    }
+  }
+
 </style>
 </head>
 <body>
 
-<nav class="topnav scan-nav">
+<!-- ═══════════════ TOP NAV ═══════════════ -->
+<nav class="topnav scan-nav" aria-label="Navigation produit">
   <a class="btn-back" href="catalogue.html" aria-label="Retour">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
   </a>
-  <a class="brand" href="index.html"><img src="logo.png" alt="TadamHome"></a>
+  <a class="brand" href="catalogue.html" aria-label="TadamHome — Accueil">
+    <img src="logo.png" alt="TadamHome">
+  </a>
   <span class="breadcrumb">
     <a href="catalogue.html" id="bc-cat">Salon</a> ·
     <a href="catalogue.html" id="bc-brand">Cassina</a> ·
@@ -737,14 +1251,17 @@ section.colors { display:none !important; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="4" y="6" width="16" height="14"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/></svg>
       <span class="badge" id="wbadge">0</span>
     </button>
-    <a class="pill" href="login.html">Compte</a>
+    <a class="pill" href="#account">Compte</a>
   </div>
 </nav>
 
-<section class="hero-split">
+<!-- ═══════════════ HERO SPLIT ═══════════════ -->
+<section class="hero-split" aria-label="Modèle 3D et informations produit">
   <div class="viewer3d v3d" id="viewer-wrap">
     <div class="floor"></div>
-    <model-viewer id="mv" src="" alt="Modèle 3D"
+    <model-viewer id="mv"
+      src=""
+      alt="Modèle 3D"
       auto-rotate camera-controls
       ar ar-modes="webxr scene-viewer quick-look"
       ar-placement="floor" ar-scale="fixed"
@@ -755,150 +1272,221 @@ section.colors { display:none !important; }
     </model-viewer>
   </div>
 
-  <div class="info">
-    <div class="meta-line">
-      <span class="ref" id="prod-ref">Réf · LC2-GC</span>
-      <span>·</span>
-      <span id="prod-category">Salon · Fauteuil</span>
-    </div>
+  </section>
 
-    <!-- Titre + brand mini sur la même ligne -->
-    <div class="name-brand-row">
-      <h1 id="prod-name">LC2 Grand <em>Confort</em></h1>
-      <a href="catalogue.html" class="brand-mini">
-        <span class="lm" id="brand-mark">C</span>
-        <div class="nm" id="prod-brand">Cassina</div>
-        <div class="sub" id="prod-brand-sub">Meda · Italie</div>
-      </a>
-    </div>
-
-    <div class="designer" id="prod-designer">Dessiné par <em>Le Corbusier</em>, Pierre Jeanneret &amp; Charlotte Perriand · 1928</div>
-
-    <!-- Coloris directement dans le panneau info (visible sans scroll) -->
-    <div class="colors-inline">
-      <div class="colors-head">
-        <span>Coloris</span>
-        <strong id="col-name">Cuir Brandy</strong>
-      </div>
-      <div class="swatches" id="swatches"></div>
-    </div>
-
-    <div class="price">
-      <span class="num" id="prod-price">7 850 €</span>
-      <span class="unit" id="prod-price-note">TTC · livré</span>
-    </div>
-    <div class="cta-block">
-      <div class="save-row">
-        <button id="btn-add" onclick="addToWallet()">
-          <span class="opt-desktop">♡ Sélection</span>
-          <span class="opt-mobile">♡ Ajouter</span>
-        </button>
-        <button onclick="shareProduct()">↗ Partager</button>
-        <button onclick="contactVendeur()">
-          <span class="opt-desktop">⌖ Vendeur</span>
-          <span class="opt-mobile">⌖ Trouver</span>
-        </button>
-      </div>
-      <div class="ar-pair">
-        <button class="ar-cta" onclick="launchAR()">
-          <span class="lbl"><span class="opt-desktop">◫ AR · Mono</span><span class="opt-mobile">◫ Mono</span></span>
-          <span class="nm">Voir <em>chez moi</em></span>
-          <span class="desc"><span class="opt-desktop">Posez ce meuble dans votre salon en taille réelle.</span><span class="opt-mobile">En taille réelle</span></span>
-          <span class="arrow">→</span>
-        </button>
-        <button class="ar-cta primary" onclick="openStudio()">
-          <span class="badge-new">Nouveau ✦</span>
-          <span class="lbl"><span class="opt-desktop">◫◫ AR · Multi</span><span class="opt-mobile">◫◫ Multi</span></span>
-          <span class="nm">Composer une <em>scène</em></span>
-          <span class="desc"><span class="opt-desktop">Ajoutez canapé, lampe, tapis · construisez votre pièce.</span><span class="opt-mobile">Avec d'autres meubles</span></span>
-          <span class="arrow">→</span>
-        </button>
-      </div>
-    </div>
+<!-- ═══════════════ ATTRS ═══════════════ -->
+<section class="attrs" aria-label="Caractéristiques principales">
+  <div class="col">
+    <div class="key">Coloris</div>
+    <div class="val italic-accent" id="attr-color"><em>Cuir</em> Brandy</div>
+    <div class="sub" id="attr-color-sub">7 finitions · vachette pleine fleur</div>
+  </div>
+  <div class="col">
+    <div class="key">Dimensions</div>
+    <div class="val" id="attr-dim">240 × 70 × 68 cm</div>
+    <div class="sub">L × P × H · ±1 cm</div>
+  </div>
+  <div class="col">
+    <div class="key">Livraison</div>
+    <div class="val italic-accent"><em>4–6</em> semaines</div>
+    <div class="sub">À domicile · installation incluse</div>
+  </div>
+  <div class="col">
+    <div class="key">Disponibilité</div>
+    <div class="val green">En stock</div>
+    <div class="sub">Garantie 2 ans · pièces &amp; main d'œuvre</div>
   </div>
 </section>
 
-<section class="attrs">
-  <div class="col"><div class="key">Dimensions</div><div class="val" id="attr-dim">240 × 70 × 68 cm</div><div class="sub">L × P × H · ±1 cm</div></div>
-  <div class="col"><div class="key">Livraison</div><div class="val"><em>4–6</em> semaines</div><div class="sub">À domicile · installation incluse</div></div>
-  <div class="col"><div class="key">Disponibilité</div><div class="val green">En stock</div><div class="sub">Garantie 2 ans</div></div>
+<!-- ═══════════════ COLORS ═══════════════ -->
+<section class="colors" aria-label="Finitions disponibles">
+  <div class="head">
+    <h3 class="italic-accent" id="colors-title">Sept finitions, <em>une même âme</em></h3>
+    <div class="sel">Sélection : <strong id="col-name">Cuir Brandy</strong></div>
+  </div>
+  <div class="swatches" id="swatches"></div>
 </section>
 
-
-<section class="story">
+<!-- ═══════════════ STORY DARK ═══════════════ -->
+<section class="story" aria-label="Histoire et fabrication">
   <div class="pinned">
     <span class="eyb light">L'objet</span>
     <h2>Né en <em>1928</em>,<br>fait en <em>2025</em></h2>
-    <p>Du dessin original de Le Corbusier, Pierre Jeanneret et Charlotte Perriand, jusqu'aux ateliers de Meda où Cassina assemble chaque pièce à la main.</p>
+    <p>Du dessin original de Le Corbusier, Pierre Jeanneret et Charlotte Perriand, jusqu'aux ateliers de Meda où Cassina assemble chaque pièce à la main. Histoire, matériau, fabrication.</p>
     <div class="index">
       <a href="#chap-1"><span><span class="n">01</span>Histoire</span><span>↓</span></a>
       <a href="#chap-2"><span><span class="n">02</span>Matériau</span><span>↓</span></a>
       <a href="#chap-3"><span><span class="n">03</span>Atelier</span><span>↓</span></a>
+      <a href="#chap-4"><span><span class="n">04</span>En scène</span><span>↓</span></a>
     </div>
   </div>
   <div class="scenes">
-    <article class="scene" id="chap-1"><span class="nb">— 01</span><h3>Une <em>icône</em> dessinée pour Cassina</h3><div class="img"></div><p>Le Corbusier voulait « un coussin sur un cadre ». 97 ans plus tard, le dessin tient. Cuir pleine fleur, structure tubulaire chromée — chaque pièce assemblée comme en 1928.</p></article>
-    <article class="scene" id="chap-2"><span class="nb">— 02</span><h3>Le cuir, <em>pendant 18 mois</em></h3><div class="img"></div><p>Tannage végétal toscan, repos en fût, finition manuelle. Chaque pièce porte la trace du cuir. Aucune pièce n'est identique.</p></article>
-    <article class="scene" id="chap-3"><span class="nb">— 03</span><h3>Assemblé à <em>Meda</em></h3><div class="img"></div><p>Atelier Cassina, 14 mains par fauteuil, 3 contrôles. Chaque LC2 reçoit un numéro de série gravé sous le piétement.</p></article>
+    <article class="scene" id="chap-1">
+      <span class="nb">— 01</span>
+      <h3 class="italic-accent on-dark">Une <em>icône</em> dessinée pour Cassina</h3>
+      <div class="img"></div>
+      <p>Le Corbusier voulait « un coussin sur un cadre ». 97 ans plus tard, le dessin tient. Cuir pleine fleur, structure tubulaire chromée, sangles cuir — chaque pièce assemblée comme en 1928, avec la précision d'un atelier qui n'a jamais cessé de produire l'original.</p>
+    </article>
+    <article class="scene" id="chap-2">
+      <span class="nb">— 02</span>
+      <h3 class="italic-accent on-dark">Le cuir, <em>pendant 18 mois</em></h3>
+      <div class="img"></div>
+      <p>Tannage végétal toscan, repos en fût, finition manuelle. Chaque pièce porte la trace du cuir — une cicatrice, une nuance, un grain. Aucune pièce n'est identique. C'est ce que Cassina appelle « la mémoire de la peau ».</p>
+    </article>
+    <article class="scene" id="chap-3">
+      <span class="nb">— 03</span>
+      <h3 class="italic-accent on-dark">Assemblé à <em>Meda</em></h3>
+      <div class="img"></div>
+      <p>Atelier Cassina, 14 mains par fauteuil, 3 contrôles. Chaque LC2 reçoit un numéro de série gravé sous le piétement. Les artisans qui assemblent aujourd'hui sont parfois la troisième génération à travailler les mêmes patrons.</p>
+    </article>
   </div>
 </section>
 
-<section class="similar">
-  <div class="head"><h2>Dans le <em>même esprit</em></h2><a href="catalogue.html" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--th-ink-2)">Voir tout →</a></div>
+<!-- ═══════════════ SIMILAR ═══════════════ -->
+<section class="similar" aria-label="Produits dans le même esprit">
+  <div class="head">
+    <h2 class="italic-accent">Dans le <em>même esprit</em></h2>
+    <a href="catalogue.html" style="font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--th-ink-2);">Voir tout · 24 →</a>
+  </div>
   <div class="row">
-    <a class="card" href="scan.html"><div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="30" y="80" width="140" height="55" fill="#3a2818"/><rect x="30" y="40" width="140" height="40" fill="#3a2818"/><rect x="22" y="38" width="10" height="100" fill="#bdb8af"/><rect x="168" y="38" width="10" height="100" fill="#bdb8af"/></svg></div><div class="meta"><div class="br">Cassina</div><div class="nm">LC3 Petit Confort</div><div class="pr">6 200 €</div></div></a>
-    <a class="card" href="scan.html"><div class="img"><svg viewBox="0 0 200 150" width="100%"><circle cx="100" cy="90" r="42" fill="#a89880"/><rect x="92" y="50" width="16" height="42" fill="#6B5340"/></svg></div><div class="meta"><div class="br">Vitra</div><div class="nm">Eames Lounge</div><div class="pr">4 850 €</div></div></a>
-    <a class="card" href="scan.html"><div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="40" y="60" width="120" height="80" fill="#7A8B7A"/></svg></div><div class="meta"><div class="br">Hay</div><div class="nm">Mags Soft</div><div class="pr">3 100 €</div></div></a>
-    <a class="card" href="scan.html"><div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="50" y="70" width="100" height="65" fill="#B89A6B"/></svg></div><div class="meta"><div class="br">&amp;Tradition</div><div class="nm">Cloud Sofa</div><div class="pr">5 400 €</div></div></a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="30" y="80" width="140" height="55" fill="#3a2818"/><rect x="30" y="40" width="140" height="40" fill="#3a2818"/><rect x="22" y="38" width="10" height="100" fill="#bdb8af"/><rect x="168" y="38" width="10" height="100" fill="#bdb8af"/></svg></div>
+      <div class="meta"><div class="br">Cassina</div><div class="nm">LC3 Petit Confort</div><div class="pr">6 200 € · 4 finitions</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><circle cx="100" cy="90" r="42" fill="#a89880"/><rect x="92" y="50" width="16" height="42" fill="#6B5340"/></svg></div>
+      <div class="meta"><div class="br">Vitra</div><div class="nm">Eames Lounge LCW</div><div class="pr">4 850 € · 2 essences</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="40" y="60" width="120" height="80" fill="#7A8B7A"/><rect x="50" y="70" width="48" height="60" fill="#6B7C6B"/></svg></div>
+      <div class="meta"><div class="br">Hay</div><div class="nm">Mags Soft Module</div><div class="pr">3 100 € · 12 tissus</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="50" y="70" width="100" height="65" fill="#B89A6B"/><rect x="60" y="80" width="80" height="8" fill="#A07A4A"/></svg></div>
+      <div class="meta"><div class="br">&amp;Tradition</div><div class="nm">Cloud Sofa</div><div class="pr">5 400 € · 8 coloris</div></div>
+    </a>
   </div>
 </section>
 
-<footer class="footer">
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="footer" role="contentinfo">
   <div class="top">
     <div class="brand-col">
       <img src="logo_blanc.png" alt="TadamHome">
-      <p>Plateforme AR pour les marques de mobilier haut de gamme. Catalogues 3D scannables sans application.</p>
-      <div class="badges"><span class="badge">WebXR</span><span class="badge">USDZ</span><span class="badge">glTF</span><span class="badge">RGPD</span></div>
+      <p>Plateforme AR pour les marques de mobilier haut de gamme. Catalogues 3D scannables sans application, partout dans le monde.</p>
+      <div class="badges">
+        <span class="badge">WebXR</span>
+        <span class="badge">USDZ</span>
+        <span class="badge">glTF</span>
+        <span class="badge">RGPD</span>
+      </div>
     </div>
-    <div class="col"><h4>Plateforme</h4><ul><li><a href="catalogue.html">Catalogue</a></li><li><a href="scan.html">Configurateur</a></li><li><a href="index.html">Accueil</a></li></ul></div>
-    <div class="col"><h4>Marques</h4><ul><li><a href="#">Intégrer son catalogue</a></li><li><a href="#">Contact commercial</a></li></ul></div>
-    <div class="col"><h4>Société</h4><ul><li><a href="#">Manifeste</a></li><li><a href="#">Mentions légales</a></li></ul></div>
+    <div class="col">
+      <h4>Plateforme</h4>
+      <ul>
+        <li><a href="catalogue.html">Catalogue</a></li>
+        <li><a href="scan.html">Configurateur</a></li>
+        <li><a href="index.html#scenes">Scènes AR</a></li>
+        <li><a href="pricing.html">Tarifs</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Marques</h4>
+      <ul>
+        <li><a href="#integrations">Intégrer son catalogue</a></li>
+        <li><a href="#api">API & SDK</a></li>
+        <li><a href="#cases">Études de cas</a></li>
+        <li><a href="#contact">Contact commercial</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Ressources</h4>
+      <ul>
+        <li><a href="#docs">Documentation</a></li>
+        <li><a href="#journal">Journal</a></li>
+        <li><a href="#presse">Presse</a></li>
+        <li><a href="#status">Statut plateforme</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Société</h4>
+      <ul>
+        <li><a href="#about">Manifeste</a></li>
+        <li><a href="#team">Équipe</a></li>
+        <li><a href="#careers">Carrières</a></li>
+        <li><a href="#legal">Mentions légales</a></li>
+      </ul>
+    </div>
   </div>
   <div class="bottom">
     <span class="legal">© 2025 TadamHome SAS · Paris · Milan</span>
-    <span class="signature">Made with care in France</span>
-    <div class="socials"><a href="#">Instagram</a><a href="#">LinkedIn</a></div>
+    <span class="signature">Made with <em>care</em> in France</span>
+    <div class="socials">
+      <a href="#instagram" aria-label="Instagram">Instagram</a>
+      <a href="#linkedin" aria-label="LinkedIn">LinkedIn</a>
+      <a href="#vimeo" aria-label="Vimeo">Vimeo</a>
+    </div>
   </div>
 </footer>
 
+<!-- ═══════════════ TOAST ═══════════════ -->
 <div class="toast" id="toast"></div>
 
+<!-- ═══════════════ SUPABASE ═══════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   TADAMHOME — Scan production logic (mergé du scan.html original)
+   - Supabase product loading (?id= ou ?product=)
+   - <model-viewer> avec auto-scaling sur dimensions réelles
+   - Coloris dynamiques avec swap GLB / texture / hex
+   - AR launch (WebXR / Scene Viewer / Quick Look)
+   - Studio AR : transition sparkles → ar-scene.html
+   - Wallet (sélection) localStorage + tracking Supabase
+   ═══════════════════════════════════════════════════════════════ */
+
 const SB = supabase.createClient(
   'https://wbunwfxecvxngypuehop.supabase.co',
   'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P'
 );
-let sid = localStorage.getItem('tadam_sid');
-if (!sid) { sid = crypto.randomUUID(); localStorage.setItem('tadam_sid', sid); }
 
-let prod = null, col = null;
+let sid = localStorage.getItem('tadam_sid');
+if (!sid) {
+  sid = crypto.randomUUID();
+  localStorage.setItem('tadam_sid', sid);
+}
+
+let prod = null;
+let col = null;
 
 const DEMO = {
-  id: 'demo-lc2', name: 'LC2 Grand Confort', ref: 'LC2-GC', price: 7850,
-  category: 'fauteuil', category_label: 'Salon · Fauteuil',
+  id: 'demo-lc2',
+  name: 'LC2 Grand Confort',
+  ref: 'LC2-GC',
+  price: 7850,
+  category: 'fauteuil',
+  category_label: 'Salon · Fauteuil',
   designer: 'Le Corbusier, Pierre Jeanneret & Charlotte Perriand',
-  designer_year: '1928', dimensions: { l:240, p:70, h:68 },
-  enseigne_name: 'Cassina', enseigne_city: 'Meda · Italie',
+  designer_year: '1928',
+  dimensions: { l: 240, p: 70, h: 68 },
+  enseigne_name: 'Cassina',
+  enseigne_city: 'Meda · Italie',
+  model_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
   usdz_url: null,
   colors: [
-    { name:'Cuir Brandy', hex:'#6e5238' }, { name:'Cuir Espresso', hex:'#2a1f15' },
-    { name:'Cuir Sable', hex:'#a89880' },  { name:'Cuir Tabac', hex:'#8b7355' },
-    { name:'Cuir Noir', hex:'#1a1a1a' },   { name:'Cuir Brique', hex:'#c0392b' },
-    { name:'Cuir Forêt', hex:'#27704a' },  { name:'Cuir Écru', hex:'#f5f2ec' }
+    { name: 'Cuir Brandy',   hex: '#6e5238' },
+    { name: 'Cuir Espresso', hex: '#2a1f15' },
+    { name: 'Cuir Sable',    hex: '#a89880' },
+    { name: 'Cuir Tabac',    hex: '#8b7355' },
+    { name: 'Cuir Noir',     hex: '#1a1a1a' },
+    { name: 'Cuir Brique',   hex: '#c0392b' },
+    { name: 'Cuir Forêt',    hex: '#27704a' },
+    { name: 'Cuir Écru',     hex: '#f5f2ec' }
   ]
 };
 
+/* ───── PRODUCT LOADING ───── */
 async function loadProduct() {
   const params = new URLSearchParams(location.search);
   const id = params.get('id') || params.get('product');
@@ -916,7 +1504,9 @@ async function loadProduct() {
       designer: data.designer || null,
       designer_year: data.designer_year || null,
       dimensions: data.dimensions || null,
-      dim_label: data.dimensions ? `${data.dimensions.l ?? '—'} × ${data.dimensions.p ?? '—'} × ${data.dimensions.h ?? '—'} cm` : '—',
+      dim_label: data.dimensions
+        ? `${data.dimensions.l ?? '—'} × ${data.dimensions.p ?? '—'} × ${data.dimensions.h ?? '—'} cm`
+        : '—',
       enseigne_name: data.enseigne_name || '—',
       enseigne_city: data.enseigne_city || null,
       usdz_url: data.model_usdz_url || null,
@@ -926,78 +1516,110 @@ async function loadProduct() {
   } catch (e) { render(DEMO); }
 }
 
+/* ───── RENDER ───── */
 function render(p) {
   prod = p;
+
   const catFirst = (p.category_label || p.category || '').split('·')[0].trim() || 'Catalogue';
   document.getElementById('bc-cat').textContent = catFirst;
   document.getElementById('bc-brand').textContent = p.enseigne_name || '—';
   document.getElementById('bc-prod').textContent = p.name;
   document.title = `${p.name} — ${p.enseigne_name || 'TadamHome'} · TadamHome`;
-  document.getElementById('prod-ref').textContent = `Réf · ${p.ref || p.id.substring(0,8).toUpperCase()}`;
+
+  document.getElementById('prod-ref').textContent = `Réf · ${p.ref || (p.id || '').substring(0, 8).toUpperCase()}`;
   document.getElementById('prod-category').textContent = p.category_label || p.category || 'Meuble';
 
   const nameEl = document.getElementById('prod-name');
   if (p.name && p.name.includes(' ')) {
-    const parts = p.name.split(' '); const last = parts.pop();
+    const parts = p.name.split(' ');
+    const last = parts.pop();
     nameEl.innerHTML = `${parts.join(' ')} <em>${last}</em>`;
-  } else { nameEl.textContent = p.name || '—'; }
+  } else {
+    nameEl.textContent = p.name || '—';
+  }
 
-  const dEl = document.getElementById('prod-designer');
+  const designerEl = document.getElementById('prod-designer');
   if (p.designer) {
-    dEl.innerHTML = p.designer_year
-      ? `Dessiné par ${p.designer.replace(/^([^,]+)/, '<em>$1</em>')} · ${p.designer_year}`
-      : `Dessiné par ${p.designer.replace(/^([^,]+)/, '<em>$1</em>')}`;
-    dEl.style.display = '';
-  } else { dEl.style.display = 'none'; }
+    const designerHTML = p.designer.replace(/^([^,]+)/, '<em>$1</em>');
+    designerEl.innerHTML = p.designer_year
+      ? `Dessiné par ${designerHTML} · ${p.designer_year}`
+      : `Dessiné par ${designerHTML}`;
+    designerEl.style.display = '';
+  } else {
+    designerEl.style.display = 'none';
+  }
 
   document.getElementById('brand-mark').textContent = (p.enseigne_name || '?').charAt(0).toUpperCase();
   document.getElementById('prod-brand').textContent = p.enseigne_name || '—';
   const subEl = document.getElementById('prod-brand-sub');
-  if (p.enseigne_city) { subEl.textContent = p.enseigne_city; subEl.style.display = ''; }
-  else { subEl.style.display = 'none'; }
+  if (p.enseigne_city) {
+    subEl.textContent = p.enseigne_city;
+    subEl.style.display = '';
+  } else { subEl.style.display = 'none'; }
 
   document.getElementById('prod-price').textContent = p.price ? p.price.toLocaleString('fr-FR') + ' €' : '—';
   document.getElementById('prod-price-note').textContent = p.price ? 'TTC · livré' : '';
 
-  const dimLabel = p.dim_label || (p.dimensions ? `${p.dimensions.l} × ${p.dimensions.p} × ${p.dimensions.h} cm` : '—');
-  document.getElementById('attr-dim').textContent = dimLabel;
+  document.getElementById('attr-dim').textContent = p.dim_label
+    || (p.dimensions ? `${p.dimensions.l} × ${p.dimensions.p} × ${p.dimensions.h} cm` : '—');
+
+  if (p.dim_label || p.dimensions) {
+    document.getElementById('ui-dim').textContent = 'Rotation auto · ' +
+      (p.dim_label || `${p.dimensions.l} × ${p.dimensions.p} × ${p.dimensions.h} cm`);
+  }
 
   const mv = document.getElementById('mv');
   if (p.usdz_url) mv.setAttribute('ios-src', p.usdz_url);
 
   renderColors(p.colors || []);
   checkAdded();
-  if (p.id !== 'demo-lc2') autoAddToWallet(p);
+
+  if (p.id !== 'demo-lc2' && p.id !== 'demo-001') autoAddToWallet(p);
+
+  mv.addEventListener('camera-change', () => {
+    const cue = document.getElementById('cue');
+    if (cue) cue.classList.add('hidden');
+  }, { once: true });
 }
 
+/* ───── COLORS / SWATCHES ───── */
 function renderColors(colors) {
   const grid = document.getElementById('swatches');
   const section = document.querySelector('.colors');
   grid.innerHTML = '';
-  if (!colors || !colors.length) { section.style.display = 'none'; return; }
+  if (!colors || !colors.length) {
+    section.style.display = 'none';
+    return;
+  }
   section.style.display = '';
 
-  const n = colors.length;
-  const nw = ({2:'Deux',3:'Trois',4:'Quatre',5:'Cinq',6:'Six',7:'Sept',8:'Huit',9:'Neuf',10:'Dix'})[n] || n;
-  document.getElementById('colors-title').innerHTML = `${nw} finitions, <em>une même âme</em>`;
+  const titleEl = document.getElementById('colors-title');
+  if (titleEl) {
+    const n = colors.length;
+    const numWord = ({2:'Deux',3:'Trois',4:'Quatre',5:'Cinq',6:'Six',7:'Sept',8:'Huit',9:'Neuf',10:'Dix'})[n] || n;
+    titleEl.innerHTML = `${numWord} finitions, <em>une même âme</em>`;
+  }
 
   col = colors[0];
-  document.getElementById('col-name').textContent = colors[0].name;
+  document.getElementById('col-name').textContent = colors[0].name + (colors[0].mat ? ' · ' + colors[0].mat : '');
 
   const attrColor = document.getElementById('attr-color');
   if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${colors[0].name.replace(/^Cuir\s+/i, '')}`;
-  const attrSub = document.getElementById('attr-color-sub');
-  if (attrSub) attrSub.textContent = `${n} finition${n > 1 ? 's' : ''}`;
+  const attrColorSub = document.getElementById('attr-color-sub');
+  if (attrColorSub) attrColorSub.textContent = `${colors.length} finition${colors.length > 1 ? 's' : ''}`;
 
   colors.forEach((c, i) => {
     const btn = document.createElement('button');
     btn.className = 'swatch' + (i === 0 ? ' act' : '');
+    btn.title = c.name + (c.mat ? ' · ' + c.mat : '');
     btn.setAttribute('aria-label', c.name);
+
     const chip = document.createElement('span');
     chip.className = 'chip';
     if (c.texture) chip.style.backgroundImage = `url(${c.texture})`;
     else chip.style.background = c.hex || '#ccc';
     btn.appendChild(chip);
+
     const nm = document.createElement('span');
     nm.className = 'nm';
     nm.textContent = c.name.replace(/^Cuir\s+/i, '');
@@ -1007,158 +1629,324 @@ function renderColors(colors) {
       document.querySelectorAll('.swatch').forEach(x => x.classList.remove('act'));
       btn.classList.add('act');
       col = c;
-      document.getElementById('col-name').textContent = c.name;
+      document.getElementById('col-name').textContent = c.name + (c.mat ? ' · ' + c.mat : '');
       if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${c.name.replace(/^Cuir\s+/i, '')}`;
+
       const mv = document.getElementById('mv');
       if (c.glb) {
         mv.setAttribute('src', c.glb);
         if (c.usdz) mv.setAttribute('ios-src', c.usdz);
       } else if (c.texture && mv.model) {
         try {
-          const tex = await mv.createTexture(c.texture);
-          mv.model.materials.forEach(m => { try { m.pbrMetallicRoughness.baseColorTexture.setTexture(tex); } catch(e) {} });
-        } catch(e) {}
+          const texture = await mv.createTexture(c.texture);
+          mv.model.materials.forEach(mat => {
+            try { mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); } catch (e) {}
+          });
+        } catch (e) {}
       }
-      const w = getW(); const ex = w.find(i => i.id === prod?.id);
+      const w = getW();
+      const ex = w.find(i => i.id === prod?.id);
       if (ex) { ex.color = c; setW(w); }
     };
     grid.appendChild(btn);
   });
 
   const mv = document.getElementById('mv');
-  if (colors[0].glb) {
+  if (colors[0].glb && mv.getAttribute('src') !== colors[0].glb) {
     mv.setAttribute('src', colors[0].glb);
     if (colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
     mv.addEventListener('load', () => {
       const dim = mv.getDimensions(); if (!dim || dim.y <= 0) return;
       const realH = prod?.dimensions?.h ? prod.dimensions.h / 100 : null;
       const _t = { 'sofa':0.85,'canapé':0.85,'canape':0.85,'fauteuil':0.90,'chaise':0.90,'table basse':0.45,'table à manger':0.75,'bureau':0.75,'luminaire':1.80,'rangement':1.20,'lit':0.60 };
-      const target = realH || _t[(prod?.category||'').toLowerCase()] || null; if (!target) return;
+      const target = realH || _t[(prod?.category||'').toLowerCase()] || null;
+      if (!target) return;
       const ratio = target / dim.y;
       if (ratio < 0.8 || ratio > 1.2) { const s = ratio.toFixed(4); mv.setAttribute('scale', `${s} ${s} ${s}`); }
     }, { once: true });
-  } else if (colors[0].texture) {
+  } else if (colors[0].texture && !colors[0].glb) {
     mv.addEventListener('load', async () => {
-      if (!mv.model) return;
+      if (!colors[0].texture || !mv.model) return;
       try {
-        const tex = await mv.createTexture(colors[0].texture);
-        mv.model.materials.forEach(m => { try { m.pbrMetallicRoughness.baseColorTexture.setTexture(tex); } catch(e) {} });
-      } catch(e) {}
+        const texture = await mv.createTexture(colors[0].texture);
+        mv.model.materials.forEach(mat => {
+          try { mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); } catch (e) {}
+        });
+      } catch (e) {}
     }, { once: true });
   }
 }
 
+/* ───── VIEWER TABS ───── */
+    btn.classList.add('act');
+    btn.setAttribute('aria-selected', 'true');
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    if (tab === '3d' || tab === '360') document.getElementById('tab-3d').classList.add('active');
+    else if (tab === 'photos') document.getElementById('tab-photos').classList.add('active');
+  });
+});
+
+/* ───── AR LAUNCH ───── */
 function launchAR() {
-  const mv = document.getElementById('mv'); if (!mv) return;
-  if (mv.canActivateAR) { mv.activateAR(); return; }
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = /Android/.test(navigator.userAgent);
-  if (isIOS) toast("Ouvrez dans Safari pour l'AR sur iPhone");
-  else if (isAndroid) toast("Ouvrez dans Chrome pour l'AR sur Android");
-  else toast('AR disponible uniquement sur mobile');
+  const mv = document.getElementById('mv');
+  if (!mv) return;
+  if (mv.canActivateAR) {
+    mv.activateAR();
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    if (isIOS) toast("Ouvrez dans Safari pour l'AR sur iPhone");
+    else if (isAndroid) toast("Ouvrez dans Chrome pour l'AR sur Android");
+    else toast('AR disponible uniquement sur mobile');
+  }
 }
 
+/* ───── STUDIO AR ───── */
 function openStudio() {
-  if (!prod || prod.id === 'demo-lc2') { toast("Chargez un produit réel pour composer une scène"); return; }
-  const sceneData = [{ id:prod.id, name:prod.name, glb:col?.glb||null, usdz:col?.usdz||(prod.usdz_url||null), category:prod.category||'meuble', dimensions:prod.dimensions||null }];
+  if (!prod || prod.id === 'demo-lc2' || prod.id === 'demo-001') {
+    toast("Chargez d'abord un produit pour composer une scène");
+    return;
+  }
+
+  const sceneData = [{
+    id: prod.id,
+    name: prod.name,
+    glb: col && col.glb ? col.glb : prod.model_url,
+    usdz: col && col.usdz ? col.usdz : (prod.usdz_url || null),
+    category: prod.category || 'meuble',
+    dimensions: prod.dimensions || null
+  }];
   localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneData));
-  localStorage.setItem('tadam_studio_entry', JSON.stringify({ name:prod.name, t:Date.now() }));
+  localStorage.setItem('tadam_studio_entry', JSON.stringify({ name: prod.name, t: Date.now() }));
 
   if (!document.getElementById('tadam-kf')) {
-    const s = document.createElement('style'); s.id = 'tadam-kf';
-    s.textContent = '@keyframes tadamSparkFly{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(1.2)}70%{opacity:.7}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(var(--d)) scale(0.1)}}@keyframes tadamAuraPulse{0%{transform:scale(.6);opacity:0}40%{transform:scale(1.15);opacity:1}100%{transform:scale(2.2);opacity:0}}@keyframes tadamLabelRise{0%{opacity:0;transform:translate(-50%,20px) scale(.9)}40%{opacity:1;transform:translate(-50%,0px) scale(1)}100%{opacity:0;transform:translate(-50%,-28px) scale(.95)}}@keyframes tadamLogoIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}';
+    const s = document.createElement('style');
+    s.id = 'tadam-kf';
+    s.textContent = `
+      @keyframes tadamSparkFly {
+        0%   { opacity:1;  transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(1.2); }
+        70%  { opacity:.7; }
+        100% { opacity:0;  transform:translate(-50%,-50%) rotate(var(--a)) translateX(var(--d)) scale(0.1); }
+      }
+      @keyframes tadamAuraPulse {
+        0%   { transform:scale(.6); opacity:0; }
+        40%  { transform:scale(1.15); opacity:1; }
+        100% { transform:scale(2.2); opacity:0; }
+      }
+      @keyframes tadamViewerGlow {
+        0%,100% { filter:brightness(1) saturate(1); }
+        50%     { filter:brightness(1.18) saturate(1.3); }
+      }
+      @keyframes tadamLabelRise {
+        0%   { opacity:0; transform:translate(-50%,20px) scale(.9); }
+        40%  { opacity:1; transform:translate(-50%,0px)  scale(1); }
+        75%  { opacity:1; transform:translate(-50%,-8px)  scale(1.02); }
+        100% { opacity:0; transform:translate(-50%,-28px) scale(.95); }
+      }
+      @keyframes tadamLogoIn {
+        0%   { opacity:0; transform:translate(-50%,-50%) scale(.7); }
+        60%  { opacity:1; transform:translate(-50%,-50%) scale(1.08); }
+        100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+      }
+    `;
     document.head.appendChild(s);
   }
+
   const vWrap = document.getElementById('viewer-wrap');
-  const vRect = vWrap ? vWrap.getBoundingClientRect() : { left:0, top:52, width:window.innerWidth, height:320 };
-  const vCX = vRect.left + vRect.width / 2, vCY = vRect.top + vRect.height / 2;
+  const vRect = vWrap ? vWrap.getBoundingClientRect()
+                      : { left: 0, top: 52, width: window.innerWidth, height: 220 };
+  const vCX = vRect.left + vRect.width / 2;
+  const vCY = vRect.top + vRect.height / 2;
 
   const ov = document.createElement('div');
+  ov.id = 'tadam-ov';
   ov.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:all;overflow:hidden';
   document.body.appendChild(ov);
 
   const aura = document.createElement('div');
-  aura.style.cssText = `position:absolute;width:${vRect.width*1.2}px;height:${vRect.height*1.2}px;left:${vCX}px;top:${vCY}px;transform:translate(-50%,-50%) scale(.6);border-radius:50%;background:radial-gradient(circle at center,rgba(184,152,106,.4) 0%,rgba(184,152,106,.15) 40%,transparent 75%);animation:tadamAuraPulse .7s ease-out forwards;pointer-events:none`;
+  aura.style.cssText = `
+    position:absolute;
+    width:${vRect.width * 1.2}px; height:${vRect.height * 1.2}px;
+    left:${vCX}px; top:${vCY}px;
+    transform:translate(-50%,-50%) scale(.6);
+    border-radius:50%;
+    background:radial-gradient(circle at center,
+      rgba(184,152,106,.4) 0%, rgba(184,152,106,.15) 40%, transparent 75%);
+    animation:tadamAuraPulse .7s ease-out forwards;
+    pointer-events:none;
+  `;
   ov.appendChild(aura);
 
   const mv = document.getElementById('mv');
-  if (mv) mv.style.filter = 'brightness(1.2) saturate(1.3)';
+  if (mv) mv.style.animation = 'tadamViewerGlow .5s ease-in-out 2';
 
   for (let i = 0; i < 18; i++) {
-    const sp = document.createElement('div');
+    const angle = (i / 18) * 360;
+    const dist = 70 + Math.random() * 80;
+    const delay = Math.random() * .35;
     const size = 3 + Math.random() * 5;
-    sp.style.cssText = `position:absolute;width:${size}px;height:${size}px;left:${vCX}px;top:${vCY}px;border-radius:50%;background:rgba(184,152,106,${.5+Math.random()*.5});--a:${(i/18)*360}deg;--d:${70+Math.random()*80}px;animation:tadamSparkFly .75s ${Math.random()*.35}s cubic-bezier(.2,0,.8,1) forwards;pointer-events:none`;
+    const sp = document.createElement('div');
+    sp.style.cssText = `
+      position:absolute;
+      width:${size}px;height:${size}px;
+      left:${vCX}px;top:${vCY}px;
+      border-radius:50%;
+      background:rgba(184,152,106,${.5 + Math.random() * .5});
+      box-shadow:0 0 ${size * 2}px rgba(184,152,106,.6);
+      --a:${angle}deg;--d:${dist}px;
+      animation:tadamSparkFly .75s ${delay}s cubic-bezier(.2,0,.8,1) forwards;
+      pointer-events:none;
+    `;
     ov.appendChild(sp);
   }
 
   const bg = document.createElement('div');
-  bg.style.cssText = 'position:absolute;inset:0;background:var(--th-paper);opacity:0;pointer-events:none;transition:opacity .5s ease';
+  bg.style.cssText = `
+    position:absolute;inset:0;
+    background:var(--th-paper);opacity:0;pointer-events:none;
+    transition:opacity .5s ease;
+  `;
   ov.appendChild(bg);
+
   const lbl = document.createElement('div');
   lbl.textContent = prod.name;
-  lbl.style.cssText = `position:absolute;left:50%;bottom:38%;transform:translateX(-50%) translateY(20px);font-family:var(--th-serif);font-size:24px;font-weight:300;color:var(--th-ink);letter-spacing:.04em;text-align:center;white-space:nowrap;opacity:0;animation:tadamLabelRise .9s .5s ease-in-out forwards`;
+  lbl.style.cssText = `
+    position:absolute;
+    left:50%;bottom:38%;
+    transform:translateX(-50%) translateY(20px);
+    font-family:var(--th-serif);font-size:24px;font-weight:300;
+    color:var(--th-ink);letter-spacing:.04em;text-align:center;white-space:nowrap;
+    opacity:0;pointer-events:none;
+    animation:tadamLabelRise .9s .5s ease-in-out forwards;
+  `;
   ov.appendChild(lbl);
+
   setTimeout(() => { bg.style.opacity = '1'; }, 500);
 
   const logo = document.createElement('div');
-  logo.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);opacity:0;text-align:center;animation:tadamLogoIn .45s .9s cubic-bezier(.34,1.56,.64,1) forwards';
-  logo.innerHTML = '<img src="logo.png" style="height:28px;display:block;margin:0 auto"><div style="font-family:var(--th-serif);font-size:12px;letter-spacing:.30em;text-transform:uppercase;color:var(--th-accent);margin-top:14px;font-style:italic">Studio AR</div>';
+  logo.style.cssText = `
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%) scale(.7);opacity:0;
+    pointer-events:none;text-align:center;
+    animation:tadamLogoIn .45s .9s cubic-bezier(.34,1.56,.64,1) forwards;
+  `;
+  logo.innerHTML = `
+    <img src="logo.png" style="height:28px;object-fit:contain;display:block;margin:0 auto"
+      onerror="this.style.display='none'"/>
+    <div style="font-family:var(--th-serif);font-size:12px;letter-spacing:.30em;
+      text-transform:uppercase;color:var(--th-accent);margin-top:14px;font-style:italic">Studio AR</div>
+  `;
   ov.appendChild(logo);
+
   setTimeout(() => { window.location.href = 'ar-scene.html'; }, 1350);
 }
 
+/* ───── WALLET / SÉLECTION ───── */
 function getW() { return JSON.parse(localStorage.getItem('tadam_wallet') || '[]'); }
 function setW(w) { localStorage.setItem('tadam_wallet', JSON.stringify(w)); }
 
 function autoAddToWallet(p) {
-  const w = getW(); const exists = w.find(i => i.id === p.id);
+  const w = getW();
+  const exists = w.find(i => i.id === p.id);
   if (exists) { exists.color = col; setW(w); updateWalletUI(); return; }
-  w.push({ id:p.id, name:p.name, price:p.price, enseigne:p.enseigne_name, color:col, added_at:new Date().toISOString() });
-  setW(w); updateWalletUI(); markAdded();
+  w.push({
+    id: p.id, name: p.name, price: p.price,
+    enseigne: p.enseigne_name, color: col,
+    model_url: (p.colors&&p.colors[0]&&p.colors[0].glb)||null, added_at: new Date().toISOString()
+  });
+  setW(w);
+  updateWalletUI();
+  markAdded();
   setTimeout(() => toast('✦ Ajouté à votre sélection TadamHome'), 800);
 }
 
 function addToWallet() {
   if (!prod) return;
-  const w = getW(); const ex = w.find(i => i.id === prod.id);
+  const w = getW();
+  const ex = w.find(i => i.id === prod.id);
   if (ex) { ex.color = col; setW(w); }
-  else { w.push({ id:prod.id, name:prod.name, price:prod.price, enseigne:prod.enseigne_name, color:col, added_at:new Date().toISOString() }); setW(w); }
-  updateWalletUI(); markAdded(); toast('Ajouté à votre sélection');
+  else {
+    w.push({
+      id: prod.id, name: prod.name, price: prod.price,
+      enseigne: prod.enseigne_name, color: col,
+      model_url: prod.model_url, added_at: new Date().toISOString()
+    });
+    setW(w);
+  }
+  updateWalletUI();
+  markAdded();
+  toast('Ajouté à votre sélection');
 }
 
-function checkAdded() { if (prod && getW().find(i => i.id === prod.id)) markAdded(); }
+function checkAdded() {
+  if (!prod) return;
+  if (getW().find(i => i.id === prod.id)) markAdded();
+}
 
 function markAdded() {
   const btn = document.getElementById('btn-add');
-  if (btn) { btn.innerHTML = '<span>✓ Ajouté</span>'; btn.classList.add('added'); }
+  if (btn) {
+    btn.innerHTML = '<span>✓ Ajouté</span>';
+    btn.classList.add('added');
+  }
 }
 
 function updateWalletUI() {
-  const n = getW().length;
+  const w = getW();
+  const n = w.length;
   const b = document.getElementById('wbadge');
-  if (b) { b.textContent = n; b.classList.toggle('on', n > 0); }
+  if (b) {
+    b.textContent = n;
+    b.classList.toggle('on', n > 0);
+  }
 }
 
 function openWallet() { window.location.href = 'wallet.html'; }
 
+/* ───── MISC ───── */
 function shareProduct() {
-  if (navigator.share && prod) navigator.share({ title:prod.name, url:location.href }).catch(() => {});
-  else navigator.clipboard?.writeText(location.href).then(() => toast('Lien copié'), () => toast('Partage non supporté'));
+  if (navigator.share && prod) {
+    navigator.share({
+      title: prod.name,
+      text: `${prod.name} — ${prod.enseigne_name || ''}`,
+      url: location.href
+    }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(location.href).then(
+      () => toast('Lien copié dans le presse-papier'),
+      () => toast('Partage non supporté')
+    );
+  }
 }
 
 function contactVendeur() { toast('Le vendeur a été notifié'); }
 
+/* ───── TRACKING ───── */
 async function track(pid) {
-  try { await SB.from('scans').insert({ product_id:pid, session_id:sid, selected_color:col?.name||null }); } catch(e) {}
+  try {
+    await SB.from('scans').insert({
+      product_id: pid,
+      session_id: sid,
+      selected_color: col?.name || null
+    });
+  } catch (e) {}
 }
 
+/* ───── TOAST ───── */
 let _tt;
 function toast(msg) {
-  const t = document.getElementById('toast'); if (!t) return;
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2500);
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+/* ───── VIEWER CONTROLS ───── */
+
+/* ───── BOOTSTRAP ───── */
 loadProduct();
 updateWalletUI();
 </script>
