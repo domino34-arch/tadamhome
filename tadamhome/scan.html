@@ -650,7 +650,9 @@ section.colors { display:none !important; }
 
 /* Mobile ≤ 768px */
 @media (max-width:768px) {
-  .topnav.scan-nav { padding:12px 16px; position:sticky !important; top:0 !important; z-index:100 !important; }
+  .topnav.scan-nav { padding:12px 16px; position:fixed !important; top:0 !important; left:0 !important; right:0 !important; z-index:100 !important; background:rgba(245,242,236,.96) !important; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  /* Compenser la topnav fixe : le contenu commence 52px plus bas */
+  .hero-split { margin-top:52px; }
   /* Topnav toujours visible */
   .topnav { position: sticky !important; top: 0 !important; z-index: 80 !important; }
   .topnav.scan-nav .btn-back { display:inline-flex; }
