@@ -560,123 +560,29 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
     pointer-events: none;
     z-index: 2;
   }
-  .viewer3d .ui {
-    position: absolute;
-    font-size: 10px;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    color: var(--th-ink-3);
-    padding: 9px 13px;
-    background: rgba(250, 250, 248, .88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--th-border);
-    z-index: 3;
-  }
-  .viewer3d .ui.tr { top: 22px; right: 22px; display: inline-flex; gap: 8px; align-items: center; }
-  .viewer3d .ui.tr::before {
-    content: '';
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--th-accent);
-    animation: blink 1.6s infinite;
-  }
+
+
+
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-  .viewer3d .tabs {
-    position: absolute;
-    bottom: 22px; left: 22px;
-    display: flex;
-    gap: 4px;
-    z-index: 3;
-  }
-  .viewer3d .tabs button {
-    padding: 9px 14px;
-    background: rgba(250, 250, 248, .88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--th-border);
-    font-size: 10px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--th-ink-2);
-    cursor: pointer;
-    transition: background var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
-  }
-  .viewer3d .tabs button:hover { color: var(--th-ink); }
-  .viewer3d .tabs button.act {
-    background: var(--th-ink);
-    color: var(--th-white);
-    border-color: var(--th-ink);
-  }
-  .viewer3d .controls {
-    position: absolute;
-    bottom: 22px; right: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    z-index: 3;
-  }
-  .viewer3d .controls button {
-    width: 38px; height: 38px;
-    background: rgba(250, 250, 248, .92);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--th-border);
-    color: var(--th-ink-2);
-    font-size: 16px;
-    cursor: pointer;
-    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
-  }
-  .viewer3d .controls button:hover { border-color: var(--th-accent); color: var(--th-accent); }
-  .viewer3d .cue {
-    position: absolute;
-    left: 50%; bottom: 32%;
-    transform: translateX(-50%);
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    pointer-events: none;
-    opacity: .5;
-    animation: fade 4s var(--th-ease) infinite;
-  }
-  .viewer3d .cue.hidden { display: none; }
-  @keyframes fade { 0%, 100% { opacity: .25; } 50% { opacity: .65; } }
-  .viewer3d .cue .arr {
-    font-family: var(--th-serif);
-    font-style: italic;
-    font-size: 22px;
-    color: var(--th-accent-3);
-    letter-spacing: 8px;
-  }
-  .viewer3d .cue .lbl {
-    font-size: 9px;
-    letter-spacing: .25em;
-    text-transform: uppercase;
-    color: var(--th-accent-3);
-  }
+
+
+
+
+
+
+
+
+
+ 50% { opacity: .65; } }
+
+
 
   /* Tab panels */
-  .tab-panel { position: absolute; inset: 0; z-index: 1; }
-  .tab-panel:not(.active) { display: none; }
-  .tab-panel.photos {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 14px;
-    background: var(--th-paper-2);
-  }
-  .tab-panel.photos svg { opacity: .25; color: var(--th-accent); }
-  .tab-panel.photos p {
-    font-size: 12px;
-    color: var(--th-ink-3);
-    letter-spacing: .04em;
-    max-width: 260px;
-    text-align: center;
-    line-height: 1.6;
-  }
+
+
+
+
+
 
   /* ─── HERO SPLIT ─── */
   .hero-split {
@@ -687,6 +593,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
     border-bottom: 1px solid var(--th-border);
   }
   .hero-split .v3d { min-height: 720px; }
+  .hero-split .v3d model-viewer { height: 720px; }
   .hero-split .info {
     padding: 56px 48px;
     background: var(--th-paper);
@@ -1223,6 +1130,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
     /* — HERO SPLIT : viewer + info empilés — */
     .hero-split { grid-template-columns: 1fr; }
     .hero-split .v3d { min-height: 320px; }
+    .hero-split .v3d model-viewer { height: 320px; }
     .hero-split .info {
       padding: 22px 22px 0;
       gap: 18px;
@@ -1294,11 +1202,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
     .footer { padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
 
     /* Viewer chrome plus discret sur mobile */
-    .viewer3d .ui.tr { font-size: 8px; padding: 6px 9px; top: 12px; right: 12px; letter-spacing: .12em; }
-    .viewer3d .tabs { bottom: 12px; left: 12px; }
-    .viewer3d .tabs button { padding: 6px 9px; font-size: 8px; }
-    .viewer3d .controls { bottom: 12px; right: 12px; }
-    .viewer3d .controls button { width: 28px; height: 28px; font-size: 13px; }
+  
+  
+  
+  
+  
 
     /* Toast remonte au-dessus de la CTA collante */
     .toast { bottom: calc(180px + env(safe-area-inset-bottom, 12px)); }
@@ -1350,118 +1258,21 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 <!-- ═══════════════ HERO SPLIT ═══════════════ -->
 <section class="hero-split" aria-label="Modèle 3D et informations produit">
   <div class="viewer3d v3d" id="viewer-wrap">
-    <div class="ui tr" id="ui-dim">Rotation auto · 240 × 70 × 68 cm</div>
     <div class="floor"></div>
-
-    <div class="tab-panel active" id="tab-3d">
-      <model-viewer id="mv"
-        src=""
-        alt="Modèle 3D"
-        auto-rotate
-        camera-controls
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        ar-placement="floor"
-        ar-scale="fixed"
-        min-camera-orbit="auto 5deg auto"
-        max-camera-orbit="auto 90deg auto"
-        shadow-intensity="0.4"
-        exposure="1.1">
-        <button slot="ar-button" style="display:none" aria-hidden="true"></button>
-      </model-viewer>
-    </div>
-
-    <div class="tab-panel" id="tab-360"></div>
-
-    <div class="tab-panel photos" id="tab-photos">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <p>Photos disponibles dès l'upload du brand pack</p>
-    </div>
-
-    <div class="cue" id="cue">
-      <span class="arr">↺   ↻</span>
-      <span class="lbl">Glissez pour pivoter</span>
-    </div>
-    <div class="tabs" role="tablist" id="viewer-tabs">
-      <button class="act" role="tab" aria-selected="true" data-tab="3d">3D</button>
-      <button role="tab" aria-selected="false" data-tab="360">360°</button>
-      <button role="tab" aria-selected="false" data-tab="photos">Photos · 8</button>
-    </div>
-    <div class="controls">
-      <button aria-label="Plein écran" id="ctl-fs">⛶</button>
-      <button aria-label="Réinitialiser" id="ctl-reset">↻</button>
-      <button aria-label="Mesurer" id="ctl-measure">⊟</button>
-      <button aria-label="Zoom avant" id="ctl-zoom">+</button>
-    </div>
+    <model-viewer id="mv"
+      src=""
+      alt="Modèle 3D"
+      auto-rotate camera-controls
+      ar ar-modes="webxr scene-viewer quick-look"
+      ar-placement="floor" ar-scale="fixed"
+      min-camera-orbit="auto 5deg auto"
+      max-camera-orbit="auto 90deg auto"
+      shadow-intensity="0.4" exposure="1.1">
+      <button slot="ar-button" style="display:none" aria-hidden="true"></button>
+    </model-viewer>
   </div>
 
-  <div class="info">
-    <div class="meta-line">
-      <span class="ref" id="prod-ref">Réf · LC2-GC</span>
-      <span>·</span>
-      <span id="prod-category">Salon · Fauteuil</span>
-    </div>
-    <h1 id="prod-name" class="italic-accent">LC2 Grand <em>Confort</em></h1>
-    <div class="designer" id="prod-designer">Dessiné par <em>Le Corbusier</em>, Pierre Jeanneret &amp; Charlotte Perriand · 1928</div>
-
-    <a href="catalogue.html" class="brand" id="brand-link">
-      <span class="lm" id="brand-mark">C</span>
-      <div class="stack">
-        <div class="nm" id="prod-brand">Cassina</div>
-        <div class="sub" id="prod-brand-sub">Meda · Italie</div>
-      </div>
-      <span class="arr">→</span>
-    </a>
-
-    <div class="price">
-      <span class="num" id="prod-price">7 850 €</span>
-      <span class="unit" id="prod-price-note">TTC · livré</span>
-    </div>
-
-    <!-- ═══ CTA-BLOCK : devient sticky-bottom sur mobile ═══ -->
-    <div class="cta-block">
-      <div class="save-row">
-        <button id="btn-add" onclick="addToWallet()">
-          <span class="opt-desktop">♡ Sélection</span>
-          <span class="opt-mobile">♡ Ajouter</span>
-        </button>
-        <button onclick="shareProduct()">↗ Partager</button>
-        <button onclick="contactVendeur()">
-          <span class="opt-desktop">⌖ Vendeur</span>
-          <span class="opt-mobile">⌖ Trouver</span>
-        </button>
-      </div>
-
-      <div class="ar-pair">
-        <button class="ar-cta" onclick="launchAR()">
-          <span class="lbl">
-            <span class="opt-desktop">◫ AR · Mono</span>
-            <span class="opt-mobile">◫ Mono</span>
-          </span>
-          <span class="nm italic-accent">Voir <em>chez moi</em></span>
-          <span class="desc">
-            <span class="opt-desktop">Posez ce meuble dans votre salon en taille réelle.</span>
-            <span class="opt-mobile">En taille réelle</span>
-          </span>
-          <span class="arrow">→</span>
-        </button>
-        <button class="ar-cta primary" onclick="openStudio()">
-          <span class="badge-new">Nouveau ✦</span>
-          <span class="lbl">
-            <span class="opt-desktop">◫◫ AR · Multi</span>
-            <span class="opt-mobile">◫◫ Multi</span>
-          </span>
-          <span class="nm italic-accent on-dark">Composer une <em>scène</em></span>
-          <span class="desc">
-            <span class="opt-desktop">Ajoutez canapé, lampe, tapis · construisez votre pièce.</span>
-            <span class="opt-mobile">Avec d'autres meubles</span>
-          </span>
-          <span class="arrow">→</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
 
 <!-- ═══════════════ ATTRS ═══════════════ -->
 <section class="attrs" aria-label="Caractéristiques principales">
@@ -1685,9 +1496,9 @@ async function loadProduct() {
     if (error || !data) { render(DEMO); return; }
     render({
       id: data.id,
-      name: data.name,
+      name: data.name || data.nom || '—',
       ref: data.id.substring(0, 8).toUpperCase(),
-      price: data.price,
+      price: data.price || data.prix || null,
       category: data.category || data.categorie || '',
       category_label: data.category_label || data.category || data.categorie || 'Meuble',
       designer: data.designer || null,
@@ -1698,7 +1509,6 @@ async function loadProduct() {
         : '—',
       enseigne_name: data.enseigne_name || '—',
       enseigne_city: data.enseigne_city || null,
-      model_url: data.model_glb_url || data.model_url,
       usdz_url: data.model_usdz_url || null,
       colors: data.colors || []
     });
@@ -1759,31 +1569,7 @@ function render(p) {
   }
 
   const mv = document.getElementById('mv');
-  if (p.model_url) {
-    mv.setAttribute('src', p.model_url);
-    if (p.usdz_url) mv.setAttribute('ios-src', p.usdz_url);
-
-    const cat = (p.category || '').toLowerCase();
-    mv.addEventListener('load', () => {
-      const dim = mv.getDimensions();
-      if (!dim || dim.y <= 0) return;
-      const realH = p.dimensions?.h ? p.dimensions.h / 100 : null;
-      const targetByCat = {
-        'sofa': 0.85, 'canapé': 0.85, 'canape': 0.85,
-        'fauteuil': 0.90, 'chaise': 0.90,
-        'table basse': 0.45, 'table à manger': 0.75,
-        'bureau': 0.75, 'luminaire': 1.80,
-        'rangement': 1.20, 'lit': 0.60, 'autre': 0.90
-      };
-      const target = realH || targetByCat[cat] || null;
-      if (!target) return;
-      const ratio = target / dim.y;
-      if (ratio < 0.8 || ratio > 1.2) {
-        const s = ratio.toFixed(4);
-        mv.setAttribute('scale', `${s} ${s} ${s}`);
-      }
-    }, { once: true });
-  }
+  if (p.usdz_url) mv.setAttribute('ios-src', p.usdz_url);
 
   renderColors(p.colors || []);
   checkAdded();
@@ -1869,6 +1655,15 @@ function renderColors(colors) {
   if (colors[0].glb && mv.getAttribute('src') !== colors[0].glb) {
     mv.setAttribute('src', colors[0].glb);
     if (colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
+    mv.addEventListener('load', () => {
+      const dim = mv.getDimensions(); if (!dim || dim.y <= 0) return;
+      const realH = prod?.dimensions?.h ? prod.dimensions.h / 100 : null;
+      const _t = { 'sofa':0.85,'canapé':0.85,'canape':0.85,'fauteuil':0.90,'chaise':0.90,'table basse':0.45,'table à manger':0.75,'bureau':0.75,'luminaire':1.80,'rangement':1.20,'lit':0.60 };
+      const target = realH || _t[(prod?.category||'').toLowerCase()] || null;
+      if (!target) return;
+      const ratio = target / dim.y;
+      if (ratio < 0.8 || ratio > 1.2) { const s = ratio.toFixed(4); mv.setAttribute('scale', `${s} ${s} ${s}`); }
+    }, { once: true });
   } else if (colors[0].texture && !colors[0].glb) {
     mv.addEventListener('load', async () => {
       if (!colors[0].texture || !mv.model) return;
@@ -1883,12 +1678,6 @@ function renderColors(colors) {
 }
 
 /* ───── VIEWER TABS ───── */
-document.querySelectorAll('#viewer-tabs button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#viewer-tabs button').forEach(b => {
-      b.classList.remove('act');
-      b.setAttribute('aria-selected', 'false');
-    });
     btn.classList.add('act');
     btn.setAttribute('aria-selected', 'true');
     const tab = btn.dataset.tab;
@@ -2064,7 +1853,7 @@ function autoAddToWallet(p) {
   w.push({
     id: p.id, name: p.name, price: p.price,
     enseigne: p.enseigne_name, color: col,
-    model_url: p.model_url, added_at: new Date().toISOString()
+    model_url: (p.colors&&p.colors[0]&&p.colors[0].glb)||null, added_at: new Date().toISOString()
   });
   setW(w);
   updateWalletUI();
@@ -2156,19 +1945,6 @@ function toast(msg) {
 }
 
 /* ───── VIEWER CONTROLS ───── */
-document.getElementById('ctl-fs')?.addEventListener('click', () => {
-  const wrap = document.getElementById('viewer-wrap');
-  if (!wrap) return;
-  if (document.fullscreenElement) document.exitFullscreen();
-  else wrap.requestFullscreen?.();
-});
-document.getElementById('ctl-reset')?.addEventListener('click', () => {
-  const mv = document.getElementById('mv');
-  if (mv && typeof mv.resetTurntableRotation === 'function') {
-    mv.resetTurntableRotation();
-    mv.cameraOrbit = 'auto auto auto';
-  }
-});
 
 /* ───── BOOTSTRAP ───── */
 loadProduct();
