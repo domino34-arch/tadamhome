@@ -973,6 +973,23 @@ function render(p) {
 function renderColors(colors) {
   const grid = document.getElementById('swatches');
   const inlineSection = document.querySelector('.colors-inline');
+  const mv = document.getElementById('mv');
+
+  // Charger le modèle EN PREMIER, indépendamment des swatches
+  if (colors && colors.length && colors[0].glb && mv) {
+    mv.setAttribute('src', colors[0].glb);
+    if (colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
+    mv.addEventListener('load', () => {
+      const dim = mv.getDimensions(); if (!dim || dim.y <= 0) return;
+      const realH = prod?.dimensions?.h ? prod.dimensions.h / 100 : null;
+      const _t = { 'sofa':0.85,'canapé':0.85,'canape':0.85,'fauteuil':0.90,'chaise':0.90,'table basse':0.45,'table à manger':0.75,'bureau':0.75,'luminaire':1.80,'rangement':1.20,'lit':0.60 };
+      const target = realH || _t[(prod?.category||'').toLowerCase()] || null; if (!target) return;
+      const ratio = target / dim.y;
+      if (ratio < 0.8 || ratio > 1.2) { const s = ratio.toFixed(4); mv.setAttribute('scale', `${s} ${s} ${s}`); }
+    }, { once: true });
+  }
+
+  if (!grid) return; // Swatches non disponibles dans le DOM — le modèle est déjà chargé ci-dessus
   grid.innerHTML = '';
   if (!colors || !colors.length) {
     if (inlineSection) inlineSection.style.display = 'none';
@@ -1029,18 +1046,7 @@ function renderColors(colors) {
   });
 
   const mv = document.getElementById('mv');
-  if (colors[0].glb) {
-    mv.setAttribute('src', colors[0].glb);
-    if (colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
-    mv.addEventListener('load', () => {
-      const dim = mv.getDimensions(); if (!dim || dim.y <= 0) return;
-      const realH = prod?.dimensions?.h ? prod.dimensions.h / 100 : null;
-      const _t = { 'sofa':0.85,'canapé':0.85,'canape':0.85,'fauteuil':0.90,'chaise':0.90,'table basse':0.45,'table à manger':0.75,'bureau':0.75,'luminaire':1.80,'rangement':1.20,'lit':0.60 };
-      const target = realH || _t[(prod?.category||'').toLowerCase()] || null; if (!target) return;
-      const ratio = target / dim.y;
-      if (ratio < 0.8 || ratio > 1.2) { const s = ratio.toFixed(4); mv.setAttribute('scale', `${s} ${s} ${s}`); }
-    }, { once: true });
-  } else if (colors[0].texture) {
+  if (!colors[0].glb && colors[0].texture) {
     mv.addEventListener('load', async () => {
       if (!mv.model) return;
       try {
