@@ -972,10 +972,13 @@ function render(p) {
 
 function renderColors(colors) {
   const grid = document.getElementById('swatches');
-  const section = document.querySelector('.colors');
+  const inlineSection = document.querySelector('.colors-inline');
   grid.innerHTML = '';
-  if (!colors || !colors.length) { section.style.display = 'none'; return; }
-  section.style.display = '';
+  if (!colors || !colors.length) {
+    if (inlineSection) inlineSection.style.display = 'none';
+    return;
+  }
+  if (inlineSection) inlineSection.style.display = '';
 
   const n = colors.length;
   const nw = ({2:'Deux',3:'Trois',4:'Quatre',5:'Cinq',6:'Six',7:'Sept',8:'Huit',9:'Neuf',10:'Dix'})[n] || n;
