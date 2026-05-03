@@ -923,7 +923,7 @@ async function loadProduct() {
       colors: data.colors || []
     });
     track(data.id);
-  } catch (e) { render(DEMO); }
+  } catch (e) { if (!prod) render(DEMO); /* Ne pas écraser les vraies données déjà affichées */ }
 }
 
 function render(p) {
@@ -989,8 +989,8 @@ function renderColors(colors) {
     }, { once: true });
   }
 
-  if (!grid) return; // Swatches non disponibles dans le DOM — le modèle est déjà chargé ci-dessus
-  grid.innerHTML = '';
+  if (!grid) return; // Swatches non dispo — le modèle est déjà chargé ci-dessus
+  if (grid) grid.innerHTML = ''; // Double protection
   if (!colors || !colors.length) {
     if (inlineSection) inlineSection.style.display = 'none';
     return;
