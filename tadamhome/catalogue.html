@@ -40,7 +40,7 @@ nav {
   background: rgba(245,242,236,.97); backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   height: 56px; display: flex; align-items: center;
-  justify-content: space-between; padding: 0 32px;
+  justify-content: space-between; gap: 16px; padding: 0 24px;
 }
 .nav-logo { font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--ink); text-decoration: none; letter-spacing: .02em; display: flex; align-items: center; }
 .nav-logo img { height: 22px; object-fit: contain; }
@@ -57,10 +57,11 @@ nav {
 .nav-search input::placeholder { color: var(--ink3); }
 .nav-search svg { width: 14px; height: 14px; stroke: var(--ink3); fill: none; stroke-width: 1.5; stroke-linecap: round; flex-shrink: 0; }
 .nav-btn {
-  font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
-  padding: 8px 18px; border: 1px solid var(--border); background: transparent;
+  font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+  padding: 6px 12px; border: 1px solid var(--border); background: transparent;
   color: var(--ink); cursor: pointer; font-family: var(--sans); transition: all .2s;
   text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
 }
 .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
 .nav-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
@@ -665,6 +666,18 @@ async function loadProducts() {
     const { data, error } = await sb.from('products').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     allProducts = data || [];
+
+    // 🔍 DEBUG : affiche les champs disponibles pour le 1er produit
+    // Ouvre la console (F12) pour voir le nom exact du champ image utilisé par l'admin
+    if (allProducts.length) {
+      console.group('%c[TadamHome] Structure d\'un produit', 'color:#B8986A;font-weight:600');
+      console.log('Champs disponibles :', Object.keys(allProducts[0]));
+      console.log('Premier produit complet :', allProducts[0]);
+      const resolved = getProductImage(allProducts[0]);
+      console.log('Image résolue :', resolved || '❌ AUCUNE — ajoute le nom du champ image dans getProductImage()');
+      console.groupEnd();
+    }
+
     buildSidebarFilters();
     refreshAlphabetState();
     applyFilters();
@@ -676,19 +689,50 @@ async function loadProducts() {
 }
 
 /* ── PRODUCT IMAGE RESOLUTION ── */
-/* Tries multiple field names commonly used during admin upload */
+/* Tries multiple field names commonly used during admin upload.
+   Also handles Supabase Storage paths (relative paths get a public URL). */
+const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
+
 function getProductImage(p) {
-  return p.image_url
-      || p.thumbnail_url
-      || p.cover_url
-      || p.cover
-      || p.thumbnail
-      || p.preview_url
-      || p.photo_url
-      || p.photo
-      || p.image
-      || p.img
-      || null;
+  // Try every plausible field
+  const candidates = [
+    p.image_url, p.imageUrl, p.thumbnail_url, p.thumbnailUrl,
+    p.cover_url, p.coverUrl, p.cover, p.thumbnail,
+    p.preview_url, p.previewUrl, p.preview,
+    p.photo_url, p.photoUrl, p.photo,
+    p.image, p.img, p.picture,
+    p.image_path, p.imagePath, p.thumb, p.thumb_url,
+    p.glb_thumbnail, p.glbThumbnail,
+    p.poster, p.poster_url, p.posterUrl,
+    p.visual, p.visual_url
+  ];
+
+  // Also handle array fields (e.g. "images": ["url1","url2"])
+  if (Array.isArray(p.images) && p.images.length) candidates.unshift(p.images[0]);
+  if (Array.isArray(p.photos) && p.photos.length) candidates.unshift(p.photos[0]);
+  if (Array.isArray(p.pictures) && p.pictures.length) candidates.unshift(p.pictures[0]);
+
+  for (const v of candidates) {
+    if (!v || typeof v !== 'string') continue;
+    const trimmed = v.trim();
+    if (!trimmed) continue;
+
+    // Already a full URL (https or data)
+    if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
+
+    // Relative storage path → build public URL
+    // Strip leading slashes
+    const clean = trimmed.replace(/^\/+/, '');
+
+    // If path looks like "bucket/path/to/file.jpg" use as-is
+    const firstSeg = clean.split('/')[0];
+    if (STORAGE_BUCKETS.includes(firstSeg)) {
+      return `${SB_URL}/storage/v1/object/public/${clean}`;
+    }
+    // Otherwise default to "products" bucket
+    return `${SB_URL}/storage/v1/object/public/products/${clean}`;
+  }
+  return null;
 }
 
 /* ── SIDEBAR FILTERS ── */
