@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>TadamHome — Configurateur</title>
+<title>TadamHome — Scan AR</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -19,13 +19,11 @@
 html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
 /* TOPBAR */
-.topbar{position:sticky;top:0;z-index:100;background:var(--dark);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.topbar{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.enseigne-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(184,152,106,.2);padding:4px 12px}
-.enseigne-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
-.enseigne-pill span{font-size:11px;font-weight:400;color:rgba(255,255,255,.65);letter-spacing:.04em;font-family:var(--sans)}
-.wallet-btn{background:rgba(255,255,255,.07);border:1px solid rgba(184,152,106,.2);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:#fff;position:relative}
-.wbadge{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--accent);font-size:8px;font-weight:600;color:#fff;display:none;place-items:center;border:2px solid var(--dark)}
+.favoris-btn{background:var(--light);border:1px solid var(--border);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:var(--text);position:relative;transition:all .2s}
+.favoris-btn:active{background:var(--accent-light);color:var(--accent)}
+.wbadge{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--accent);font-size:8px;font-weight:600;color:#fff;display:none;place-items:center;border:2px solid var(--white)}
 .wbadge.on{display:grid}
 
 /* PRODUCT HEADER */
@@ -209,11 +207,10 @@ model-viewer::part(default-ar-button){display:none !important}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="index.html" style="display:block;line-height:0"><img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block"/></a>
+  <a href="index.html" style="display:block;line-height:0"><img src="logo.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block"/></a>
   <div class="topbar-right">
-    <div class="enseigne-pill"><div class="enseigne-dot"></div><span id="enseigne-name">Chargement...</span></div>
-    <button class="wallet-btn" onclick="openWallet()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    <button class="favoris-btn" onclick="openWallet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       <div class="wbadge" id="wbadge">0</div>
     </button>
   </div>
@@ -241,6 +238,8 @@ model-viewer::part(default-ar-button){display:none !important}
       auto-rotate camera-controls
       ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
       ar-scale="fixed"
+      min-camera-orbit="auto 5deg auto"
+      max-camera-orbit="auto 90deg auto"
       shadow-intensity="0.3" exposure="1.1"
       style="width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent">
       <!-- Slot vide pour neutraliser le bouton AR natif (bas-droite) -->
@@ -720,7 +719,6 @@ function render(p){
   document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
   document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
   document.getElementById('dim').textContent=p.dim_label||p.dimensions||'—';
-  document.getElementById('enseigne-name').textContent=p.enseigne_name;
   if(p.model_url){
     const mv = document.getElementById('mv');
     mv.setAttribute('src', p.model_url);
