@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>TadamHome - Studio AR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -54,8 +53,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .status{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.78);backdrop-filter:blur(8px);padding:6px 14px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);white-space:nowrap;border:1px solid rgba(255,255,255,.1);pointer-events:none;max-width:90%;overflow:hidden;text-overflow:ellipsis}
 .status.accent{color:var(--accent);border-color:rgba(184,152,106,.3)}
 
-/* SELECTED NAME TAG — also carries per-axis distance info during drag.
-   Stays at the bottom of the studio so it never blocks the model. */
+/* SELECTED NAME TAG — also carries per-axis distance info during drag
+   AND rotation angle during rotate. Stays at the bottom of the studio
+   so it never blocks the model. */
 .sel-tag{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.85);backdrop-filter:blur(8px);padding:5px 14px;font-size:11px;color:var(--white);letter-spacing:.05em;opacity:0;transition:opacity .2s;pointer-events:none;border-left:2px solid var(--accent);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .sel-tag.on{opacity:1}
 .sel-tag .sep{color:rgba(255,255,255,.35);margin:0 7px;font-size:10px}
@@ -172,9 +172,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
 .sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
 
-/* MANIPULATION LABELS — only for height (H) during perspective drag and
-   angle during rotation. The distance label is now merged into .sel-tag
-   to keep the model fully visible during manipulation. */
+/* MANIPULATION LABELS — only for height (H) during perspective drag.
+   Distance info is now merged into .sel-tag and rotation angle is also
+   merged into .sel-tag for consistency. */
 .manip-label{
   position:absolute;top:0;left:0;
   background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
@@ -191,11 +191,6 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   will-change:transform,opacity;
 }
 .manip-label.on{opacity:1}
-.manip-label.angle{
-  border-left:none;
-  border-bottom:1.5px solid var(--accent);
-  padding:3px 8px;
-}
 
 /* LOADER + TOAST */
 #ldr{position:fixed;inset:0;z-index:200;background:rgba(245,242,236,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
@@ -261,10 +256,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <button class="elev-fab rot-cw" id="rotCw" title="Pivoter +15°">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg>
     </button>
-    <!-- Manipulation labels: H during perspective drag, angle during rotate.
-         Distance info is merged into the .sel-tag at the bottom. -->
+    <!-- Manipulation label: H during perspective drag.
+         Distance info AND rotation angle are merged into .sel-tag at the bottom. -->
     <div class="manip-label" id="hLabel"></div>
-    <div class="manip-label angle" id="aLabel"></div>
     <!-- DELETE FAB -->
     <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -479,9 +473,15 @@ const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 /* ========================================================================
    MANIPULATION HELPERS — "Natural Minimal"
    Visual repères + audio/haptic feedback for precise but free movement.
-   Per-axis distance info is now folded into the .sel-tag (model name tag)
-   at the bottom of the studio so the model stays fully visible during
-   manipulation. Plan view shows X/Y; axo + perspective show X/Y/Z.
+   Per-axis distance info + rotation angle are folded into the .sel-tag
+   (model name tag) at the bottom of the studio so the model stays fully
+   visible during manipulation.
+
+   Axis convention (consistent across views):
+     X = world X gap        (always shown when 2+ objects)
+     Y = world Z gap        (always shown when 2+ objects)
+     Z = world Y gap = height (only shown in axo + perspective views)
+   In plan view only X and Y are shown (no height info).
    ======================================================================== */
 const HELPER = (() => {
   const root = new THREE.Group();
@@ -561,12 +561,10 @@ const HELPER = (() => {
     ringGroup.add(t);
   }
 
-  /* HTML labels — H during perspective drag, angle during rotate.
-     Distance info is no longer a floating label; it's merged into the
-     selTag (model name tag) at the bottom of the studio so it never
-     blocks the view of the model being manipulated. */
+  /* HTML labels — only H during perspective drag stays as a floating label.
+     Distance and rotation info live in the selTag (bottom) so they never
+     block the model. */
   const hLabel = document.getElementById('hLabel');
-  const aLabel = document.getElementById('aLabel');
   const selTag = document.getElementById('selTag');
   /* Smoothed display values — avoids flicker on jitter */
   let hDisplay = 0, hTarget = 0;
@@ -617,27 +615,30 @@ const HELPER = (() => {
     if (hLabel.classList.contains('on')) {
       hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
     }
-    if (aLabel.classList.contains('on')) {
-      let deg = ((aDisplay % 360) + 360) % 360;
-      if (deg > 180) deg -= 360;
-      aLabel.textContent = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
-    }
 
-    /* Merged tag: name + per-axis distance to nearest object during drag.
-       Plan view shows the 2 horizontal axes (X = world X, Y = world Z).
-       Axo + perspective show X (world X) + Y (height) + Z (world Z). */
+    /* Merged tag content:
+       - During drag: name + per-axis distance to nearest object.
+         X = world X gap, Y = world Z gap (both horizontal, same as plan
+         view). Z = height gap, only shown in axo + perspective.
+       - During rotate: name + signed angle (so the rotation info lives
+         in the same place as the distance info — single source of truth).
+    */
     if (mode === 'drag' && target) {
       let html = escHtml(target.name);
       if (placed.length > 1) {
-        if (viewMode === 'plan') {
-          html += '<span class="sep">·</span><span class="axis">X</span>' + fmtCm(dxDisp);
-          html += '<span class="sep">·</span><span class="axis">Y</span>' + fmtCm(dzDisp);
-        } else {
-          html += '<span class="sep">·</span><span class="axis">X</span>' + fmtCm(dxDisp);
-          html += '<span class="sep">·</span><span class="axis">Y</span>' + fmtCm(dyDisp);
-          html += '<span class="sep">·</span><span class="axis">Z</span>' + fmtCm(dzDisp);
+        html += '<span class="sep">·</span><span class="axis">X</span>' + fmtCm(dxDisp);
+        html += '<span class="sep">·</span><span class="axis">Y</span>' + fmtCm(dzDisp);
+        if (viewMode !== 'plan') {
+          html += '<span class="sep">·</span><span class="axis">Z</span>' + fmtCm(dyDisp);
         }
       }
+      if (selTag.innerHTML !== html) selTag.innerHTML = html;
+    } else if (mode === 'rotate' && target) {
+      let deg = ((aDisplay % 360) + 360) % 360;
+      if (deg > 180) deg -= 360;
+      const angleStr = (deg >= 0 ? '+' : '') + Math.round(deg) + '°';
+      const html = escHtml(target.name)
+        + '<span class="sep">·</span><span class="axis">ROT</span>' + angleStr;
       if (selTag.innerHTML !== html) selTag.innerHTML = html;
     }
   }
@@ -751,7 +752,7 @@ const HELPER = (() => {
     ringGroup.scale.setScalar(ringR);
 
     /* H label — perspective view drag only. Height is also encoded as the
-       "Y" axis in the merged selTag for axo/perspective, but the floating
+       "Z" axis in the merged selTag for axo/perspective, but the floating
        H label gives a quick read while lifting. */
     if (mode === 'drag' && viewMode === 'persp') {
       hTarget = info.bottom.y * 100;
@@ -791,15 +792,6 @@ const HELPER = (() => {
       distLine.visible = false;
     }
 
-    if (mode === 'rotate') {
-      const wp = info.bottom.clone();
-      wp.x += ringR * 0.7;
-      wp.z += ringR * 0.7;
-      wp.y += 0.04;
-      const sc = project(wp);
-      aLabel.style.transform = 'translate(' + (sc.x + 12) + 'px,' + (sc.y - 22) + 'px)';
-    }
-
     tweenLabels();
   }
 
@@ -812,7 +804,6 @@ const HELPER = (() => {
     if (m === 'drag') {
       hTarget = (objCenter(obj).bottom.y) * 100;
       hDisplay = hTarget;
-      aLabel.classList.remove('on');
       /* Reset axis distance tweens so the first frame retargets cleanly */
       dxDisp = dxTgt = 0;
       dyDisp = dyTgt = 0;
@@ -820,11 +811,9 @@ const HELPER = (() => {
     } else if (m === 'rotate') {
       aTarget = (obj.mesh.rotation.y * 180 / Math.PI);
       aDisplay = aTarget;
-      aLabel.classList.add('on');
       hLabel.classList.remove('on');
       distLine.visible = false;
-      /* During rotate, restore selTag to just the model name */
-      if (selected) selTag.textContent = selected.name;
+      /* Rotation info will appear in selTag on next tweenLabels tick */
     }
     update();
   }
@@ -851,7 +840,6 @@ const HELPER = (() => {
   function hide() {
     mode = 'none';
     hLabel.classList.remove('on');
-    aLabel.classList.remove('on');
     distLine.visible = false;
     /* Restore selTag to just the model name when manipulation ends.
        (If selection itself is being cleared, selTag fades out via the
@@ -1356,7 +1344,10 @@ canvas.addEventListener('touchmove', (e) => {
       if (viewMode !== 'plan') {
         camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       }
-      if (viewMode === 'persp') {
+      /* Vertical orbit (camElev) is enabled in BOTH perspective and axo
+         views, so the user can tilt the axo camera up/down. Plan view
+         stays locked top-down. */
+      if (viewMode !== 'plan') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
           orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
       }
@@ -1524,7 +1515,9 @@ window.addEventListener('mousemove', (e) => {
     if (viewMode !== 'plan') {
       camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     }
-    if (viewMode === 'persp') {
+    /* Vertical orbit also enabled in axo (not just perspective).
+       Plan view stays locked top-down. */
+    if (viewMode !== 'plan') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
         mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
     }
@@ -2383,7 +2376,7 @@ if (q.length) {
 
     spin(false);
     if (placed.length > 0) {
-      toast('Scène chargée: ' + placed.length + ' meuble' + (placed.length > 1 ? 's' : ''), 'ok');
+      toast('Scène chargée: ' + placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' placé' + (placed.length > 1 ? 's' : ''));
       setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' placé' + (placed.length > 1 ? 's' : ''));
     }
   })();
