@@ -777,7 +777,7 @@ function renderColors(colors){
       else if(c.texture&&mv.model){
         try{const texture=await mv.createTexture(c.texture);mv.model.materials.forEach(mat=>{try{mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);}catch(e){}});}catch(e){}
       }
-      toast('Coloris : '+c.name);
+      // (toast supprimé : le nom du coloris est déjà affiché dans le label de la section)
       const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
       if(ex){ex.color=c;setW(w2);}
     };
