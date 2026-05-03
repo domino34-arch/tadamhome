@@ -526,6 +526,28 @@ model-viewer::part(default-ar-button) { display:none !important; }
 .opt-mobile { display:none; }
 .opt-desktop { display:inline; }
 
+/* Nom + brand sur la même ligne */
+.name-brand-row { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.name-brand-row h1 { flex:1; font-family:var(--th-serif); font-size:clamp(30px,3.5vw,50px); font-weight:300; line-height:1.0; letter-spacing:-.02em; }
+.name-brand-row h1 em { font-style:italic; color:var(--th-accent); }
+
+/* Brand compact (coin haut-droite du titre) */
+.brand-mini { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; text-decoration:none; color:inherit; padding-top:4px; transition:opacity .2s; }
+.brand-mini:hover { opacity:.7; }
+.brand-mini .lm { width:36px; height:36px; border:1px solid var(--th-border); display:inline-flex; align-items:center; justify-content:center; font-family:var(--th-serif); font-style:italic; font-size:18px; color:var(--th-accent); }
+.brand-mini .nm { font-family:var(--th-serif); font-size:13px; text-align:center; line-height:1.2; }
+.brand-mini .sub { font-size:9px; color:var(--th-ink-3); letter-spacing:.14em; text-transform:uppercase; text-align:center; }
+
+/* Coloris inline dans le panneau info */
+.colors-inline { display:flex; flex-direction:column; gap:12px; }
+.colors-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--th-ink-3); }
+.colors-head strong { font-family:var(--th-serif); font-style:italic; font-size:15px; font-weight:400; text-transform:none; letter-spacing:0; color:var(--th-accent); }
+.colors-inline .swatches { grid-template-columns:repeat(8,1fr); }
+
+/* Masquer les anciens sélecteurs devenus inutiles */
+.hero-split .info .brand { display:none; }
+section.colors { display:none !important; }
+
 /* Attrs */
 .attrs { padding:44px 48px; border-bottom:1px solid var(--th-border); display:grid; grid-template-columns:repeat(4,1fr); gap:36px; background:var(--th-paper); }
 .attrs .col .key { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--th-ink-3); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
@@ -586,6 +608,25 @@ model-viewer::part(default-ar-button) { display:none !important; }
 .toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(10px); background:var(--th-ink); color:var(--th-white); padding:12px 22px; font-size:12px; letter-spacing:.04em; z-index:500; opacity:0; pointer-events:none; white-space:nowrap; max-width:calc(100vw - 40px); transition:opacity .25s,transform .25s; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
+/* CTA block toujours visible en bas */
+@media (min-width: 769px) {
+  .cta-block {
+    position: fixed;
+    bottom: 0; right: 0;
+    width: 41.67vw; /* 1fr de la grille 1.4fr + 1fr */
+    background: rgba(245,242,236,.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--th-border);
+    padding: 16px 48px 24px;
+    z-index: 50;
+    margin: 0;
+  }
+  /* Compenser l'espace pris par la CTA fixe dans le panneau info */
+  .hero-split .info { padding-bottom: 220px; }
+  .similar, .story { padding-bottom: 100px; }
+}
+
 /* Responsive tablet */
 @media (max-width:1100px) {
   .hero-split { grid-template-columns:1fr; min-height:0; }
@@ -610,6 +651,8 @@ model-viewer::part(default-ar-button) { display:none !important; }
 /* Mobile ≤ 768px */
 @media (max-width:768px) {
   .topnav.scan-nav { padding:12px 16px; }
+  /* Topnav toujours visible */
+  .topnav { position: sticky !important; top: 0 !important; z-index: 80 !important; }
   .topnav.scan-nav .btn-back { display:inline-flex; }
   .topnav.scan-nav .brand { flex:1; display:flex; justify-content:center; }
   .topnav.scan-nav .brand img { height:22px; }
@@ -644,6 +687,11 @@ model-viewer::part(default-ar-button) { display:none !important; }
   .opt-desktop { display:none; }
   .opt-mobile { display:inline; }
 
+  .colors-inline .swatches { grid-template-columns:repeat(6,1fr); gap:8px; }
+  .colors-head { font-size:9px; }
+  .name-brand-row h1 { font-size:24px; }
+  .brand-mini .lm { width:30px; height:30px; font-size:15px; }
+  .brand-mini .nm { font-size:11px; }
   .attrs { padding:32px 22px; gap:18px 16px; }
   .attrs .col .val { font-size:16px; }
   .colors { padding:32px 22px 40px; }
@@ -713,16 +761,28 @@ model-viewer::part(default-ar-button) { display:none !important; }
       <span>·</span>
       <span id="prod-category">Salon · Fauteuil</span>
     </div>
-    <h1 id="prod-name">LC2 Grand <em>Confort</em></h1>
-    <div class="designer" id="prod-designer">Dessiné par <em>Le Corbusier</em>, Pierre Jeanneret &amp; Charlotte Perriand · 1928</div>
-    <a href="catalogue.html" class="brand">
-      <span class="lm" id="brand-mark">C</span>
-      <div class="stack">
+
+    <!-- Titre + brand mini sur la même ligne -->
+    <div class="name-brand-row">
+      <h1 id="prod-name">LC2 Grand <em>Confort</em></h1>
+      <a href="catalogue.html" class="brand-mini">
+        <span class="lm" id="brand-mark">C</span>
         <div class="nm" id="prod-brand">Cassina</div>
         <div class="sub" id="prod-brand-sub">Meda · Italie</div>
+      </a>
+    </div>
+
+    <div class="designer" id="prod-designer">Dessiné par <em>Le Corbusier</em>, Pierre Jeanneret &amp; Charlotte Perriand · 1928</div>
+
+    <!-- Coloris directement dans le panneau info (visible sans scroll) -->
+    <div class="colors-inline">
+      <div class="colors-head">
+        <span>Coloris</span>
+        <strong id="col-name">Cuir Brandy</strong>
       </div>
-      <span class="arr">→</span>
-    </a>
+      <div class="swatches" id="swatches"></div>
+    </div>
+
     <div class="price">
       <span class="num" id="prod-price">7 850 €</span>
       <span class="unit" id="prod-price-note">TTC · livré</span>
@@ -759,19 +819,11 @@ model-viewer::part(default-ar-button) { display:none !important; }
 </section>
 
 <section class="attrs">
-  <div class="col"><div class="key">Coloris</div><div class="val" id="attr-color"><em>Cuir</em> Brandy</div><div class="sub" id="attr-color-sub">7 finitions</div></div>
   <div class="col"><div class="key">Dimensions</div><div class="val" id="attr-dim">240 × 70 × 68 cm</div><div class="sub">L × P × H · ±1 cm</div></div>
   <div class="col"><div class="key">Livraison</div><div class="val"><em>4–6</em> semaines</div><div class="sub">À domicile · installation incluse</div></div>
   <div class="col"><div class="key">Disponibilité</div><div class="val green">En stock</div><div class="sub">Garantie 2 ans</div></div>
 </section>
 
-<section class="colors">
-  <div class="head">
-    <h3 id="colors-title">Sept finitions, <em>une même âme</em></h3>
-    <div class="sel">Sélection : <strong id="col-name">Cuir Brandy</strong></div>
-  </div>
-  <div class="swatches" id="swatches"></div>
-</section>
 
 <section class="story">
   <div class="pinned">
