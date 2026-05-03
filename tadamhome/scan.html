@@ -19,13 +19,11 @@
 html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
 /* TOPBAR */
-.topbar{position:sticky;top:0;z-index:100;background:var(--dark);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.topbar{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.enseigne-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(184,152,106,.2);padding:4px 12px}
-.enseigne-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
-.enseigne-pill span{font-size:11px;font-weight:400;color:rgba(255,255,255,.65);letter-spacing:.04em;font-family:var(--sans)}
-.wallet-btn{background:rgba(255,255,255,.07);border:1px solid rgba(184,152,106,.2);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:#fff;position:relative}
-.wbadge{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--accent);font-size:8px;font-weight:600;color:#fff;display:none;place-items:center;border:2px solid var(--dark)}
+.favoris-btn{background:var(--light);border:1px solid var(--border);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:var(--text);position:relative;transition:all .2s}
+.favoris-btn:active{background:var(--accent-light);color:var(--accent)}
+.wbadge{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--accent);font-size:8px;font-weight:600;color:#fff;display:none;place-items:center;border:2px solid var(--white)}
 .wbadge.on{display:grid}
 
 /* PRODUCT HEADER */
@@ -44,11 +42,14 @@ html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:va
 /* VIEWER */
 .viewer-wrap{background:var(--light);border-bottom:1px solid var(--border);position:relative}
 model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent}
-/* Masquer le bouton AR natif du model-viewer (en bas à droite) */
-model-viewer::part(default-ar-button){display:none !important}
 .viewer-ph{width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
 .viewer-ph svg{opacity:.2;color:var(--accent)}
 .viewer-ph p{font-size:12px;color:var(--mid);text-align:center;max-width:160px;line-height:1.5;font-family:var(--sans)}
+.ar-chip{position:absolute;top:12px;left:12px;background:rgba(250,250,248,.95);border:1px solid rgba(184,152,106,.3);padding:6px 12px;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--accent);cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
+.ar-chip svg{width:12px;height:12px}
+.live-chip{position:absolute;top:12px;right:12px;background:rgba(250,250,248,.95);border:1px solid rgba(39,112,74,.2);padding:4px 10px;font-size:10px;font-weight:500;color:var(--green);display:flex;align-items:center;gap:5px;letter-spacing:.06em;font-family:var(--sans)}
+.live-dot{width:4px;height:4px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* THUMBNAILS */
 .thumbs-row{background:var(--white);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
@@ -187,6 +188,7 @@ model-viewer::part(default-ar-button){display:none !important}
   .prod-header { padding: 12px 14px 10px; }
   .viewer-tabs { padding: 0 14px; }
   .thumbs-row { padding: 8px 14px; }
+  .ar-chip { padding: 8px 14px; font-size: 11px; }
   .wallet-items { padding: 10px 14px; }
   .wallet-header { padding: 4px 14px 12px; }
   .wallet-footer { padding: 10px 14px 0; }
@@ -209,11 +211,10 @@ model-viewer::part(default-ar-button){display:none !important}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="index.html" style="display:block;line-height:0"><img src="logo_blanc.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block"/></a>
+  <a href="index.html" style="display:block;line-height:0"><img src="logo.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block"/></a>
   <div class="topbar-right">
-    <div class="enseigne-pill"><div class="enseigne-dot"></div><span id="enseigne-name">Chargement...</span></div>
-    <button class="wallet-btn" onclick="openWallet()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    <button class="favoris-btn" onclick="openWallet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       <div class="wbadge" id="wbadge">0</div>
     </button>
   </div>
@@ -241,10 +242,10 @@ model-viewer::part(default-ar-button){display:none !important}
       auto-rotate camera-controls
       ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
       ar-scale="fixed"
+      min-camera-orbit="auto 5deg auto"
+      max-camera-orbit="auto 90deg auto"
       shadow-intensity="0.3" exposure="1.1"
-      style="width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent">
-      <!-- Slot vide pour neutraliser le bouton AR natif (bas-droite) -->
-      <button slot="ar-button" style="display:none" aria-hidden="true"></button>
+      style="width:100%;height:220px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent">
     </model-viewer>
   </div>
   <div id="tab-1" style="display:none">
@@ -367,29 +368,6 @@ const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dim
 let infoVisible = true;
 const HIDEABLE = ['s-tabs','s-thumbs','s-infos','s-features','s-install'];
 
-// Recalcule la hauteur du model-viewer + position des coloris en mode "infos masquées"
-function recalcLayout(){
-  if(infoVisible) return;
-  const mv = document.getElementById('mv');
-  const cta = document.querySelector('.cta-zone');
-  const colorSection = document.getElementById('s-colors');
-  const header = document.getElementById('s-header');
-  if(!mv || !cta || !colorSection || !header) return;
-
-  const topbarHeight = 52;
-  const headerH = header.offsetHeight || 0;
-  const colorH  = colorSection.offsetHeight || 0;
-  const ctaH    = cta.offsetHeight || 0;
-  const bottomZoneH = colorH + ctaH;
-
-  const availableHeight = window.innerHeight - topbarHeight - headerH - bottomZoneH - 4;
-  mv.style.height = Math.max(availableHeight, 200) + 'px';
-  mv.style.maxHeight = 'none';
-
-  // Caler la section coloris juste au-dessus de la CTA
-  colorSection.style.bottom = ctaH + 'px';
-}
-
 function toggleInfo(){
   infoVisible = !infoVisible;
   const btn = document.getElementById('btn-toggle');
@@ -403,7 +381,7 @@ function toggleInfo(){
   const priceEl = document.getElementById('prod-price');
   const priceNote = document.getElementById('prod-price-note');
   const colorSection = document.getElementById('s-colors');
-
+  
   HIDEABLE.forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
@@ -411,12 +389,12 @@ function toggleInfo(){
     else el.classList.remove('hidden');
   });
   if(sub) sub.style.display = infoVisible ? '' : 'none';
-
+  
   if(!infoVisible){
     // Masquer les boutons supplémentaires en mode focus 3D
     if(btnContact) btnContact.style.display = 'none';
     if(addedConfirm) addedConfirm.style.display = 'none';
-
+    
     // Réduire la taille du prix pour gagner de l'espace
     if(priceEl) {
       priceEl.style.fontSize = '24px';
@@ -425,7 +403,7 @@ function toggleInfo(){
     if(priceNote) {
       priceNote.style.fontSize = '10px';
     }
-
+    
     // Positionner les coloris en fixed juste au-dessus de la CTA
     if(colorSection) {
       colorSection.style.position = 'fixed';
@@ -437,7 +415,7 @@ function toggleInfo(){
       colorSection.style.margin = '0';
       colorSection.style.padding = '12px 18px 10px';
     }
-
+    
     // Fixer la CTA en bas
     cta.style.position = 'fixed';
     cta.style.bottom = '0';
@@ -447,19 +425,37 @@ function toggleInfo(){
     cta.style.borderTop = 'none'; // Pas de bordure car les coloris ont déjà une bordure
     cta.style.padding = '10px 18px 20px';
     cta.style.zIndex = '20';
-
+    
     // Réduire l'espace du price-row
     const priceRow = document.querySelector('.price-row');
     if(priceRow) {
       priceRow.style.marginBottom = '8px';
     }
-
-    // Calculer la disposition au prochain frame, puis re-confirmer 1 frame plus tard
-    // (double rAF = on attend que les styles ci-dessus soient bien appliqués + reflow)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => recalcLayout());
-    });
-
+    
+    // Calculer et appliquer la nouvelle hauteur du viewer
+    setTimeout(() => {
+      const topbarHeight = 52;
+      const header = document.getElementById('s-header');
+      const headerH = (header?.offsetHeight || 0);
+      
+      // Hauteur de la section coloris + CTA combinées
+      const colorH = colorSection ? colorSection.offsetHeight : 0;
+      const ctaH = cta.offsetHeight;
+      const bottomZoneH = colorH + ctaH;
+      
+      // Hauteur disponible pour le viewer = tout sauf topbar + header + zone du bas
+      const availableHeight = window.innerHeight - topbarHeight - headerH - bottomZoneH - 4;
+      
+      // Appliquer la nouvelle hauteur (minimum 200px)
+      mv.style.height = Math.max(availableHeight, 200) + 'px';
+      mv.style.maxHeight = 'none';
+      
+      // Positionner les coloris juste au-dessus de la CTA
+      if(colorSection) {
+        colorSection.style.bottom = ctaH + 'px';
+      }
+    }, 10);
+    
     btn.classList.add('hidden-mode');
     label.textContent = 'Afficher les informations';
     icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
@@ -471,7 +467,7 @@ function toggleInfo(){
     } else if(addedConfirm) {
       addedConfirm.style.display = 'none';
     }
-
+    
     // Restaurer la taille du prix
     if(priceEl) {
       priceEl.style.fontSize = '';
@@ -480,7 +476,7 @@ function toggleInfo(){
     if(priceNote) {
       priceNote.style.fontSize = '';
     }
-
+    
     // Restaurer les coloris à leur position normale
     if(colorSection) {
       colorSection.style.position = '';
@@ -493,17 +489,17 @@ function toggleInfo(){
       colorSection.style.margin = '';
       colorSection.style.padding = '';
     }
-
+    
     // Restaurer le price-row
     const priceRow = document.querySelector('.price-row');
     if(priceRow) {
       priceRow.style.marginBottom = '';
     }
-
+    
     // Restaurer la hauteur du viewer
     mv.style.height = '260px';
     mv.style.maxHeight = '';
-
+    
     // Restaurer la CTA
     cta.style.position = '';
     cta.style.bottom = '';
@@ -513,7 +509,7 @@ function toggleInfo(){
     cta.style.borderTop = '';
     cta.style.padding = '';
     cta.style.zIndex = '';
-
+    
     btn.classList.remove('hidden-mode');
     label.textContent = 'Masquer les informations';
     icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
@@ -529,15 +525,15 @@ function openStudio(){
 
   // Préparer les données - SEULEMENT le produit actuel avec le coloris sélectionné
   const sceneData = [{
-    id: prod.id,
+    id: prod.id, 
     name: prod.name,
     // Utiliser le GLB du coloris sélectionné si disponible, sinon le modèle de base
     glb: col && col.glb ? col.glb : prod.model_url,
     usdz: col && col.usdz ? col.usdz : (prod.usdz_url || null),
-    category: prod.category || 'meuble',
+    category: prod.category || 'meuble', 
     dimensions: prod.dimensions || null
   }];
-
+  
   localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneData));
   localStorage.setItem('tadam_studio_entry', JSON.stringify({name:prod.name,t:Date.now()}));
 
@@ -710,9 +706,6 @@ async function loadProduct(){
   }catch(e){render(DEMO)}
 }
 
-// Drapeau pour ne déclencher le mode "épuré" qu'une seule fois, après le 1er rendu
-let initialToggleDone = false;
-
 function render(p){
   prod=p;
   document.getElementById('prod-name').textContent=p.name;
@@ -743,16 +736,6 @@ function render(p){
   renderColors(p.colors);
   checkAdded();
   if(p.id!=='demo-001')autoAddToWallet(p);
-
-  // ✦ Démarrer en mode épuré UNE SEULE FOIS, après que tout le DOM
-  // (header + coloris + CTA) ait sa taille finale. Double rAF pour
-  // garantir un layout stable avant tout calcul de positionnement.
-  if(!initialToggleDone){
-    initialToggleDone = true;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => toggleInfo());
-    });
-  }
 }
 
 function renderColors(colors){
@@ -777,7 +760,7 @@ function renderColors(colors){
       else if(c.texture&&mv.model){
         try{const texture=await mv.createTexture(c.texture);mv.model.materials.forEach(mat=>{try{mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);}catch(e){}});}catch(e){}
       }
-      // (toast supprimé : le nom du coloris est déjà affiché dans le label de la section)
+      toast('Coloris : '+c.name);
       const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
       if(ex){ex.color=c;setW(w2);}
     };
@@ -865,33 +848,57 @@ async function track(pid){try{await SB.from('scans').insert({product_id:pid,sess
 let tt;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
 
-// Filets de sécurité : recalcul de la disposition en cas de redimensionnement
-// ou si la section coloris change de taille (ex. arrivée tardive du modèle).
-window.addEventListener('resize', recalcLayout);
-window.addEventListener('orientationchange', () => {
-  // Petit délai pour laisser le viewport se stabiliser après rotation
-  setTimeout(recalcLayout, 150);
-});
-
-if (typeof ResizeObserver !== 'undefined') {
-  const ro = new ResizeObserver(() => recalcLayout());
-  const obs = () => {
-    const cs = document.getElementById('s-colors');
-    const cz = document.querySelector('.cta-zone');
-    if (cs) ro.observe(cs);
-    if (cz) ro.observe(cz);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', obs);
-  } else {
-    obs();
-  }
-}
-
 loadProduct();
 updateWalletUI();
-// ✦ Le passage en mode "épuré" est maintenant déclenché par render()
-//    (cf. variable initialToggleDone) une fois le DOM stabilisé.
+// ✦ Démarrer automatiquement en mode épuré (sans informations)
+setTimeout(() => toggleInfo(), 100);
 </script>
+
+<!-- ✦ TADAM TRANSITION OVERLAY -->
+<div id="tadam-overlay" style="
+  position:fixed;inset:0;z-index:9999;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;
+  background:transparent;
+">
+  <!-- Aura / glow ring autour du modèle -->
+  <div id="tadam-aura" style="
+    position:absolute;
+    width:220px;height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(184,152,106,.35) 0%,rgba(184,152,106,.08) 50%,transparent 75%);
+    opacity:0;
+    transition:opacity .4s ease;
+    pointer-events:none;
+  "></div>
+  <!-- Particules scintillantes -->
+  <div id="tadam-sparks" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+  <!-- Nom du produit qui "voyage" -->
+  <div id="tadam-label" style="
+    font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;
+    color:#1C1B18;letter-spacing:.05em;
+    opacity:0;transform:translateY(0) scale(1);
+    transition:all .6s cubic-bezier(.4,0,.2,1);
+    pointer-events:none;text-align:center;
+    position:absolute;bottom:30%;
+  "></div>
+  <!-- Fond de fade -->
+  <div id="tadam-bg" style="
+    position:absolute;inset:0;
+    background:var(--bg);opacity:0;
+    transition:opacity .5s ease;
+    pointer-events:none;
+  "></div>
+  <!-- Logo centré qui apparaît -->
+  <div id="tadam-logo" style="
+    position:absolute;
+    opacity:0;transform:scale(.8);
+    transition:opacity .4s ease, transform .4s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none;z-index:1;
+  ">
+    <img src="logo_blanc.png" style="height:28px;filter:invert(1) sepia(1) saturate(2) hue-rotate(10deg);opacity:.8" onerror="this.style.display='none'"/>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#B8986A;margin-top:8px;text-align:center">Studio AR</div>
+  </div>
+</div>
 </body>
 </html>
