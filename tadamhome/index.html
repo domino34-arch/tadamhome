@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TadamHome — Mobilier en Réalité Augmentée</title>
+<title>TadamHome — L'architecture d'intérieur, augmentée.</title>
+<meta name="description" content="TadamHome distribue les catalogues 3D des plus grandes marques de mobilier, scannables en AR, partout, sans application.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -25,26 +26,85 @@ body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-
 .cur { position: fixed; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: width .2s, height .2s; }
 .cur-r { position: fixed; width: 36px; height: 36px; border: 1px solid rgba(184,152,106,.5); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); opacity: .7; }
 
-/* NAV */
+/* ═══════════════════════════════════════════════
+   NAV — transparente sur héro, solide au scroll
+   ═══════════════════════════════════════════════ */
 nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; align-items: center; justify-content: space-between; padding: 24px 52px; transition: background .4s, padding .4s, border-bottom .4s; }
 nav.sc { background: rgba(245,242,236,.93); backdrop-filter: blur(14px); padding: 15px 52px; border-bottom: 1px solid rgba(184,152,106,.15); }
-.nav-logo { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); text-decoration: none; letter-spacing: .02em; }
-.nav-logo span { color: var(--accent); }
-.nav-links { display: flex; gap: 34px; list-style: none; }
-.nav-links a { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); text-decoration: none; transition: color .2s; }
-.nav-links a:hover { color: var(--accent); }
-.nav-cta { font-size: 11px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; padding: 10px 22px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; transition: all .25s; }
-.nav-cta:hover { background: var(--accent); color: var(--white); }
 
-/* HERO */
-.hero { height: 100vh; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; }
-.hero-l { display: flex; flex-direction: column; justify-content: flex-end; padding: 0 52px 90px; position: relative; z-index: 2; }
-.hero-eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 26px; display: flex; align-items: center; gap: 12px; opacity: 0; animation: fup .9s var(--eout) .2s forwards; }
-.hero-eyebrow::before { content: ''; display: inline-block; width: 32px; height: 1px; background: var(--accent); }
-.hero-h1 { font-family: var(--serif); font-size: clamp(50px,5.2vw,78px); font-weight: 300; line-height: 1.05; letter-spacing: -.01em; margin-bottom: 26px; opacity: 0; animation: fup .9s var(--eout) .4s forwards; }
-.hero-h1 em { font-style: italic; color: var(--accent); }
-.hero-sub { font-size: 14px; font-weight: 300; color: var(--ink2); line-height: 1.85; max-width: 380px; margin-bottom: 42px; opacity: 0; animation: fup .9s var(--eout) .58s forwards; }
-.hero-btns { display: flex; gap: 16px; align-items: center; opacity: 0; animation: fup .9s var(--eout) .72s forwards; }
+/* Logo — swap white/dark selon état */
+.nav-logo { display: flex; align-items: center; height: 28px; text-decoration: none; }
+.nav-logo .logo-white { display: block; height: 26px; object-fit: contain; }
+.nav-logo .logo-dark  { display: none;  height: 26px; object-fit: contain; }
+nav.sc .nav-logo .logo-white { display: none; }
+nav.sc .nav-logo .logo-dark  { display: block; }
+.nav-logo .logo-fallback { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--white); letter-spacing: .02em; }
+.nav-logo .logo-fallback span { color: var(--accent2); }
+nav.sc .nav-logo .logo-fallback { color: var(--ink); }
+nav.sc .nav-logo .logo-fallback span { color: var(--accent); }
+
+/* Links — clair par défaut, foncé après scroll */
+.nav-links { display: flex; gap: 34px; list-style: none; }
+.nav-links a { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.78); text-decoration: none; transition: color .2s; }
+.nav-links a:hover { color: var(--accent2); }
+nav.sc .nav-links a { color: var(--ink2); }
+nav.sc .nav-links a:hover { color: var(--accent); }
+
+/* CTA pill — bordure or sur fond sombre, bordure or aussi en clair */
+.nav-cta { font-size: 11px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; padding: 10px 22px; border: 1px solid var(--accent2); color: var(--accent2); text-decoration: none; transition: all .25s; }
+.nav-cta:hover { background: var(--accent2); color: var(--ink); }
+nav.sc .nav-cta { border-color: var(--accent); color: var(--accent); }
+nav.sc .nav-cta:hover { background: var(--accent); color: var(--white); }
+
+/* ═══════════════════════════════════════════════
+   HERO — AR-First Immersive (full-bleed)
+   ═══════════════════════════════════════════════ */
+.hero { position: relative; height: 100svh; min-height: 640px; background: var(--ink); overflow: hidden; display: flex; align-items: flex-end; }
+
+/* Background image */
+.hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; animation: fin 1.4s var(--eout) .2s forwards; }
+
+/* Video (si fournie un jour) */
+.hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Fallback ambient gradient si image absente */
+.hero-ambient { position: absolute; inset: 0; background:
+  radial-gradient(ellipse at 70% 30%, rgba(184,152,106,.08) 0%, transparent 60%),
+  radial-gradient(ellipse at 20% 80%, rgba(184,152,106,.06) 0%, transparent 50%),
+  linear-gradient(160deg, #1C1B18 0%, #252320 35%, #1C1B18 70%, #171614 100%);
+}
+
+/* Voile pour lisibilité de la copy */
+.hero-veil { position: absolute; inset: 0; background:
+  radial-gradient(ellipse at 28% 60%, rgba(28,27,24,.78) 0%, rgba(28,27,24,.32) 50%, transparent 80%),
+  linear-gradient(0deg, rgba(28,27,24,.45) 0%, transparent 40%);
+  z-index: 1;
+}
+
+/* Grille AR subtile */
+.hero-grid { position: absolute; inset: 0; pointer-events: none; z-index: 1; background:
+  repeating-linear-gradient(0deg, transparent 0 99px, rgba(184,152,106,.05) 99px 100px),
+  repeating-linear-gradient(90deg, transparent 0 99px, rgba(184,152,106,.05) 99px 100px);
+}
+
+/* Copy overlay — positionnée bas-gauche */
+.hero-copy { position: relative; z-index: 2; padding: 0 52px 90px; max-width: 720px; }
+.hero-eyebrow { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent2); margin-bottom: 26px; display: flex; align-items: center; gap: 12px; opacity: 0; animation: fup .9s var(--eout) .5s forwards; }
+.hero-eyebrow::before { content: ''; display: inline-block; width: 32px; height: 1px; background: var(--accent2); }
+.hero-h1 { font-family: var(--serif); font-size: clamp(46px,5.4vw,76px); font-weight: 300; line-height: 1.0; letter-spacing: -.015em; margin-bottom: 26px; color: var(--white); opacity: 0; animation: fup .9s var(--eout) .7s forwards; }
+.hero-h1 em { font-style: italic; color: var(--accent2); }
+.hero-sub { font-size: 14px; font-weight: 300; color: rgba(250,250,248,.75); line-height: 1.85; max-width: 460px; margin-bottom: 38px; opacity: 0; animation: fup .9s var(--eout) .85s forwards; }
+.hero-btns { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; opacity: 0; animation: fup .9s var(--eout) 1s forwards; }
+
+/* CTA primaire — doré (nouvelle identité) */
+.btn-gold { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; padding: 15px 30px; background: var(--accent); color: var(--white); text-decoration: none; transition: background .3s, transform .2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-gold:hover { background: var(--accent3); }
+
+/* CTA secondaire — outline blanc (sur fond sombre) */
+.btn-out-light { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; padding: 14px 30px; background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,.55); text-decoration: none; transition: all .25s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-out-light:hover { background: rgba(255,255,255,.08); border-color: var(--white); }
+
+/* Bouton dark legacy (utilisé ailleurs sur la page) */
 .btn-dark { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; padding: 15px 34px; background: var(--ink); color: var(--white); text-decoration: none; transition: background .3s; }
 .btn-dark:hover { background: var(--accent); }
 .btn-ghost { font-size: 11px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); text-decoration: none; display: flex; align-items: center; gap: 8px; transition: color .2s; }
@@ -52,14 +112,15 @@ nav.sc { background: rgba(245,242,236,.93); backdrop-filter: blur(14px); padding
 .btn-ghost::after { content: '→'; transition: transform .2s; }
 .btn-ghost:hover::after { transform: translateX(4px); }
 
-.hero-r { position: relative; overflow: hidden; background: var(--bg2); }
-.room-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.room-svg { width: 100%; height: 100%; opacity: 0; animation: fin 1.2s var(--eout) .5s forwards; }
-.ar-badge { position: absolute; bottom: 80px; left: 36px; background: rgba(250,250,248,.93); backdrop-filter: blur(8px); padding: 14px 20px; border-left: 2px solid var(--accent); opacity: 0; animation: fup .8s var(--eout) 1.2s forwards; }
-.ar-badge-lbl { font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
-.ar-badge-txt { font-family: var(--serif); font-size: 16px; font-weight: 500; color: var(--ink); }
-.hero-scroll { position: absolute; bottom: 32px; left: 52px; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink3); writing-mode: vertical-rl; display: flex; align-items: center; gap: 10px; opacity: 0; animation: fin 1s var(--eout) 1.6s forwards; }
-.hero-scroll::after { content: ''; display: inline-block; width: 1px; height: 48px; background: var(--accent); animation: sline 2s ease-in-out 2s infinite; }
+/* AR Badge flottant (live overlay) */
+.ar-live-badge { position: absolute; right: 52px; bottom: 100px; z-index: 2; background: rgba(28,27,24,.55); backdrop-filter: blur(8px); padding: 12px 18px; border-left: 2px solid var(--accent2); display: flex; flex-direction: column; gap: 4px; opacity: 0; animation: fup .8s var(--eout) 1.4s forwards; }
+.ar-live-badge .lbl { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent2); display: flex; align-items: center; gap: 8px; }
+.ar-live-badge .lbl::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); animation: blink 1.8s infinite; }
+.ar-live-badge .val { font-family: var(--serif); font-size: 14px; font-weight: 400; color: var(--white); }
+
+/* Scroll cue */
+.hero-scroll { position: absolute; right: 52px; bottom: 32px; z-index: 2; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent2); display: flex; flex-direction: column; align-items: center; gap: 12px; opacity: 0; animation: fin 1s var(--eout) 1.6s forwards; }
+.hero-scroll::after { content: ''; display: inline-block; width: 1px; height: 42px; background: var(--accent2); animation: sline 2.2s ease-in-out 2s infinite; }
 
 /* QR SECTION */
 .qr-section { display: grid; grid-template-columns: 1fr 1fr; min-height: 500px; }
@@ -339,15 +400,15 @@ footer { background: var(--ink); padding: 76px 52px 36px; }
   .nav-links { display: none; }
   .nav-cta { padding: 8px 16px; font-size: 10px; }
 
-  /* HERO — single column */
-  .hero { grid-template-columns: 1fr; height: auto; min-height: 100svh; }
-  .hero-l { padding: 100px 24px 40px; justify-content: center; }
-  .hero-h1 { font-size: clamp(38px, 10vw, 56px); margin-bottom: 18px; }
-  .hero-sub { font-size: 13px; margin-bottom: 32px; max-width: 100%; }
-  .hero-btns { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .btn-dark { width: 100%; text-align: center; padding: 16px; }
-  .hero-r { height: 280px; }
-  .ar-badge { bottom: 16px; left: 16px; }
+  /* HERO mobile — full-bleed adapté */
+  .hero { min-height: 100svh; }
+  .hero-copy { padding: 0 24px 60px; }
+  .hero-h1 { font-size: clamp(38px, 11vw, 56px); margin-bottom: 18px; }
+  .hero-sub { font-size: 13px; margin-bottom: 28px; max-width: 100%; }
+  .hero-btns { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
+  .btn-gold, .btn-out-light { justify-content: center; padding: 14px; }
+  .ar-live-badge { right: 24px; bottom: auto; top: 100px; padding: 8px 12px; }
+  .ar-live-badge .val { font-size: 12px; }
   .hero-scroll { display: none; }
 
   /* QR SECTION */
@@ -443,9 +504,15 @@ footer { background: var(--ink); padding: 76px 52px 36px; }
 <div class="cur" id="cur"></div>
 <div class="cur-r" id="curR"></div>
 
-<!-- NAV -->
+<!-- ═══════════════════════════════════════════════
+     NAV — transparente sur héro, solide au scroll
+     ═══════════════════════════════════════════════ -->
 <nav id="nav">
-  <a href="#" class="nav-logo"><img src="logo.png" alt="TadamHome" style="height:26px;object-fit:contain;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/><span style="display:none">Tadam<span style='color:var(--accent)'>Home</span></span></a>
+  <a href="#" class="nav-logo">
+    <img src="logo_blanc.png" alt="TadamHome" class="logo-white" onerror="this.style.display='none'; this.nextElementSibling.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='inline'"/>
+    <img src="logo.png" alt="TadamHome" class="logo-dark" onerror="this.style.display='none'"/>
+    <span class="logo-fallback" style="display:none">Tadam<span>Home</span></span>
+  </a>
   <ul class="nav-links">
     <li><a href="#catalogue">Catalogue</a></li>
     <li><a href="#config">Configurateur</a></li>
@@ -455,64 +522,44 @@ footer { background: var(--ink); padding: 76px 52px 36px; }
   <a href="login.html" class="nav-cta">Commencer</a>
 </nav>
 
-<!-- HERO -->
+<!-- ═══════════════════════════════════════════════
+     HERO — AR-First Immersive
+     Image hero-ar.png en full-bleed + copy overlay
+     ═══════════════════════════════════════════════ -->
 <section class="hero">
-  <div class="hero-l">
-    <div class="hero-eyebrow">Plateforme AR — Version 2.0</div>
-    <h1 class="hero-h1">Le mobilier mondial,<br>en <em>réalité augmentée</em></h1>
-    <p class="hero-sub">Parcourez 48 000+ références internationales. Scannez un QR code. Visualisez et composez vos scènes AR directement dans vos espaces.</p>
+  <!-- Fallback ambient (visible si l'image ne charge pas) -->
+  <div class="hero-ambient"></div>
+
+  <!-- Image principale (ton asset hero-ar.png) -->
+  <img src="hero-ar.png" alt="" class="hero-bg" onerror="this.style.display='none'"/>
+
+  <!-- Vidéo (optionnelle — décommenter si tu ajoutes le .mp4)
+  <video class="hero-video" src="TADAMHOME_VIDEO.mp4" autoplay muted loop playsinline></video>
+  -->
+
+  <!-- Grille AR + voile pour lisibilité -->
+  <div class="hero-grid"></div>
+  <div class="hero-veil"></div>
+
+  <!-- Badge AR live flottant -->
+  <div class="ar-live-badge">
+    <div class="lbl">AR Active</div>
+    <div class="val">320 marques · 48K modèles</div>
+  </div>
+
+  <!-- Copy en overlay -->
+  <div class="hero-copy">
+    <div class="hero-eyebrow">Plateforme AR — 320 marques</div>
+    <h1 class="hero-h1">L'architecture<br>d'intérieur,<br><em>augmentée</em>.</h1>
+    <p class="hero-sub">TadamHome distribue les catalogues 3D des plus grandes marques de mobilier, scannables en AR, partout, sans application. Pour les architectes, les enseignes, les marques.</p>
     <div class="hero-btns">
-      <a href="#catalogue" class="btn-dark">Explorer le catalogue</a>
-      <a href="#config" class="btn-ghost">Voir le configurateur</a>
+      <a href="#catalogue" class="btn-gold">Découvrir la plateforme</a>
+      <a href="#config" class="btn-out-light">Voir une démo</a>
     </div>
   </div>
-  <div class="hero-r">
-    <div class="room-wrap">
-      <svg class="room-svg" viewBox="0 0 600 500" xmlns="http://www.w3.org/2000/svg" fill="none">
-        <polygon points="0,500 0,120 300,60 600,120 600,500" fill="#DDD8CE"/>
-        <polygon points="0,120 300,60 300,280 0,340" fill="#EAE6DE"/>
-        <polygon points="300,60 600,120 600,340 300,280" fill="#E2DDD5"/>
-        <polygon points="0,340 300,280 600,340 600,500 0,500" fill="#D4CBBC"/>
-        <line x1="0" y1="380" x2="600" y2="380" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
-        <line x1="0" y1="430" x2="600" y2="430" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
-        <line x1="100" y1="340" x2="50" y2="500" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-        <line x1="200" y1="330" x2="180" y2="500" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-        <line x1="300" y1="330" x2="300" y2="500" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-        <line x1="400" y1="330" x2="420" y2="500" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-        <line x1="500" y1="340" x2="550" y2="500" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-        <rect x="120" y="330" width="360" height="100" rx="8" fill="#8B7355"/>
-        <rect x="120" y="310" width="360" height="32" rx="6" fill="#9D8466"/>
-        <rect x="120" y="310" width="30" height="120" rx="4" fill="#7A6348"/>
-        <rect x="450" y="310" width="30" height="120" rx="4" fill="#7A6348"/>
-        <rect x="150" y="340" width="100" height="80" rx="4" fill="#9D8466"/>
-        <rect x="250" y="340" width="100" height="80" rx="4" fill="#9D8466"/>
-        <rect x="350" y="340" width="100" height="80" rx="4" fill="#9D8466"/>
-        <rect x="195" y="440" width="210" height="12" rx="2" fill="#5C4F3D"/>
-        <rect x="200" y="452" width="6" height="30" fill="#4A3F30"/>
-        <rect x="394" y="452" width="6" height="30" fill="#4A3F30"/>
-        <rect x="510" y="380" width="18" height="30" rx="2" fill="#8B7355"/>
-        <ellipse cx="519" cy="370" rx="28" ry="40" fill="#4A7C59"/>
-        <ellipse cx="519" cy="360" rx="20" ry="28" fill="#5A9A6E"/>
-        <rect x="90" y="380" width="14" height="50" fill="#8A8880"/>
-        <ellipse cx="97" cy="380" rx="30" ry="12" fill="#DDD8CE" stroke="#A89B82" stroke-width="1"/>
-        <ellipse cx="300" cy="430" rx="120" ry="18" stroke="#B8986A" stroke-width="1.5" stroke-dasharray="6 4" fill="none" opacity="0.7">
-          <animate attributeName="rx" values="120;130;120" dur="3s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite"/>
-        </ellipse>
-        <g stroke="#B8986A" stroke-width="1.5" opacity="0.8">
-          <line x1="155" y1="300" x2="155" y2="315"/><line x1="155" y1="300" x2="170" y2="300"/>
-          <line x1="445" y1="300" x2="445" y2="315"/><line x1="445" y1="300" x2="430" y2="300"/>
-          <line x1="155" y1="460" x2="155" y2="445"/><line x1="155" y1="460" x2="170" y2="460"/>
-          <line x1="445" y1="460" x2="445" y2="445"/><line x1="445" y1="460" x2="430" y2="460"/>
-        </g>
-      </svg>
-    </div>
-    <div class="ar-badge">
-      <div class="ar-badge-lbl">AR Active</div>
-      <div class="ar-badge-txt">Canapé Hay — Mags</div>
-    </div>
-  </div>
-  <div class="hero-scroll">Défiler</div>
+
+  <!-- Scroll cue -->
+  <div class="hero-scroll">Scroll</div>
 </section>
 
 <!-- STATS -->
@@ -720,21 +767,17 @@ footer { background: var(--ink); padding: 76px 52px 36px; }
   <div class="config-grid">
     <div class="config-viewer reveal">
       <svg class="scene" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg" id="cfgSvg">
-        <!-- sofa body -->
         <rect x="30" y="110" width="240" height="80" rx="14" fill="#8B7355" id="sfBody"/>
         <rect x="30" y="90" width="240" height="28" rx="7" fill="#9D8466" id="sfBack"/>
         <rect x="30" y="90" width="24" height="100" rx="5" fill="#7A6348" id="sfArmL"/>
         <rect x="246" y="90" width="24" height="100" rx="5" fill="#7A6348" id="sfArmR"/>
         <rect x="54" y="122" width="72" height="62" rx="5" fill="#A8906F" id="sf1"/>
         <rect x="132" y="122" width="72" height="62" rx="5" fill="#A8906F" id="sf2"/>
-        <!-- legs -->
         <rect x="65" y="190" width="6" height="22" fill="#5A4A38"/>
         <rect x="229" y="190" width="6" height="22" fill="#5A4A38"/>
-        <!-- coffee table -->
         <rect x="80" y="190" width="140" height="8" rx="2" fill="#6B5A46"/>
         <rect x="90" y="198" width="4" height="16" fill="#5A4A36"/>
         <rect x="206" y="198" width="4" height="16" fill="#5A4A36"/>
-        <!-- AR ring -->
         <ellipse cx="150" cy="212" rx="100" ry="12" stroke="#B8986A" stroke-width="1" stroke-dasharray="5 4" fill="none" class="config-ar-ring"/>
       </svg>
       <div class="config-tag"><span>AR Prêt</span></div>
