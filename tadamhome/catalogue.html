@@ -23,6 +23,7 @@
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'Outfit', sans-serif;
   --ease:  cubic-bezier(.25,.1,.25,1);
+  --header-h: 102px; /* nav 56 + cat-bar ~46 — JS updates this when alphabet shows */
 }
 html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
 html { scroll-behavior: smooth; }
@@ -32,12 +33,15 @@ body {
   color: var(--ink);
   font-weight: 300;
   min-height: 100vh;
+  padding-top: var(--header-h);
+  transition: padding-top .25s var(--ease);
 }
 
 /* ── NAV ── */
 nav {
-  position: sticky; top: 0; z-index: 200;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   background: rgba(245,242,236,.97); backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   height: 56px; display: flex; align-items: center;
   justify-content: space-between; gap: 16px; padding: 0 24px;
@@ -67,10 +71,10 @@ nav {
 .nav-btn.primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .nav-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
 
-/* ── CATEGORY BAR (stable, sticky under nav) ── */
+/* ── CATEGORY BAR (fixed, always visible) ── */
 .cat-wrapper {
-  position: sticky;
-  top: 56px;
+  position: fixed;
+  top: 56px; left: 0; right: 0;
   z-index: 150;
   background: var(--white);
   border-bottom: 1px solid var(--border);
@@ -193,7 +197,7 @@ nav {
 .layout {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  min-height: calc(100vh - 56px);
+  min-height: calc(100vh - var(--header-h));
 }
 
 /* ── SIDEBAR FILTERS ── */
@@ -202,10 +206,11 @@ nav {
   padding: 24px 0;
   align-self: start;
   position: sticky;
-  top: 102px;
-  max-height: calc(100vh - 102px);
+  top: var(--header-h);
+  max-height: calc(100vh - var(--header-h));
   overflow-y: auto;
   scrollbar-width: thin;
+  transition: top .25s var(--ease), max-height .25s var(--ease);
 }
 .filter-section { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .filter-section:last-child { border-bottom: none; }
@@ -392,9 +397,10 @@ nav {
   .layout { grid-template-columns: minmax(0,1fr); }
   .filters {
     display: none;
-    position: fixed; inset: 0; top: 56px; left: 0;
+    position: fixed; left: 0; right: 0; bottom: 0;
+    top: var(--header-h);
     z-index: 300; background: var(--white);
-    height: calc(100vh - 56px); width: 100%;
+    height: auto; width: 100%;
     max-height: none;
   }
   .filters.open { display: block; }
@@ -781,12 +787,14 @@ function setCategory(cat, el) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
   el.classList.add('act');
 
-  // Show / hide alphabet bar
+  // Show / hide alphabet bar + adjust header height variable
   const alphaBar = document.getElementById('alphaBar');
   if (cat === 'marque') {
     alphaBar.classList.add('show');
+    document.documentElement.style.setProperty('--header-h', '150px'); // 56 + 46 + 48
   } else {
     alphaBar.classList.remove('show');
+    document.documentElement.style.setProperty('--header-h', '102px');
     // reset letter selection when leaving "marque"
     currentLetter = 'all';
     document.querySelectorAll('.alpha-btn').forEach(b => b.classList.remove('act'));
@@ -1034,6 +1042,7 @@ function resetFilters() {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('act'));
   document.querySelector('.cat-btn[data-cat="all"]').classList.add('act');
   document.getElementById('alphaBar').classList.remove('show');
+  document.documentElement.style.setProperty('--header-h', '102px');
   document.querySelectorAll('.alpha-btn').forEach(b => b.classList.remove('act'));
   const allLet = document.querySelector('.alpha-btn[data-letter="all"]');
   if (allLet) allLet.classList.add('act');
