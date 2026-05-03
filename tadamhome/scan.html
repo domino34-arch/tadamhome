@@ -446,17 +446,101 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   .footer .brand-col { grid-column: 1 / -1; }
 }
 @media (max-width: 768px) {
-  .topnav { padding: 14px 20px; }
-  .topnav .brand img { height: 22px; }
-  .topnav .links, .topnav .right .ghost, .topnav .right .pill { display: none; }
-  .topnav .burger { display: flex; }
-  .footer { padding: 48px 20px 24px; font-size: 11px; }
-  .footer .top { grid-template-columns: 1fr; gap: 32px; padding-bottom: 32px; }
-  .footer .col h4 { margin-bottom: 14px; }
-  .footer .col ul { gap: 8px; }
-  .footer .bottom { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .btn { padding: 12px 20px; font-size: 10px; }
+  /* Body = colonne flex : topnav fixe | contenu scrollable | cta fixe */
+  html { height: 100%; }
+  body { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Topnav : flex-item, pas besoin de position:fixed */
+  .topnav.scan-nav {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    position: relative;
+    z-index: 100;
+    background: rgba(245,242,236,.97);
+  }
+  .topnav.scan-nav .btn-back { display: inline-flex; }
+  .topnav.scan-nav .brand { flex: 1; display: flex; justify-content: center; }
+  .topnav.scan-nav .brand img { height: 22px; }
+  .topnav.scan-nav .icobtn-search,
+  .topnav.scan-nav .pill,
+  .topnav.scan-nav .burger { display: none !important; }
+  .topnav.scan-nav .right { gap: 6px; }
+  .topnav.scan-nav .icobtn { width: 34px; height: 34px; border: none; background: var(--th-paper-2); }
+
+  /* Zone de scroll : tout le contenu entre topnav et CTA */
+  #page-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* CTA : flex-item en bas, pas besoin de position:fixed */
+  .cta-block {
+    flex-shrink: 0;
+    background: rgba(245,242,236,.97);
+    border-top: 1px solid var(--th-border);
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  /* Hero viewer */
+  .hero-split { grid-template-columns: 1fr; margin-top: 0; }
+  .hero-split .v3d { min-height: 320px; }
+  .hero-split .v3d model-viewer { height: 320px; }
+  .hero-split .info { padding: 18px 18px 12px; gap: 12px; border-left: none; border-top: 1px solid var(--th-border); }
+  .hero-split .info h1 { font-size: 28px; }
+  .hero-split .info .designer { font-size: 11px; margin-top: -8px; }
+  .hero-split .info .brand { padding: 14px 0; }
+  .hero-split .info .brand .lm { width: 36px; height: 36px; font-size: 18px; }
+  .hero-split .info .brand .stack .nm { font-size: 15px; }
+  .hero-split .info .price .num { font-size: 30px; }
+
+  /* Save-row + AR pair dans la CTA */
+  .save-row { gap: 6px; }
+  .save-row button { padding: 9px 4px; font-size: 9px; letter-spacing: .10em; gap: 4px; }
+  .ar-pair { gap: 6px; }
+  .ar-pair .ar-cta { padding: 12px 14px; gap: 5px; }
+  .ar-pair .ar-cta .lbl { font-size: 8px; letter-spacing: .14em; }
+  .ar-pair .ar-cta .nm { font-size: 14px; line-height: 1.1; }
+  .ar-pair .ar-cta .desc { font-size: 10px; line-height: 1.4; }
+  .ar-pair .ar-cta .arrow { display: none; }
+  .ar-pair .ar-cta .badge-new { font-size: 7px; padding: 2px 5px; top: 8px; right: 8px; }
+
+  /* Copies courtes sur mobile */
+  .opt-desktop { display: none; }
+  .opt-mobile { display: inline; }
+
+  /* Swatches */
+  .colors-inline .swatches { grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .swatch .nm { display: none; }
+  .colors-inline { padding-bottom: 4px; }
+  .name-brand-row h1 { font-size: 24px; }
+  .brand-mini .lm { width: 30px; height: 30px; font-size: 15px; }
+  .brand-mini .nm { font-size: 11px; }
+
+  /* Sections en-dessous */
+  .attrs { padding: 32px 22px; gap: 18px 16px; }
+  .attrs .col .val { font-size: 16px; }
+  .colors { padding: 32px 22px 40px; }
+  .colors .head h3 { font-size: 20px; }
+  .swatches { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .story { padding: 56px 22px; }
+  .story .pinned h2 { font-size: 26px; }
+  .story .scenes { gap: 36px; }
+  .story .scene h3 { font-size: 20px; }
+  .similar { padding: 56px 22px; }
+  .similar .row { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .similar .card .meta .nm { font-size: 14px; }
+  .toast { bottom: 12px; }
+
+  /* Viewer chrome */
+  .viewer3d .ui.tr { font-size: 8px; padding: 6px 9px; top: 12px; right: 12px; }
 }
+@media (max-width: 500px) { .similar .row { grid-template-columns: 1fr; } }
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -745,6 +829,7 @@ section.colors { display:none !important; }
   </div>
 </nav>
 
+<div id="page-scroll">
 <section class="hero-split">
   <div class="viewer3d v3d" id="viewer-wrap">
     <div class="floor"></div>
@@ -791,34 +876,7 @@ section.colors { display:none !important; }
       <span class="num" id="prod-price">7 850 €</span>
       <span class="unit" id="prod-price-note">TTC · livré</span>
     </div>
-    <div class="cta-block">
-      <div class="save-row">
-        <button id="btn-add" onclick="addToWallet()">
-          <span class="opt-desktop">♡ Sélection</span>
-          <span class="opt-mobile">♡ Ajouter</span>
-        </button>
-        <button onclick="shareProduct()">↗ Partager</button>
-        <button onclick="contactVendeur()">
-          <span class="opt-desktop">⌖ Vendeur</span>
-          <span class="opt-mobile">⌖ Trouver</span>
-        </button>
-      </div>
-      <div class="ar-pair">
-        <button class="ar-cta" onclick="launchAR()">
-          <span class="lbl"><span class="opt-desktop">◫ AR · Mono</span><span class="opt-mobile">◫ Mono</span></span>
-          <span class="nm">Voir <em>chez moi</em></span>
-          <span class="desc"><span class="opt-desktop">Posez ce meuble dans votre salon en taille réelle.</span><span class="opt-mobile">En taille réelle</span></span>
-          <span class="arrow">→</span>
-        </button>
-        <button class="ar-cta primary" onclick="openStudio()">
-          <span class="badge-new">Nouveau ✦</span>
-          <span class="lbl"><span class="opt-desktop">◫◫ AR · Multi</span><span class="opt-mobile">◫◫ Multi</span></span>
-          <span class="nm">Composer une <em>scène</em></span>
-          <span class="desc"><span class="opt-desktop">Ajoutez canapé, lampe, tapis · construisez votre pièce.</span><span class="opt-mobile">Avec d'autres meubles</span></span>
-          <span class="arrow">→</span>
-        </button>
-      </div>
-    </div>
+
   </div>
 </section>
 
@@ -874,6 +932,37 @@ section.colors { display:none !important; }
     <div class="socials"><a href="#">Instagram</a><a href="#">LinkedIn</a></div>
   </div>
 </footer>
+</div><!-- /page-scroll -->
+
+<div class="cta-block">
+      <div class="save-row">
+        <button id="btn-add" onclick="addToWallet()">
+          <span class="opt-desktop">♡ Sélection</span>
+          <span class="opt-mobile">♡ Ajouter</span>
+        </button>
+        <button onclick="shareProduct()">↗ Partager</button>
+        <button onclick="contactVendeur()">
+          <span class="opt-desktop">⌖ Vendeur</span>
+          <span class="opt-mobile">⌖ Trouver</span>
+        </button>
+      </div>
+      <div class="ar-pair">
+        <button class="ar-cta" onclick="launchAR()">
+          <span class="lbl"><span class="opt-desktop">◫ AR · Mono</span><span class="opt-mobile">◫ Mono</span></span>
+          <span class="nm">Voir <em>chez moi</em></span>
+          <span class="desc"><span class="opt-desktop">Posez ce meuble dans votre salon en taille réelle.</span><span class="opt-mobile">En taille réelle</span></span>
+          <span class="arrow">→</span>
+        </button>
+        <button class="ar-cta primary" onclick="openStudio()">
+          <span class="badge-new">Nouveau ✦</span>
+          <span class="lbl"><span class="opt-desktop">◫◫ AR · Multi</span><span class="opt-mobile">◫◫ Multi</span></span>
+          <span class="nm">Composer une <em>scène</em></span>
+          <span class="desc"><span class="opt-desktop">Ajoutez canapé, lampe, tapis · construisez votre pièce.</span><span class="opt-mobile">Avec d'autres meubles</span></span>
+          <span class="arrow">→</span>
+        </button>
+      </div>
+    </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1172,30 +1261,7 @@ function toast(msg) {
   clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ── TOPNAV FIXED sur mobile (setProperty = seule méthode fiable sur iOS Safari) ──
-(function() {
-  if (window.innerWidth > 768) return;
-  const nav = document.querySelector('.topnav');
-  if (!nav) return;
-  // setProperty avec 'important' — contourne overflow-x:hidden sur body
-  nav.style.setProperty('position', 'fixed', 'important');
-  nav.style.setProperty('top', '0', 'important');
-  nav.style.setProperty('left', '0', 'important');
-  nav.style.setProperty('right', '0', 'important');
-  nav.style.setProperty('z-index', '200', 'important');
-  nav.style.setProperty('background', 'rgba(245,242,236,.97)', 'important');
-  nav.style.webkitBackdropFilter = 'blur(14px)';
-  nav.style.backdropFilter = 'blur(14px)';
-  // Compenser la hauteur de la topnav fixe
-  function compensate() {
-    const h = nav.getBoundingClientRect().height || 52;
-    const hero = document.querySelector('.hero-split');
-    if (hero) hero.style.setProperty('margin-top', h + 'px', 'important');
-  }
-  // Double rAF pour attendre que le layout soit stable
-  requestAnimationFrame(() => requestAnimationFrame(compensate));
-  window.addEventListener('resize', compensate);
-})();
+// Topnav et CTA gérés par flex layout mobile — pas de JS nécessaire
 
 loadProduct();
 updateWalletUI();
