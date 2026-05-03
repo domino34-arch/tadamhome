@@ -1006,7 +1006,7 @@ function renderColors(colors) {
   if (titleEl) titleEl.innerHTML = `${nw} finitions, <em>une même âme</em>`;
 
   col = colors[0];
-  document.getElementById('col-name').textContent = colors[0].name;
+  document.getElementById('col-name').textContent = colors[0].name; // mat volontairement omis
 
   const attrColor = document.getElementById('attr-color');
   if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${colors[0].name.replace(/^Cuir\s+/i, '')}`;
@@ -1031,7 +1031,7 @@ function renderColors(colors) {
       document.querySelectorAll('.swatch').forEach(x => x.classList.remove('act'));
       btn.classList.add('act');
       col = c;
-      document.getElementById('col-name').textContent = c.name;
+      document.getElementById('col-name').textContent = c.name; // mat omis
       if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${c.name.replace(/^Cuir\s+/i, '')}`;
       const mv = document.getElementById('mv');
       if (c.glb) {
@@ -1170,6 +1170,22 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ── TOPNAV FIXED sur mobile via JS (contourne le bug iOS sticky/overflow) ──
+(function() {
+  if (window.innerWidth > 768) return;
+  const nav = document.querySelector('.topnav');
+  if (!nav) return;
+  nav.style.cssText += ';position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:200!important;background:rgba(245,242,236,.97)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);';
+  // Compenser le décalage du contenu
+  function compensate() {
+    const h = nav.offsetHeight || 52;
+    const hero = document.querySelector('.hero-split');
+    if (hero) hero.style.marginTop = h + 'px';
+  }
+  compensate();
+  window.addEventListener('resize', compensate);
+})();
 
 loadProduct();
 updateWalletUI();
