@@ -1,545 +1,1937 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>TadamHome — Scan AR</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>LC2 Grand Confort — Cassina · TadamHome</title>
+<meta name="description" content="LC2 Grand Confort par Le Corbusier, Pierre Jeanneret et Charlotte Perriand pour Cassina. Configurez en 3D, posez chez vous en réalité augmentée.">
+<link rel="icon" type="image/png" href="logo.png">
+
+<!-- model-viewer (Google) — viewer 3D + AR (WebXR / Scene Viewer / Quick Look) -->
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#F5F2EC;--white:#FAFAF8;--dark:#1C1B18;--text:#1C1B18;--mid:#8A8880;
-  --light:#EDEAE2;--border:rgba(28,27,24,.1);--accent:#B8986A;
-  --accent-light:rgba(184,152,106,.08);--green:#27704A;
-  --green-light:rgba(39,112,74,.08);
-  --shadow:0 1px 3px rgba(28,27,24,.06),0 1px 2px rgba(28,27,24,.04);
-  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Outfit',sans-serif;
-}
-html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* ═══════════════════════════════════════════════════════════════
+   TadamHome — Colors & Type
+   Editorial luxury × tech AR. Warm beige paper, gold accent,
+   ink-black contrast. French serif italics + clean sans.
+   ═══════════════════════════════════════════════════════════════ */
 
-/* TOPBAR */
-.topbar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between}
-.topbar-right{display:flex;align-items:center;gap:8px}
-.favoris-btn{background:var(--light);border:1px solid var(--border);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:var(--text);position:relative;transition:all .2s}
-.favoris-btn:active{background:var(--accent-light);color:var(--accent)}
-.wbadge{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--accent);font-size:8px;font-weight:600;color:#fff;display:none;place-items:center;border:2px solid var(--white)}
-.wbadge.on{display:grid}
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
-/* PRODUCT HEADER */
-.prod-header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 18px 12px}
-.prod-brand{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:6px;font-family:var(--sans)}
-.prod-title{font-family:var(--serif);font-size:24px;font-weight:400;color:var(--text);letter-spacing:-.01em;line-height:1.2}
-.prod-category{font-size:13px;color:var(--text);margin-top:4px;font-family:var(--sans);font-weight:400}
+:root {
+  /* ── BRAND CORE ── */
+  --th-paper:        #F5F2EC;   /* primary surface — warm parchment */
+  --th-paper-2:      #EDEAE2;   /* slightly deeper */
+  --th-paper-3:      #E4E0D6;   /* deeper still / tertiary */
+  --th-white:        #FAFAF8;   /* "white" — never pure */
+  --th-ink:          #1C1B18;   /* near-black, warm */
+  --th-ink-2:        #4A4840;   /* secondary text */
+  --th-ink-3:        #8A8880;   /* muted / placeholder */
 
-/* TABS */
-.viewer-tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);padding:0 18px}
-.vtab{flex:0 0 auto;padding:10px 16px;font-size:11px;font-weight:400;color:var(--mid);border:none;background:transparent;cursor:pointer;border-bottom:1.5px solid transparent;transition:all .2s;font-family:var(--sans);margin-bottom:-1px;letter-spacing:.1em;text-transform:uppercase}
-.vtab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+  /* ── ACCENT (gold/brass) ── */
+  --th-accent:       #B8986A;   /* primary gold */
+  --th-accent-2:     #D4B896;   /* lighter gold (on dark) */
+  --th-accent-3:     #A07A4A;   /* darker gold (hover/emphasis) */
 
-/* VIEWER */
-.viewer-wrap{background:var(--light);border-bottom:1px solid var(--border);position:relative}
-model-viewer{width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent}
-/* Masquer le bouton AR natif du model-viewer (en bas à droite) */
-model-viewer::part(default-ar-button){display:none !important}
-.viewer-ph{width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-.viewer-ph svg{opacity:.2;color:var(--accent)}
-.viewer-ph p{font-size:12px;color:var(--mid);text-align:center;max-width:160px;line-height:1.5;font-family:var(--sans)}
+  /* ── SEMANTIC ── */
+  --th-success:      #27704A;   /* deep emerald */
+  --th-warning:      #B8986A;   /* accent doubles as warning */
+  --th-danger:       #C0392B;   /* terra-cotta red */
+  --th-info:         #4A4840;   /* ink-2 */
 
-/* THUMBNAILS */
-.thumbs-row{background:var(--white);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
-.thumbs-row::-webkit-scrollbar{display:none}
-.thumb{flex:0 0 46px;height:46px;border:1px solid var(--border);background:var(--light);cursor:pointer;transition:all .2s;display:grid;place-items:center}
-.thumb.active{border-color:var(--accent);background:var(--accent-light)}
-.thumb-360{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:7px;font-weight:500;color:var(--mid);letter-spacing:.06em;font-family:var(--sans)}
-.thumb.active .thumb-360{color:var(--accent)}
-.thumb-360 svg{width:15px;height:15px}
+  /* ── BORDERS / DIVIDERS ── */
+  --th-border:       rgba(28,27,24,.10);
+  --th-border-soft:  rgba(28,27,24,.07);
+  --th-border-gold:  rgba(184,152,106,.20);
+  --th-border-dark:  rgba(255,255,255,.07);
 
-/* COLORIS */
-.section{padding:14px 18px 0}
-.section-label{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.14em;color:var(--mid);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-family:var(--sans)}
-.section-label .val{font-family:var(--serif);font-size:15px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text)}
-.colors-grid{display:flex;gap:8px;flex-wrap:wrap}
-.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;position:relative;transition:all .15s}
-.color-swatch.active{border-color:var(--text)}
-.color-swatch.active::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(28,27,24,.2)}
+  /* ── ELEVATION ── */
+  --th-shadow-sm:    0 2px 8px rgba(28,27,24,.06);
+  --th-shadow-md:    0 12px 32px rgba(28,27,24,.10);
+  --th-shadow-lg:    0 40px 80px rgba(28,27,24,.18);
 
-/* INFO GRID */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 18px 0}
-.info-card{background:var(--white);border:1px solid var(--border);padding:11px 13px}
-.info-label{font-size:9px;font-weight:400;text-transform:uppercase;letter-spacing:.14em;color:var(--mid);margin-bottom:4px;font-family:var(--sans)}
-.info-value{font-family:var(--serif);font-size:16px;font-weight:400;color:var(--text)}
-.info-sub{font-size:10px;color:var(--mid);margin-top:2px;font-family:var(--sans)}
-.info-value.green{color:var(--green)}
+  /* ── RADII (TadamHome is mostly square — radii are subtle) ── */
+  --th-r-0: 0;
+  --th-r-1: 2px;
+  --th-r-2: 4px;
+  --th-r-3: 8px;
+  --th-r-pill: 999px;
 
-/* FEATURES */
-.features{padding:12px 18px 0;display:flex;flex-direction:column;gap:6px}
-.feature{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mid);padding:3px 0;font-family:var(--sans)}
-.feature-dash{width:14px;height:1px;background:var(--accent);flex-shrink:0}
+  /* ── SPACING (8-pt + editorial gutters) ── */
+  --th-s-1: 4px;
+  --th-s-2: 8px;
+  --th-s-3: 14px;
+  --th-s-4: 22px;
+  --th-s-5: 36px;
+  --th-s-6: 56px;
+  --th-s-7: 80px;
+  --th-s-8: 112px;
 
-/* INSTALL BANNER */
-.install-banner{margin:12px 18px 0;background:var(--dark);padding:12px 14px;display:none;align-items:center;gap:10px}
-.install-banner.show{display:flex}
-.install-icon{width:32px;height:32px;background:rgba(184,152,106,.2);border:1px solid rgba(184,152,106,.3);display:grid;place-items:center;flex-shrink:0;font-size:14px}
-.install-text{flex:1}
-.install-text p{font-size:12px;font-weight:500;color:#fff;font-family:var(--sans)}
-.install-text span{font-size:10px;color:rgba(255,255,255,.4);font-family:var(--sans)}
-.btn-install-sm{background:var(--accent);color:var(--white);border:none;padding:7px 12px;font-size:11px;font-weight:500;font-family:var(--sans);cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
+  /* ── TYPE ── */
+  --th-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --th-sans:  'Outfit', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --th-mono:  ui-monospace, 'SF Mono', Menlo, monospace;
 
-/* TOGGLE INFOS */
-.btn-toggle-info{width:100%;padding:10px 14px;margin-bottom:4px;background:var(--white);border:1px solid var(--border);font-size:11px;font-weight:400;font-family:var(--sans);color:var(--mid);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.08em;text-transform:uppercase}
-.btn-toggle-info:active{background:var(--accent-light);color:var(--accent)}
-.btn-toggle-info.hidden-mode{background:var(--accent-light);color:var(--accent);border-color:rgba(184,152,106,.3)}
+  /* ── MOTION ── */
+  --th-ease:        cubic-bezier(.25,.10,.25,1.00);
+  --th-ease-out:    cubic-bezier(.00,.00,.20,1.00);
+  --th-ease-in:     cubic-bezier(.40,.00,1.00,1.00);
+  --th-dur-fast:    .15s;
+  --th-dur-base:    .25s;
+  --th-dur-slow:    .60s;
 
-/* HIDEABLE */
-.hideable{transition:all .2s}
-.hideable.hidden{display:none !important}
+  /* ── SEMANTIC TYPE TOKENS ── */
+  --th-h1-family: var(--th-serif);
+  --th-h1-size: clamp(50px, 5.2vw, 78px);
+  --th-h1-weight: 300;
+  --th-h1-leading: 1.05;
+  --th-h1-tracking: -0.01em;
 
-/* CTA */
-.cta-zone{padding:14px 18px 20px;border-top:1px solid var(--border);margin-top:4px;background:var(--bg)}
-.price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:12px}
-.price{font-family:var(--serif);font-size:32px;font-weight:300;color:var(--text);letter-spacing:-.02em}
-.price-note{font-size:12px;color:var(--mid);font-family:var(--sans)}
+  --th-h2-family: var(--th-serif);
+  --th-h2-size: clamp(36px, 3.8vw, 56px);
+  --th-h2-weight: 300;
+  --th-h2-leading: 1.10;
 
-.btn-ar{width:100%;padding:14px;background:var(--dark);color:var(--white);border:none;font-size:11px;font-weight:500;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s;margin-bottom:8px;letter-spacing:.12em;text-transform:uppercase}
-.btn-ar:active{background:var(--accent)}
+  --th-h3-family: var(--th-serif);
+  --th-h3-size: 22px;
+  --th-h3-weight: 400;
+  --th-h3-leading: 1.20;
 
-/* STUDIO AR BUTTON */
-.btn-studio{
-  width:100%;padding:13px;
-  background:rgba(184,152,106,.1);
-  color:var(--accent);
-  border:1px solid rgba(184,152,106,.3);
-  font-size:11px;font-weight:500;
-  font-family:var(--sans);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:all .2s;margin-bottom:8px;
-  letter-spacing:.1em;text-transform:uppercase;
-  position:relative;
-}
-.btn-studio:active{background:rgba(184,152,106,.2)}
-.studio-badge{
-  background:var(--accent);color:var(--white);
-  font-size:8px;font-weight:600;
-  padding:2px 7px;
-  letter-spacing:.08em;
-  position:absolute;top:-8px;right:12px;
-  font-family:var(--sans);
+  --th-h4-family: var(--th-serif);
+  --th-h4-size: 18px;
+  --th-h4-weight: 400;
+  --th-h4-leading: 1.25;
+
+  --th-body-family: var(--th-sans);
+  --th-body-size: 14px;
+  --th-body-weight: 300;
+  --th-body-leading: 1.85;
+
+  --th-small-family: var(--th-sans);
+  --th-small-size: 12px;
+  --th-small-weight: 300;
+
+  --th-eyebrow-family: var(--th-sans);
+  --th-eyebrow-size: 10px;
+  --th-eyebrow-weight: 400;
+  --th-eyebrow-tracking: .20em;
+  --th-eyebrow-transform: uppercase;
+
+  --th-label-family: var(--th-sans);
+  --th-label-size: 10px;
+  --th-label-weight: 400;
+  --th-label-tracking: .14em;
+  --th-label-transform: uppercase;
 }
 
-.btn-wallet{width:100%;padding:12px;background:transparent;color:var(--accent);border:1px solid rgba(184,152,106,.35);font-size:11px;font-weight:400;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-bottom:8px;letter-spacing:.1em;text-transform:uppercase}
-.btn-wallet.hide{display:none}
-.btn-wallet:active{background:var(--accent-light)}
+/* ═══════════════════════════════════════════
+   Optional: ready-to-use semantic classes
+   ═══════════════════════════════════════════ */
+.th-h1 { font-family: var(--th-h1-family); font-size: var(--th-h1-size); font-weight: var(--th-h1-weight); line-height: var(--th-h1-leading); letter-spacing: var(--th-h1-tracking); color: var(--th-ink); }
+.th-h2 { font-family: var(--th-h2-family); font-size: var(--th-h2-size); font-weight: var(--th-h2-weight); line-height: var(--th-h2-leading); color: var(--th-ink); }
+.th-h3 { font-family: var(--th-h3-family); font-size: var(--th-h3-size); font-weight: var(--th-h3-weight); line-height: var(--th-h3-leading); color: var(--th-ink); }
+.th-h4 { font-family: var(--th-h4-family); font-size: var(--th-h4-size); font-weight: var(--th-h4-weight); color: var(--th-ink); }
+.th-body { font-family: var(--th-body-family); font-size: var(--th-body-size); font-weight: var(--th-body-weight); line-height: var(--th-body-leading); color: var(--th-ink-2); }
+.th-small { font-family: var(--th-small-family); font-size: var(--th-small-size); color: var(--th-ink-3); }
+.th-eyebrow { font-family: var(--th-eyebrow-family); font-size: var(--th-eyebrow-size); font-weight: var(--th-eyebrow-weight); letter-spacing: var(--th-eyebrow-tracking); text-transform: var(--th-eyebrow-transform); color: var(--th-accent); }
+.th-label { font-family: var(--th-label-family); font-size: var(--th-label-size); font-weight: var(--th-label-weight); letter-spacing: var(--th-label-tracking); text-transform: var(--th-label-transform); color: var(--th-ink-3); }
+.th-italic-accent em { font-style: italic; color: var(--th-accent); }
 
-.added-confirm{display:none;width:100%;padding:12px;background:var(--green-light);color:var(--green);border:1px solid rgba(39,112,74,.15);font-size:11px;font-weight:400;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase}
-.added-confirm.show{display:flex}
-.see-link{text-decoration:underline;cursor:pointer;margin-left:4px;opacity:.8}
 
-.btn-contact{width:100%;padding:11px;background:transparent;color:var(--mid);border:1px solid var(--border);font-size:11px;font-weight:400;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.08em;text-transform:uppercase}
-.btn-contact:active{background:var(--light)}
+/* ═══════════════════════════════════════════════════════════════
+   TadamHome — Site Shell
+   Shared chrome (nav, footer, buttons, primitives) for production
+   pages: index, catalogue, scan, pricing.
+   ═══════════════════════════════════════════════════════════════ */
 
-/* WALLET */
-.wallet-overlay{position:fixed;inset:0;z-index:300;background:rgba(28,27,24,.45);display:none;align-items:flex-end}
-.wallet-overlay.open{display:flex}
-.wallet-sheet{width:100%;background:var(--white);border-top:1px solid rgba(184,152,106,.2);max-height:82vh;overflow-y:auto;padding-bottom:40px}
-.wallet-handle{width:36px;height:3px;background:rgba(28,27,24,.15);border-radius:2px;margin:12px auto}
-.wallet-header{padding:4px 18px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.wallet-title{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text);letter-spacing:-.01em}
-.wallet-count{background:var(--accent);color:var(--white);font-size:10px;font-weight:500;padding:2px 8px;margin-left:8px;font-family:var(--sans)}
-.wallet-close{width:28px;height:28px;background:var(--light);border:none;cursor:pointer;color:var(--mid);font-size:12px;display:grid;place-items:center}
-.wallet-items{padding:12px 18px;display:flex;flex-direction:column;gap:8px}
-.wallet-card{background:var(--bg);border:1px solid var(--border);padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:background .15s}
-.wallet-card:active{background:var(--light)}
-.wallet-card-img{width:50px;height:50px;background:var(--light);flex-shrink:0;display:grid;place-items:center;border:1px solid var(--border)}
-.wallet-card-name{font-family:var(--serif);font-weight:400;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wallet-card-color{font-size:11px;color:var(--mid);margin-top:3px;display:flex;align-items:center;gap:5px;font-family:var(--sans)}
-.wallet-card-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.wallet-card-badge{background:var(--accent-light);color:var(--accent);font-size:9px;font-weight:500;padding:2px 8px;display:inline-block;margin-top:5px;letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
-.wallet-card-price{font-family:var(--serif);font-weight:300;font-size:18px;color:var(--text);flex-shrink:0}
-.wallet-empty{text-align:center;padding:40px 20px;color:var(--mid);font-size:13px;line-height:1.7;font-family:var(--sans)}
-.wallet-footer{padding:12px 18px 0;display:flex;flex-direction:column;gap:8px}
-
-/* TOAST */
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--dark);color:var(--white);padding:10px 18px;font-size:12px;font-weight:400;opacity:0;transition:all .25s;z-index:400;white-space:nowrap;letter-spacing:.04em;font-family:var(--sans)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* MOBILE */
-@media (max-width: 430px) {
-  model-viewer { height: 280px; }
-  .viewer-ph { height: 280px; }
-  .prod-title { font-size: 22px; }
-  .color-swatch { width: 36px; height: 36px; border-width: 2.5px; }
-  .colors-grid { gap: 10px; }
-  .info-grid { gap: 6px; padding: 12px 14px 0; }
-  .info-card { padding: 10px 12px; }
-  .info-value { font-size: 15px; }
-  .btn-ar { padding: 16px; font-size: 12px; }
-  .btn-wallet { padding: 14px; }
-  .btn-contact { padding: 13px; }
-  .price { font-size: 30px; }
-  .cta-zone { padding: 14px 14px 32px; }
-  .section { padding: 12px 14px 0; }
-  .features { padding: 10px 14px 0; }
-  .prod-header { padding: 12px 14px 10px; }
-  .viewer-tabs { padding: 0 14px; }
-  .thumbs-row { padding: 8px 14px; }
-  .wallet-items { padding: 10px 14px; }
-  .wallet-header { padding: 4px 14px 12px; }
-  .wallet-footer { padding: 10px 14px 0; }
-  .wallet-card-name { font-size: 14px; }
-  .toast { bottom: 100px; }
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+html, body {
+  background: var(--th-paper);
+  color: var(--th-ink);
+  font-family: var(--th-sans);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
-@media (max-width: 375px) {
-  .prod-title { font-size: 20px; }
-  model-viewer { height: 240px; }
-  .viewer-ph { height: 240px; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+img, video { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+:focus-visible { outline: 1px solid var(--th-accent); outline-offset: 3px; }
+::selection { background: var(--th-accent); color: var(--th-white); }
+
+/* ─── TYPOGRAPHIC PRIMITIVES ─── */
+.eyb {
+  font-family: var(--th-sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .20em;
+  text-transform: uppercase;
+  color: var(--th-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
-@supports (padding: env(safe-area-inset-bottom)) {
-  .cta-zone { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-  .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
-  .topbar { padding-top: env(safe-area-inset-top, 0); }
+.eyb::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: var(--th-accent);
 }
+.eyb.center { justify-content: center; }
+.eyb.light { color: var(--th-accent-2); }
+.eyb.light::before { background: var(--th-accent-2); }
+
+.italic-accent em { font-style: italic; color: var(--th-accent); }
+.italic-accent.on-dark em { color: var(--th-accent-2); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  font-family: var(--th-sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--th-dur-base) var(--th-ease),
+              color var(--th-dur-base) var(--th-ease),
+              border-color var(--th-dur-base) var(--th-ease);
+  white-space: nowrap;
+}
+.btn-dark { background: var(--th-ink); color: var(--th-white); border-color: var(--th-ink); }
+.btn-dark:hover { background: var(--th-accent-3); border-color: var(--th-accent-3); }
+.btn-gold { background: var(--th-accent); color: var(--th-white); border-color: var(--th-accent); }
+.btn-gold:hover { background: var(--th-accent-3); border-color: var(--th-accent-3); }
+.btn-out { background: transparent; color: var(--th-accent); border-color: var(--th-accent); }
+.btn-out:hover { background: var(--th-accent); color: var(--th-white); }
+.btn-out-light { background: transparent; color: var(--th-white); border-color: rgba(255,255,255,.55); }
+.btn-out-light:hover { background: var(--th-white); color: var(--th-ink); border-color: var(--th-white); }
+.btn-ghost { color: var(--th-ink-2); padding: 14px 0; }
+.btn-ghost:hover { color: var(--th-accent); }
+.btn-ghost::after { content: '→'; transition: transform var(--th-dur-base) var(--th-ease); }
+.btn-ghost:hover::after { transform: translateX(4px); }
+
+/* ─── TOPNAV ─── */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 44px;
+  background: rgba(245, 242, 236, .85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--th-border);
+  transition: background var(--th-dur-base) var(--th-ease);
+}
+.topnav .brand { display: inline-flex; align-items: center; }
+.topnav .brand img { height: 26px; width: auto; }
+.topnav .links { display: flex; gap: 32px; align-items: center; }
+.topnav .links a {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--th-ink-2);
+  padding: 6px 0;
+  position: relative;
+  transition: color var(--th-dur-base) var(--th-ease);
+}
+.topnav .links a:hover { color: var(--th-ink); }
+.topnav .links a.cur { color: var(--th-ink); }
+.topnav .links a.cur::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: var(--th-accent);
+}
+.topnav .right { display: flex; gap: 14px; align-items: center; }
+.topnav .right .ghost {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--th-ink-2);
+}
+.topnav .right .ghost:hover { color: var(--th-ink); }
+.topnav .right .pill {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border: 1px solid var(--th-accent);
+  color: var(--th-accent);
+  transition: background var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+}
+.topnav .right .pill:hover { background: var(--th-accent); color: var(--th-white); }
+
+.topnav .burger { display: none; width: 24px; height: 16px; flex-direction: column; justify-content: space-between; cursor: pointer; }
+.topnav .burger span { display: block; height: 1px; background: var(--th-ink); transform-origin: center; transition: transform var(--th-dur-base) var(--th-ease), opacity var(--th-dur-base) var(--th-ease); }
+.topnav .burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.topnav .burger.open span:nth-child(2) { opacity: 0; }
+.topnav .burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* TopNav dark variant: transparent on hero, white logo, light text */
+.topnav.dark {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+.topnav.dark .links a { color: rgba(250, 250, 248, .72); }
+.topnav.dark .links a:hover, .topnav.dark .links a.cur { color: var(--th-white); }
+.topnav.dark .links a.cur::after { background: var(--th-accent-2); }
+.topnav.dark .right .ghost { color: rgba(250, 250, 248, .72); }
+.topnav.dark .right .ghost:hover { color: var(--th-white); }
+.topnav.dark .right .pill { border-color: var(--th-accent-2); color: var(--th-accent-2); }
+.topnav.dark .right .pill:hover { background: var(--th-accent-2); color: var(--th-ink); }
+.topnav.dark .burger span { background: var(--th-white); }
+
+/* When dark topnav has been scrolled past hero, become solid */
+.topnav.dark.scrolled {
+  background: rgba(28, 27, 24, .88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom-color: rgba(255, 255, 255, .08);
+}
+
+/* Mobile menu drawer (hidden by default; shown when burger.open) */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--th-paper);
+  padding: 90px 32px 40px;
+  flex-direction: column;
+  gap: 0;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  font-family: var(--th-serif);
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--th-ink);
+  padding: 18px 0;
+  border-bottom: 1px solid var(--th-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.mobile-menu a .num {
+  font-family: var(--th-serif);
+  font-style: italic;
+  color: var(--th-accent);
+  font-size: 14px;
+}
+.mobile-menu .footer {
+  margin-top: auto;
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mobile-menu .footer .btn { width: 100%; }
+
+/* ─── FOOTER ─── */
+.footer {
+  background: var(--th-ink);
+  color: rgba(250, 250, 248, .72);
+  padding: 80px 44px 32px;
+  font-size: 12px;
+}
+.footer .top {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, 1fr);
+  gap: 56px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.footer .brand-col img { height: 30px; width: auto; margin-bottom: 22px; }
+.footer .brand-col p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: rgba(250, 250, 248, .55);
+  max-width: 280px;
+}
+.footer .brand-col .badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.footer .brand-col .badge {
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 5px 9px;
+  border: 1px solid rgba(184, 152, 106, .35);
+  color: var(--th-accent-2);
+}
+.footer .col h4 {
+  font-family: var(--th-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .20em;
+  text-transform: uppercase;
+  color: var(--th-accent-2);
+  margin-bottom: 22px;
+}
+.footer .col ul { display: flex; flex-direction: column; gap: 12px; }
+.footer .col a {
+  font-size: 12px;
+  color: rgba(250, 250, 248, .65);
+  transition: color var(--th-dur-base) var(--th-ease);
+}
+.footer .col a:hover { color: var(--th-accent-2); }
+.footer .bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 32px;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.footer .bottom .legal {
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 248, .4);
+}
+.footer .bottom .signature {
+  font-family: var(--th-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--th-accent-2);
+}
+.footer .bottom .socials { display: flex; gap: 18px; }
+.footer .bottom .socials a {
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 248, .55);
+}
+.footer .bottom .socials a:hover { color: var(--th-accent-2); }
+
+/* ─── REVEAL ANIMATION HELPER ─── */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 1s var(--th-ease-out), transform 1s var(--th-ease-out); }
+.reveal.shown { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ─── RESPONSIVE — TOPNAV / FOOTER ─── */
+@media (max-width: 1024px) {
+  .topnav { padding: 16px 28px; }
+  .topnav .links { gap: 24px; }
+  .footer { padding: 60px 28px 28px; }
+  .footer .top { grid-template-columns: 1fr 1fr; gap: 40px; padding-bottom: 40px; }
+  .footer .brand-col { grid-column: 1 / -1; }
+}
+@media (max-width: 768px) {
+  .topnav { padding: 14px 20px; }
+  .topnav .brand img { height: 22px; }
+  .topnav .links, .topnav .right .ghost, .topnav .right .pill { display: none; }
+  .topnav .burger { display: flex; }
+  .footer { padding: 48px 20px 24px; font-size: 11px; }
+  .footer .top { grid-template-columns: 1fr; gap: 32px; padding-bottom: 32px; }
+  .footer .col h4 { margin-bottom: 14px; }
+  .footer .col ul { gap: 8px; }
+  .footer .bottom { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .btn { padding: 12px 20px; font-size: 10px; }
+}
+
+
+
+  /* ═══════════════════════════════════════════════════════
+     SCAN — Editorial Showcase (desktop) + Mobile compact
+     ═══════════════════════════════════════════════════════ */
+
+  body { background: var(--th-paper); }
+
+  /* ─── TOPNAV : version produit (back · logo · breadcrumb · icons) ─── */
+  .topnav.scan-nav .btn-back {
+    display: none;
+    width: 32px; height: 32px;
+    align-items: center;
+    justify-content: center;
+    color: var(--th-ink);
+    font-size: 18px;
+    margin-right: 4px;
+  }
+  .topnav.scan-nav .breadcrumb {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 18px;
+  }
+  .topnav.scan-nav .breadcrumb a { color: inherit; }
+  .topnav.scan-nav .breadcrumb a:hover { color: var(--th-accent); }
+  .topnav.scan-nav .breadcrumb em { font-style: normal; color: var(--th-accent); }
+  .topnav.scan-nav .icobtn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--th-border);
+    background: var(--th-paper);
+    color: var(--th-ink-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+  }
+  .topnav.scan-nav .icobtn:hover { border-color: var(--th-accent); color: var(--th-accent); }
+  .topnav.scan-nav .icobtn .badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--th-accent);
+    color: var(--th-white);
+    font-size: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+  .topnav.scan-nav .icobtn .badge.on { display: inline-flex; }
+
+  /* ─── 3D VIEWER WRAPPER ─── */
+  .viewer3d {
+    position: relative;
+    background: var(--th-paper-2);
+    overflow: hidden;
+  }
+  .viewer3d::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px),
+      repeating-linear-gradient(90deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .viewer3d > model-viewer {
+    position: absolute !important;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(160deg, #EAE6DE, #D8D4CB);
+    --poster-color: transparent;
+    z-index: 1;
+  }
+  /* Hide the native AR floating button (we have our own CTA) */
+  model-viewer::part(default-ar-button) { display: none !important; }
+
+  .viewer3d .floor {
+    position: absolute;
+    left: 50%; bottom: 18%;
+    width: 74%; height: 14%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(28,27,24,.20) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .viewer3d .ui {
+    position: absolute;
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    padding: 9px 13px;
+    background: rgba(250, 250, 248, .88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--th-border);
+    z-index: 3;
+  }
+  .viewer3d .ui.tr { top: 22px; right: 22px; display: inline-flex; gap: 8px; align-items: center; }
+  .viewer3d .ui.tr::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--th-accent);
+    animation: blink 1.6s infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .viewer3d .tabs {
+    position: absolute;
+    bottom: 22px; left: 22px;
+    display: flex;
+    gap: 4px;
+    z-index: 3;
+  }
+  .viewer3d .tabs button {
+    padding: 9px 14px;
+    background: rgba(250, 250, 248, .88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--th-border);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--th-ink-2);
+    cursor: pointer;
+    transition: background var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+  }
+  .viewer3d .tabs button:hover { color: var(--th-ink); }
+  .viewer3d .tabs button.act {
+    background: var(--th-ink);
+    color: var(--th-white);
+    border-color: var(--th-ink);
+  }
+  .viewer3d .controls {
+    position: absolute;
+    bottom: 22px; right: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 3;
+  }
+  .viewer3d .controls button {
+    width: 38px; height: 38px;
+    background: rgba(250, 250, 248, .92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--th-border);
+    color: var(--th-ink-2);
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+  }
+  .viewer3d .controls button:hover { border-color: var(--th-accent); color: var(--th-accent); }
+  .viewer3d .cue {
+    position: absolute;
+    left: 50%; bottom: 32%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    opacity: .5;
+    animation: fade 4s var(--th-ease) infinite;
+  }
+  .viewer3d .cue.hidden { display: none; }
+  @keyframes fade { 0%, 100% { opacity: .25; } 50% { opacity: .65; } }
+  .viewer3d .cue .arr {
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--th-accent-3);
+    letter-spacing: 8px;
+  }
+  .viewer3d .cue .lbl {
+    font-size: 9px;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    color: var(--th-accent-3);
+  }
+
+  /* Tab panels */
+  .tab-panel { position: absolute; inset: 0; z-index: 1; }
+  .tab-panel:not(.active) { display: none; }
+  .tab-panel.photos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--th-paper-2);
+  }
+  .tab-panel.photos svg { opacity: .25; color: var(--th-accent); }
+  .tab-panel.photos p {
+    font-size: 12px;
+    color: var(--th-ink-3);
+    letter-spacing: .04em;
+    max-width: 260px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* ─── HERO SPLIT ─── */
+  .hero-split {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 0;
+    min-height: 720px;
+    border-bottom: 1px solid var(--th-border);
+  }
+  .hero-split .v3d { min-height: 720px; }
+  .hero-split .info {
+    padding: 56px 48px;
+    background: var(--th-paper);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    border-left: 1px solid var(--th-border);
+  }
+  .hero-split .info .meta-line {
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .hero-split .info .meta-line .ref { color: var(--th-accent); }
+  .hero-split .info h1 {
+    font-family: var(--th-serif);
+    font-size: clamp(36px, 4vw, 54px);
+    font-weight: 300;
+    line-height: 1.0;
+    letter-spacing: -.02em;
+  }
+  .hero-split .info h1 em { font-style: italic; color: var(--th-accent); }
+  .hero-split .info .designer {
+    font-size: 12px;
+    color: var(--th-ink-2);
+    margin-top: -16px;
+  }
+  .hero-split .info .designer em {
+    font-style: italic;
+    color: var(--th-accent);
+    font-family: var(--th-serif);
+    font-size: 14px;
+  }
+  .hero-split .info .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 0;
+    border-top: 1px solid var(--th-border);
+    border-bottom: 1px solid var(--th-border);
+  }
+  .hero-split .info .brand .lm {
+    width: 44px; height: 44px;
+    border: 1px solid var(--th-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--th-accent);
+  }
+  .hero-split .info .brand .stack .nm {
+    font-family: var(--th-serif);
+    font-size: 17px;
+  }
+  .hero-split .info .brand .stack .sub {
+    font-size: 10px;
+    color: var(--th-ink-3);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .hero-split .info .brand .arr {
+    margin-left: auto;
+    color: var(--th-accent);
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .hero-split .info .brand:hover .arr { transform: translateX(4px); }
+  .hero-split .info .price {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+  .hero-split .info .price .num {
+    font-family: var(--th-serif);
+    font-size: 44px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .hero-split .info .price .unit {
+    font-size: 10px;
+    color: var(--th-ink-3);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+  }
+
+  /* ─── CTA-BLOCK : devient sticky-bottom sur mobile ─── */
+  .cta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: auto;
+  }
+  .save-row {
+    display: flex;
+    gap: 10px;
+  }
+  .save-row button {
+    flex: 1;
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--th-border);
+    color: var(--th-ink-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color var(--th-dur-base) var(--th-ease), color var(--th-dur-base) var(--th-ease);
+    font-family: inherit;
+  }
+  .save-row button:hover {
+    border-color: var(--th-accent);
+    color: var(--th-accent);
+  }
+  .save-row button.added {
+    border-color: var(--th-success);
+    color: var(--th-success);
+  }
+
+  /* AR pair — 2 colonnes TOUJOURS (desktop ET mobile) */
+  .ar-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ar-pair .ar-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px;
+    border: 1px solid var(--th-ink);
+    background: var(--th-paper);
+    position: relative;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    transition: background var(--th-dur-base) var(--th-ease);
+    font-family: inherit;
+  }
+  .ar-pair .ar-cta:hover { background: var(--th-paper-2); }
+  .ar-pair .ar-cta.primary {
+    background: var(--th-ink);
+    color: var(--th-white);
+    border-color: var(--th-ink);
+  }
+  .ar-pair .ar-cta.primary:hover { background: #2a2820; }
+  .ar-pair .ar-cta.primary .lbl { color: rgba(255, 255, 255, .55); }
+  .ar-pair .ar-cta.primary .nm em { color: var(--th-accent-2); }
+  .ar-pair .ar-cta .lbl {
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ar-pair .ar-cta .nm {
+    font-family: var(--th-serif);
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.15;
+  }
+  .ar-pair .ar-cta .nm em { font-style: italic; color: var(--th-accent); }
+  .ar-pair .ar-cta .desc {
+    font-size: 11px;
+    color: var(--th-ink-2);
+    line-height: 1.6;
+  }
+  .ar-pair .ar-cta.primary .desc { color: rgba(255, 255, 255, .65); }
+  .ar-pair .ar-cta .arrow {
+    position: absolute;
+    bottom: 18px; right: 18px;
+    font-family: var(--th-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--th-accent);
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .ar-pair .ar-cta:hover .arrow { transform: translateX(4px); }
+  .ar-pair .ar-cta .badge-new {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    background: var(--th-accent);
+    color: var(--th-white);
+  }
+
+  /* Helpers : copies longues vs courtes */
+  .opt-mobile { display: none; }
+  .opt-desktop { display: inline; }
+
+  /* ─── ATTRS ROW ─── */
+  .attrs {
+    padding: 44px 48px;
+    border-bottom: 1px solid var(--th-border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+    background: var(--th-paper);
+  }
+  .attrs .col .key {
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .attrs .col .key::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--th-accent);
+    border-radius: 50%;
+  }
+  .attrs .col .val {
+    font-family: var(--th-serif);
+    font-size: 19px;
+    line-height: 1.3;
+  }
+  .attrs .col .val em { font-style: italic; color: var(--th-accent); }
+  .attrs .col .val.green { color: var(--th-success); }
+  .attrs .col .sub {
+    font-size: 11px;
+    color: var(--th-ink-3);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ─── COLORS / SWATCHES ─── */
+  .colors {
+    padding: 48px;
+    border-bottom: 1px solid var(--th-border);
+    background: var(--th-paper-2);
+  }
+  .colors .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .colors .head h3 {
+    font-family: var(--th-serif);
+    font-size: 26px;
+    font-weight: 400;
+  }
+  .colors .head h3 em { font-style: italic; color: var(--th-accent); }
+  .colors .head .sel {
+    font-size: 12px;
+    color: var(--th-ink-2);
+  }
+  .colors .head .sel strong {
+    font-weight: 500;
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent);
+  }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+  }
+  .swatch {
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    transition: transform var(--th-dur-base) var(--th-ease);
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .swatch:hover { transform: scale(1.04); }
+  .swatch .chip {
+    position: absolute;
+    inset: 8px;
+    background-size: cover;
+    background-position: center;
+  }
+  .swatch.act .chip {
+    outline: 1px solid var(--th-accent);
+    outline-offset: 5px;
+  }
+  .swatch .nm {
+    position: absolute;
+    bottom: -22px; left: 0; right: 0;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: .10em;
+    color: var(--th-ink-3);
+    transition: color var(--th-dur-base) var(--th-ease);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .swatch.act .nm { color: var(--th-accent); }
+
+  /* ─── STORY DARK ─── */
+  .story {
+    padding: 110px 48px;
+    background: var(--th-ink);
+    color: var(--th-white);
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 80px;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+  }
+  .story .pinned { position: sticky; top: 100px; }
+  .story .pinned h2 {
+    font-family: var(--th-serif);
+    font-size: clamp(32px, 3.4vw, 46px);
+    font-weight: 300;
+    line-height: 1.1;
+    margin-top: 18px;
+    letter-spacing: -.01em;
+  }
+  .story .pinned h2 em { font-style: italic; color: var(--th-accent-2); }
+  .story .pinned p {
+    font-size: 13px;
+    color: rgba(245, 242, 236, .65);
+    line-height: 1.85;
+    margin-top: 18px;
+    max-width: 380px;
+  }
+  .story .pinned .index {
+    margin-top: 36px;
+    border-top: 1px solid rgba(255, 255, 255, .15);
+  }
+  .story .pinned .index a {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .15);
+    font-size: 12px;
+    color: rgba(245, 242, 236, .72);
+    transition: color var(--th-dur-base) var(--th-ease);
+  }
+  .story .pinned .index a:hover { color: var(--th-accent-2); }
+  .story .pinned .index a .n {
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent-2);
+    margin-right: 14px;
+  }
+  .story .scenes { display: flex; flex-direction: column; gap: 64px; }
+  .story .scene .nb {
+    font-family: var(--th-serif);
+    font-style: italic;
+    color: var(--th-accent-2);
+    font-size: 14px;
+  }
+  .story .scene h3 {
+    font-family: var(--th-serif);
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-top: 10px;
+  }
+  .story .scene h3 em { font-style: italic; color: var(--th-accent-2); }
+  .story .scene .img {
+    aspect-ratio: 16/10;
+    background: rgba(245, 242, 236, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    margin-top: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .story .scene .img::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 47px, rgba(184,152,106,.06) 47px 48px),
+      repeating-linear-gradient(90deg, transparent 0 47px, rgba(184,152,106,.06) 47px 48px);
+  }
+  .story .scene p {
+    font-size: 13px;
+    color: rgba(245, 242, 236, .60);
+    line-height: 1.8;
+    margin-top: 16px;
+    max-width: 540px;
+  }
+
+  /* ─── SIMILAR ─── */
+  .similar { padding: 100px 48px; background: var(--th-paper); }
+  .similar .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .similar .head h2 {
+    font-family: var(--th-serif);
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 300;
+    letter-spacing: -.01em;
+  }
+  .similar .head h2 em { font-style: italic; color: var(--th-accent); }
+  .similar .row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+  .similar .card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform var(--th-dur-base) var(--th-ease);
+  }
+  .similar .card:hover { transform: translateY(-3px); }
+  .similar .card .img {
+    aspect-ratio: 4/3;
+    background: var(--th-paper-2);
+    border: 1px solid var(--th-border);
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--th-dur-base) var(--th-ease);
+  }
+  .similar .card:hover .img { border-color: var(--th-accent); }
+  .similar .card .img::after {
+    content: '◫';
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-size: 16px;
+    color: var(--th-accent);
+  }
+  .similar .card .meta { padding-top: 16px; }
+  .similar .card .meta .br {
+    font-size: 10px;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-ink-3);
+  }
+  .similar .card .meta .nm {
+    font-family: var(--th-serif);
+    font-size: 17px;
+    margin-top: 6px;
+  }
+  .similar .card .meta .pr {
+    font-size: 12px;
+    color: var(--th-ink-2);
+    margin-top: 8px;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--th-ink);
+    color: var(--th-white);
+    padding: 12px 22px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: .04em;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity .25s var(--th-ease), transform .25s var(--th-ease);
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE — DESKTOP / TABLET
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 1100px) {
+    .hero-split { grid-template-columns: 1fr; min-height: 0; }
+    .hero-split .v3d { min-height: 520px; }
+    .hero-split .info { border-left: none; border-top: 1px solid var(--th-border); }
+    .cta-block { margin-top: 8px; }
+    .story { grid-template-columns: 1fr; gap: 36px; padding: 70px 32px; }
+    .story .pinned { position: static; }
+    .similar .row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 1024px) {
+    .topnav.scan-nav .breadcrumb { display: none; }
+    .attrs { padding: 32px; gap: 22px; }
+    .similar { padding: 70px 32px; }
+  }
+  @media (max-width: 900px) {
+    .attrs { grid-template-columns: 1fr 1fr; }
+    .swatches { grid-template-columns: repeat(6, 1fr); }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE — MOBILE (≤ 768px)
+     Topbar compact · 3D 320px · CTA collante en bas
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    /* — TOPNAV : retour gauche, logo centré, ♡ + panier droite — */
+    .topnav.scan-nav {
+      padding: 12px 16px;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .topnav.scan-nav .btn-back { display: inline-flex; }
+    .topnav.scan-nav .brand { flex: 1; display: flex; justify-content: center; }
+    .topnav.scan-nav .brand img { height: 22px; }
+    .topnav.scan-nav .icobtn-search,
+    .topnav.scan-nav .pill,
+    .topnav.scan-nav .burger { display: none !important; }
+    .topnav.scan-nav .right { gap: 6px; }
+    .topnav.scan-nav .icobtn { width: 34px; height: 34px; border: none; background: var(--th-paper-2); }
+
+    /* — HERO SPLIT : viewer + info empilés — */
+    .hero-split { grid-template-columns: 1fr; }
+    .hero-split .v3d { min-height: 320px; }
+    .hero-split .info {
+      padding: 22px 22px 0;
+      gap: 18px;
+      /* Espace pour la CTA collante en bas */
+      padding-bottom: 200px;
+    }
+    .hero-split .info h1 { font-size: 28px; }
+    .hero-split .info .designer { font-size: 11px; margin-top: -10px; }
+    .hero-split .info .brand { padding: 14px 0; }
+    .hero-split .info .brand .lm { width: 36px; height: 36px; font-size: 18px; }
+    .hero-split .info .brand .stack .nm { font-size: 15px; }
+    .hero-split .info .brand .stack .sub { font-size: 9px; }
+    .hero-split .info .price .num { font-size: 30px; }
+
+    /* — CTA BAR COLLANTE : save-row + AR pair — */
+    .cta-block {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(245, 242, 236, .96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--th-border);
+      padding: 12px 16px 16px;
+      gap: 10px;
+      z-index: 50;
+      margin: 0;
+    }
+    .save-row { gap: 6px; }
+    .save-row button {
+      padding: 9px 4px;
+      font-size: 9px;
+      letter-spacing: .10em;
+      gap: 4px;
+    }
+    .ar-pair { gap: 6px; }
+    .ar-pair .ar-cta {
+      padding: 12px 14px;
+      gap: 5px;
+    }
+    .ar-pair .ar-cta .lbl { font-size: 8px; letter-spacing: .14em; gap: 5px; }
+    .ar-pair .ar-cta .nm { font-size: 14px; line-height: 1.1; }
+    .ar-pair .ar-cta .desc { font-size: 10px; line-height: 1.4; }
+    .ar-pair .ar-cta .arrow { display: none; }
+    .ar-pair .ar-cta .badge-new {
+      font-size: 7px; padding: 2px 5px;
+      top: 8px; right: 8px;
+      letter-spacing: .10em;
+    }
+
+    /* Bascule des copies : court sur mobile */
+    .opt-desktop { display: none; }
+    .opt-mobile { display: inline; }
+
+    /* — Sections en dessous — */
+    .attrs { padding: 32px 22px; gap: 18px 16px; }
+    .attrs .col .val { font-size: 16px; }
+    .colors { padding: 32px 22px 40px; }
+    .colors .head h3 { font-size: 20px; }
+    .swatches { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .story { padding: 56px 22px; }
+    .story .pinned h2 { font-size: 26px; }
+    .story .scenes { gap: 36px; }
+    .story .scene h3 { font-size: 20px; }
+    .similar { padding: 56px 22px; }
+    .similar .row { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .similar .card .meta .nm { font-size: 14px; }
+
+    /* Le footer doit avoir un padding-bottom pour ne pas être caché par la CTA collante */
+    .footer { padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Viewer chrome plus discret sur mobile */
+    .viewer3d .ui.tr { font-size: 8px; padding: 6px 9px; top: 12px; right: 12px; letter-spacing: .12em; }
+    .viewer3d .tabs { bottom: 12px; left: 12px; }
+    .viewer3d .tabs button { padding: 6px 9px; font-size: 8px; }
+    .viewer3d .controls { bottom: 12px; right: 12px; }
+    .viewer3d .controls button { width: 28px; height: 28px; font-size: 13px; }
+
+    /* Toast remonte au-dessus de la CTA collante */
+    .toast { bottom: calc(180px + env(safe-area-inset-bottom, 12px)); }
+  }
+  @media (max-width: 500px) {
+    .similar .row { grid-template-columns: 1fr; }
+  }
+
+  /* iOS safe-area pour la CTA collante */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    @media (max-width: 768px) {
+      .cta-block { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+      .topnav { padding-top: env(safe-area-inset-top, 0); }
+    }
+  }
+
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <a href="index.html" style="display:block;line-height:0"><img src="logo.png" alt="TadamHome" style="height:22px;object-fit:contain;display:block"/></a>
-  <div class="topbar-right">
-    <button class="favoris-btn" onclick="openWallet()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      <div class="wbadge" id="wbadge">0</div>
+<!-- ═══════════════ TOP NAV ═══════════════ -->
+<nav class="topnav scan-nav" aria-label="Navigation produit">
+  <a class="btn-back" href="catalogue.html" aria-label="Retour">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <a class="brand" href="catalogue.html" aria-label="TadamHome — Accueil">
+    <img src="logo.png" alt="TadamHome">
+  </a>
+  <span class="breadcrumb">
+    <a href="catalogue.html" id="bc-cat">Salon</a> ·
+    <a href="catalogue.html" id="bc-brand">Cassina</a> ·
+    <em id="bc-prod">LC2 Grand Confort</em>
+  </span>
+  <div class="right">
+    <button class="icobtn icobtn-search" aria-label="Recherche">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
     </button>
+    <button class="icobtn" aria-label="Favoris" onclick="openWallet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M12 21s-7-4.5-9.5-9C.5 8.5 3 4 7 4c2 0 3.5 1 5 3 1.5-2 3-3 5-3 4 0 6.5 4.5 4.5 8C19 16.5 12 21 12 21z"/></svg>
+    </button>
+    <button class="icobtn" aria-label="Sélection" onclick="openWallet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="4" y="6" width="16" height="14"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/></svg>
+      <span class="badge" id="wbadge">0</span>
+    </button>
+    <a class="pill" href="#account">Compte</a>
   </div>
-</div>
+</nav>
 
-<!-- PRODUCT HEADER -->
-<div class="prod-header" id="s-header">
-  <div class="prod-brand" id="prod-brand">Chargement...</div>
-  <div class="prod-title" id="prod-name">Chargement...</div>
-  <div class="prod-category" id="prod-category">—</div>
-</div>
+<!-- ═══════════════ HERO SPLIT ═══════════════ -->
+<section class="hero-split" aria-label="Modèle 3D et informations produit">
+  <div class="viewer3d v3d" id="viewer-wrap">
+    <div class="ui tr" id="ui-dim">Rotation auto · 240 × 70 × 68 cm</div>
+    <div class="floor"></div>
 
-<!-- TABS -->
-<div class="viewer-tabs hideable" id="s-tabs">
-  <button class="vtab active" onclick="setTab(0,this)">360°</button>
-  <button class="vtab" onclick="setTab(1,this)">Photos</button>
-</div>
+    <div class="tab-panel active" id="tab-3d">
+      <model-viewer id="mv"
+        src=""
+        alt="Modèle 3D"
+        auto-rotate
+        camera-controls
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-placement="floor"
+        ar-scale="fixed"
+        min-camera-orbit="auto 5deg auto"
+        max-camera-orbit="auto 90deg auto"
+        shadow-intensity="0.4"
+        exposure="1.1">
+        <button slot="ar-button" style="display:none" aria-hidden="true"></button>
+      </model-viewer>
+    </div>
 
-<!-- VIEWER -->
-<div class="viewer-wrap" id="viewer-wrap">
-  <div id="tab-0">
-    <model-viewer id="mv" src="" alt="3D"
-      auto-rotate camera-controls
-      ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
-      ar-scale="fixed"
-      min-camera-orbit="auto 5deg auto"
-      max-camera-orbit="auto 90deg auto"
-      shadow-intensity="0.3" exposure="1.1"
-      style="width:100%;height:260px;background:linear-gradient(160deg,#EAE6DE,#D8D4CB);--poster-color:transparent">
-      <!-- Slot vide pour neutraliser le bouton AR natif (bas-droite) -->
-      <button slot="ar-button" style="display:none" aria-hidden="true"></button>
-    </model-viewer>
-  </div>
-  <div id="tab-1" style="display:none">
-    <div class="viewer-ph">
+    <div class="tab-panel" id="tab-360"></div>
+
+    <div class="tab-panel photos" id="tab-photos">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <p>Photos disponibles après upload</p>
+      <p>Photos disponibles dès l'upload du brand pack</p>
+    </div>
+
+    <div class="cue" id="cue">
+      <span class="arr">↺   ↻</span>
+      <span class="lbl">Glissez pour pivoter</span>
+    </div>
+    <div class="tabs" role="tablist" id="viewer-tabs">
+      <button class="act" role="tab" aria-selected="true" data-tab="3d">3D</button>
+      <button role="tab" aria-selected="false" data-tab="360">360°</button>
+      <button role="tab" aria-selected="false" data-tab="photos">Photos · 8</button>
+    </div>
+    <div class="controls">
+      <button aria-label="Plein écran" id="ctl-fs">⛶</button>
+      <button aria-label="Réinitialiser" id="ctl-reset">↻</button>
+      <button aria-label="Mesurer" id="ctl-measure">⊟</button>
+      <button aria-label="Zoom avant" id="ctl-zoom">+</button>
     </div>
   </div>
-</div>
 
-<!-- THUMBNAILS -->
-<div class="thumbs-row hideable" id="s-thumbs">
-  <div class="thumb active"><div class="thumb-360"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>360°</div></div>
-  <div class="thumb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BEB6" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-  <div class="thumb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BEB6" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-</div>
+  <div class="info">
+    <div class="meta-line">
+      <span class="ref" id="prod-ref">Réf · LC2-GC</span>
+      <span>·</span>
+      <span id="prod-category">Salon · Fauteuil</span>
+    </div>
+    <h1 id="prod-name" class="italic-accent">LC2 Grand <em>Confort</em></h1>
+    <div class="designer" id="prod-designer">Dessiné par <em>Le Corbusier</em>, Pierre Jeanneret &amp; Charlotte Perriand · 1928</div>
 
-<!-- COLORIS -->
-<div class="section" id="s-colors" style="margin-top:10px">
-  <div class="section-label">Coloris<span class="val" id="col-name">—</span></div>
-  <div class="colors-grid" id="colors-grid"></div>
-</div>
-
-<!-- INFOS -->
-<div class="info-grid hideable" id="s-infos">
-  <div class="info-card"><div class="info-label">Dimensions</div><div class="info-value" id="dim">—</div><div class="info-sub">L × P × H (cm)</div></div>
-  <div class="info-card"><div class="info-label">Livraison</div><div class="info-value">4 – 6 sem.</div><div class="info-sub">À domicile</div></div>
-  <div class="info-card"><div class="info-label">Garantie</div><div class="info-value">2 ans</div><div class="info-sub">Pièces & main d'œuvre</div></div>
-  <div class="info-card"><div class="info-label">Disponibilité</div><div class="info-value green">En stock</div><div class="info-sub">Prêt à commander</div></div>
-</div>
-
-<!-- FEATURES (supprimés) -->
-<div class="features hideable" id="s-features" style="display:none">
-</div>
-
-<!-- INSTALL BANNER -->
-<div class="install-banner hideable" id="s-install">
-  <div class="install-icon">🏠</div>
-  <div class="install-text"><p>Retrouver ma sélection</p><span>Ajouter à l'écran d'accueil</span></div>
-  <button class="btn-install-sm" onclick="installPWA()">Installer</button>
-</div>
-
-<!-- CTA -->
-<div class="cta-zone">
-  <button class="btn-toggle-info" id="btn-toggle" onclick="toggleInfo()">
-    <svg id="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-    <span id="toggle-label">Masquer les informations</span>
-  </button>
-
-  <div class="price-row">
-    <div class="price" id="prod-price">—</div>
-    <div class="price-note" id="prod-price-note">€ TTC</div>
-  </div>
-
-  <button class="btn-ar" onclick="launchAR()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-    Voir dans mon salon en AR
-  </button>
-
-  <!-- BOUTON STUDIO AR — pont vers ar-scene.html -->
-  <button class="btn-studio" onclick="openStudio()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-    Composer une scène AR
-    <span class="studio-badge">Nouveau ✦</span>
-  </button>
-
-  <button class="btn-wallet" id="btn-add" onclick="addToWallet()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/><line x1="12" y1="12" x2="20" y2="4"/><polyline points="16 4 20 4 20 8"/></svg>
-    Ajouter à ma sélection
-  </button>
-
-  <div class="added-confirm" id="added-confirm">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-    Ajouté à votre sélection
-    <span class="see-link" onclick="openWallet()">Voir</span>
-  </div>
-
-  <button class="btn-contact" onclick="contactVendeur()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    Contacter le vendeur
-  </button>
-</div>
-
-<!-- WALLET -->
-<div class="wallet-overlay" id="wallet-overlay" onclick="closeWalletOutside(event)">
-  <div class="wallet-sheet">
-    <div class="wallet-handle"></div>
-    <div class="wallet-header">
-      <div style="display:flex;align-items:center">
-        <span class="wallet-title">Ma sélection</span>
-        <span class="wallet-count" id="wallet-count">0</span>
+    <a href="catalogue.html" class="brand" id="brand-link">
+      <span class="lm" id="brand-mark">C</span>
+      <div class="stack">
+        <div class="nm" id="prod-brand">Cassina</div>
+        <div class="sub" id="prod-brand-sub">Meda · Italie</div>
       </div>
-      <button class="wallet-close" onclick="closeWallet()">✕</button>
+      <span class="arr">→</span>
+    </a>
+
+    <div class="price">
+      <span class="num" id="prod-price">7 850 €</span>
+      <span class="unit" id="prod-price-note">TTC · livré</span>
     </div>
-    <div class="wallet-items" id="wallet-items">
-      <div class="wallet-empty"><div style="font-size:28px;margin-bottom:10px">🛋️</div>Scannez des meubles pour les retrouver ici</div>
-    </div>
-    <div class="wallet-footer">
-      <button class="btn-ar" style="margin-bottom:0" onclick="envoyerSelection()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Recevoir ma sélection par email
-      </button>
-      <button class="btn-contact" onclick="closeWallet()">Continuer à explorer</button>
+
+    <!-- ═══ CTA-BLOCK : devient sticky-bottom sur mobile ═══ -->
+    <div class="cta-block">
+      <div class="save-row">
+        <button id="btn-add" onclick="addToWallet()">
+          <span class="opt-desktop">♡ Sélection</span>
+          <span class="opt-mobile">♡ Ajouter</span>
+        </button>
+        <button onclick="shareProduct()">↗ Partager</button>
+        <button onclick="contactVendeur()">
+          <span class="opt-desktop">⌖ Vendeur</span>
+          <span class="opt-mobile">⌖ Trouver</span>
+        </button>
+      </div>
+
+      <div class="ar-pair">
+        <button class="ar-cta" onclick="launchAR()">
+          <span class="lbl">
+            <span class="opt-desktop">◫ AR · Mono</span>
+            <span class="opt-mobile">◫ Mono</span>
+          </span>
+          <span class="nm italic-accent">Voir <em>chez moi</em></span>
+          <span class="desc">
+            <span class="opt-desktop">Posez ce meuble dans votre salon en taille réelle.</span>
+            <span class="opt-mobile">En taille réelle</span>
+          </span>
+          <span class="arrow">→</span>
+        </button>
+        <button class="ar-cta primary" onclick="openStudio()">
+          <span class="badge-new">Nouveau ✦</span>
+          <span class="lbl">
+            <span class="opt-desktop">◫◫ AR · Multi</span>
+            <span class="opt-mobile">◫◫ Multi</span>
+          </span>
+          <span class="nm italic-accent on-dark">Composer une <em>scène</em></span>
+          <span class="desc">
+            <span class="opt-desktop">Ajoutez canapé, lampe, tapis · construisez votre pièce.</span>
+            <span class="opt-mobile">Avec d'autres meubles</span>
+          </span>
+          <span class="arrow">→</span>
+        </button>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
+<!-- ═══════════════ ATTRS ═══════════════ -->
+<section class="attrs" aria-label="Caractéristiques principales">
+  <div class="col">
+    <div class="key">Coloris</div>
+    <div class="val italic-accent" id="attr-color"><em>Cuir</em> Brandy</div>
+    <div class="sub" id="attr-color-sub">7 finitions · vachette pleine fleur</div>
+  </div>
+  <div class="col">
+    <div class="key">Dimensions</div>
+    <div class="val" id="attr-dim">240 × 70 × 68 cm</div>
+    <div class="sub">L × P × H · ±1 cm</div>
+  </div>
+  <div class="col">
+    <div class="key">Livraison</div>
+    <div class="val italic-accent"><em>4–6</em> semaines</div>
+    <div class="sub">À domicile · installation incluse</div>
+  </div>
+  <div class="col">
+    <div class="key">Disponibilité</div>
+    <div class="val green">En stock</div>
+    <div class="sub">Garantie 2 ans · pièces &amp; main d'œuvre</div>
+  </div>
+</section>
+
+<!-- ═══════════════ COLORS ═══════════════ -->
+<section class="colors" aria-label="Finitions disponibles">
+  <div class="head">
+    <h3 class="italic-accent" id="colors-title">Sept finitions, <em>une même âme</em></h3>
+    <div class="sel">Sélection : <strong id="col-name">Cuir Brandy</strong></div>
+  </div>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<!-- ═══════════════ STORY DARK ═══════════════ -->
+<section class="story" aria-label="Histoire et fabrication">
+  <div class="pinned">
+    <span class="eyb light">L'objet</span>
+    <h2>Né en <em>1928</em>,<br>fait en <em>2025</em></h2>
+    <p>Du dessin original de Le Corbusier, Pierre Jeanneret et Charlotte Perriand, jusqu'aux ateliers de Meda où Cassina assemble chaque pièce à la main. Histoire, matériau, fabrication.</p>
+    <div class="index">
+      <a href="#chap-1"><span><span class="n">01</span>Histoire</span><span>↓</span></a>
+      <a href="#chap-2"><span><span class="n">02</span>Matériau</span><span>↓</span></a>
+      <a href="#chap-3"><span><span class="n">03</span>Atelier</span><span>↓</span></a>
+      <a href="#chap-4"><span><span class="n">04</span>En scène</span><span>↓</span></a>
+    </div>
+  </div>
+  <div class="scenes">
+    <article class="scene" id="chap-1">
+      <span class="nb">— 01</span>
+      <h3 class="italic-accent on-dark">Une <em>icône</em> dessinée pour Cassina</h3>
+      <div class="img"></div>
+      <p>Le Corbusier voulait « un coussin sur un cadre ». 97 ans plus tard, le dessin tient. Cuir pleine fleur, structure tubulaire chromée, sangles cuir — chaque pièce assemblée comme en 1928, avec la précision d'un atelier qui n'a jamais cessé de produire l'original.</p>
+    </article>
+    <article class="scene" id="chap-2">
+      <span class="nb">— 02</span>
+      <h3 class="italic-accent on-dark">Le cuir, <em>pendant 18 mois</em></h3>
+      <div class="img"></div>
+      <p>Tannage végétal toscan, repos en fût, finition manuelle. Chaque pièce porte la trace du cuir — une cicatrice, une nuance, un grain. Aucune pièce n'est identique. C'est ce que Cassina appelle « la mémoire de la peau ».</p>
+    </article>
+    <article class="scene" id="chap-3">
+      <span class="nb">— 03</span>
+      <h3 class="italic-accent on-dark">Assemblé à <em>Meda</em></h3>
+      <div class="img"></div>
+      <p>Atelier Cassina, 14 mains par fauteuil, 3 contrôles. Chaque LC2 reçoit un numéro de série gravé sous le piétement. Les artisans qui assemblent aujourd'hui sont parfois la troisième génération à travailler les mêmes patrons.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════════ SIMILAR ═══════════════ -->
+<section class="similar" aria-label="Produits dans le même esprit">
+  <div class="head">
+    <h2 class="italic-accent">Dans le <em>même esprit</em></h2>
+    <a href="catalogue.html" style="font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--th-ink-2);">Voir tout · 24 →</a>
+  </div>
+  <div class="row">
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="30" y="80" width="140" height="55" fill="#3a2818"/><rect x="30" y="40" width="140" height="40" fill="#3a2818"/><rect x="22" y="38" width="10" height="100" fill="#bdb8af"/><rect x="168" y="38" width="10" height="100" fill="#bdb8af"/></svg></div>
+      <div class="meta"><div class="br">Cassina</div><div class="nm">LC3 Petit Confort</div><div class="pr">6 200 € · 4 finitions</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><circle cx="100" cy="90" r="42" fill="#a89880"/><rect x="92" y="50" width="16" height="42" fill="#6B5340"/></svg></div>
+      <div class="meta"><div class="br">Vitra</div><div class="nm">Eames Lounge LCW</div><div class="pr">4 850 € · 2 essences</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="40" y="60" width="120" height="80" fill="#7A8B7A"/><rect x="50" y="70" width="48" height="60" fill="#6B7C6B"/></svg></div>
+      <div class="meta"><div class="br">Hay</div><div class="nm">Mags Soft Module</div><div class="pr">3 100 € · 12 tissus</div></div>
+    </a>
+    <a class="card" href="scan.html">
+      <div class="img"><svg viewBox="0 0 200 150" width="100%"><rect x="50" y="70" width="100" height="65" fill="#B89A6B"/><rect x="60" y="80" width="80" height="8" fill="#A07A4A"/></svg></div>
+      <div class="meta"><div class="br">&amp;Tradition</div><div class="nm">Cloud Sofa</div><div class="pr">5 400 € · 8 coloris</div></div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="footer" role="contentinfo">
+  <div class="top">
+    <div class="brand-col">
+      <img src="logo_blanc.png" alt="TadamHome">
+      <p>Plateforme AR pour les marques de mobilier haut de gamme. Catalogues 3D scannables sans application, partout dans le monde.</p>
+      <div class="badges">
+        <span class="badge">WebXR</span>
+        <span class="badge">USDZ</span>
+        <span class="badge">glTF</span>
+        <span class="badge">RGPD</span>
+      </div>
+    </div>
+    <div class="col">
+      <h4>Plateforme</h4>
+      <ul>
+        <li><a href="catalogue.html">Catalogue</a></li>
+        <li><a href="scan.html">Configurateur</a></li>
+        <li><a href="index.html#scenes">Scènes AR</a></li>
+        <li><a href="pricing.html">Tarifs</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Marques</h4>
+      <ul>
+        <li><a href="#integrations">Intégrer son catalogue</a></li>
+        <li><a href="#api">API & SDK</a></li>
+        <li><a href="#cases">Études de cas</a></li>
+        <li><a href="#contact">Contact commercial</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Ressources</h4>
+      <ul>
+        <li><a href="#docs">Documentation</a></li>
+        <li><a href="#journal">Journal</a></li>
+        <li><a href="#presse">Presse</a></li>
+        <li><a href="#status">Statut plateforme</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Société</h4>
+      <ul>
+        <li><a href="#about">Manifeste</a></li>
+        <li><a href="#team">Équipe</a></li>
+        <li><a href="#careers">Carrières</a></li>
+        <li><a href="#legal">Mentions légales</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="bottom">
+    <span class="legal">© 2025 TadamHome SAS · Paris · Milan</span>
+    <span class="signature">Made with <em>care</em> in France</span>
+    <div class="socials">
+      <a href="#instagram" aria-label="Instagram">Instagram</a>
+      <a href="#linkedin" aria-label="LinkedIn">LinkedIn</a>
+      <a href="#vimeo" aria-label="Vimeo">Vimeo</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
 <div class="toast" id="toast"></div>
 
+<!-- ═══════════════ SUPABASE ═══════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
 <script>
-const SB=supabase.createClient('https://wbunwfxecvxngypuehop.supabase.co','sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P');
-let sid=localStorage.getItem('tadam_sid');if(!sid){sid=crypto.randomUUID();localStorage.setItem('tadam_sid',sid)}
-let prod=null,col=null,dpi=null;
-const DEMO={id:'demo-001',name:'Canapé Palermo',ref:'PAL-3P-VEL',price:1890,dimensions:'240 × 95 × 82',enseigne_name:'Démonstration',model_url:'https://modelviewer.dev/shared-assets/models/Astronaut.glb',colors:[{name:'Velours Ocre',hex:'#C8853A'},{name:'Velours Taupe',hex:'#9E8E7E'},{name:'Velours Vert',hex:'#5A7A5C'},{name:'Velours Bleu',hex:'#3A5F8A'},{name:'Velours Anthracite',hex:'#3D3D3D'},{name:'Velours Rose',hex:'#C4858A'},{name:'Velours Bordeaux',hex:'#8B3A3A'},{name:'Velours Ciel',hex:'#6B9DBF'}]};
+/* ═══════════════════════════════════════════════════════════════
+   TADAMHOME — Scan production logic (mergé du scan.html original)
+   - Supabase product loading (?id= ou ?product=)
+   - <model-viewer> avec auto-scaling sur dimensions réelles
+   - Coloris dynamiques avec swap GLB / texture / hex
+   - AR launch (WebXR / Scene Viewer / Quick Look)
+   - Studio AR : transition sparkles → ar-scene.html
+   - Wallet (sélection) localStorage + tracking Supabase
+   ═══════════════════════════════════════════════════════════════ */
 
-// ── TOGGLE INFOS ──────────────────────────────────────────────
-let infoVisible = true;
-const HIDEABLE = ['s-tabs','s-thumbs','s-infos','s-features','s-install'];
+const SB = supabase.createClient(
+  'https://wbunwfxecvxngypuehop.supabase.co',
+  'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P'
+);
 
-// Recalcule la hauteur du model-viewer + position des coloris en mode "infos masquées"
-function recalcLayout(){
-  if(infoVisible) return;
-  const mv = document.getElementById('mv');
-  const cta = document.querySelector('.cta-zone');
-  const colorSection = document.getElementById('s-colors');
-  const header = document.getElementById('s-header');
-  if(!mv || !cta || !colorSection || !header) return;
-
-  const topbarHeight = 52;
-  const headerH = header.offsetHeight || 0;
-  const colorH  = colorSection.offsetHeight || 0;
-  const ctaH    = cta.offsetHeight || 0;
-  const bottomZoneH = colorH + ctaH;
-
-  const availableHeight = window.innerHeight - topbarHeight - headerH - bottomZoneH - 4;
-  mv.style.height = Math.max(availableHeight, 200) + 'px';
-  mv.style.maxHeight = 'none';
-
-  // Caler la section coloris juste au-dessus de la CTA
-  colorSection.style.bottom = ctaH + 'px';
+let sid = localStorage.getItem('tadam_sid');
+if (!sid) {
+  sid = crypto.randomUUID();
+  localStorage.setItem('tadam_sid', sid);
 }
 
-function toggleInfo(){
-  infoVisible = !infoVisible;
-  const btn = document.getElementById('btn-toggle');
-  const label = document.getElementById('toggle-label');
-  const icon = document.getElementById('toggle-icon');
-  const mv = document.getElementById('mv');
-  const cta = document.querySelector('.cta-zone');
-  const prodBrand = document.getElementById('prod-brand');
-  const prodCategory = document.getElementById('prod-category');
-  const btnContact = document.querySelector('.btn-contact');
-  const addedConfirm = document.getElementById('added-confirm');
-  const priceEl = document.getElementById('prod-price');
-  const priceNote = document.getElementById('prod-price-note');
-  const colorSection = document.getElementById('s-colors');
+let prod = null;
+let col = null;
 
-  HIDEABLE.forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    if(!infoVisible) el.classList.add('hidden');
-    else el.classList.remove('hidden');
-  });
-  if(prodBrand) prodBrand.style.display = infoVisible ? '' : 'none';
-  if(prodCategory) prodCategory.style.display = infoVisible ? '' : 'none';
+const DEMO = {
+  id: 'demo-lc2',
+  name: 'LC2 Grand Confort',
+  ref: 'LC2-GC',
+  price: 7850,
+  category: 'fauteuil',
+  category_label: 'Salon · Fauteuil',
+  designer: 'Le Corbusier, Pierre Jeanneret & Charlotte Perriand',
+  designer_year: '1928',
+  dimensions: { l: 240, p: 70, h: 68 },
+  enseigne_name: 'Cassina',
+  enseigne_city: 'Meda · Italie',
+  model_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+  usdz_url: null,
+  colors: [
+    { name: 'Cuir Brandy',   hex: '#6e5238' },
+    { name: 'Cuir Espresso', hex: '#2a1f15' },
+    { name: 'Cuir Sable',    hex: '#a89880' },
+    { name: 'Cuir Tabac',    hex: '#8b7355' },
+    { name: 'Cuir Noir',     hex: '#1a1a1a' },
+    { name: 'Cuir Brique',   hex: '#c0392b' },
+    { name: 'Cuir Forêt',    hex: '#27704a' },
+    { name: 'Cuir Écru',     hex: '#f5f2ec' }
+  ]
+};
 
-  if(!infoVisible){
-    // Masquer les boutons supplémentaires en mode focus 3D
-    if(btnContact) btnContact.style.display = 'none';
-    if(addedConfirm) addedConfirm.style.display = 'none';
-
-    // Réduire la taille du prix pour gagner de l'espace
-    if(priceEl) {
-      priceEl.style.fontSize = '24px';
-      priceEl.style.marginBottom = '0';
-    }
-    if(priceNote) {
-      priceNote.style.fontSize = '10px';
-    }
-
-    // Positionner les coloris en fixed juste au-dessus de la CTA
-    if(colorSection) {
-      colorSection.style.position = 'fixed';
-      colorSection.style.left = '0';
-      colorSection.style.right = '0';
-      colorSection.style.background = 'var(--bg)';
-      colorSection.style.borderTop = '1px solid var(--border)';
-      colorSection.style.zIndex = '19';
-      colorSection.style.margin = '0';
-      colorSection.style.padding = '12px 18px 10px';
-    }
-
-    // Fixer la CTA en bas
-    cta.style.position = 'fixed';
-    cta.style.bottom = '0';
-    cta.style.left = '0';
-    cta.style.right = '0';
-    cta.style.background = 'var(--bg)';
-    cta.style.borderTop = 'none'; // Pas de bordure car les coloris ont déjà une bordure
-    cta.style.padding = '10px 18px 20px';
-    cta.style.zIndex = '20';
-
-    // Réduire l'espace du price-row
-    const priceRow = document.querySelector('.price-row');
-    if(priceRow) {
-      priceRow.style.marginBottom = '8px';
-    }
-
-    // Calculer la disposition au prochain frame, puis re-confirmer 1 frame plus tard
-    // (double rAF = on attend que les styles ci-dessus soient bien appliqués + reflow)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => recalcLayout());
+/* ───── PRODUCT LOADING ───── */
+async function loadProduct() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id') || params.get('product');
+  if (!id) { render(DEMO); return; }
+  try {
+    const { data, error } = await SB.from('products').select('*').eq('id', id).single();
+    if (error || !data) { render(DEMO); return; }
+    render({
+      id: data.id,
+      name: data.name,
+      ref: data.id.substring(0, 8).toUpperCase(),
+      price: data.price,
+      category: data.category || data.categorie || '',
+      category_label: data.category_label || data.category || data.categorie || 'Meuble',
+      designer: data.designer || null,
+      designer_year: data.designer_year || null,
+      dimensions: data.dimensions || null,
+      dim_label: data.dimensions
+        ? `${data.dimensions.l ?? '—'} × ${data.dimensions.p ?? '—'} × ${data.dimensions.h ?? '—'} cm`
+        : '—',
+      enseigne_name: data.enseigne_name || '—',
+      enseigne_city: data.enseigne_city || null,
+      model_url: data.model_glb_url || data.model_url,
+      usdz_url: data.model_usdz_url || null,
+      colors: data.colors || []
     });
+    track(data.id);
+  } catch (e) { render(DEMO); }
+}
 
-    btn.classList.add('hidden-mode');
-    label.textContent = 'Afficher les informations';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+/* ───── RENDER ───── */
+function render(p) {
+  prod = p;
+
+  const catFirst = (p.category_label || p.category || '').split('·')[0].trim() || 'Catalogue';
+  document.getElementById('bc-cat').textContent = catFirst;
+  document.getElementById('bc-brand').textContent = p.enseigne_name || '—';
+  document.getElementById('bc-prod').textContent = p.name;
+  document.title = `${p.name} — ${p.enseigne_name || 'TadamHome'} · TadamHome`;
+
+  document.getElementById('prod-ref').textContent = `Réf · ${p.ref || (p.id || '').substring(0, 8).toUpperCase()}`;
+  document.getElementById('prod-category').textContent = p.category_label || p.category || 'Meuble';
+
+  const nameEl = document.getElementById('prod-name');
+  if (p.name && p.name.includes(' ')) {
+    const parts = p.name.split(' ');
+    const last = parts.pop();
+    nameEl.innerHTML = `${parts.join(' ')} <em>${last}</em>`;
   } else {
-    // Restaurer les boutons
-    if(btnContact) btnContact.style.display = '';
-    if(addedConfirm && addedConfirm.classList.contains('show')) {
-      addedConfirm.style.display = '';
-    } else if(addedConfirm) {
-      addedConfirm.style.display = 'none';
-    }
+    nameEl.textContent = p.name || '—';
+  }
 
-    // Restaurer la taille du prix
-    if(priceEl) {
-      priceEl.style.fontSize = '';
-      priceEl.style.marginBottom = '';
-    }
-    if(priceNote) {
-      priceNote.style.fontSize = '';
-    }
+  const designerEl = document.getElementById('prod-designer');
+  if (p.designer) {
+    const designerHTML = p.designer.replace(/^([^,]+)/, '<em>$1</em>');
+    designerEl.innerHTML = p.designer_year
+      ? `Dessiné par ${designerHTML} · ${p.designer_year}`
+      : `Dessiné par ${designerHTML}`;
+    designerEl.style.display = '';
+  } else {
+    designerEl.style.display = 'none';
+  }
 
-    // Restaurer les coloris à leur position normale
-    if(colorSection) {
-      colorSection.style.position = '';
-      colorSection.style.left = '';
-      colorSection.style.right = '';
-      colorSection.style.bottom = '';
-      colorSection.style.background = '';
-      colorSection.style.borderTop = '';
-      colorSection.style.zIndex = '';
-      colorSection.style.margin = '';
-      colorSection.style.padding = '';
-    }
+  document.getElementById('brand-mark').textContent = (p.enseigne_name || '?').charAt(0).toUpperCase();
+  document.getElementById('prod-brand').textContent = p.enseigne_name || '—';
+  const subEl = document.getElementById('prod-brand-sub');
+  if (p.enseigne_city) {
+    subEl.textContent = p.enseigne_city;
+    subEl.style.display = '';
+  } else { subEl.style.display = 'none'; }
 
-    // Restaurer le price-row
-    const priceRow = document.querySelector('.price-row');
-    if(priceRow) {
-      priceRow.style.marginBottom = '';
-    }
+  document.getElementById('prod-price').textContent = p.price ? p.price.toLocaleString('fr-FR') + ' €' : '—';
+  document.getElementById('prod-price-note').textContent = p.price ? 'TTC · livré' : '';
 
-    // Restaurer la hauteur du viewer
-    mv.style.height = '260px';
-    mv.style.maxHeight = '';
+  document.getElementById('attr-dim').textContent = p.dim_label
+    || (p.dimensions ? `${p.dimensions.l} × ${p.dimensions.p} × ${p.dimensions.h} cm` : '—');
 
-    // Restaurer la CTA
-    cta.style.position = '';
-    cta.style.bottom = '';
-    cta.style.left = '';
-    cta.style.right = '';
-    cta.style.background = '';
-    cta.style.borderTop = '';
-    cta.style.padding = '';
-    cta.style.zIndex = '';
+  if (p.dim_label || p.dimensions) {
+    document.getElementById('ui-dim').textContent = 'Rotation auto · ' +
+      (p.dim_label || `${p.dimensions.l} × ${p.dimensions.p} × ${p.dimensions.h} cm`);
+  }
 
-    btn.classList.remove('hidden-mode');
-    label.textContent = 'Masquer les informations';
-    icon.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
+  const mv = document.getElementById('mv');
+  if (p.model_url) {
+    mv.setAttribute('src', p.model_url);
+    if (p.usdz_url) mv.setAttribute('ios-src', p.usdz_url);
+
+    const cat = (p.category || '').toLowerCase();
+    mv.addEventListener('load', () => {
+      const dim = mv.getDimensions();
+      if (!dim || dim.y <= 0) return;
+      const realH = p.dimensions?.h ? p.dimensions.h / 100 : null;
+      const targetByCat = {
+        'sofa': 0.85, 'canapé': 0.85, 'canape': 0.85,
+        'fauteuil': 0.90, 'chaise': 0.90,
+        'table basse': 0.45, 'table à manger': 0.75,
+        'bureau': 0.75, 'luminaire': 1.80,
+        'rangement': 1.20, 'lit': 0.60, 'autre': 0.90
+      };
+      const target = realH || targetByCat[cat] || null;
+      if (!target) return;
+      const ratio = target / dim.y;
+      if (ratio < 0.8 || ratio > 1.2) {
+        const s = ratio.toFixed(4);
+        mv.setAttribute('scale', `${s} ${s} ${s}`);
+      }
+    }, { once: true });
+  }
+
+  renderColors(p.colors || []);
+  checkAdded();
+
+  if (p.id !== 'demo-lc2' && p.id !== 'demo-001') autoAddToWallet(p);
+
+  mv.addEventListener('camera-change', () => {
+    const cue = document.getElementById('cue');
+    if (cue) cue.classList.add('hidden');
+  }, { once: true });
+}
+
+/* ───── COLORS / SWATCHES ───── */
+function renderColors(colors) {
+  const grid = document.getElementById('swatches');
+  const section = document.querySelector('.colors');
+  grid.innerHTML = '';
+  if (!colors || !colors.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  const titleEl = document.getElementById('colors-title');
+  if (titleEl) {
+    const n = colors.length;
+    const numWord = ({2:'Deux',3:'Trois',4:'Quatre',5:'Cinq',6:'Six',7:'Sept',8:'Huit',9:'Neuf',10:'Dix'})[n] || n;
+    titleEl.innerHTML = `${numWord} finitions, <em>une même âme</em>`;
+  }
+
+  col = colors[0];
+  document.getElementById('col-name').textContent = colors[0].name + (colors[0].mat ? ' · ' + colors[0].mat : '');
+
+  const attrColor = document.getElementById('attr-color');
+  if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${colors[0].name.replace(/^Cuir\s+/i, '')}`;
+  const attrColorSub = document.getElementById('attr-color-sub');
+  if (attrColorSub) attrColorSub.textContent = `${colors.length} finition${colors.length > 1 ? 's' : ''}`;
+
+  colors.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (i === 0 ? ' act' : '');
+    btn.title = c.name + (c.mat ? ' · ' + c.mat : '');
+    btn.setAttribute('aria-label', c.name);
+
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    if (c.texture) chip.style.backgroundImage = `url(${c.texture})`;
+    else chip.style.background = c.hex || '#ccc';
+    btn.appendChild(chip);
+
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = c.name.replace(/^Cuir\s+/i, '');
+    btn.appendChild(nm);
+
+    btn.onclick = async () => {
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('act'));
+      btn.classList.add('act');
+      col = c;
+      document.getElementById('col-name').textContent = c.name + (c.mat ? ' · ' + c.mat : '');
+      if (attrColor) attrColor.innerHTML = `<em>Cuir</em> ${c.name.replace(/^Cuir\s+/i, '')}`;
+
+      const mv = document.getElementById('mv');
+      if (c.glb) {
+        mv.setAttribute('src', c.glb);
+        if (c.usdz) mv.setAttribute('ios-src', c.usdz);
+      } else if (c.texture && mv.model) {
+        try {
+          const texture = await mv.createTexture(c.texture);
+          mv.model.materials.forEach(mat => {
+            try { mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); } catch (e) {}
+          });
+        } catch (e) {}
+      }
+      const w = getW();
+      const ex = w.find(i => i.id === prod?.id);
+      if (ex) { ex.color = c; setW(w); }
+    };
+    grid.appendChild(btn);
+  });
+
+  const mv = document.getElementById('mv');
+  if (colors[0].glb && mv.getAttribute('src') !== colors[0].glb) {
+    mv.setAttribute('src', colors[0].glb);
+    if (colors[0].usdz) mv.setAttribute('ios-src', colors[0].usdz);
+  } else if (colors[0].texture && !colors[0].glb) {
+    mv.addEventListener('load', async () => {
+      if (!colors[0].texture || !mv.model) return;
+      try {
+        const texture = await mv.createTexture(colors[0].texture);
+        mv.model.materials.forEach(mat => {
+          try { mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture); } catch (e) {}
+        });
+      } catch (e) {}
+    }, { once: true });
   }
 }
 
-// ── STUDIO AR — Effet Tadam ✦ ────────────────────────────────
-function openStudio(){
-  if(!prod || prod.id === 'demo-001'){
-    toast('Chargez d\'abord un produit pour composer une scène');
+/* ───── VIEWER TABS ───── */
+document.querySelectorAll('#viewer-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#viewer-tabs button').forEach(b => {
+      b.classList.remove('act');
+      b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('act');
+    btn.setAttribute('aria-selected', 'true');
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    if (tab === '3d' || tab === '360') document.getElementById('tab-3d').classList.add('active');
+    else if (tab === 'photos') document.getElementById('tab-photos').classList.add('active');
+  });
+});
+
+/* ───── AR LAUNCH ───── */
+function launchAR() {
+  const mv = document.getElementById('mv');
+  if (!mv) return;
+  if (mv.canActivateAR) {
+    mv.activateAR();
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    if (isIOS) toast("Ouvrez dans Safari pour l'AR sur iPhone");
+    else if (isAndroid) toast("Ouvrez dans Chrome pour l'AR sur Android");
+    else toast('AR disponible uniquement sur mobile');
+  }
+}
+
+/* ───── STUDIO AR ───── */
+function openStudio() {
+  if (!prod || prod.id === 'demo-lc2' || prod.id === 'demo-001') {
+    toast("Chargez d'abord un produit pour composer une scène");
     return;
   }
 
-  // Préparer les données - SEULEMENT le produit actuel avec le coloris sélectionné
   const sceneData = [{
     id: prod.id,
     name: prod.name,
-    // Utiliser le GLB du coloris sélectionné si disponible, sinon le modèle de base
     glb: col && col.glb ? col.glb : prod.model_url,
     usdz: col && col.usdz ? col.usdz : (prod.usdz_url || null),
     category: prod.category || 'meuble',
     dimensions: prod.dimensions || null
   }];
-
   localStorage.setItem('tadam_ar_scene', JSON.stringify(sceneData));
-  localStorage.setItem('tadam_studio_entry', JSON.stringify({name:prod.name,t:Date.now()}));
+  localStorage.setItem('tadam_studio_entry', JSON.stringify({ name: prod.name, t: Date.now() }));
 
-  // ── Injecter les keyframes une seule fois ──
-  if(!document.getElementById('tadam-kf')){
+  if (!document.getElementById('tadam-kf')) {
     const s = document.createElement('style');
     s.id = 'tadam-kf';
     s.textContent = `
@@ -558,37 +1950,31 @@ function openStudio(){
         50%     { filter:brightness(1.18) saturate(1.3); }
       }
       @keyframes tadamLabelRise {
-        0%   { opacity:0; transform:translateY(20px) scale(.9); }
-        40%  { opacity:1; transform:translateY(0px)  scale(1); }
-        75%  { opacity:1; transform:translateY(-8px)  scale(1.02); }
-        100% { opacity:0; transform:translateY(-28px) scale(.95); }
+        0%   { opacity:0; transform:translate(-50%,20px) scale(.9); }
+        40%  { opacity:1; transform:translate(-50%,0px)  scale(1); }
+        75%  { opacity:1; transform:translate(-50%,-8px)  scale(1.02); }
+        100% { opacity:0; transform:translate(-50%,-28px) scale(.95); }
       }
       @keyframes tadamLogoIn {
         0%   { opacity:0; transform:translate(-50%,-50%) scale(.7); }
         60%  { opacity:1; transform:translate(-50%,-50%) scale(1.08); }
         100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
       }
-      @keyframes tadamFadeOut {
-        0%   { opacity:0; }
-        100% { opacity:1; }
-      }
     `;
     document.head.appendChild(s);
   }
 
-  // ── Récupérer la position du viewer ──
-  const vWrap   = document.getElementById('viewer-wrap');
-  const vRect   = vWrap ? vWrap.getBoundingClientRect() : {left:0,top:52,width:window.innerWidth,height:220};
-  const vCX     = vRect.left + vRect.width  / 2;
-  const vCY     = vRect.top  + vRect.height / 2;
+  const vWrap = document.getElementById('viewer-wrap');
+  const vRect = vWrap ? vWrap.getBoundingClientRect()
+                      : { left: 0, top: 52, width: window.innerWidth, height: 220 };
+  const vCX = vRect.left + vRect.width / 2;
+  const vCY = vRect.top + vRect.height / 2;
 
-  // ── Créer le conteneur overlay ──
   const ov = document.createElement('div');
   ov.id = 'tadam-ov';
   ov.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:all;overflow:hidden';
   document.body.appendChild(ov);
 
-  // ── 1. Aura radiale sur le viewer ──
   const aura = document.createElement('div');
   aura.style.cssText = `
     position:absolute;
@@ -603,24 +1989,22 @@ function openStudio(){
   `;
   ov.appendChild(aura);
 
-  // Légère pulsation sur le model-viewer
   const mv = document.getElementById('mv');
-  if(mv){ mv.style.animation='tadamViewerGlow .5s ease-in-out 2'; }
+  if (mv) mv.style.animation = 'tadamViewerGlow .5s ease-in-out 2';
 
-  // ── 2. Particules scintillantes (18 sparks) ──
-  for(let i=0;i<18;i++){
-    const angle = (i/18)*360;
-    const dist  = 70 + Math.random()*80;
-    const delay = Math.random()*.35;
-    const size  = 3 + Math.random()*5;
+  for (let i = 0; i < 18; i++) {
+    const angle = (i / 18) * 360;
+    const dist = 70 + Math.random() * 80;
+    const delay = Math.random() * .35;
+    const size = 3 + Math.random() * 5;
     const sp = document.createElement('div');
     sp.style.cssText = `
       position:absolute;
       width:${size}px;height:${size}px;
       left:${vCX}px;top:${vCY}px;
       border-radius:50%;
-      background:rgba(184,152,106,${.5+Math.random()*.5});
-      box-shadow:0 0 ${size*2}px rgba(184,152,106,.6);
+      background:rgba(184,152,106,${.5 + Math.random() * .5});
+      box-shadow:0 0 ${size * 2}px rgba(184,152,106,.6);
       --a:${angle}deg;--d:${dist}px;
       animation:tadamSparkFly .75s ${delay}s cubic-bezier(.2,0,.8,1) forwards;
       pointer-events:none;
@@ -628,11 +2012,10 @@ function openStudio(){
     ov.appendChild(sp);
   }
 
-  // ── 3. À 500ms : fade-out du fond + label produit qui monte ──
   const bg = document.createElement('div');
   bg.style.cssText = `
     position:absolute;inset:0;
-    background:var(--bg);opacity:0;pointer-events:none;
+    background:var(--th-paper);opacity:0;pointer-events:none;
     transition:opacity .5s ease;
   `;
   ov.appendChild(bg);
@@ -643,8 +2026,8 @@ function openStudio(){
     position:absolute;
     left:50%;bottom:38%;
     transform:translateX(-50%) translateY(20px);
-    font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;
-    color:var(--text);letter-spacing:.04em;text-align:center;white-space:nowrap;
+    font-family:var(--th-serif);font-size:24px;font-weight:300;
+    color:var(--th-ink);letter-spacing:.04em;text-align:center;white-space:nowrap;
     opacity:0;pointer-events:none;
     animation:tadamLabelRise .9s .5s ease-in-out forwards;
   `;
@@ -652,7 +2035,6 @@ function openStudio(){
 
   setTimeout(() => { bg.style.opacity = '1'; }, 500);
 
-  // ── 4. À 900ms : Logo TadamHome "Studio AR" apparaît au centre ──
   const logo = document.createElement('div');
   logo.style.cssText = `
     position:absolute;left:50%;top:50%;
@@ -661,234 +2043,136 @@ function openStudio(){
     animation:tadamLogoIn .45s .9s cubic-bezier(.34,1.56,.64,1) forwards;
   `;
   logo.innerHTML = `
-    <img src="logo_blanc.png" style="height:24px;object-fit:contain;display:block;margin:0 auto"
+    <img src="logo.png" style="height:28px;object-fit:contain;display:block;margin:0 auto"
       onerror="this.style.display='none'"/>
-    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.28em;
-      text-transform:uppercase;color:#B8986A;margin-top:10px">Studio AR</div>
+    <div style="font-family:var(--th-serif);font-size:12px;letter-spacing:.30em;
+      text-transform:uppercase;color:var(--th-accent);margin-top:14px;font-style:italic">Studio AR</div>
   `;
   ov.appendChild(logo);
 
-  // ── 5. À 1350ms : navigation vers ar-scene.html ──
   setTimeout(() => { window.location.href = 'ar-scene.html'; }, 1350);
 }
 
-// ── AUTO-ADD WALLET ───────────────────────────────────────────
-function autoAddToWallet(p){
-  const w=getW();
-  const exists=w.find(i=>i.id===p.id);
-  if(exists){exists.color=col;setW(w);return;}
-  w.push({id:p.id,name:p.name,price:p.price,enseigne:p.enseigne_name,color:col,model_url:p.model_url,added_at:new Date().toISOString()});
-  setW(w);updateWalletUI();
-  document.getElementById('btn-add').classList.add('hide');
-  document.getElementById('added-confirm').classList.add('show');
-  setTimeout(()=>toast('✦ Ajouté à votre sélection TadamHome'),800);
-}
+/* ───── WALLET / SÉLECTION ───── */
+function getW() { return JSON.parse(localStorage.getItem('tadam_wallet') || '[]'); }
+function setW(w) { localStorage.setItem('tadam_wallet', JSON.stringify(w)); }
 
-// ── LOAD PRODUCT ─────────────────────────────────────────────
-async function loadProduct(){
-  const id=new URLSearchParams(location.search).get('id')||new URLSearchParams(location.search).get('product');
-  if(!id){render(DEMO);return}
-  try{
-    const{data,error}=await SB.from('products').select('*').eq('id',id).single();
-    if(error||!data){render(DEMO);return}
-    render({
-      id:data.id,name:data.name,
-      ref:data.id.substring(0,8).toUpperCase(),
-      price:data.price,
-      category:data.category||data.categorie||'',
-      dimensions:data.dimensions||null,
-      dim_label:data.dimensions?`${data.dimensions.l||'—'} × ${data.dimensions.p||'—'} × ${data.dimensions.h||'—'} cm`:'—',
-      enseigne_name:data.enseigne_name||'—',
-      model_url:data.model_glb_url||data.model_url,
-      usdz_url:data.model_usdz_url||null,
-      colors:data.colors||DEMO.colors
-    });
-    track(data.id);
-  }catch(e){render(DEMO)}
-}
-
-// Drapeau pour ne déclencher le mode "épuré" qu'une seule fois, après le 1er rendu
-let initialToggleDone = false;
-
-function render(p){
-  prod=p;
-  document.getElementById('prod-brand').textContent=p.enseigne_name||'—';
-  document.getElementById('prod-name').textContent=p.name;
-  document.getElementById('prod-category').textContent=p.category||'Meuble';
-  document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
-  document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
-  document.getElementById('dim').textContent=p.dim_label||p.dimensions||'—';
-  if(p.model_url){
-    const mv = document.getElementById('mv');
-    mv.setAttribute('src', p.model_url);
-    const cat = (p.category||'').toLowerCase();
-    mv.addEventListener('load', () => {
-      const dim = mv.getDimensions();
-      if (!dim || dim.y <= 0) return;
-      const realH = p.dimensions?.h ? p.dimensions.h / 100 : null;
-      const targetH = {'sofa':0.85,'canapé':0.85,'canape':0.85,'fauteuil':0.90,'chaise':0.90,'table basse':0.45,'table à manger':0.75,'bureau':0.75,'luminaire':1.80,'rangement':1.20,'lit':0.60,'autre':0.90};
-      const target = realH || targetH[cat] || null;
-      if (!target) return;
-      const ratio = target / dim.y;
-      if (ratio < 0.8 || ratio > 1.2) {
-        const s = ratio.toFixed(4);
-        mv.setAttribute('scale', `${s} ${s} ${s}`);
-      }
-    }, { once: true });
-  }
-  if(p.usdz_url)document.getElementById('mv').setAttribute('ios-src',p.usdz_url);
-  renderColors(p.colors);
-  checkAdded();
-  if(p.id!=='demo-001')autoAddToWallet(p);
-
-  // ✦ Démarrer en mode épuré UNE SEULE FOIS, après que tout le DOM
-  // (header + coloris + CTA) ait sa taille finale. Double rAF pour
-  // garantir un layout stable avant tout calcul de positionnement.
-  if(!initialToggleDone){
-    initialToggleDone = true;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => toggleInfo());
-    });
-  }
-}
-
-function renderColors(colors){
-  const g=document.getElementById('colors-grid');g.innerHTML='';
-  const sect=document.getElementById('s-colors');
-  if(!colors||!colors.length){sect.style.display='none';return;}
-  sect.style.display='block';
-  col=colors[0];
-  document.getElementById('col-name').textContent=colors[0].name+(colors[0].mat?' · '+colors[0].mat:'');
-  colors.forEach((c,i)=>{
-    const s=document.createElement('div');
-    s.className='color-swatch'+(i===0?' active':'');
-    if(c.texture){s.style.backgroundImage=`url(${c.texture})`;s.style.backgroundSize='cover';s.style.backgroundPosition='center';s.style.borderRadius='4px';}
-    else{s.style.background=c.hex||'#ccc';}
-    s.title=c.name+(c.mat?' · '+c.mat:'');
-    s.onclick=async()=>{
-      document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
-      s.classList.add('active');col=c;
-      document.getElementById('col-name').textContent=c.name+(c.mat?' · '+c.mat:'');
-      const mv=document.getElementById('mv');
-      if(c.glb){mv.setAttribute('src',c.glb);if(c.usdz)mv.setAttribute('ios-src',c.usdz);}
-      else if(c.texture&&mv.model){
-        try{const texture=await mv.createTexture(c.texture);mv.model.materials.forEach(mat=>{try{mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);}catch(e){}});}catch(e){}
-      }
-      // (toast supprimé : le nom du coloris est déjà affiché dans le label de la section)
-      const w2=getW();const ex=w2.find(i=>i.id===prod?.id);
-      if(ex){ex.color=c;setW(w2);}
-    };
-    g.appendChild(s);
+function autoAddToWallet(p) {
+  const w = getW();
+  const exists = w.find(i => i.id === p.id);
+  if (exists) { exists.color = col; setW(w); updateWalletUI(); return; }
+  w.push({
+    id: p.id, name: p.name, price: p.price,
+    enseigne: p.enseigne_name, color: col,
+    model_url: p.model_url, added_at: new Date().toISOString()
   });
-  const mv=document.getElementById('mv');
-  if(colors[0].glb&&mv.getAttribute('src')!==colors[0].glb){mv.setAttribute('src',colors[0].glb);if(colors[0].usdz)mv.setAttribute('ios-src',colors[0].usdz);}
-  else if(colors[0].texture&&!colors[0].glb){mv.addEventListener('load',async()=>{if(!colors[0].texture||!mv.model)return;try{const texture=await mv.createTexture(colors[0].texture);mv.model.materials.forEach(mat=>{try{mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);}catch(e){}});}catch(e){}},{once:true});}
-}
-
-function setTab(i,el){
-  ['tab-0','tab-1'].forEach((id,j)=>document.getElementById(id).style.display=j===i?'block':'none');
-  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-}
-
-function launchAR(){
-  const mv=document.getElementById('mv');if(!mv)return;
-  if(mv.canActivateAR){mv.activateAR();}
-  else{
-    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid=/Android/.test(navigator.userAgent);
-    if(isIOS)toast('Ouvrez dans Safari pour l\'AR sur iPhone');
-    else if(isAndroid)toast('Ouvrez dans Chrome pour l\'AR sur Android');
-    else toast('AR disponible uniquement sur mobile');
-  }
-}
-
-function getW(){return JSON.parse(localStorage.getItem('tadam_wallet')||'[]')}
-function setW(w){localStorage.setItem('tadam_wallet',JSON.stringify(w))}
-
-function addToWallet(){
-  if(!prod)return;
-  const w=getW();const ex=w.find(i=>i.id===prod.id);
-  if(ex){ex.color=col;setW(w)}
-  else{w.push({id:prod.id,name:prod.name,price:prod.price,enseigne:prod.enseigne_name,color:col,model_url:prod.model_url,added_at:new Date().toISOString()});setW(w)}
+  setW(w);
   updateWalletUI();
-  document.getElementById('btn-add').classList.add('hide');
-  document.getElementById('added-confirm').classList.add('show');
-  toast('Ajouté à votre sélection');
-  if(getW().length>=1)document.getElementById('s-install').classList.add('show');
+  markAdded();
+  setTimeout(() => toast('✦ Ajouté à votre sélection TadamHome'), 800);
 }
 
-function checkAdded(){
-  if(!prod)return;
-  if(getW().find(i=>i.id===prod.id)){
-    document.getElementById('btn-add').classList.add('hide');
-    document.getElementById('added-confirm').classList.add('show');
+function addToWallet() {
+  if (!prod) return;
+  const w = getW();
+  const ex = w.find(i => i.id === prod.id);
+  if (ex) { ex.color = col; setW(w); }
+  else {
+    w.push({
+      id: prod.id, name: prod.name, price: prod.price,
+      enseigne: prod.enseigne_name, color: col,
+      model_url: prod.model_url, added_at: new Date().toISOString()
+    });
+    setW(w);
+  }
+  updateWalletUI();
+  markAdded();
+  toast('Ajouté à votre sélection');
+}
+
+function checkAdded() {
+  if (!prod) return;
+  if (getW().find(i => i.id === prod.id)) markAdded();
+}
+
+function markAdded() {
+  const btn = document.getElementById('btn-add');
+  if (btn) {
+    btn.innerHTML = '<span>✓ Ajouté</span>';
+    btn.classList.add('added');
   }
 }
 
-function updateWalletUI(){
-  const w=getW(),n=w.length;
-  const b=document.getElementById('wbadge');b.textContent=n;b.className='wbadge'+(n>0?' on':'');
-  document.getElementById('wallet-count').textContent=n;
-  const l=document.getElementById('wallet-items');
-  if(!n){l.innerHTML='<div class="wallet-empty"><div style="font-size:28px;margin-bottom:10px">🛋️</div>Scannez des meubles pour les retrouver ici</div>';return}
-  l.innerHTML=w.map(item=>`
-    <div class="wallet-card" onclick="goTo('${item.id}')">
-      <div class="wallet-card-img"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C4BEB6" stroke-width="1.5"><path d="M2 18v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M2 14h20"/><path d="M7 22v-4"/><path d="M17 22v-4"/></svg></div>
-      <div style="flex:1;min-width:0">
-        <div class="wallet-card-name">${item.name}</div>
-        <div class="wallet-card-color"><div class="wallet-card-dot" style="background:${item.color?.hex||'#ccc'}"></div>${item.color?.name||'—'}</div>
-        <div class="wallet-card-badge">AR disponible</div>
-      </div>
-      <div class="wallet-card-price">${item.price?item.price.toLocaleString('fr-FR')+'€':'—'}</div>
-    </div>`).join('');
+function updateWalletUI() {
+  const w = getW();
+  const n = w.length;
+  const b = document.getElementById('wbadge');
+  if (b) {
+    b.textContent = n;
+    b.classList.toggle('on', n > 0);
+  }
 }
 
-function openWallet(){window.location.href='wallet.html'}
-function closeWallet(){document.getElementById('wallet-overlay').classList.remove('open')}
-function closeWalletOutside(e){if(e.target===document.getElementById('wallet-overlay'))closeWallet()}
-function goTo(id){closeWallet();if(id!==prod?.id)location.href='?id='+id}
-function envoyerSelection(){closeWallet();toast('Fonctionnalité disponible en production')}
-function contactVendeur(){toast('Le vendeur a été notifié')}
+function openWallet() { window.location.href = 'wallet.html'; }
 
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dpi=e});
-function installPWA(){
-  if(dpi){dpi.prompt();dpi.userChoice.then(r=>{if(r.outcome==='accepted')toast('TadamHome ajouté à votre écran !');dpi=null;})}
-  else toast('Ajoutez cette page via le menu partage de votre navigateur');
+/* ───── MISC ───── */
+function shareProduct() {
+  if (navigator.share && prod) {
+    navigator.share({
+      title: prod.name,
+      text: `${prod.name} — ${prod.enseigne_name || ''}`,
+      url: location.href
+    }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(location.href).then(
+      () => toast('Lien copié dans le presse-papier'),
+      () => toast('Partage non supporté')
+    );
+  }
 }
 
-async function track(pid){try{await SB.from('scans').insert({product_id:pid,session_id:sid,selected_color:col?.name||null})}catch(e){}}
+function contactVendeur() { toast('Le vendeur a été notifié'); }
 
-let tt;
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
+/* ───── TRACKING ───── */
+async function track(pid) {
+  try {
+    await SB.from('scans').insert({
+      product_id: pid,
+      session_id: sid,
+      selected_color: col?.name || null
+    });
+  } catch (e) {}
+}
 
-// Filets de sécurité : recalcul de la disposition en cas de redimensionnement
-// ou si la section coloris change de taille (ex. arrivée tardive du modèle).
-window.addEventListener('resize', recalcLayout);
-window.addEventListener('orientationchange', () => {
-  // Petit délai pour laisser le viewport se stabiliser après rotation
-  setTimeout(recalcLayout, 150);
+/* ───── TOAST ───── */
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ───── VIEWER CONTROLS ───── */
+document.getElementById('ctl-fs')?.addEventListener('click', () => {
+  const wrap = document.getElementById('viewer-wrap');
+  if (!wrap) return;
+  if (document.fullscreenElement) document.exitFullscreen();
+  else wrap.requestFullscreen?.();
+});
+document.getElementById('ctl-reset')?.addEventListener('click', () => {
+  const mv = document.getElementById('mv');
+  if (mv && typeof mv.resetTurntableRotation === 'function') {
+    mv.resetTurntableRotation();
+    mv.cameraOrbit = 'auto auto auto';
+  }
 });
 
-if (typeof ResizeObserver !== 'undefined') {
-  const ro = new ResizeObserver(() => recalcLayout());
-  const obs = () => {
-    const cs = document.getElementById('s-colors');
-    const cz = document.querySelector('.cta-zone');
-    if (cs) ro.observe(cs);
-    if (cz) ro.observe(cz);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', obs);
-  } else {
-    obs();
-  }
-}
-
+/* ───── BOOTSTRAP ───── */
 loadProduct();
 updateWalletUI();
-// ✦ Le passage en mode "épuré" est maintenant déclenché par render()
-//    (cf. variable initialToggleDone) une fois le DOM stabilisé.
 </script>
 </body>
 </html>
