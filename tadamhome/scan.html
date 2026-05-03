@@ -999,7 +999,8 @@ function renderColors(colors) {
 
   const n = colors.length;
   const nw = ({2:'Deux',3:'Trois',4:'Quatre',5:'Cinq',6:'Six',7:'Sept',8:'Huit',9:'Neuf',10:'Dix'})[n] || n;
-  document.getElementById('colors-title').innerHTML = `${nw} finitions, <em>une même âme</em>`;
+  const titleEl = document.getElementById('colors-title');
+  if (titleEl) titleEl.innerHTML = `${nw} finitions, <em>une même âme</em>`;
 
   col = colors[0];
   document.getElementById('col-name').textContent = colors[0].name;
