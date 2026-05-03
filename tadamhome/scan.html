@@ -1045,7 +1045,6 @@ function renderColors(colors) {
     grid.appendChild(btn);
   });
 
-  const mv = document.getElementById('mv');
   if (!colors[0].glb && colors[0].texture) {
     mv.addEventListener('load', async () => {
       if (!mv.model) return;
