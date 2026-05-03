@@ -27,12 +27,10 @@ html,body{min-height:100vh;background:var(--bg);font-family:var(--sans);color:va
 .wbadge.on{display:grid}
 
 /* PRODUCT HEADER */
-.prod-header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 18px 12px}
+.prod-header{background:var(--bg);border-bottom:1px solid var(--border);padding:14px 18px 12px}
+.prod-brand{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:6px;font-family:var(--sans)}
 .prod-title{font-family:var(--serif);font-size:24px;font-weight:400;color:var(--text);letter-spacing:-.01em;line-height:1.2}
-.prod-subtitle{display:flex;align-items:center;gap:10px;margin-top:5px}
-.prod-ref{font-size:11px;color:var(--mid);letter-spacing:.08em;font-family:var(--sans)}
-.status-pill{background:var(--green-light);color:var(--green);border:1px solid rgba(39,112,74,.15);font-size:10px;font-weight:500;padding:3px 10px;display:flex;align-items:center;gap:4px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans)}
-.status-dot{width:4px;height:4px;border-radius:50%;background:var(--green)}
+.prod-category{font-size:13px;color:var(--text);margin-top:4px;font-family:var(--sans);font-weight:400}
 
 /* TABS */
 .viewer-tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);padding:0 18px}
@@ -218,11 +216,9 @@ model-viewer::part(default-ar-button){display:none !important}
 
 <!-- PRODUCT HEADER -->
 <div class="prod-header" id="s-header">
+  <div class="prod-brand" id="prod-brand">Chargement...</div>
   <div class="prod-title" id="prod-name">Chargement...</div>
-  <div class="prod-subtitle" id="s-header-sub">
-    <span class="prod-ref" id="prod-ref">Réf. —</span>
-    <div class="status-pill"><div class="status-dot"></div>AR actif</div>
-  </div>
+  <div class="prod-category" id="prod-category">—</div>
 </div>
 
 <!-- TABS -->
@@ -396,7 +392,8 @@ function toggleInfo(){
   const icon = document.getElementById('toggle-icon');
   const mv = document.getElementById('mv');
   const cta = document.querySelector('.cta-zone');
-  const sub = document.getElementById('s-header-sub');
+  const prodBrand = document.getElementById('prod-brand');
+  const prodCategory = document.getElementById('prod-category');
   const btnContact = document.querySelector('.btn-contact');
   const addedConfirm = document.getElementById('added-confirm');
   const priceEl = document.getElementById('prod-price');
@@ -409,7 +406,8 @@ function toggleInfo(){
     if(!infoVisible) el.classList.add('hidden');
     else el.classList.remove('hidden');
   });
-  if(sub) sub.style.display = infoVisible ? '' : 'none';
+  if(prodBrand) prodBrand.style.display = infoVisible ? '' : 'none';
+  if(prodCategory) prodCategory.style.display = infoVisible ? '' : 'none';
 
   if(!infoVisible){
     // Masquer les boutons supplémentaires en mode focus 3D
@@ -714,8 +712,9 @@ let initialToggleDone = false;
 
 function render(p){
   prod=p;
+  document.getElementById('prod-brand').textContent=p.enseigne_name||'—';
   document.getElementById('prod-name').textContent=p.name;
-  document.getElementById('prod-ref').textContent='Réf. '+p.ref;
+  document.getElementById('prod-category').textContent=p.category||'Meuble';
   document.getElementById('prod-price').textContent=p.price?p.price.toLocaleString('fr-FR'):'—';
   document.getElementById('prod-price-note').textContent=p.price?'€ TTC':'';
   document.getElementById('dim').textContent=p.dim_label||p.dimensions||'—';
