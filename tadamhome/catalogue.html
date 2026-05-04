@@ -153,14 +153,15 @@
 
   /* TOOLBAR */
   .toolbar {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 14px; padding: 14px 22px;
+    display: flex; align-items: center;
+    gap: 12px; padding: 14px 22px;
     background: rgba(245,242,236,.96);
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--th-border);
     position: sticky; top: var(--header-h); z-index: 50;
   }
   .toolbar .chips {
+    flex: 1; min-width: 0;
     display: flex; gap: 8px;
     overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
   }
@@ -170,6 +171,7 @@
     padding: 7px 12px; border: 1px solid var(--th-border);
     color: var(--th-ink-2); background: var(--th-paper); white-space: nowrap;
     transition: background .2s, color .2s, border-color .2s; cursor: pointer;
+    flex-shrink: 0;
   }
   .chip:hover { border-color: var(--th-accent); color: var(--th-ink); }
   .chip.active { background: var(--th-ink); color: var(--th-white); border-color: var(--th-ink); }
@@ -178,10 +180,136 @@
     color: var(--th-ink-3); flex-shrink: 0; display: none;
   }
   @media (min-width: 700px) {
-    .toolbar { padding: 18px 44px; }
+    .toolbar { padding: 18px 44px; gap: 16px; }
     .toolbar .chips { flex-wrap: wrap; overflow: visible; }
     .toolbar .sort { display: inline-flex; align-items: center; gap: 6px; }
   }
+
+  /* BURGER chips (toolbar gauche — TOUJOURS FIXE, hors zone scrollable) */
+  .chip-burger {
+    width: 36px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--th-border);
+    background: var(--th-paper);
+    color: var(--th-ink-2);
+    flex-shrink: 0;
+    transition: background .2s, color .2s, border-color .2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .chip-burger::after {
+    content: '';
+    position: absolute; top: 50%; right: -7px;
+    transform: translateY(-50%);
+    width: 1px; height: 18px;
+    background: var(--th-border);
+  }
+  .chip-burger:hover { background: var(--th-ink); color: var(--th-white); border-color: var(--th-ink); }
+  .chip-burger svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
+
+  /* ALPHABET BAR — apparaît sous la toolbar quand "Marques" actif */
+  .alpha-bar {
+    display: none;
+    align-items: center; gap: 4px;
+    padding: 12px 22px;
+    background: var(--th-paper-2);
+    border-bottom: 1px solid var(--th-border);
+    overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    position: sticky; z-index: 49;
+    top: calc(var(--header-h) + 60px);
+  }
+  .alpha-bar::-webkit-scrollbar { display: none; }
+  .alpha-bar.show { display: flex; }
+  .alpha-btn {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    font-family: var(--th-sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .04em; color: var(--th-ink-2);
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  }
+  .alpha-btn:hover { color: var(--th-accent); border-color: var(--th-border-gold); }
+  .alpha-btn.active { background: var(--th-ink); color: var(--th-white); border-color: var(--th-ink); }
+  .alpha-btn.disabled { color: var(--th-ink-3); opacity: .35; pointer-events: none; }
+  .alpha-btn.all-letters {
+    width: auto; padding: 0 12px;
+    font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  }
+
+  @media (min-width: 700px) {
+    .alpha-bar { padding: 14px 44px; gap: 6px; }
+    .alpha-btn { width: 32px; height: 32px; font-size: 12px; }
+  }
+
+  /* BURGER PANEL — slide-in latéral avec catégories */
+  .burger-overlay {
+    position: fixed; inset: 0; z-index: 199;
+    background: rgba(28,27,24,.4);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s var(--th-ease);
+  }
+  .burger-overlay.show { opacity: 1; pointer-events: auto; }
+  .burger-panel {
+    position: fixed; top: 0; left: 0;
+    width: 300px; max-width: 86vw; height: 100vh;
+    background: var(--th-paper);
+    border-right: 1px solid var(--th-border);
+    box-shadow: 4px 0 24px rgba(28,27,24,.08);
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .3s var(--th-ease);
+    display: flex; flex-direction: column;
+  }
+  .burger-panel.open { transform: translateX(0); }
+  .burger-panel .head {
+    padding: 22px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--th-border);
+  }
+  .burger-panel .head h3 {
+    font-family: var(--th-serif); font-size: 22px; font-weight: 400;
+    color: var(--th-ink);
+  }
+  .burger-panel .head h3 em { font-style: italic; color: var(--th-accent); }
+  .burger-panel .close {
+    width: 32px; height: 32px;
+    border: 1px solid var(--th-border);
+    background: transparent; color: var(--th-ink-2);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: border-color .2s, color .2s;
+  }
+  .burger-panel .close:hover { border-color: var(--th-ink); color: var(--th-ink); }
+  .burger-panel .close svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .burger-panel .list { flex: 1; overflow-y: auto; padding: 12px 0; }
+  .burger-panel .item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    font-family: var(--th-sans); font-size: 13px; font-weight: 400;
+    color: var(--th-ink);
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background .15s, border-left-color .15s, color .15s;
+  }
+  .burger-panel .item:hover {
+    background: var(--th-paper-2);
+    border-left-color: var(--th-accent-2);
+  }
+  .burger-panel .item.active {
+    background: rgba(184,152,106,.08);
+    border-left-color: var(--th-accent);
+    color: var(--th-accent);
+    font-weight: 500;
+  }
+  .burger-panel .item .count {
+    font-size: 11px; color: var(--th-ink-3); font-weight: 300;
+  }
+  .burger-panel .item.active .count { color: var(--th-accent); }
 
   /* PIÈCE-VEDETTE */
   .feature {
@@ -289,7 +417,7 @@
     background: rgba(250,250,248,.92);
     -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: 2;
   }
-  .card .meta { padding: 10px 12px 12px; border-top: 1px solid var(--th-border); }
+  .card .meta { padding: 10px 12px 12px; }
   .card .meta .br {
     font-size: 8px; letter-spacing: .18em; text-transform: uppercase; color: var(--th-accent);
   }
@@ -322,7 +450,7 @@
     animation: shimmer 1.5s ease-in-out infinite;
   }
   .skeleton .img-sk { aspect-ratio: 1; background: var(--th-paper-2); }
-  .skeleton .meta-sk { padding: 14px 16px 16px; border-top: 1px solid var(--th-border); }
+  .skeleton .meta-sk { padding: 14px 16px 16px; }
   .skeleton .ln { height: 8px; background: var(--th-paper-3); margin-bottom: 8px; }
   .skeleton .ln.short { width: 40%; }
   .skeleton .ln.med   { width: 70%; }
@@ -547,6 +675,9 @@
 
 <!-- TOOLBAR — chips catégories -->
 <div class="toolbar" role="toolbar" aria-label="Filtres catégories">
+  <button class="chip-burger" id="catBurger" aria-label="Ouvrir toutes les catégories" title="Toutes les catégories">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="chips" id="chips">
     <button class="chip active" data-cat="all">Tout</button>
     <button class="chip" data-cat="sofa">Canapés</button>
@@ -555,11 +686,30 @@
     <button class="chip" data-cat="table">Tables</button>
     <button class="chip" data-cat="luminaire">Luminaires</button>
     <button class="chip" data-cat="rangement">Rangements</button>
-    <button class="chip" data-cat="lit">Lits</button>
+    <button class="chip" data-cat="marques">Marques</button>
     <button class="chip" data-cat="autre">Autre</button>
   </div>
   <div class="sort">Tri : <strong style="color:var(--th-ink); margin-left:6px;">Nouveautés</strong></div>
 </div>
+
+<!-- ALPHABET BAR — visible uniquement quand "Marques" est actif -->
+<div class="alpha-bar" id="alphaBar" role="toolbar" aria-label="Filtre par lettre">
+  <button class="alpha-btn all-letters active" data-letter="all">Toutes</button>
+</div>
+
+<!-- BURGER OVERLAY + PANEL — toutes catégories sauf Marques -->
+<div class="burger-overlay" id="burgerOverlay" aria-hidden="true"></div>
+<aside class="burger-panel" id="burgerPanel" aria-hidden="true" aria-label="Toutes les catégories">
+  <div class="head">
+    <h3>Catégories <em>·</em></h3>
+    <button class="close" id="burgerClose" aria-label="Fermer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="list" id="burgerList">
+    <!-- Catégories injectées par JS (sauf Marques) -->
+  </div>
+</aside>
 
 <!-- PIÈCE-VEDETTE (curation manuelle) -->
 <section class="feature reveal" aria-label="Pièce vedette du mois">
@@ -692,7 +842,7 @@ const sb = createClient(SB_URL, SB_KEY);
 const SCAN_BASE = 'scan.html';
 const PER_PAGE  = 24;
 
-/* ─ CATEGORIES (mêmes mappings que l'ancien fichier) ─ */
+/* ─ CATEGORIES (mêmes mappings que l'ancien fichier, sauf 'lit' supprimé, 'marques' ajouté) ─ */
 const CATEGORIES = [
   { key: 'all',       label: 'Tout',        keys: null },
   { key: 'sofa',      label: 'Canapés',     keys: ['sofa','canapé','canape'] },
@@ -701,15 +851,16 @@ const CATEGORIES = [
   { key: 'table',     label: 'Tables',      keys: ['table'] },
   { key: 'luminaire', label: 'Luminaires',  keys: ['luminaire'] },
   { key: 'rangement', label: 'Rangements',  keys: ['rangement'] },
-  { key: 'lit',       label: 'Lits',        keys: ['lit'] },
+  { key: 'marques',   label: 'Marques',     keys: null },  // mode spécial : filtre par lettre
   { key: 'autre',     label: 'Autre',       keys: ['autre'] },
 ];
 
 /* ─ STATE ─ */
-let allProducts = [];
-let filtered    = [];
-let currentCat  = 'all';
-let currentPage = 1;
+let allProducts   = [];
+let filtered      = [];
+let currentCat    = 'all';
+let currentLetter = 'all';   // pour le mode Marques
+let currentPage   = 1;
 
 /* ─ STORAGE BUCKETS ─ */
 const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
@@ -766,6 +917,7 @@ async function loadProducts() {
     }
 
     updateMeta();
+    refreshAlphabetState();
     applyFilters();
   } catch (e) {
     console.error(e);
@@ -819,6 +971,14 @@ function updateMeta() {
 /* ─ FILTERS ─ */
 function applyFilters() {
   filtered = allProducts.filter(p => {
+    // Mode "Marques" : on filtre par lettre de marque, pas par catégorie produit
+    if (currentCat === 'marques') {
+      if (currentLetter === 'all') return true;
+      const brand = (p.enseigne_name || p.marque || '').trim();
+      if (!brand) return false;
+      return brand.charAt(0).toUpperCase() === currentLetter;
+    }
+    // Mode normal : filtre par catégorie produit
     if (currentCat === 'all') return true;
     const cat = (p.category || p.categorie || '').toLowerCase();
     const catDef = CATEGORIES.find(c => c.key === currentCat);
@@ -833,11 +993,25 @@ function applyFilters() {
 
 function renderCollectionHead() {
   const catDef = CATEGORIES.find(c => c.key === currentCat) || CATEGORIES[0];
-  document.getElementById('collTitle').textContent = catDef.label;
+
+  // Titre adapté au mode
+  let title = catDef.label;
+  if (currentCat === 'marques' && currentLetter !== 'all') {
+    title = `Marques · ${currentLetter}`;
+  }
+  document.getElementById('collTitle').textContent = title;
+
   const pieces = filtered.length;
   const brandCount = new Set(filtered.map(p => p.enseigne_name || p.marque).filter(Boolean)).size;
-  document.getElementById('collCount').textContent =
-    `${pieces.toLocaleString('fr-FR')} pièce${pieces > 1 ? 's' : ''} · ${brandCount} marque${brandCount > 1 ? 's' : ''}`;
+
+  // Sub-line adaptée : en mode Marques, on met l'accent sur le nombre de marques
+  let sub;
+  if (currentCat === 'marques') {
+    sub = `${brandCount.toLocaleString('fr-FR')} marque${brandCount > 1 ? 's' : ''} · ${pieces.toLocaleString('fr-FR')} pièce${pieces > 1 ? 's' : ''}`;
+  } else {
+    sub = `${pieces.toLocaleString('fr-FR')} pièce${pieces > 1 ? 's' : ''} · ${brandCount} marque${brandCount > 1 ? 's' : ''}`;
+  }
+  document.getElementById('collCount').textContent = sub;
 }
 
 /* ─ RENDER GRID PAGE ─ */
@@ -910,14 +1084,25 @@ function showToast(msg) {
 
 /* ─ EVENT BINDINGS ─ */
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Construction de la barre alphabet (A → Z) ──
+  buildAlphabet();
+
+  // ── Construction du panneau burger (catégories sauf Marques) ──
+  buildBurgerList();
+
   // Chips de catégories
   document.querySelectorAll('#chips .chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('#chips .chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentCat = chip.dataset.cat;
-      applyFilters();
+      setCategory(chip.dataset.cat);
     });
+  });
+
+  // Burger toolbar (ouverture du panel latéral)
+  document.getElementById('catBurger').addEventListener('click', openBurgerPanel);
+  document.getElementById('burgerClose').addEventListener('click', closeBurgerPanel);
+  document.getElementById('burgerOverlay').addEventListener('click', closeBurgerPanel);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeBurgerPanel();
   });
 
   // Flèches collection head + pagination
@@ -926,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pagPrev').addEventListener('click', () => goPage(-1));
   document.getElementById('pagNext').addEventListener('click', () => goPage(+1));
 
-  // Mobile menu
+  // Mobile menu (nav top — déconnexion / liens)
   const burger = document.getElementById('burger');
   const close  = document.getElementById('closeMenu');
   const menu   = document.getElementById('mobileMenu');
@@ -955,6 +1140,116 @@ document.addEventListener('DOMContentLoaded', () => {
   // Init
   loadProducts();
 });
+
+/* ─ SET CATEGORY (chip ou burger panel) ─ */
+function setCategory(cat) {
+  currentCat = cat;
+  // Sync visuel des chips
+  document.querySelectorAll('#chips .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === cat);
+  });
+  // Sync visuel du panel burger
+  document.querySelectorAll('#burgerList .item').forEach(it => {
+    it.classList.toggle('active', it.dataset.cat === cat);
+  });
+  // Affichage / masquage de l'alphabet bar
+  const alphaBar = document.getElementById('alphaBar');
+  if (cat === 'marques') {
+    alphaBar.classList.add('show');
+    refreshAlphabetState();
+  } else {
+    alphaBar.classList.remove('show');
+    currentLetter = 'all';
+    document.querySelectorAll('.alpha-btn').forEach(b => b.classList.remove('active'));
+    const allLet = document.querySelector('.alpha-btn[data-letter="all"]');
+    if (allLet) allLet.classList.add('active');
+  }
+  applyFilters();
+}
+
+/* ─ ALPHABET ─ */
+function buildAlphabet() {
+  const bar = document.getElementById('alphaBar');
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  letters.forEach(L => {
+    const btn = document.createElement('button');
+    btn.className = 'alpha-btn disabled';
+    btn.dataset.letter = L;
+    btn.textContent = L;
+    btn.addEventListener('click', () => setLetter(L));
+    bar.appendChild(btn);
+  });
+  // Le bouton "Toutes" déjà présent dans le HTML — on lui attache son handler
+  const allLet = bar.querySelector('.alpha-btn[data-letter="all"]');
+  if (allLet) allLet.addEventListener('click', () => setLetter('all'));
+}
+
+function refreshAlphabetState() {
+  // Détermine quelles lettres ont au moins une marque
+  const brands = [...new Set(allProducts.map(p => p.enseigne_name || p.marque).filter(Boolean))];
+  const lettersAvailable = new Set(brands.map(b => b.charAt(0).toUpperCase()));
+  document.querySelectorAll('.alpha-btn[data-letter]').forEach(btn => {
+    const L = btn.dataset.letter;
+    if (L === 'all') return;
+    btn.classList.toggle('disabled', !lettersAvailable.has(L));
+  });
+}
+
+function setLetter(L) {
+  currentLetter = L;
+  document.querySelectorAll('.alpha-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.alpha-btn[data-letter="${L}"]`);
+  if (btn) btn.classList.add('active');
+  currentPage = 1;
+  applyFilters();
+}
+
+/* ─ BURGER PANEL (toolbar) ─ */
+function buildBurgerList() {
+  // Toutes les catégories sauf "Marques"
+  const items = CATEGORIES.filter(c => c.key !== 'marques');
+  const list = document.getElementById('burgerList');
+  list.innerHTML = items.map(c => {
+    const count = c.key === 'all'
+      ? allProducts.length
+      : countByCategory(c);
+    return `<div class="item${currentCat === c.key ? ' active' : ''}" data-cat="${c.key}">
+      <span>${c.label}</span>
+      <span class="count">${count.toLocaleString('fr-FR')}</span>
+    </div>`;
+  }).join('');
+  // Bind clicks
+  list.querySelectorAll('.item').forEach(item => {
+    item.addEventListener('click', () => {
+      setCategory(item.dataset.cat);
+      closeBurgerPanel();
+    });
+  });
+}
+
+function countByCategory(c) {
+  if (!c.keys) return allProducts.length;
+  return allProducts.filter(p => {
+    const cat = (p.category || p.categorie || '').toLowerCase();
+    return c.keys.some(k => cat.includes(k));
+  }).length;
+}
+
+function openBurgerPanel() {
+  // Re-build avec les counts actualisés
+  buildBurgerList();
+  document.getElementById('burgerPanel').classList.add('open');
+  document.getElementById('burgerPanel').setAttribute('aria-hidden', 'false');
+  document.getElementById('burgerOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBurgerPanel() {
+  document.getElementById('burgerPanel').classList.remove('open');
+  document.getElementById('burgerPanel').setAttribute('aria-hidden', 'true');
+  document.getElementById('burgerOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
 </script>
 
 </body>
