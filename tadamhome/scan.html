@@ -664,18 +664,19 @@
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
   /* ══════════════════════════════════════════════════════════
-     EFFET "TADAM" — version simplifiée et garantie visible.
-     Un disque doré qui explose depuis le modèle + fond cream qui monte.
+     EFFET "TADAM" — burst doré garanti (basé sur @keyframes,
+     pas sur transitions, pour éviter l'optimisation Chrome).
      ══════════════════════════════════════════════════════════ */
   #tadam-fx {
     position: fixed;
-    inset: 0;
-    z-index: 99999;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100vh;
+    z-index: 2147483647;
     pointer-events: none;
     overflow: hidden;
   }
 
-  /* Le disque doré qui jaillit du modèle */
+  /* Disque doré qui jaillit du modèle et grossit pour remplir l'écran */
   #tadam-fx .tadam-disc {
     position: absolute;
     width: 80px; height: 80px;
@@ -683,59 +684,57 @@
     border-radius: 50%;
     background: radial-gradient(circle,
       rgba(255, 248, 220, 1) 0%,
-      rgba(255, 224, 165, 1) 30%,
-      rgba(184, 152, 106, 0.9) 60%,
+      rgba(255, 224, 165, 1) 25%,
+      rgba(184, 152, 106, 0.95) 55%,
       rgba(184, 152, 106, 0) 100%);
     box-shadow:
       0 0 60px 20px rgba(184, 152, 106, 0.7),
       0 0 120px 40px rgba(255, 224, 165, 0.5);
-    transform: scale(0.1);
-    opacity: 0;
-    transition:
-      transform 800ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 600ms ease-out;
+    animation: tadam-disc-anim 1100ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-  #tadam-fx.go .tadam-disc {
-    transform: scale(35);
-    opacity: 1;
+  @keyframes tadam-disc-anim {
+    0%   { transform: scale(0.1); opacity: 0;   }
+    15%  { transform: scale(1);   opacity: 1;   }
+    100% { transform: scale(40);  opacity: 1;   }
   }
 
   /* Anneau or qui se dilate */
   #tadam-fx .tadam-ring {
     position: absolute;
-    width: 100px; height: 100px;
-    margin-left: -50px; margin-top: -50px;
-    border: 4px solid #B8986A;
+    width: 120px; height: 120px;
+    margin-left: -60px; margin-top: -60px;
+    border: 5px solid #B8986A;
     border-radius: 50%;
-    box-shadow: 0 0 40px rgba(184, 152, 106, 0.8);
-    transform: scale(0.1);
-    opacity: 0;
-    transition:
-      transform 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms,
-      opacity 800ms ease-out 100ms;
+    box-shadow: 0 0 50px rgba(184, 152, 106, 0.9);
+    animation: tadam-ring-anim 900ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
   }
-  #tadam-fx.go .tadam-ring {
-    transform: scale(20);
-    opacity: 0;
+  @keyframes tadam-ring-anim {
+    0%   { transform: scale(0.1); opacity: 0;   border-width: 6px; }
+    25%  { transform: scale(1);   opacity: 1;   border-width: 5px; }
+    100% { transform: scale(20);  opacity: 0;   border-width: 1px; }
   }
 
-  /* Fond cream qui monte progressivement */
+  /* Fond cream qui monte progressivement pour la transition */
   #tadam-fx .tadam-bg {
     position: absolute;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: #F5F2EC;
     opacity: 0;
-    transition: opacity 500ms ease-out 400ms;
+    animation: tadam-bg-anim 700ms ease-out 350ms forwards;
   }
-  #tadam-fx.go .tadam-bg {
-    opacity: 1;
+  @keyframes tadam-bg-anim {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
   }
 
-  /* Le model-viewer brille pendant l'effet */
+  /* Le model-viewer pulse et brille pendant l'effet */
   #mv.tadam-glow {
-    transition: transform 300ms ease-out, filter 300ms ease-out;
-    transform: scale(1.06);
-    filter: brightness(1.25) drop-shadow(0 0 40px rgba(184, 152, 106, 0.9));
+    animation: tadam-mv-anim 600ms ease-out forwards;
+  }
+  @keyframes tadam-mv-anim {
+    0%   { transform: scale(1);    filter: brightness(1); }
+    50%  { transform: scale(1.06); filter: brightness(1.3) drop-shadow(0 0 40px rgba(184, 152, 106, 0.9)); }
+    100% { transform: scale(1.1);  filter: brightness(1.5) drop-shadow(0 0 60px rgba(184, 152, 106, 1)); }
   }
 </style>
 </head>
@@ -1404,60 +1403,44 @@
     }
 
     /**
-     * 🚨 TEST DEBUG : overlay rouge 2.5s plein écran avec texte "TADAM".
-     * Si l'utilisateur voit le rouge → les overlays fonctionnent, le souci est
-     * dans nos transitions CSS. Sinon → problème de stacking context / overflow.
+     * Joue l'effet "Tadam" : un disque doré qui jaillit du modèle, un anneau
+     * qui se dilate, fond cream qui monte progressivement, puis nav.
+     * Utilise des @keyframes (pas des transitions) pour garantir le déclenchement.
+     * Durée totale : 1100ms.
      */
     function playTadamBurst(onComplete) {
-      console.log('[tadam] DEBUG TEST start');
+      console.log('[tadam] BURST start');
+      const mv = document.getElementById('mv');
 
+      // Centre du model-viewer dans le viewport
+      let cx = window.innerWidth / 2;
+      let cy = window.innerHeight / 2;
+      if (mv) {
+        const rect = mv.getBoundingClientRect();
+        cx = rect.left + rect.width / 2;
+        cy = rect.top + rect.height / 2;
+        // Anime le modèle lui-même : pulse + glow doré
+        mv.classList.add('tadam-glow');
+      }
+      console.log('[tadam] Centre :', cx, cy);
+
+      // Crée l'overlay avec les 3 couches d'animation.
+      // Les @keyframes CSS se déclenchent automatiquement au mount,
+      // donc on n'a pas besoin d'ajouter une classe à postériori.
       const fx = document.createElement('div');
-      fx.id = 'tadam-debug-overlay';
-      fx.style.cssText = [
-        'position: fixed',
-        'top: 0',
-        'left: 0',
-        'right: 0',
-        'bottom: 0',
-        'width: 100vw',
-        'height: 100vh',
-        'z-index: 2147483647',  // valeur max de z-index
-        'background: rgba(255, 0, 0, 0.92)',
-        'display: flex',
-        'align-items: center',
-        'justify-content: center',
-        'flex-direction: column',
-        'gap: 20px',
-        'color: white',
-        'font-size: 64px',
-        'font-family: serif',
-        'font-weight: bold',
-        'pointer-events: none',
-        'letter-spacing: 0.2em'
-      ].join(';');
-      fx.innerHTML = '<div>✨ TADAM ✨</div><div style="font-size:20px;font-family:sans-serif;letter-spacing:0.1em;opacity:0.85">Si tu vois ce message, dis-le-moi !</div>';
-
+      fx.id = 'tadam-fx';
+      fx.innerHTML =
+        '<div class="tadam-bg"></div>' +
+        '<div class="tadam-disc" style="left:' + cx + 'px;top:' + cy + 'px"></div>' +
+        '<div class="tadam-ring" style="left:' + cx + 'px;top:' + cy + 'px"></div>';
       document.body.appendChild(fx);
-      console.log('[tadam] DEBUG overlay rouge ajouté au DOM. Visible ?');
-      console.log('[tadam] DEBUG style calculé :', window.getComputedStyle(fx).position, window.getComputedStyle(fx).zIndex);
+      console.log('[tadam] overlay créé, animations CSS lancées');
 
-      // Vérifie après 100ms si l'élément est toujours visible et bien dimensionné
+      // Navigation à la fin de l'effet
       setTimeout(() => {
-        const el = document.getElementById('tadam-debug-overlay');
-        if (el) {
-          const r = el.getBoundingClientRect();
-          console.log('[tadam] DEBUG après 100ms — rect :', r.width + 'x' + r.height, 'visible :', r.width > 0 && r.height > 0);
-        } else {
-          console.log('[tadam] DEBUG l\'élément a disparu du DOM !');
-        }
-      }, 100);
-
-      // Navigation à 2.5s pour laisser le temps de VOIR
-      setTimeout(() => {
-        console.log('[tadam] DEBUG fin du test → navigation');
-        fx.remove();
+        console.log('[tadam] DONE → navigation');
         if (onComplete) onComplete();
-      }, 2500);
+      }, 1050);
     }
 
     // ─── Sélection (favoris) : toggle en localStorage ───
