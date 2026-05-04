@@ -210,17 +210,21 @@
   /* ALPHABET BAR — apparaît sous la toolbar quand "Marques" actif */
   .alpha-bar {
     display: none;
-    align-items: center; gap: 4px;
+    align-items: center; gap: 10px;
     padding: 12px 22px;
     background: var(--th-paper-2);
     border-bottom: 1px solid var(--th-border);
-    overflow-x: auto;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
     position: sticky; z-index: 49;
     top: calc(var(--header-h) + 60px);
   }
-  .alpha-bar::-webkit-scrollbar { display: none; }
   .alpha-bar.show { display: flex; }
+  .alpha-letters {
+    flex: 1; min-width: 0;
+    display: flex; gap: 4px; align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .alpha-letters::-webkit-scrollbar { display: none; }
   .alpha-btn {
     flex-shrink: 0;
     width: 28px; height: 28px;
@@ -235,12 +239,23 @@
   .alpha-btn.active { background: var(--th-ink); color: var(--th-white); border-color: var(--th-ink); }
   .alpha-btn.disabled { color: var(--th-ink-3); opacity: .35; pointer-events: none; }
   .alpha-btn.all-letters {
+    flex-shrink: 0;
     width: auto; padding: 0 12px;
     font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+    position: relative;
+  }
+  /* Séparateur visuel discret entre "Toutes" et l'alphabet scrollable */
+  .alpha-btn.all-letters::after {
+    content: '';
+    position: absolute; top: 50%; right: -7px;
+    transform: translateY(-50%);
+    width: 1px; height: 16px;
+    background: var(--th-border);
   }
 
   @media (min-width: 700px) {
-    .alpha-bar { padding: 14px 44px; gap: 6px; }
+    .alpha-bar { padding: 14px 44px; gap: 14px; }
+    .alpha-letters { gap: 6px; }
     .alpha-btn { width: 32px; height: 32px; font-size: 12px; }
   }
 
@@ -390,10 +405,11 @@
 
   /* CARD */
   .card {
-    background: var(--th-paper); border: 1px solid var(--th-border);
-    transition: border-color .2s; cursor: pointer; display: block; position: relative;
+    background: var(--th-paper);
+    transition: box-shadow .25s var(--th-ease-out), transform .25s var(--th-ease-out);
+    cursor: pointer; display: block; position: relative;
   }
-  .card:hover { border-color: var(--th-accent); }
+  .card:hover { box-shadow: 0 8px 28px rgba(28,27,24,.07); transform: translateY(-2px); }
   .card .img {
     aspect-ratio: 1; background: var(--th-paper-2);
     position: relative; overflow: hidden;
@@ -446,7 +462,7 @@
 
   /* SKELETON */
   .skeleton {
-    background: var(--th-paper); border: 1px solid var(--th-border);
+    background: var(--th-paper);
     animation: shimmer 1.5s ease-in-out infinite;
   }
   .skeleton .img-sk { aspect-ratio: 1; background: var(--th-paper-2); }
@@ -695,6 +711,9 @@
 <!-- ALPHABET BAR — visible uniquement quand "Marques" est actif -->
 <div class="alpha-bar" id="alphaBar" role="toolbar" aria-label="Filtre par lettre">
   <button class="alpha-btn all-letters active" data-letter="all">Toutes</button>
+  <div class="alpha-letters" id="alphaLetters">
+    <!-- Lettres A-Z injectées par JS -->
+  </div>
 </div>
 
 <!-- BURGER OVERLAY + PANEL — toutes catégories sauf Marques -->
@@ -1171,13 +1190,14 @@ function setCategory(cat) {
 function buildAlphabet() {
   const bar = document.getElementById('alphaBar');
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const wrap = document.getElementById('alphaLetters');
   letters.forEach(L => {
     const btn = document.createElement('button');
     btn.className = 'alpha-btn disabled';
     btn.dataset.letter = L;
     btn.textContent = L;
     btn.addEventListener('click', () => setLetter(L));
-    bar.appendChild(btn);
+    wrap.appendChild(btn);
   });
   // Le bouton "Toutes" déjà présent dans le HTML — on lui attache son handler
   const allLet = bar.querySelector('.alpha-btn[data-letter="all"]');
