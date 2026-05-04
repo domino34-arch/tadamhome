@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TadamHome — Tarifs</title>
+<meta name="description" content="Trois plans, une seule plateforme AR. Activez votre catalogue 3D en 48 heures.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --th-paper:        #F5F2EC;
+  --th-paper-2:      #EDEAE2;
+  --th-paper-3:      #E4E0D6;
+  --th-white:        #FAFAF8;
+  --th-ink:          #1C1B18;
+  --th-ink-2:        #4A4840;
+  --th-ink-3:        #8A8880;
+  --th-accent:       #B8986A;
+  --th-accent-2:     #D4B896;
+  --th-accent-3:     #A07A4A;
+  --th-border:       rgba(28,27,24,.10);
+  --th-border-soft:  rgba(28,27,24,.07);
+  --th-border-gold:  rgba(184,152,106,.20);
+  --th-shadow-sm:    0 2px 8px rgba(28,27,24,.06);
+  --th-shadow-md:    0 12px 32px rgba(28,27,24,.10);
+  --th-serif:        'Cormorant Garamond', Georgia, serif;
+  --th-sans:         'Outfit', system-ui, -apple-system, sans-serif;
+  --th-ease:         cubic-bezier(.16, 1, .3, 1);
+  --header-h:        72px;
+}
+
+html, body { background: var(--th-paper); color: var(--th-ink); font-family: var(--th-sans); font-weight: 300; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+img, video { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* ─────────────────────────────────────────────
+   TOP NAV (cohérent avec catalogue/scan)
+   ───────────────────────────────────────────── */
+.topnav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px;
+  background: rgba(245,242,236,.93);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--th-border);
+  position: sticky; top: 0; z-index: 100;
+}
+.topnav .logo {
+  display: inline-flex; align-items: center;
+  font-family: var(--th-serif); font-size: 22px; font-weight: 500;
+  letter-spacing: -.01em; color: var(--th-ink);
+}
+.topnav .logo img { height: 24px; width: auto; object-fit: contain; }
+.topnav .logo .accent { color: var(--th-accent); }
+.topnav .links { display: none; gap: 26px; }
+.topnav .links a {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--th-ink-2); transition: color .25s;
+}
+.topnav .links a:hover { color: var(--th-ink); }
+.topnav .links a.cur { color: var(--th-accent); }
+.topnav .right { display: flex; gap: 10px; align-items: center; }
+.topnav .ghost {
+  display: none;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--th-ink-2); padding: 8px 4px; transition: color .25s;
+}
+.topnav .ghost:hover { color: var(--th-ink); }
+.topnav .pill {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 9px 14px; border: 1px solid var(--th-accent); color: var(--th-accent);
+  transition: background .25s, color .25s;
+}
+.topnav .pill:hover { background: var(--th-accent); color: var(--th-white); }
+
+.burger {
+  width: 22px; height: 14px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  cursor: pointer;
+}
+.burger span { display: block; height: 1px; background: var(--th-ink); }
+
+@media (min-width: 900px) {
+  .topnav { padding: 18px 44px; }
+  .topnav .logo img { height: 26px; }
+  .topnav .links { display: flex; }
+  .topnav .ghost { display: inline-flex; }
+  .burger { display: none; }
+}
+
+/* ─────────────────────────────────────────────
+   HERO
+   ───────────────────────────────────────────── */
+.p-hero {
+  padding: 70px 22px 36px;
+  text-align: left;
+  border-bottom: 1px solid var(--th-border);
+  background: var(--th-paper);
+}
+.p-hero .crumbs {
+  font-size: 10px; letter-spacing: .20em; text-transform: uppercase;
+  color: var(--th-accent);
+  display: inline-flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.p-hero .crumbs::before {
+  content: ''; width: 32px; height: 1px; background: var(--th-accent);
+}
+.p-hero h1 {
+  font-family: var(--th-serif);
+  font-size: clamp(34px, 5.6vw, 60px);
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -.015em;
+  max-width: 900px;
+}
+.p-hero h1 em { font-style: italic; color: var(--th-accent); }
+.p-hero p {
+  font-size: 14px; color: var(--th-ink-2);
+  margin-top: 18px; max-width: 580px; line-height: 1.7;
+}
+
+/* Toggle Mensuel/Annuel */
+.toggle-wrap {
+  display: inline-flex;
+  margin-top: 32px;
+  padding: 4px;
+  border: 1px solid var(--th-border);
+  background: var(--th-paper);
+}
+.toggle-wrap button {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 10px 18px;
+  color: var(--th-ink-3);
+  transition: background .2s, color .2s;
+  white-space: nowrap;
+}
+.toggle-wrap button.act {
+  background: var(--th-ink); color: var(--th-white);
+}
+.toggle-wrap .save {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 12px; color: var(--th-accent);
+  margin-left: 8px;
+  letter-spacing: 0; text-transform: none;
+}
+.toggle-wrap button.act .save { color: var(--th-accent-2); }
+
+@media (min-width: 700px) {
+  .p-hero { padding: 90px 44px 44px; }
+}
+
+/* ─────────────────────────────────────────────
+   TIERS
+   ───────────────────────────────────────────── */
+.p-tiers {
+  padding: 40px 22px 60px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  background: var(--th-paper);
+}
+@media (min-width: 700px) {
+  .p-tiers { padding: 50px 44px 80px; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+}
+
+.tier {
+  background: var(--th-paper);
+  border: 1px solid var(--th-border);
+  padding: 38px 30px 30px;
+  position: relative;
+  display: flex; flex-direction: column;
+  transition: transform .25s var(--th-ease), box-shadow .25s var(--th-ease);
+}
+.tier:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(28,27,24,.07);
+}
+.tier.feat {
+  background: var(--th-ink);
+  color: var(--th-white);
+  border-color: var(--th-ink);
+}
+.tier .ribbon {
+  position: absolute;
+  top: -1px; left: 30px;
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  padding: 6px 12px;
+  background: var(--th-accent);
+  color: var(--th-white);
+}
+.tier .nm {
+  font-family: var(--th-serif);
+  font-size: 24px; font-weight: 300;
+  letter-spacing: -.01em;
+}
+.tier .desc {
+  font-size: 12px; color: var(--th-ink-2);
+  margin-top: 6px; line-height: 1.6;
+  min-height: 36px;
+}
+.tier.feat .desc { color: rgba(245,242,236,.65); }
+
+.tier .price {
+  margin-top: 28px;
+  padding: 24px 0;
+  border-top: 1px solid var(--th-border);
+  border-bottom: 1px solid var(--th-border);
+}
+.tier.feat .price { border-color: rgba(255,255,255,.15); }
+.tier .price .amt {
+  font-family: var(--th-serif);
+  font-size: 52px; font-weight: 300;
+  line-height: 1; letter-spacing: -.02em;
+}
+.tier .price .amt em { font-style: italic; color: var(--th-accent); }
+.tier .price .cur {
+  font-size: 16px; color: var(--th-ink-3);
+  vertical-align: top; margin-right: 2px;
+}
+.tier.feat .price .cur { color: rgba(245,242,236,.5); }
+.tier .price .per {
+  font-size: 11px; color: var(--th-ink-3);
+  margin-top: 8px; letter-spacing: .04em;
+}
+.tier.feat .price .per { color: rgba(245,242,236,.5); }
+.tier .price .alt {
+  font-size: 11px; color: var(--th-accent);
+  margin-top: 4px;
+  font-style: italic; font-family: var(--th-serif);
+}
+
+.tier .feats {
+  list-style: none;
+  padding: 0; margin: 24px 0;
+  flex: 1;
+}
+.tier .feats li {
+  font-size: 12.5px; line-height: 1.5;
+  padding: 10px 0 10px 22px;
+  position: relative;
+  color: var(--th-ink-2);
+  border-bottom: 1px solid rgba(0,0,0,.04);
+}
+.tier.feat .feats li {
+  color: rgba(245,242,236,.78);
+  border-bottom-color: rgba(255,255,255,.06);
+}
+.tier .feats li::before {
+  content: '✓';
+  position: absolute; left: 0; top: 10px;
+  color: var(--th-accent); font-weight: 500;
+}
+.tier .feats li.no {
+  color: var(--th-ink-3); opacity: .5;
+}
+.tier .feats li.no::before {
+  content: '—'; color: var(--th-ink-3);
+}
+
+.tier .cta { display: flex; flex-direction: column; gap: 10px; }
+.tier .cta a {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tier .cta .b-out {
+  border: 1px solid var(--th-ink);
+  color: var(--th-ink);
+}
+.tier .cta .b-out:hover {
+  background: var(--th-ink); color: var(--th-white);
+}
+.tier .cta .b-gold {
+  background: var(--th-accent);
+  color: var(--th-white);
+  border: 1px solid var(--th-accent);
+}
+.tier .cta .b-gold:hover {
+  background: var(--th-accent-3);
+  border-color: var(--th-accent-3);
+}
+.tier .cta .b-dark {
+  background: var(--th-ink);
+  color: var(--th-white);
+  border: 1px solid var(--th-ink);
+}
+.tier .cta .b-dark:hover {
+  background: var(--th-accent);
+  border-color: var(--th-accent);
+}
+.tier .meta {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--th-ink-3);
+  text-align: center; margin-top: 8px;
+}
+.tier.feat .meta { color: rgba(245,242,236,.5); }
+
+/* ─────────────────────────────────────────────
+   COMPARE TABLE
+   ───────────────────────────────────────────── */
+.p-compare {
+  padding: 70px 22px;
+  border-top: 1px solid var(--th-border);
+  background: var(--th-paper);
+}
+@media (min-width: 700px) {
+  .p-compare { padding: 90px 44px; }
+}
+.p-compare h2 {
+  font-family: var(--th-serif);
+  font-size: clamp(26px, 3.6vw, 34px);
+  font-weight: 300;
+  text-align: center;
+  letter-spacing: -.01em;
+}
+.p-compare h2 em { font-style: italic; color: var(--th-accent); }
+.p-compare .lead {
+  text-align: center;
+  font-size: 12.5px; color: var(--th-ink-2);
+  margin-top: 8px;
+  margin-bottom: 40px;
+}
+.compare-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--th-paper-3) transparent;
+}
+.compare-wrap::-webkit-scrollbar { height: 6px; }
+.compare-wrap::-webkit-scrollbar-thumb { background: var(--th-paper-3); }
+
+.p-compare table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+.p-compare th, .p-compare td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--th-border);
+}
+.p-compare th {
+  font-family: var(--th-serif);
+  font-weight: 400;
+  font-size: 14px;
+}
+.p-compare th.tier-h {
+  text-align: center;
+  padding: 22px 18px;
+}
+.p-compare th.tier-h .nm {
+  display: block;
+  font-family: var(--th-serif);
+  font-size: 17px;
+  font-weight: 400;
+}
+.p-compare th.tier-h .pr {
+  display: block;
+  font-size: 10px; color: var(--th-ink-3);
+  margin-top: 4px; letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.p-compare td { color: var(--th-ink-2); }
+.p-compare td.center { text-align: center; }
+.p-compare td.center .y { color: var(--th-accent); font-weight: 500; }
+.p-compare td.center .n { color: var(--th-ink-3); opacity: .5; }
+.p-compare tr.section td {
+  font-family: var(--th-serif);
+  font-style: italic;
+  color: var(--th-accent);
+  font-size: 13px;
+  padding-top: 28px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--th-accent);
+}
+
+/* ─────────────────────────────────────────────
+   FAQ
+   ───────────────────────────────────────────── */
+.p-faq {
+  padding: 70px 22px;
+  background: var(--th-paper-2);
+  border-top: 1px solid var(--th-border);
+}
+@media (min-width: 700px) {
+  .p-faq { padding: 90px 44px; }
+}
+.p-faq h2 {
+  font-family: var(--th-serif);
+  font-size: clamp(26px, 3.6vw, 34px);
+  font-weight: 300;
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: -.01em;
+}
+.p-faq h2 em { font-style: italic; color: var(--th-accent); }
+.p-faq .grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 32px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+@media (min-width: 700px) {
+  .p-faq .grid { grid-template-columns: 1fr 1fr; }
+}
+.p-faq .q {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--th-border);
+}
+.p-faq .q .h {
+  font-family: var(--th-serif);
+  font-size: 17px; font-weight: 400;
+  line-height: 1.3;
+}
+.p-faq .q .a {
+  font-size: 12.5px; color: var(--th-ink-2);
+  margin-top: 10px; line-height: 1.7;
+}
+
+/* ─────────────────────────────────────────────
+   FINAL CTA (dark)
+   ───────────────────────────────────────────── */
+.p-cta {
+  padding: 80px 22px;
+  text-align: center;
+  background: var(--th-ink);
+  color: var(--th-white);
+  position: relative;
+  overflow: hidden;
+}
+.p-cta::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(184,152,106,.10) 0%, transparent 60%);
+  pointer-events: none;
+}
+@media (min-width: 700px) {
+  .p-cta { padding: 110px 44px; }
+}
+.p-cta h2 {
+  font-family: var(--th-serif);
+  font-size: clamp(28px, 4.4vw, 44px);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  position: relative;
+}
+.p-cta h2 em { font-style: italic; color: var(--th-accent); }
+.p-cta p {
+  font-size: 13.5px;
+  color: rgba(245,242,236,.65);
+  margin: 18px auto 30px;
+  max-width: 520px;
+  line-height: 1.7;
+  position: relative;
+}
+.p-cta .ctas {
+  display: flex; gap: 12px;
+  justify-content: center; flex-wrap: wrap;
+  position: relative;
+}
+.p-cta .ctas a {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 14px 22px;
+  display: inline-flex; align-items: center;
+  transition: all .2s;
+}
+.p-cta .ctas .b-gold {
+  background: var(--th-accent);
+  color: var(--th-white);
+}
+.p-cta .ctas .b-gold:hover {
+  background: var(--th-accent-3);
+}
+.p-cta .ctas .b-out {
+  color: var(--th-white);
+  border: 1px solid rgba(255,255,255,.5);
+}
+.p-cta .ctas .b-out:hover {
+  border-color: var(--th-white);
+  background: rgba(255,255,255,.05);
+}
+
+/* ─────────────────────────────────────────────
+   FOOTER (sobre)
+   ───────────────────────────────────────────── */
+.p-foot {
+  padding: 36px 22px;
+  background: var(--th-paper);
+  border-top: 1px solid var(--th-border);
+  display: flex; flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+@media (min-width: 700px) {
+  .p-foot {
+    padding: 44px;
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+.p-foot .copy {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--th-ink-3);
+}
+.p-foot .links {
+  display: flex; gap: 24px;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--th-ink-2);
+}
+.p-foot .links a:hover { color: var(--th-accent); }
+
+/* ─────────────────────────────────────────────
+   MOBILE MENU OVERLAY
+   ───────────────────────────────────────────── */
+.mobile-menu {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--th-ink);
+  color: var(--th-white);
+  z-index: 200;
+  padding: 24px;
+  transform: translateX(100%);
+  transition: transform .35s var(--th-ease);
+  display: flex; flex-direction: column;
+}
+.mobile-menu.open { transform: translateX(0); }
+.mobile-menu .head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 40px;
+}
+.mobile-menu .close {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,.15);
+  color: var(--th-white);
+  font-size: 16px;
+}
+.mobile-menu nav {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.mobile-menu nav a {
+  padding: 16px 0;
+  font-family: var(--th-serif); font-size: 22px; font-weight: 300;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.mobile-menu nav a.cur { color: var(--th-accent); }
+.mobile-menu .actions {
+  margin-top: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding-top: 24px;
+}
+.mobile-menu .actions a {
+  padding: 14px;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  text-align: center;
+}
+.mobile-menu .btn-out-light {
+  border: 1px solid rgba(255,255,255,.3);
+  color: var(--th-white);
+}
+.mobile-menu .btn-gold {
+  background: var(--th-accent);
+  color: var(--th-white);
+}
+
+/* ─────────────────────────────────────────────
+   REVEAL ON SCROLL
+   ───────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .7s var(--th-ease), transform .7s var(--th-ease);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     TOP NAV
+     ════════════════════════════════════════════ -->
+<header class="topnav">
+  <a class="logo" href="index.html">
+    <img src="logo.png" alt="TadamHome" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+    <span style="display:none;">Tadam<span class="accent">Home</span></span>
+  </a>
+  <nav class="links">
+    <a href="catalogue.html">Catalogue</a>
+    <a href="scan.html">Configurateur</a>
+    <a href="index.html#scenes">Scènes AR</a>
+    <a href="pricing.html" class="cur">Tarifs</a>
+  </nav>
+  <div class="right">
+    <a href="login.html" class="ghost">Connexion</a>
+    <a href="login.html" class="pill">Commencer</a>
+    <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+  <div class="head">
+    <span class="logo" style="font-family:var(--th-serif);font-size:22px;color:var(--th-white);">Tadam<span style="color:var(--th-accent)">Home</span></span>
+    <button class="close" id="closeMenu" aria-label="Fermer">✕</button>
+  </div>
+  <nav>
+    <a href="catalogue.html">Catalogue</a>
+    <a href="scan.html">Configurateur</a>
+    <a href="index.html#scenes">Scènes AR</a>
+    <a href="pricing.html" class="cur">Tarifs</a>
+  </nav>
+  <div class="actions">
+    <a href="login.html" class="btn-out-light">Connexion</a>
+    <a href="login.html" class="btn-gold">Commencer</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════ -->
+<section class="p-hero">
+  <div class="crumbs">Tarifs · 2026</div>
+  <h1>Trois plans, une <em>seule</em><br>plateforme AR.</h1>
+  <p>Activez votre catalogue 3D en 48 heures. Conversion automatique des modèles, dashboard temps réel, support dédié dès le premier abonnement.</p>
+  <div class="toggle-wrap" role="tablist" aria-label="Période de facturation">
+    <button id="togMonthly" role="tab" aria-selected="false">Mensuel</button>
+    <button id="togYearly" class="act" role="tab" aria-selected="true">Annuel <span class="save">— 2 mois offerts</span></button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     TIERS
+     ════════════════════════════════════════════ -->
+<section class="p-tiers">
+
+  <!-- STUDIO -->
+  <article class="tier reveal">
+    <div class="nm">Studio</div>
+    <div class="desc">Pour les marques émergentes. Jusqu'à 50 modèles 3D, 1 boutique, 1 utilisateur.</div>
+    <div class="price">
+      <div class="amt"><span class="cur">€</span><span class="num" data-monthly="350" data-yearly="290">290</span></div>
+      <div class="per per-yearly">par mois · facturation annuelle</div>
+      <div class="per per-monthly" style="display:none">par mois · facturation mensuelle</div>
+      <div class="alt alt-yearly">soit 3 480 € HT / an</div>
+      <div class="alt alt-monthly" style="display:none;color:var(--th-ink-3)">facturé chaque mois</div>
+    </div>
+    <ul class="feats">
+      <li>50 modèles 3D actifs</li>
+      <li>QR codes illimités</li>
+      <li>1 boutique connectée</li>
+      <li>Dashboard de base</li>
+      <li>Support email · 48h</li>
+      <li class="no">Conversion 3D incluse</li>
+      <li class="no">API & intégrations</li>
+      <li class="no">Account manager</li>
+    </ul>
+    <div class="cta">
+      <a class="b-out" href="login.html">Commencer l'essai · 30 j</a>
+      <span class="meta">Sans CB · Sans engagement</span>
+    </div>
+  </article>
+
+  <!-- ATELIER (FEATURED) -->
+  <article class="tier feat reveal">
+    <div class="ribbon">Le plus populaire</div>
+    <div class="nm">Atelier</div>
+    <div class="desc">Pour les marques établies. 500 modèles, 10 boutiques, dashboard complet.</div>
+    <div class="price">
+      <div class="amt"><span class="cur">€</span><span class="num" data-monthly="1070" data-yearly="890">890</span></div>
+      <div class="per per-yearly">par mois · facturation annuelle</div>
+      <div class="per per-monthly" style="display:none">par mois · facturation mensuelle</div>
+      <div class="alt alt-yearly">soit 10 680 € HT / an</div>
+      <div class="alt alt-monthly" style="display:none;color:rgba(245,242,236,.5)">facturé chaque mois</div>
+    </div>
+    <ul class="feats">
+      <li>500 modèles 3D actifs</li>
+      <li>QR codes illimités</li>
+      <li>10 boutiques connectées</li>
+      <li>Dashboard temps réel + exports</li>
+      <li>Support dédié · 4h</li>
+      <li>Conversion 3D · 50 modèles inclus</li>
+      <li>API REST + Webhooks</li>
+      <li class="no">Account manager dédié</li>
+    </ul>
+    <div class="cta">
+      <a class="b-gold" href="login.html">Demander une démo</a>
+      <span class="meta">Activation en 48 heures</span>
+    </div>
+  </article>
+
+  <!-- MAISON -->
+  <article class="tier reveal">
+    <div class="nm">Maison</div>
+    <div class="desc">Pour les groupes & enseignes internationales. Volume illimité, sur-mesure.</div>
+    <div class="price">
+      <div class="amt">Sur <em>devis</em></div>
+      <div class="per">à partir de 4 200 € / mois</div>
+      <div class="alt">Tarification personnalisée</div>
+    </div>
+    <ul class="feats">
+      <li>Modèles 3D illimités</li>
+      <li>Boutiques illimitées</li>
+      <li>Multi-marques · multi-régions</li>
+      <li>Dashboard BI + intégration data</li>
+      <li>Support 24/7 · 1h SLA</li>
+      <li>Conversion 3D illimitée</li>
+      <li>API + SDK natif iOS/Android</li>
+      <li>Account manager dédié</li>
+    </ul>
+    <div class="cta">
+      <a class="b-dark" href="mailto:contact@tadamhome.fr?subject=Demande%20pricing%20Maison">Parler aux ventes</a>
+      <span class="meta">RFP · Audit gratuit</span>
+    </div>
+  </article>
+
+</section>
+
+<!-- ════════════════════════════════════════════
+     COMPARE TABLE
+     ════════════════════════════════════════════ -->
+<section class="p-compare">
+  <h2 class="reveal">Comparer en <em>détail</em></h2>
+  <p class="lead reveal">Toutes les fonctionnalités, par plan.</p>
+  <div class="compare-wrap reveal">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th class="tier-h"><span class="nm">Studio</span><span class="pr">290 € / mois</span></th>
+          <th class="tier-h"><span class="nm">Atelier</span><span class="pr">890 € / mois</span></th>
+          <th class="tier-h"><span class="nm">Maison</span><span class="pr">Sur devis</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="section"><td colspan="4">— Bibliothèque 3D</td></tr>
+        <tr><td>Modèles 3D actifs</td><td class="center">50</td><td class="center">500</td><td class="center">Illimité</td></tr>
+        <tr><td>Conversion 3D incluse</td><td class="center"><span class="n">—</span></td><td class="center">50 / an</td><td class="center">Illimité</td></tr>
+        <tr><td>Stockage USDZ + glTF</td><td class="center">5 Go</td><td class="center">50 Go</td><td class="center">Illimité</td></tr>
+
+        <tr class="section"><td colspan="4">— Distribution</td></tr>
+        <tr><td>QR codes</td><td class="center">Illimité</td><td class="center">Illimité</td><td class="center">Illimité</td></tr>
+        <tr><td>Boutiques / showrooms</td><td class="center">1</td><td class="center">10</td><td class="center">Illimité</td></tr>
+        <tr><td>Domaine personnalisé</td><td class="center"><span class="n">—</span></td><td class="center"><span class="y">✓</span></td><td class="center"><span class="y">✓</span></td></tr>
+
+        <tr class="section"><td colspan="4">— Analytics & API</td></tr>
+        <tr><td>Dashboard temps réel</td><td class="center"><span class="y">Basique</span></td><td class="center"><span class="y">Complet</span></td><td class="center"><span class="y">BI + data export</span></td></tr>
+        <tr><td>API REST + Webhooks</td><td class="center"><span class="n">—</span></td><td class="center"><span class="y">✓</span></td><td class="center"><span class="y">✓</span></td></tr>
+        <tr><td>SDK natif iOS/Android</td><td class="center"><span class="n">—</span></td><td class="center"><span class="n">—</span></td><td class="center"><span class="y">✓</span></td></tr>
+
+        <tr class="section"><td colspan="4">— Support</td></tr>
+        <tr><td>Délai de réponse</td><td class="center">48 h</td><td class="center">4 h</td><td class="center">1 h · 24/7</td></tr>
+        <tr><td>Account manager dédié</td><td class="center"><span class="n">—</span></td><td class="center"><span class="n">—</span></td><td class="center"><span class="y">✓</span></td></tr>
+        <tr><td>Onboarding personnalisé</td><td class="center"><span class="n">—</span></td><td class="center"><span class="y">✓</span></td><td class="center"><span class="y">✓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     FAQ
+     ════════════════════════════════════════════ -->
+<section class="p-faq">
+  <h2 class="reveal">Questions <em>fréquentes</em></h2>
+  <div class="grid">
+    <div class="q reveal"><div class="h">Comment se passe la conversion de mes modèles 3D ?</div><div class="a">Vous nous envoyez vos fichiers (Blender, Maya, 3DS Max, Rhino). Notre pipeline les optimise automatiquement pour le navigateur — décimation, baking de textures, conversion USDZ + glTF. Délai moyen : 48 h.</div></div>
+    <div class="q reveal"><div class="h">Mes clients ont-ils besoin d'une application ?</div><div class="a">Non. L'AR est lancée directement depuis Safari (iOS) ou Chrome (Android) via WebXR. Aucun téléchargement, aucune friction.</div></div>
+    <div class="q reveal"><div class="h">Puis-je changer de plan en cours d'année ?</div><div class="a">Oui, à tout moment. La différence est calculée au prorata et facturée sur le mois suivant. Aucun frais de migration.</div></div>
+    <div class="q reveal"><div class="h">Quels formats 3D acceptez-vous ?</div><div class="a">FBX, OBJ, GLB/glTF, USDZ, Blender (.blend), 3DS Max (.max), Rhino (.3dm), SketchUp (.skp). Si votre format n'est pas listé, parlez-nous-en.</div></div>
+    <div class="q reveal"><div class="h">Qui possède les modèles 3D convertis ?</div><div class="a">Vous. Le contrat est clair : nous hébergeons et distribuons, mais les fichiers sources et leurs dérivés vous appartiennent. Exportables à tout moment.</div></div>
+    <div class="q reveal"><div class="h">Y a-t-il un engagement ?</div><div class="a">L'essai 30 jours est sans engagement. Au-delà, l'abonnement est mensuel ou annuel — résiliable au terme.</div></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     FINAL CTA (DARK)
+     ════════════════════════════════════════════ -->
+<section class="p-cta">
+  <h2>Pas sûr du plan adapté ?<br>Parlons-en <em>30 minutes</em>.</h2>
+  <p>Un account manager qualifie votre catalogue, votre volume cible, vos besoins d'intégration — et vous propose le plan adapté. Sans engagement.</p>
+  <div class="ctas">
+    <a class="b-gold" href="mailto:contact@tadamhome.fr?subject=R%C3%A9server%20un%20cr%C3%A9neau%20de%20d%C3%A9mo">Réserver un créneau</a>
+    <a class="b-out" href="#" id="dlGrid">Télécharger la grille tarifaire</a>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════ -->
+<footer class="p-foot">
+  <div class="copy">© 2026 TadamHome — Tous droits réservés</div>
+  <div class="links">
+    <a href="terms.html">CGV</a>
+    <a href="privacy.html">Confidentialité</a>
+    <a href="mailto:contact@tadamhome.fr">Contact</a>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════
+     SCRIPT
+     ════════════════════════════════════════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ─ TOGGLE Mensuel/Annuel ─ */
+  const togMonthly = document.getElementById('togMonthly');
+  const togYearly  = document.getElementById('togYearly');
+
+  function setBilling(period) {
+    const isMonthly = period === 'monthly';
+
+    togMonthly.classList.toggle('act', isMonthly);
+    togYearly.classList.toggle('act', !isMonthly);
+    togMonthly.setAttribute('aria-selected', isMonthly);
+    togYearly.setAttribute('aria-selected', !isMonthly);
+
+    // Met à jour les prix
+    document.querySelectorAll('.tier .num[data-monthly]').forEach(el => {
+      el.textContent = isMonthly ? el.dataset.monthly : el.dataset.yearly;
+    });
+
+    // Bascule les libellés "par mois · annuel" / "par mois · mensuel"
+    document.querySelectorAll('.per-yearly').forEach(el => {
+      el.style.display = isMonthly ? 'none' : '';
+    });
+    document.querySelectorAll('.per-monthly').forEach(el => {
+      el.style.display = isMonthly ? '' : 'none';
+    });
+    document.querySelectorAll('.alt-yearly').forEach(el => {
+      el.style.display = isMonthly ? 'none' : '';
+    });
+    document.querySelectorAll('.alt-monthly').forEach(el => {
+      el.style.display = isMonthly ? '' : 'none';
+    });
+  }
+
+  togMonthly.addEventListener('click', () => setBilling('monthly'));
+  togYearly.addEventListener('click', () => setBilling('yearly'));
+
+  /* ─ MOBILE MENU ─ */
+  const burger    = document.getElementById('burger');
+  const closeMenu = document.getElementById('closeMenu');
+  const menu      = document.getElementById('mobileMenu');
+
+  if (burger && closeMenu && menu) {
+    burger.addEventListener('click', () => {
+      menu.classList.add('open');
+      menu.setAttribute('aria-hidden', 'false');
+      burger.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    });
+    closeMenu.addEventListener('click', () => {
+      menu.classList.remove('open');
+      menu.setAttribute('aria-hidden', 'true');
+      burger.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    });
+    menu.querySelectorAll('nav a').forEach(a =>
+      a.addEventListener('click', () => closeMenu.click())
+    );
+  }
+
+  /* ─ "Télécharger la grille tarifaire" — placeholder mailto ─ */
+  const dlGrid = document.getElementById('dlGrid');
+  if (dlGrid) {
+    dlGrid.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'mailto:contact@tadamhome.fr?subject=Demande%20de%20la%20grille%20tarifaire&body=Bonjour%2C%0D%0A%0D%0AJe%20souhaite%20recevoir%20la%20grille%20tarifaire%20compl%C3%A8te%20de%20TadamHome.%0D%0A%0D%0AMerci.';
+    });
+  }
+
+  /* ─ REVEAL ON SCROLL ─ */
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+  }
+});
+</script>
+
+</body>
+</html>
