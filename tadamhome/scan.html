@@ -777,8 +777,10 @@
       auto-rotate
       auto-rotate-delay="5000"
       rotation-per-second="20deg"
-      exposure="1"
-      shadow-intensity="0"
+      exposure="1.1"
+      shadow-intensity="1"
+      shadow-softness="0.8"
+      environment-image="neutral"
       ar
       ar-modes="webxr scene-viewer quick-look"
       ar-scale="auto"
@@ -1176,9 +1178,29 @@
     const price = formatPrice(p.price || p.prix);
     if (price) document.getElementById('price-num').textContent = price;
 
-    // Dimensions
-    const dimensions = p.dimensions || p.dimension || p.size || p.sizes;
-    if (dimensions) document.getElementById('info-dim').textContent = dimensions;
+    // Dimensions — peut être une string ("240 × 70 × 68 cm") ou un objet ({width, height, depth, ...})
+    const dimRaw = p.dimensions || p.dimension || p.size || p.sizes;
+    if (dimRaw) {
+      let dimStr = '';
+      if (typeof dimRaw === 'string') {
+        dimStr = dimRaw;
+      } else if (typeof dimRaw === 'object') {
+        // Cherche les clés courantes (width/height/depth, largeur/hauteur/profondeur, w/h/d, l/p/h)
+        const w = dimRaw.width ?? dimRaw.largeur ?? dimRaw.w ?? dimRaw.l ?? dimRaw.longueur;
+        const h = dimRaw.height ?? dimRaw.hauteur ?? dimRaw.h;
+        const d = dimRaw.depth ?? dimRaw.profondeur ?? dimRaw.d ?? dimRaw.p;
+        const parts = [w, d, h].filter(v => v !== undefined && v !== null && v !== '');
+        if (parts.length) {
+          const unit = dimRaw.unit || dimRaw.unite || 'cm';
+          dimStr = `${parts.join(' × ')} ${unit}`;
+        } else {
+          // Fallback : on prend toutes les valeurs numériques de l'objet
+          const nums = Object.values(dimRaw).filter(v => typeof v === 'number' || /^\d/.test(String(v)));
+          if (nums.length) dimStr = nums.join(' × ') + ' cm';
+        }
+      }
+      if (dimStr) document.getElementById('info-dim').textContent = dimStr;
+    }
 
     // Coloris / matière — matiere || material (cf. catalogue.html)
     const matiere = p.matiere || p.material;
