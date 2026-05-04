@@ -665,126 +665,121 @@
     to { background-position: -200% 0; }
   /* ══════════════════════════════════════════════════════════
      EFFET "TADAM" — burst doré à l'ouverture du studio AR Multi
-     Joué pendant ~900ms avant de naviger vers ar-scene.html.
+     Joué pendant ~900ms avant de naviguer vers ar-scene.html.
      ══════════════════════════════════════════════════════════ */
+
+  /* Overlay cream qui monte progressivement pour faire la transition */
   .tadam-overlay {
-    position: fixed; inset: 0; z-index: 9999;
+    position: fixed; inset: 0; z-index: 9998;
     pointer-events: none;
+    background: #F5F2EC;
     opacity: 0;
-    background: radial-gradient(circle at center,
-      rgba(245, 242, 236, 0) 0%,
-      rgba(245, 242, 236, 0) 40%,
-      rgba(245, 242, 236, 0.95) 100%);
-    transition: opacity .35s ease-out;
+    transition: opacity .45s ease-out;
   }
   .tadam-overlay.dissolve { opacity: 1; }
 
-  /* Le ring qui explose depuis le modèle */
+  /* Premier anneau doré qui explose vers l'extérieur */
   .tadam-ring {
-    position: fixed; left: 50%; top: 50%;
-    width: 60px; height: 60px;
-    margin-left: -30px; margin-top: -30px;
-    border: 2px solid #B8986A;
+    position: fixed;
+    width: 80px; height: 80px;
+    margin-left: -40px; margin-top: -40px;
+    border: 4px solid #B8986A;
     border-radius: 50%;
     z-index: 10000;
     pointer-events: none;
     opacity: 0;
-    transform: scale(0.3);
+    transform: scale(0.2);
     box-shadow:
-      0 0 0 0 rgba(184, 152, 106, 0.4),
-      inset 0 0 20px rgba(184, 152, 106, 0.3);
+      0 0 30px rgba(184, 152, 106, 0.8),
+      inset 0 0 20px rgba(184, 152, 106, 0.5);
   }
   .tadam-ring.burst {
-    animation: tadam-ring-burst 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: tadam-ring-burst 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   @keyframes tadam-ring-burst {
-    0%   { opacity: 0; transform: scale(0.3); border-width: 3px; }
-    15%  { opacity: 1; transform: scale(1);   border-width: 3px; }
-    100% { opacity: 0; transform: scale(18);  border-width: 1px; }
+    0%   { opacity: 0; transform: scale(0.2);  border-width: 5px; }
+    20%  { opacity: 1; transform: scale(1);    border-width: 4px; }
+    100% { opacity: 0; transform: scale(20);   border-width: 1px; }
   }
 
-  /* Un second ring décalé pour densifier le burst */
+  /* Second anneau décalé pour densifier */
   .tadam-ring-2 {
-    position: fixed; left: 50%; top: 50%;
-    width: 60px; height: 60px;
-    margin-left: -30px; margin-top: -30px;
-    border: 1.5px solid #B8986A;
+    position: fixed;
+    width: 80px; height: 80px;
+    margin-left: -40px; margin-top: -40px;
+    border: 3px solid #B8986A;
     border-radius: 50%;
     z-index: 10000;
     pointer-events: none;
     opacity: 0;
-    transform: scale(0.3);
+    transform: scale(0.2);
   }
   .tadam-ring-2.burst {
-    animation: tadam-ring-burst-2 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
+    animation: tadam-ring-burst-2 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
   }
   @keyframes tadam-ring-burst-2 {
-    0%   { opacity: 0;   transform: scale(0.3); }
-    20%  { opacity: 0.8; transform: scale(1.2); }
-    100% { opacity: 0;   transform: scale(14);  }
+    0%   { opacity: 0;   transform: scale(0.2);  }
+    25%  { opacity: 0.9; transform: scale(1.4);  }
+    100% { opacity: 0;   transform: scale(16);   }
   }
 
-  /* Les 8 rayons qui irradient en étoile */
+  /* Rayons en étoile : transform rotation calculée en JS via inline style.
+     L'animation joue uniquement sur scaleY + translateY pour ne pas
+     écraser la rotation. */
   .tadam-ray {
-    position: fixed; left: 50%; top: 50%;
-    width: 2px; height: 60px;
-    margin-left: -1px; margin-top: -30px;
+    position: fixed;
+    width: 4px; height: 80px;
+    margin-left: -2px; margin-top: -40px;
     background: linear-gradient(to top,
       rgba(184, 152, 106, 0) 0%,
-      rgba(184, 152, 106, 0.9) 50%,
+      rgba(184, 152, 106, 1) 40%,
       rgba(255, 235, 200, 1) 100%);
     transform-origin: 50% 100%;
     z-index: 10000;
     pointer-events: none;
     opacity: 0;
+    box-shadow: 0 0 12px rgba(184, 152, 106, 0.7);
   }
   .tadam-ray.burst {
-    animation: tadam-ray-burst 600ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+    animation: tadam-ray-burst 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
   }
   @keyframes tadam-ray-burst {
-    0%   { opacity: 0; transform: var(--ray-rot) translateY(0)     scaleY(0.3); }
-    20%  { opacity: 1; transform: var(--ray-rot) translateY(-20px) scaleY(1);   }
-    100% { opacity: 0; transform: var(--ray-rot) translateY(-160px) scaleY(0.4); }
+    0%   { opacity: 0; }
+    25%  { opacity: 1; }
+    100% { opacity: 0; }
   }
 
-  /* Flash central */
+  /* Flash central — pulse lumineux */
   .tadam-flash {
-    position: fixed; left: 50%; top: 50%;
-    width: 200px; height: 200px;
-    margin-left: -100px; margin-top: -100px;
+    position: fixed;
+    width: 280px; height: 280px;
+    margin-left: -140px; margin-top: -140px;
     background: radial-gradient(circle,
-      rgba(255, 235, 200, 0.95) 0%,
-      rgba(184, 152, 106, 0.5) 40%,
-      transparent 70%);
+      rgba(255, 235, 200, 1) 0%,
+      rgba(184, 152, 106, 0.7) 35%,
+      rgba(184, 152, 106, 0) 70%);
     border-radius: 50%;
     z-index: 10000;
     pointer-events: none;
     opacity: 0;
     transform: scale(0);
-    filter: blur(8px);
+    filter: blur(12px);
   }
   .tadam-flash.burst {
-    animation: tadam-flash-burst 500ms ease-out forwards;
+    animation: tadam-flash-burst 600ms ease-out forwards;
   }
   @keyframes tadam-flash-burst {
     0%   { opacity: 0;   transform: scale(0);   }
-    25%  { opacity: 1;   transform: scale(1.4); }
-    60%  { opacity: 0.6; transform: scale(2.2); }
-    100% { opacity: 0;   transform: scale(3);   }
+    25%  { opacity: 1;   transform: scale(1.6); }
+    65%  { opacity: 0.7; transform: scale(2.6); }
+    100% { opacity: 0;   transform: scale(3.6); }
   }
 
   /* Le model-viewer pulse légèrement avant le burst */
   #mv.tadam-charging {
-    animation: tadam-charge 200ms ease-out forwards;
-  }
-  @keyframes tadam-charge {
-    0%   { transform: scale(1);     filter: brightness(1); }
-    100% { transform: scale(1.04);  filter: brightness(1.15) drop-shadow(0 0 24px rgba(184, 152, 106, 0.6)); }
-  }
-  /* Et reste stable pendant qu'on dissolve l'écran */
-  #mv.tadam-bursting {
+    transition: transform 200ms ease-out, filter 200ms ease-out;
     transform: scale(1.04);
-    filter: brightness(1.15) drop-shadow(0 0 24px rgba(184, 152, 106, 0.6));
+    filter: brightness(1.2) drop-shadow(0 0 30px rgba(184, 152, 106, 0.7));
   }
 </style>
 </head>
@@ -1479,7 +1474,6 @@
         console.log('[tadam] Phase 2 : burst');
         // Phase 2 — burst : injecte les éléments d'animation centrés sur le modèle
         mv.classList.remove('tadam-charging');
-        mv.classList.add('tadam-bursting');
 
         // Helper pour positionner un élément absolu au centre du modèle
         const placeAt = (el) => {
@@ -1491,37 +1485,36 @@
         const flash = document.createElement('div');
         flash.className = 'tadam-flash';
         placeAt(flash);
-        flash.style.marginLeft = '-100px';
-        flash.style.marginTop  = '-100px';
         document.body.appendChild(flash);
 
         // Premier anneau
         const ring = document.createElement('div');
         ring.className = 'tadam-ring';
         placeAt(ring);
-        ring.style.marginLeft = '-30px';
-        ring.style.marginTop  = '-30px';
         document.body.appendChild(ring);
 
         // Second anneau (décalé)
         const ring2 = document.createElement('div');
         ring2.className = 'tadam-ring-2';
         placeAt(ring2);
-        ring2.style.marginLeft = '-30px';
-        ring2.style.marginTop  = '-30px';
         document.body.appendChild(ring2);
 
-        // 8 rayons qui irradient en étoile
+        // 8 rayons qui irradient en étoile.
+        // La rotation est appliquée via inline-style (NOT une variable CSS),
+        // pour éviter le combo `var(--rot) translateY(...)` qui pose souci sur certains browsers.
+        // L'animation CSS (.tadam-ray.burst) joue uniquement sur l'opacity ;
+        // on anime le translateY en JS pour ne pas écraser la rotation.
         const rays = [];
+        const RAY_TRAVEL_PX = 220; // distance maximale d'éloignement
         for (let i = 0; i < 8; i++) {
+          const angleDeg = i * 45;
           const ray = document.createElement('div');
           ray.className = 'tadam-ray';
           placeAt(ray);
-          ray.style.marginLeft = '-1px';
-          ray.style.marginTop  = '-30px';
-          ray.style.setProperty('--ray-rot', `rotate(${i * 45}deg)`);
+          // Rotation initiale
+          ray.style.transform = `rotate(${angleDeg}deg) translateY(-10px)`;
           document.body.appendChild(ray);
-          rays.push(ray);
+          rays.push({ el: ray, angle: angleDeg });
         }
 
         // Overlay cream pour le fade final
@@ -1530,13 +1523,29 @@
         document.body.appendChild(overlay);
 
         // Force le reflow puis déclenche les animations CSS
-        // (sans ça, l'animation pourrait ne pas se déclencher si l'élément vient d'être ajouté)
         void flash.offsetWidth;
 
         flash.classList.add('burst');
         ring.classList.add('burst');
         ring2.classList.add('burst');
-        rays.forEach(r => r.classList.add('burst'));
+        rays.forEach(r => r.el.classList.add('burst'));
+
+        // Anime la translation des rayons en JS (préserve la rotation initiale)
+        const rayStart = performance.now();
+        const RAY_DURATION = 700;
+        const RAY_DELAY = 120;
+        function animateRays(now) {
+          const elapsed = now - rayStart - RAY_DELAY;
+          const t = Math.max(0, Math.min(1, elapsed / RAY_DURATION));
+          // easing : cubic-bezier(0.16, 1, 0.3, 1) approximé
+          const eased = 1 - Math.pow(1 - t, 3);
+          const distance = eased * RAY_TRAVEL_PX;
+          rays.forEach(r => {
+            r.el.style.transform = `rotate(${r.angle}deg) translateY(${-10 - distance}px)`;
+          });
+          if (t < 1) requestAnimationFrame(animateRays);
+        }
+        requestAnimationFrame(animateRays);
 
         // Phase 3 — dissolve : commence à 350ms après le burst
         setTimeout(() => {
