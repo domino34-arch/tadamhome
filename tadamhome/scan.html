@@ -170,8 +170,7 @@
     border-left: 1px solid var(--th-border);
     position: relative;
     min-width: 0;
-    /* padding-bottom large pour éviter que le contenu soit caché par le cta-block fixed */
-    padding-bottom: 320px;
+    padding-bottom: 280px; /* espace pour le cta-block ancré */
   }
   .info .meta-line {
     font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
@@ -330,21 +329,17 @@
     padding-bottom: 6px;
   }
 
-  /* CTA block — toujours visible, ancré bas-droit dans la largeur de la colonne info */
+  /* CTA block — ancré au bas de la colonne info, contenu STRICTEMENT dans la colonne
+     (left/right alignés sur le padding intérieur de .info pour ne pas déborder sur le viewer 3D) */
   .info .cta-block {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    /* Largeur de la colonne info = 1fr / (1.4fr + 1fr) = ~41.67% du viewport */
-    width: calc(100vw / 2.4);
-    left: auto;
+    position: absolute;
+    left: 32px; right: 32px;
+    bottom: 32px;
     display: flex; flex-direction: column; gap: 8px;
-    padding: 16px 32px 24px;
-    background: var(--th-paper);
+    padding-top: 14px;
     border-top: 1px solid var(--th-border);
-    border-left: 1px solid var(--th-border);
-    box-shadow: 0 -8px 24px rgba(28,27,24,.04);
-    z-index: 40;
+    background: var(--th-paper);
+    z-index: 3;
   }
   .info .cta-block .save-row {
     display: flex; gap: 8px; flex-wrap: nowrap;
@@ -460,8 +455,71 @@
     font-size: 11px; color: var(--th-ink-2); margin-top: 6px;
   }
 
-  /* Sticky CTA bar — désactivée car le cta-block est désormais toujours visible */
-  .cta-sticky { display: none !important; }
+  .mobile-cta-bar { display: none; }
+
+  /* Sticky CTA bar — desktop, apparaît au scroll quand le cta-block original sort du viewport */
+  .cta-sticky {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(245, 242, 236, 0.96);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--th-border);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease-out;
+    max-width: calc(100vw - 48px);
+  }
+  .cta-sticky.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .cta-sticky button {
+    border: 1px solid var(--th-border);
+    background: var(--th-paper);
+    padding: 9px 14px;
+    font-family: var(--th-sans);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--th-ink-2);
+    white-space: nowrap;
+    transition: all 0.18s ease;
+  }
+  .cta-sticky button:hover {
+    background: var(--th-accent);
+    color: white;
+    border-color: var(--th-accent);
+  }
+  .cta-sticky button.ar-mono { background: var(--th-paper-2); }
+  .cta-sticky button.ar-multi {
+    background: var(--th-ink);
+    color: var(--th-paper);
+    border-color: var(--th-ink);
+  }
+  .cta-sticky button.ar-multi:hover {
+    background: var(--th-accent);
+    border-color: var(--th-accent);
+  }
+  .cta-sticky .sep { width: 1px; height: 24px; background: var(--th-border); }
+  .cta-sticky button.is-active {
+    background: var(--th-accent);
+    color: white;
+    border-color: var(--th-accent);
+  }
 
   /* ─────────────────────────────────────────────
      Responsive — mobile à 768px
