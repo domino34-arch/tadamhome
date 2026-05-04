@@ -18,25 +18,19 @@
 html,body{min-height:100vh;font-family:var(--sans);color:var(--ink);font-weight:300;}
 body{display:grid;grid-template-columns:1fr 1fr}
 
-/* ── LEFT PANEL ── */
-.left{background:var(--ink);display:flex;flex-direction:column;justify-content:space-between;padding:48px 56px;position:relative;overflow:hidden;min-height:100vh}
-.left::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(184,152,106,.07) 0%,transparent 60%);pointer-events:none}
-.left-grid{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(184,152,106,.04) 59px,rgba(184,152,106,.04) 60px),repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(184,152,106,.04) 59px,rgba(184,152,106,.04) 60px)}
-.left-logo{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--white);text-decoration:none;letter-spacing:.02em;position:relative;z-index:1}
+/* ── LEFT PANEL — VIDEO IMMERSIVE (wireframe V1) ── */
+.left{background:var(--ink);position:relative;overflow:hidden;min-height:100vh}
+.left video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85;z-index:0}
+.left-grid{position:absolute;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(184,152,106,.06) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(184,152,106,.06) 79px 80px)}
+.left-veil{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(28,27,24,.35) 0%,rgba(28,27,24,.15) 30%,rgba(28,27,24,0) 50%,rgba(28,27,24,.55) 100%)}
+.left-logo{position:absolute;top:32px;left:32px;z-index:3;font-family:var(--serif);font-size:22px;font-weight:500;color:var(--white);text-decoration:none;letter-spacing:.02em;display:inline-flex;align-items:center}
+.left-logo img{height:24px;width:auto;object-fit:contain;display:block}
 .left-logo span{color:var(--accent)}
-.left-center{position:relative;z-index:1}
-.left-eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--acc2);margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.left-eyebrow::before{content:'';width:28px;height:1px;background:var(--acc2)}
-.left-h2{font-family:var(--serif);font-size:clamp(34px,3.2vw,50px);font-weight:300;line-height:1.12;color:var(--white);margin-bottom:20px}
-.left-h2 em{font-style:italic;color:var(--acc2)}
-.left-p{font-size:13px;color:rgba(255,255,255,.4);line-height:1.85;max-width:320px}
-.left-stats{display:flex;gap:0;position:relative;z-index:1}
-.l-stat{padding:20px 28px 20px 0;border-right:1px solid rgba(255,255,255,.07);margin-right:28px}
-.l-stat:last-child{border-right:none;margin-right:0}
-.l-stat-n{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--white);line-height:1;margin-bottom:4px}
-.l-stat-n span{color:var(--accent)}
-.l-stat-l{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--sans)}
-.left-illustration{position:absolute;bottom:80px;right:0;width:65%;opacity:.15}
+.left-bottom{position:absolute;left:32px;right:32px;bottom:32px;z-index:3;color:var(--white)}
+.left-quote{font-family:var(--serif);font-size:22px;font-weight:300;line-height:1.3;max-width:480px;color:var(--white)}
+.left-quote em{font-style:italic;color:var(--acc2)}
+.left-author{font-size:9px;letter-spacing:.20em;text-transform:uppercase;color:rgba(250,250,248,.55);margin-top:18px;display:inline-flex;align-items:center;gap:12px;font-family:var(--sans)}
+.left-author::before{content:'';width:24px;height:1px;background:rgba(250,250,248,.4)}
 
 /* ── RIGHT PANEL ── */
 .right{background:var(--bg);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 48px;position:relative;min-height:100vh}
@@ -51,6 +45,8 @@ body{display:grid;grid-template-columns:1fr 1fr}
 .tab.act{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* FORM TITLES */
+.form-eyb{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:10px;margin-bottom:14px;font-family:var(--sans)}
+.form-eyb::before{content:'';width:24px;height:1px;background:var(--accent)}
 .form-title{font-family:var(--serif);font-size:34px;font-weight:300;margin-bottom:6px;line-height:1.15}
 .form-title em{font-style:italic;color:var(--accent)}
 .form-sub{font-size:13px;color:var(--ink3);margin-bottom:32px;line-height:1.7;font-family:var(--sans)}
@@ -61,8 +57,9 @@ body{display:grid;grid-template-columns:1fr 1fr}
 .field input{width:100%;padding:13px 16px;border:1px solid rgba(28,27,24,.13);background:var(--white);color:var(--ink);font-family:var(--sans);font-size:13px;font-weight:300;outline:none;transition:border-color .2s}
 .field input:focus{border-color:var(--accent);background:var(--white)}
 .field input::placeholder{color:var(--ink3)}
+.field .helper{display:block;font-size:11px;color:var(--ink3);margin-top:6px;letter-spacing:.02em;line-height:1.5;font-family:var(--sans)}
 .pw-wrap{position:relative}
-.pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);transition:color .2s;padding:0}
+.pw-toggle{position:absolute;right:14px;top:23px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);transition:color .2s;padding:0}
 .pw-toggle:hover{color:var(--accent)}
 .forgot{display:block;text-align:right;font-size:11px;color:var(--ink3);text-decoration:none;margin-top:-10px;margin-bottom:18px;transition:color .2s;font-family:var(--sans);letter-spacing:.04em}
 .forgot:hover{color:var(--accent)}
@@ -73,15 +70,37 @@ body{display:grid;grid-template-columns:1fr 1fr}
 .ok-msg{font-size:12px;color:var(--acc3);padding:10px 14px;background:rgba(160,122,74,.08);border-left:2px solid var(--accent);margin-bottom:16px;display:none;font-family:var(--sans);line-height:1.6}
 .ok-msg.show{display:block}
 
+/* SOCIALS (sign-up) */
+.socials{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:18px}
+@media(min-width:480px){.socials{grid-template-columns:1fr 1fr}}
+.btn-social{width:100%;padding:12px 14px;background:var(--white);color:var(--ink);border:1px solid rgba(28,27,24,.13);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:border-color .2s,background .2s;display:inline-flex;align-items:center;justify-content:center;gap:9px}
+.btn-social:hover{border-color:var(--ink)}
+.btn-social:disabled{opacity:.5;cursor:not-allowed}
+.btn-social svg{width:14px;height:14px;flex-shrink:0}
+
+/* DIVIDER (sign-up) */
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(28,27,24,.1)}
+.divider span{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:var(--sans)}
+
+/* CHECKBOX (sign-up CGV) */
+.checkbox{display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:18px;user-select:none}
+.checkbox .box{width:14px;height:14px;border:1px solid var(--ink2);flex-shrink:0;margin-top:2px;position:relative;transition:background .15s,border-color .15s}
+.checkbox.on .box{background:var(--ink);border-color:var(--ink)}
+.checkbox.on .box::after{content:'';position:absolute;left:3px;top:0;width:5px;height:9px;border-right:1px solid var(--white);border-bottom:1px solid var(--white);transform:rotate(45deg)}
+.checkbox span.txt{font-size:11px;color:var(--ink2);line-height:1.6;font-family:var(--sans)}
+.checkbox a{color:var(--accent);border-bottom:1px solid var(--accent);text-decoration:none}
+.checkbox a:hover{opacity:.75}
+
 /* BUTTONS */
 .btn-submit{width:100%;padding:15px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px}
 .btn-submit:hover{background:var(--accent)}
 .btn-submit:disabled{background:var(--ink3);cursor:not-allowed}
 .btn-secondary{display:block;width:100%;padding:14px;background:transparent;color:var(--accent);border:1px solid rgba(184,152,106,.35);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center;text-decoration:none}
 .btn-secondary:hover{background:rgba(184,152,106,.05);border-color:var(--accent)}
-.divider{display:flex;align-items:center;gap:12px;margin:20px 0}
-.divider hr{flex:1;border:none;border-top:1px solid rgba(28,27,24,.1)}
-.divider span{font-size:10px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;font-family:var(--sans)}
+.divider-legacy{display:flex;align-items:center;gap:12px;margin:20px 0}
+.divider-legacy hr{flex:1;border:none;border-top:1px solid rgba(28,27,24,.1)}
+.divider-legacy span{font-size:10px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;font-family:var(--sans)}
 .switch-link{text-align:center;font-size:12px;color:var(--ink3);font-family:var(--sans)}
 .switch-link a{color:var(--accent);text-decoration:none}
 .switch-link a:hover{opacity:.7}
@@ -101,32 +120,18 @@ body{display:grid;grid-template-columns:1fr 1fr}
 </head>
 <body>
 
-<!-- LEFT PANEL -->
+<!-- LEFT PANEL — VIDEO IMMERSIVE -->
 <div class="left">
+  <video src="TADAMHOME_VIDEO.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
   <div class="left-grid"></div>
-  <a href="index.html" class="left-logo"><img src="logo_blanc.png" alt="TadamHome" style="height:26px;object-fit:contain;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/><span style="display:none">Tadam<span style='color:var(--accent)'>Home</span></span></a>
-  <div class="left-center">
-    <div class="left-eyebrow">Plateforme AR — V2.0</div>
-    <h2 class="left-h2">Le mobilier mondial,<br>en <em>réalité augmentée</em></h2>
-    <p class="left-p">Accédez à 48 000+ modèles de mobilier international et visualisez-les en AR dans vos espaces clients.</p>
+  <div class="left-veil"></div>
+  <a href="index.html" class="left-logo" aria-label="TadamHome — accueil">
+    <img src="logo_blanc.png" alt="TadamHome" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/><span style="display:none">Tadam<span style='color:var(--accent)'>Home</span></span>
+  </a>
+  <div class="left-bottom">
+    <p class="left-quote">« Composer mon salon avec trois marques différentes, chez moi, en AR — <em>c'est devenu une évidence.</em> »</p>
+    <p class="left-author">Hélène M. · Architecte d'intérieur · Paris</p>
   </div>
-  <div class="left-stats">
-    <div class="l-stat"><div class="l-stat-n">48<span>K</span></div><div class="l-stat-l">Modèles 3D</div></div>
-    <div class="l-stat"><div class="l-stat-n">320<span>+</span></div><div class="l-stat-l">Marques</div></div>
-    <div class="l-stat"><div class="l-stat-n">AR</div><div class="l-stat-l">Natif iOS & Android</div></div>
-  </div>
-  <svg class="left-illustration" viewBox="0 0 400 280" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="0,280 0,70 200,30 400,70 400,280" fill="rgba(255,255,255,.06)"/>
-    <polygon points="0,70 200,30 200,170 0,210" fill="rgba(255,255,255,.04)"/>
-    <polygon points="200,30 400,70 400,210 200,170" fill="rgba(255,255,255,.03)"/>
-    <rect x="60" y="180" width="220" height="70" rx="8" fill="rgba(255,255,255,.12)"/>
-    <rect x="60" y="162" width="220" height="24" rx="5" fill="rgba(255,255,255,.08)"/>
-    <rect x="100" y="248" width="4" height="20" fill="rgba(255,255,255,.08)"/>
-    <rect x="276" y="248" width="4" height="20" fill="rgba(255,255,255,.08)"/>
-    <ellipse cx="170" cy="262" rx="80" ry="10" stroke="rgba(184,152,106,.5)" stroke-width="1" stroke-dasharray="5 4" fill="none">
-      <animate attributeName="rx" values="80;88;80" dur="3s" repeatCount="indefinite"/>
-    </ellipse>
-  </svg>
 </div>
 
 <!-- RIGHT PANEL -->
@@ -140,7 +145,7 @@ body{display:grid;grid-template-columns:1fr 1fr}
       <button class="tab" id="tabSignup" onclick="showTab('signup')">Créer un compte</button>
     </div>
 
-    <!-- ══ LOGIN ══ -->
+    <!-- ══ LOGIN (tab Connexion — INTACT) ══ -->
     <div class="panel act" id="panelLogin">
       <h2 class="form-title">Bon<br><em>retour.</em></h2>
       <p class="form-sub">Connectez-vous à votre espace enseigne.</p>
@@ -161,28 +166,58 @@ body{display:grid;grid-template-columns:1fr 1fr}
       <div class="switch-link">Nouveau sur TadamHome ? <a href="#" onclick="showTab('signup');return false">Créer un compte</a></div>
     </div>
 
-    <!-- ══ SIGNUP ══ -->
+    <!-- ══ SIGNUP (V1 wireframe — Split-screen éditorial) ══ -->
     <div class="panel" id="panelSignup">
-      <h2 class="form-title">Rejoindre<br><em>TadamHome.</em></h2>
-      <p class="form-sub">Accès gratuit à toute la plateforme AR — aucune carte bancaire requise.</p>
+      <div class="form-eyb">Création de compte</div>
+      <h2 class="form-title">Composez<br>votre <em>intérieur.</em></h2>
+      <p class="form-sub">Un compte pour sauvegarder vos sélections, accéder à l'AR et suivre vos commandes — chez les 320 marques partenaires.</p>
+
       <div class="err-msg" id="signupErr"></div>
       <div class="ok-msg"  id="signupOk"></div>
-      <div class="field"><label>Prénom & Nom</label><input type="text" id="signupName" placeholder="Sophie Martin" autocomplete="name"/></div>
-      <div class="field"><label>Adresse e-mail</label><input type="email" id="signupEmail" placeholder="vous@email.com" autocomplete="email"/></div>
-      <div class="field"><label>Mot de passe</label>
+
+      <!-- OAuth Apple + Google -->
+      <div class="socials">
+        <button type="button" class="btn-social" id="btnApple" onclick="signupOAuth('apple')">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          Continuer avec Apple
+        </button>
+        <button type="button" class="btn-social" id="btnGoogle" onclick="signupOAuth('google')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continuer avec Google
+        </button>
+      </div>
+
+      <div class="divider"><span>ou</span></div>
+
+      <!-- Email + password -->
+      <div class="field">
+        <label>Adresse e-mail</label>
+        <input type="email" id="signupEmail" placeholder="vous@email.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
         <div class="pw-wrap">
-          <input type="password" id="signupPw" placeholder="8 caractères minimum" autocomplete="new-password"/>
+          <input type="password" id="signupPw" placeholder="Au moins 8 caractères" autocomplete="new-password"/>
           <button class="pw-toggle" onclick="togglePw('signupPw',this)" tabindex="-1">👁</button>
         </div>
+        <span class="helper">Une majuscule, un chiffre, un caractère spécial.</span>
       </div>
+
+      <!-- CGV checkbox -->
+      <label class="checkbox on" id="cguCheckbox" onclick="toggleCgu(event)">
+        <span class="box"></span>
+        <span class="txt">J'accepte les <a href="terms.html" onclick="event.stopPropagation()">conditions générales</a> et la <a href="privacy.html" onclick="event.stopPropagation()">politique de confidentialité</a>.</span>
+      </label>
+
       <button class="btn-submit" id="btn-signup" onclick="signup()">
         <div class="spinner" id="spinSignup"></div>
-        <span id="lblSignup">Créer mon compte</span>
+        <span id="lblSignup">Créer mon compte →</span>
       </button>
+
       <div class="switch-link">Déjà un compte ? <a href="#" onclick="showTab('login');return false">Se connecter</a></div>
     </div>
 
-    <!-- ══ RESET ══ -->
+    <!-- ══ RESET (INTACT) ══ -->
     <div class="panel" id="panelReset">
       <button class="reset-back" onclick="showTab('login')">Retour</button>
       <h2 class="form-title">Mot de<br><em>passe oublié.</em></h2>
@@ -200,7 +235,7 @@ body{display:grid;grid-template-columns:1fr 1fr}
 </div>
 
 <!-- ═══════════════════════════════════════════════
-     JAVASCRIPT 100% INTACT — AUCUNE MODIFICATION
+     JAVASCRIPT — Supabase auth (login/signup/oauth/reset)
      ═══════════════════════════════════════════════ -->
 <script>
 const SUPABASE_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
@@ -226,6 +261,13 @@ function togglePw(id, btn) {
   btn.textContent = inp.type === 'password' ? '👁' : '🙈';
 }
 
+/* ── CGV CHECKBOX TOGGLE ── */
+function toggleCgu(e) {
+  // Ne pas toggler si on clique sur un lien à l'intérieur
+  if (e && e.target && e.target.tagName === 'A') return;
+  document.getElementById('cguCheckbox').classList.toggle('on');
+}
+
 /* ── LOADING ── */
 function setLoading(prefix, on) {
   document.getElementById('btn-'+prefix.toLowerCase()).disabled = on;
@@ -233,7 +275,7 @@ function setLoading(prefix, on) {
   document.getElementById('lbl'+prefix).style.opacity = on ? .4 : 1;
 }
 
-/* ── LOGIN ── (JS V1 intact) ── */
+/* ── LOGIN (intact) ── */
 async function login() {
   const email = document.getElementById('email').value.trim();
   const pwd   = document.getElementById('password').value;
@@ -255,24 +297,51 @@ async function login() {
   setTimeout(() => { window.location.href = 'catalogue.html'; }, 1200);
 }
 
-/* ── SIGNUP ── */
+/* ── SIGNUP (V1 wireframe — email + password seulement, CGV requis) ── */
 async function signup() {
-  const name  = document.getElementById('signupName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const pw    = document.getElementById('signupPw').value;
-  if (!name || !email || !pw) { showErr('signupErr','Veuillez remplir tous les champs.'); return; }
-  if (pw.length < 8)           { showErr('signupErr','Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  const cguOk = document.getElementById('cguCheckbox').classList.contains('on');
+
+  if (!email || !pw) { showErr('signupErr','Veuillez remplir tous les champs.'); return; }
+  if (pw.length < 8) { showErr('signupErr','Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  if (!cguOk)        { showErr('signupErr','Vous devez accepter les conditions générales pour créer votre compte.'); return; }
+
   setLoading('Signup', true);
-  const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name } } });
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password: pw,
+    options: { emailRedirectTo: window.location.origin + '/catalogue.html' }
+  });
   setLoading('Signup', false);
   if (error) { showErr('signupErr', error.message); return; }
   showOk('signupOk', '✓ Compte créé ! Vérifiez votre boîte mail pour confirmer votre adresse.');
-  document.getElementById('signupName').value = '';
   document.getElementById('signupEmail').value = '';
   document.getElementById('signupPw').value = '';
 }
 
-/* ── FORGOT PASSWORD ── (V1 intact) */
+/* ── OAUTH (Apple + Google) ── */
+async function signupOAuth(provider) {
+  // Disable both buttons during redirect
+  const btnApple  = document.getElementById('btnApple');
+  const btnGoogle = document.getElementById('btnGoogle');
+  btnApple.disabled = true; btnGoogle.disabled = true;
+  try {
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + '/catalogue.html' }
+    });
+    if (error) throw error;
+    // Supabase redirige le navigateur vers le provider — pas de code suivant n'est exécuté
+  } catch (e) {
+    console.error('OAuth error:', e);
+    btnApple.disabled = false; btnGoogle.disabled = false;
+    const label = provider === 'apple' ? 'Apple' : 'Google';
+    showErr('signupErr', `Connexion ${label} indisponible. Vérifiez que ce fournisseur est activé dans Supabase Auth.`);
+  }
+}
+
+/* ── FORGOT PASSWORD (intact) ── */
 async function forgotPassword() {
   const email = document.getElementById('email').value.trim();
   if (!email) { showErr('loginErr','Entrez votre email pour réinitialiser votre mot de passe.'); return; }
@@ -303,7 +372,7 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('panelReset').classList.contains('act'))  doReset();
 });
 
-/* ── SESSION CHECK ── (V1 intact) */
+/* ── SESSION CHECK (intact) ── */
 sb.auth.getSession().then(({ data }) => {
   if (data.session) window.location.href = 'catalogue.html';
 });
