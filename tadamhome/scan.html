@@ -261,6 +261,8 @@
     cursor: pointer; position: relative;
     padding: 3px 3px 18px;
     border: 1px solid transparent;
+    background: transparent;
+    font: inherit;
     transition: border-color .18s ease, opacity .18s ease;
     opacity: .22; /* swatches non-actifs : pâles / vidés */
   }
@@ -1031,7 +1033,7 @@
     }
 
     // Réf
-    const ref = p.ref || p.reference || p.sku || p.code || p.product_code || p.id;
+    const ref = p.reference || p.ref || p.sku || p.code || p.product_code || p.id;
     if (ref) document.getElementById('meta-ref').textContent = `Réf · ${String(ref).slice(0, 12).toUpperCase()}`;
 
     // Catégorie — category || categorie
@@ -1050,7 +1052,6 @@
     if (origin) {
       document.getElementById('brand-origin').textContent = origin;
     } else if (brand) {
-      // Si pas d'origine spécifique, on cache la sous-ligne pour ne pas afficher "Meda · Italie" en dur
       document.getElementById('brand-origin').textContent = '';
     }
 
@@ -1058,39 +1059,35 @@
     const price = formatPrice(p.price || p.prix);
     if (price) document.getElementById('price-num').textContent = price;
 
-    // Dimensions — peut être une string ("240 × 70 × 68 cm") ou un objet ({width, height, depth, ...})
-    const dimRaw = p.dimensions || p.dimension || p.size || p.sizes;
-    if (dimRaw) {
-      let dimStr = '';
-      if (typeof dimRaw === 'string') {
-        dimStr = dimRaw;
-      } else if (typeof dimRaw === 'object') {
-        // Cherche les clés courantes (width/height/depth, largeur/hauteur/profondeur, w/h/d, l/p/h)
-        const w = dimRaw.width ?? dimRaw.largeur ?? dimRaw.w ?? dimRaw.l ?? dimRaw.longueur;
-        const h = dimRaw.height ?? dimRaw.hauteur ?? dimRaw.h;
-        const d = dimRaw.depth ?? dimRaw.profondeur ?? dimRaw.d ?? dimRaw.p;
-        const parts = [w, d, h].filter(v => v !== undefined && v !== null && v !== '');
+    // Dimensions — gère 3 cas :
+    //   1. Champs séparés width/depth/height (ou null)
+    //   2. Objet { h, l, p } (format BDD actuel)
+    //   3. String "240 × 70 × 68 cm" déjà formatée
+    let dimStr = '';
+    if (p.width || p.depth || p.height) {
+      // Cas 1 : champs séparés
+      const parts = [p.width, p.depth, p.height].filter(v => v !== null && v !== undefined && v !== '');
+      if (parts.length) dimStr = parts.join(' × ') + ' cm';
+    } else if (p.dimensions) {
+      const d = p.dimensions;
+      if (typeof d === 'string') {
+        dimStr = d;
+      } else if (typeof d === 'object') {
+        // Cas 2 : objet — supporte h/l/p (BDD actuelle), width/height/depth, largeur/hauteur/profondeur
+        const w = d.l ?? d.width ?? d.largeur ?? d.w ?? d.longueur;
+        const h = d.h ?? d.height ?? d.hauteur;
+        const dp = d.p ?? d.depth ?? d.profondeur ?? d.d;
+        const parts = [w, dp, h].filter(v => v !== null && v !== undefined && v !== '');
         if (parts.length) {
-          const unit = dimRaw.unit || dimRaw.unite || 'cm';
+          const unit = d.unit || d.unite || 'cm';
           dimStr = `${parts.join(' × ')} ${unit}`;
-        } else {
-          // Fallback : on prend toutes les valeurs numériques de l'objet
-          const nums = Object.values(dimRaw).filter(v => typeof v === 'number' || /^\d/.test(String(v)));
-          if (nums.length) dimStr = nums.join(' × ') + ' cm';
         }
       }
-      if (dimStr) document.getElementById('info-dim').textContent = dimStr;
+    } else {
+      const dimRaw = p.dimension || p.size || p.sizes;
+      if (typeof dimRaw === 'string') dimStr = dimRaw;
     }
-
-    // Coloris / matière — matiere || material (cf. catalogue.html)
-    const matiere = p.matiere || p.material;
-    const colorVal = p.color || p.colour || p.color_name || p.finish || p.finition;
-    if (matiere || colorVal) {
-      const lead = matiere ? matiere.split(',')[0].trim() : 'Cuir';
-      const tail = colorVal || '';
-      document.getElementById('info-color').innerHTML =
-        `<em>${escapeHTML(lead)}</em>${tail ? ' ' + escapeHTML(tail) : ''}`;
-    }
+    if (dimStr) document.getElementById('info-dim').textContent = dimStr;
 
     // Livraison
     const delivery = p.delivery || p.delivery_time || p.lead_time || p.shipping_time;
@@ -1109,24 +1106,118 @@
         `${escapeHTML(category)} · ${escapeHTML(brand)} · <em>${escapeHTML(title)}</em>`;
     }
 
-    // Image (poster du model-viewer en attendant le chargement du 3D)
-    const img = getProductImage(p);
+    // ─── Picker finitions DYNAMIQUE (basé sur p.colors) ───
+    // Format attendu : [{ name, mat, hex, glb, usdz }, ...]
+    renderColorPicker(p);
+
+    // ─── Image (poster du model-viewer) ───
+    // Priorité : getProductImage() helper, puis images[0] si rien
     const mv = document.getElementById('mv');
+    let img = getProductImage(p);
+    if (!img && Array.isArray(p.images) && p.images.length > 0) {
+      img = p.images[0];
+    }
     if (img && mv) mv.setAttribute('poster', img);
 
-    // 3D model — model_glb_url (cf. catalogue.html)
-    const modelUrl = getModelUrl(p);
-    const usdzUrl = getUsdzUrl(p);
+    // ─── 3D model (priorité : 1re variante de colors si dispo, sinon model_glb_url) ───
+    const firstVariant = Array.isArray(p.colors) && p.colors.length > 0 ? p.colors[0] : null;
+    const modelUrl = (firstVariant && firstVariant.glb) || getModelUrl(p);
+    const usdzUrl = (firstVariant && firstVariant.usdz) || getUsdzUrl(p);
     if (modelUrl && mv) {
       mv.setAttribute('src', modelUrl);
       if (usdzUrl) mv.setAttribute('ios-src', usdzUrl);
-      // Quand le 3D est chargé, on cache le SVG fallback
       mv.addEventListener('load', () => {
         const fb = document.getElementById('model-fallback');
         if (fb) fb.style.display = 'none';
       }, { once: true });
     }
-    // Si pas de modèle, le SVG fallback du LC2 reste affiché
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PICKER FINITIONS — dynamique depuis p.colors
+     Chaque entrée : { name, mat, hex, glb, usdz }
+     ══════════════════════════════════════════════════════════ */
+  function renderColorPicker(product) {
+    const picker = document.querySelector('.finish-picker');
+    if (!picker) return;
+
+    const colors = Array.isArray(product.colors) ? product.colors : [];
+
+    // Pas de variantes → on cache complètement le picker
+    if (colors.length === 0) {
+      picker.style.display = 'none';
+      return;
+    }
+
+    // Met à jour le label initial avec la 1re variante
+    const first = colors[0];
+    const matLabel = first.mat || 'Finition';
+    const nameLabel = first.name || '';
+    document.querySelector('.finish-picker .fp-sel').innerHTML =
+      `${escapeHTML(matLabel)} <em>${escapeHTML(nameLabel)}</em>`;
+
+    // Met à jour info-color (Coloris dans la grille)
+    const infoColor = document.getElementById('info-color');
+    if (infoColor) {
+      infoColor.innerHTML = `<em>${escapeHTML(matLabel)}</em> ${escapeHTML(nameLabel)}`;
+    }
+
+    // Met à jour le compteur "X teintes" (visible mobile)
+    const fpCount = document.querySelector('.finish-picker .fp-count');
+    if (fpCount) {
+      const word = colors.length > 1 ? 'teintes' : 'teinte';
+      fpCount.textContent = `${colors.length} ${word}`;
+    }
+
+    // Construit la grille de swatches dynamiquement
+    const row = document.querySelector('.finish-picker .fp-row');
+    if (!row) return;
+    row.innerHTML = colors.map((c, i) => {
+      const name = c.name || c.label || '—';
+      const hex = c.hex || c.color || '#999';
+      const isActive = i === 0;
+      return `
+        <button type="button" class="fp-sw ${isActive ? 'act' : ''}" title="${escapeHTML(name)}"
+                data-idx="${i}" style="--swatch-bg:${escapeHTML(hex)}">
+          <span class="ck"></span>
+          <span class="nm-tag">${escapeHTML(name)}</span>
+        </button>`;
+    }).join('');
+
+    // Adapte la grille au nombre de variantes (si moins de 8, ajuste les colonnes)
+    const cols = Math.min(colors.length, 8);
+    row.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    // Branche le click — change le modèle 3D selon la variante
+    row.querySelectorAll('.fp-sw').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        const variant = colors[idx];
+        if (!variant) return;
+
+        // Update visuel actif
+        row.querySelectorAll('.fp-sw').forEach(b => b.classList.remove('act'));
+        btn.classList.add('act');
+
+        // Update label
+        const matLbl = variant.mat || 'Finition';
+        const nameLbl = variant.name || '';
+        document.querySelector('.finish-picker .fp-sel').innerHTML =
+          `${escapeHTML(matLbl)} <em>${escapeHTML(nameLbl)}</em>`;
+        if (infoColor) {
+          infoColor.innerHTML = `<em>${escapeHTML(matLbl)}</em> ${escapeHTML(nameLbl)}`;
+        }
+
+        // Update modèle 3D
+        const mv = document.getElementById('mv');
+        if (mv && variant.glb) {
+          mv.setAttribute('src', variant.glb);
+          if (variant.usdz) mv.setAttribute('ios-src', variant.usdz);
+        }
+
+        showToast(`Finition : ${nameLbl}`);
+      });
+    });
   }
 
   /* ══════════════════════════════════════════════════════════
