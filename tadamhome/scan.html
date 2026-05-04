@@ -1335,129 +1335,60 @@
     }
 
     /**
-     * Joue l'effet "Tadam" : disque doré qui jaillit + fond cream qui monte.
-     * Animé en JavaScript pur (requestAnimationFrame) pour éviter tout problème
-     * de transitions/keyframes CSS qui peuvent ne pas se déclencher.
+     * Effet "Tadam" : scintillement doré subtil sur le modèle 3D uniquement
+     * (pas d'overlay plein écran). Le modèle pulse, brille, scintille,
+     * puis on navigue vers ar-scene.html.
      */
     function playTadamBurst(onComplete) {
-      console.log('[tadam] BURST start (JS animation)');
+      console.log('[tadam] BURST start (scintillement)');
 
       const mv = document.getElementById('mv');
-      let cx = window.innerWidth / 2;
-      let cy = window.innerHeight / 2;
-      if (mv) {
-        const rect = mv.getBoundingClientRect();
-        cx = rect.left + rect.width / 2;
-        cy = rect.top + rect.height / 2;
-      }
-      console.log('[tadam] Centre :', cx, cy);
-
-      // Container plein écran
-      const fx = document.createElement('div');
-      fx.id = 'tadam-fx';
-      fx.style.cssText = [
-        'position: fixed',
-        'top: 0', 'left: 0', 'right: 0', 'bottom: 0',
-        'width: 100vw', 'height: 100vh',
-        'z-index: 2147483647',
-        'pointer-events: none',
-        'overflow: hidden'
-      ].join(';');
-
-      // Fond cream qui apparaîtra progressivement
-      const bg = document.createElement('div');
-      bg.style.cssText = [
-        'position: absolute',
-        'top: 0', 'left: 0', 'right: 0', 'bottom: 0',
-        'background: #F5F2EC',
-        'opacity: 0'
-      ].join(';');
-
-      // Disque doré au centre du modèle
-      const disc = document.createElement('div');
-      disc.style.cssText = [
-        'position: absolute',
-        'left: ' + cx + 'px',
-        'top: ' + cy + 'px',
-        'width: 120px',
-        'height: 120px',
-        'margin-left: -60px',
-        'margin-top: -60px',
-        'border-radius: 50%',
-        'background: radial-gradient(circle, rgba(255,248,220,1) 0%, rgba(255,224,165,1) 25%, rgba(184,152,106,0.95) 55%, rgba(184,152,106,0) 100%)',
-        'box-shadow: 0 0 80px 30px rgba(184,152,106,0.8), 0 0 160px 60px rgba(255,224,165,0.5)',
-        'transform: scale(0)',
-        'opacity: 0'
-      ].join(';');
-
-      // Anneau or qui se dilate
-      const ring = document.createElement('div');
-      ring.style.cssText = [
-        'position: absolute',
-        'left: ' + cx + 'px',
-        'top: ' + cy + 'px',
-        'width: 140px',
-        'height: 140px',
-        'margin-left: -70px',
-        'margin-top: -70px',
-        'border: 5px solid #B8986A',
-        'border-radius: 50%',
-        'box-shadow: 0 0 50px rgba(184,152,106,0.9)',
-        'transform: scale(0)',
-        'opacity: 0',
-        'box-sizing: border-box'
-      ].join(';');
-
-      fx.appendChild(bg);
-      fx.appendChild(disc);
-      fx.appendChild(ring);
-      document.body.appendChild(fx);
-      console.log('[tadam] overlay créé, animation JS lancée');
-
-      // Anime le model-viewer (glow)
-      if (mv) {
-        mv.style.transition = 'transform 0.4s ease-out, filter 0.4s ease-out';
-        mv.style.transform = 'scale(1.06)';
-        mv.style.filter = 'brightness(1.3) drop-shadow(0 0 40px rgba(184,152,106,0.9))';
+      if (!mv) {
+        // Pas de modèle visible → on navigue direct
+        console.log('[tadam] pas de mv, nav directe');
+        if (onComplete) onComplete();
+        return;
       }
 
-      // Animation principale via requestAnimationFrame
-      const DURATION = 1100;
+      // S'assure que le mv peut afficher le glow (transform-origin centré)
+      mv.style.transformOrigin = 'center center';
+      mv.style.willChange = 'transform, filter';
+
+      // Animation du modèle : pulse + glow qui s'intensifie
+      const DURATION = 900;
       const start = performance.now();
 
-      function easeOutExpo(t) {
-        return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-      }
-      function easeInQuad(t) {
-        return t * t;
-      }
+      function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+      function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
       function frame(now) {
         const elapsed = now - start;
         const t = Math.min(1, elapsed / DURATION);
 
-        // Disque : scale 0 → 40 (énorme, remplit l'écran), opacité 0→1→1
-        const discT = easeOutExpo(t);
-        const discScale = 0.5 + discT * 39.5;
-        const discOpacity = t < 0.15 ? (t / 0.15) : 1;
-        disc.style.transform = 'scale(' + discScale + ')';
-        disc.style.opacity = String(discOpacity);
+        // Pulse (scale 1 → 1.08 → 1.04)
+        const pulseT = easeInOutSine(t);
+        const scale = 1 + pulseT * 0.08;
 
-        // Anneau : démarre à t=0.1, scale 0 → 18, opacité 0→1→0
-        if (t > 0.1) {
-          const ringT = Math.min(1, (t - 0.1) / 0.85);
-          const ringEased = easeOutExpo(ringT);
-          const ringScale = 0.5 + ringEased * 17.5;
-          const ringOpacity = ringT < 0.25 ? (ringT / 0.25) : (1 - (ringT - 0.25) / 0.75);
-          ring.style.transform = 'scale(' + ringScale + ')';
-          ring.style.opacity = String(Math.max(0, ringOpacity));
-        }
+        // Brightness (1 → 1.4)
+        const brightness = 1 + easeOutQuad(t) * 0.4;
 
-        // Fond cream : démarre à t=0.35, opacité 0 → 1
-        if (t > 0.35) {
-          const bgT = Math.min(1, (t - 0.35) / 0.6);
-          bg.style.opacity = String(easeInQuad(bgT));
-        }
+        // Drop-shadow doré : intensité croissante, puis diminue à la fin
+        // Pic de l'intensité à 70%, puis légèrement réduit
+        const glowT = t < 0.7 ? (t / 0.7) : (1 - (t - 0.7) / 0.3 * 0.3);
+        const glowSize = 20 + glowT * 50;          // 20px → 70px
+        const glowOpacity = 0.3 + glowT * 0.7;     // 0.3 → 1.0
+
+        // Sparkle : un petit halo doré supplémentaire qui scintille
+        // (sin oscillant donne l'effet scintillement)
+        const sparkleT = Math.sin(t * Math.PI * 6) * 0.5 + 0.5;  // 3 cycles
+        const sparkleSize = 10 + sparkleT * 30;
+        const sparkleOpacity = 0.4 + sparkleT * 0.4;
+
+        mv.style.transform = 'scale(' + scale + ')';
+        mv.style.filter =
+          'brightness(' + brightness + ') ' +
+          'drop-shadow(0 0 ' + glowSize + 'px rgba(184, 152, 106, ' + glowOpacity + ')) ' +
+          'drop-shadow(0 0 ' + sparkleSize + 'px rgba(255, 224, 165, ' + sparkleOpacity + '))';
 
         if (t < 1) {
           requestAnimationFrame(frame);
