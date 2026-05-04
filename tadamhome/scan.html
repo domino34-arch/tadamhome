@@ -186,7 +186,13 @@
     display: flex; align-items: center; gap: 14px;
     padding: 14px 0;
     border-top: 1px solid var(--th-border);
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity .2s ease;
   }
+  .info .brand:hover { opacity: .75; }
+  .info .brand:hover .arr { transform: translateX(3px); }
   .info .brand .logo-mark {
     width: 38px; height: 38px;
     border: 1px solid var(--th-border);
@@ -205,6 +211,7 @@
     color: var(--th-accent);
     font-family: var(--th-serif); font-style: italic;
     font-size: 18px;
+    transition: transform .2s ease;
   }
 
   /* Picker finitions */
@@ -725,14 +732,14 @@
     <div class="title-row">
       <h1 id="product-title">LC2 Grand <em>Confort</em></h1>
 
-      <div class="brand">
+      <a class="brand" id="brand-link" href="catalogue.html">
         <span class="logo-mark" id="brand-mark">C</span>
         <div class="info-stack">
           <div class="nm" id="brand-name">Cassina</div>
           <div class="sub" id="brand-origin">Meda · Italie</div>
         </div>
         <span class="arr">→</span>
-      </div>
+      </a>
     </div>
 
     <!-- Picker finitions — caché par défaut, révélé par renderColorPicker() quand des couleurs existent
@@ -946,6 +953,13 @@
     if (brand) {
       document.getElementById('brand-name').textContent = brand;
       document.getElementById('brand-mark').textContent = brand.charAt(0).toUpperCase();
+
+      // Lien marque : redirige vers la collection Marques · <première lettre>
+      // (catalogue.html lit ?marque=<nom> et active le mode Marques + lettre)
+      const brandLink = document.getElementById('brand-link');
+      if (brandLink) {
+        brandLink.href = `catalogue.html?marque=${encodeURIComponent(brand)}`;
+      }
     }
 
     const origin = p.origin || p.provenance || p.made_in || p.country || p.brand_origin;
