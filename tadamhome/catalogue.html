@@ -77,18 +77,28 @@
   .topnav .links a:hover::after, .topnav .links a.active::after { transform: scaleX(1); }
   .topnav .links a.active { color: var(--th-ink); }
   .topnav .right { display: flex; gap: 10px; align-items: center; }
-  .topnav .ghost {
+
+  /* DÉCONNEXION button */
+  .topnav .logout {
     display: none;
     font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-    color: var(--th-ink-2); padding: 8px 4px; transition: color .25s;
+    color: var(--th-ink-2);
+    padding: 9px 14px;
+    border: 1px solid var(--th-border);
+    background: transparent;
+    align-items: center; gap: 8px;
+    transition: color .25s, border-color .25s, background .25s;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
   }
-  .topnav .ghost:hover { color: var(--th-ink); }
-  .topnav .pill {
-    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-    padding: 9px 14px; border: 1px solid var(--th-accent); color: var(--th-accent);
-    transition: background .25s, color .25s;
+  .topnav .logout:hover {
+    color: var(--th-ink);
+    border-color: var(--th-ink);
   }
-  .topnav .pill:hover { background: var(--th-accent); color: var(--th-white); }
+  .topnav .logout svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .topnav .logout:disabled { opacity: .5; cursor: not-allowed; }
+
   .burger {
     width: 22px; height: 14px; display: flex; flex-direction: column; justify-content: space-between;
     cursor: pointer;
@@ -99,7 +109,7 @@
     .topnav { padding: 18px 44px; }
     .topnav .logo-img { height: 26px; }
     .topnav .links { display: flex; }
-    .topnav .ghost { display: inline-flex; }
+    .topnav .logout { display: inline-flex; }
     .burger { display: none; }
   }
 
@@ -487,8 +497,14 @@
     <a href="pricing.html">Tarifs</a>
   </nav>
   <div class="right">
-    <a href="login.html" class="ghost">Connexion</a>
-    <a href="login.html" class="pill">Commencer</a>
+    <button class="logout" id="logoutBtn" onclick="logout()" aria-label="Se déconnecter">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span>Déconnexion</span>
+    </button>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
@@ -505,8 +521,14 @@
     <a href="pricing.html"><em>04</em> &nbsp;Tarifs</a>
   </nav>
   <div class="actions">
-    <a href="login.html" class="btn btn-out-light">Connexion</a>
-    <a href="login.html" class="btn btn-gold">Commencer</a>
+    <button onclick="logout()" class="btn btn-out-light" style="width:100%; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Se déconnecter
+    </button>
   </div>
 </aside>
 
@@ -714,6 +736,19 @@ const FALLBACK_SVG = `<svg class="fallback" viewBox="0 0 200 200" xmlns="http://
     console.warn('auth check failed', e);
   }
 })();
+
+/* ─ LOGOUT ─ */
+async function logout() {
+  const btn = document.getElementById('logoutBtn');
+  if (btn) btn.disabled = true;
+  try {
+    await sb.auth.signOut();
+  } catch (e) {
+    console.error('Logout error:', e);
+    // On force la redirection même si signOut échoue (ex. session déjà invalide)
+  }
+  window.location.href = 'login.html';
+}
 
 /* ─ LOAD PRODUCTS ─ */
 async function loadProducts() {
