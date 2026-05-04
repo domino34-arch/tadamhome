@@ -408,10 +408,16 @@
     background: var(--th-paper);
     transition: box-shadow .25s var(--th-ease-out), transform .25s var(--th-ease-out);
     cursor: pointer; display: block; position: relative;
+    animation: cardIn .4s var(--th-ease-out) both;
+    animation-delay: calc(var(--i, 0) * 28ms);
   }
   .card:hover { box-shadow: 0 8px 28px rgba(28,27,24,.07); transform: translateY(-2px); }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
   .card .img {
-    aspect-ratio: 1; background: var(--th-paper-2);
+    aspect-ratio: 1; background: var(--th-white);
     position: relative; overflow: hidden;
     display: flex; align-items: center; justify-content: center;
   }
@@ -465,7 +471,7 @@
     background: var(--th-paper);
     animation: shimmer 1.5s ease-in-out infinite;
   }
-  .skeleton .img-sk { aspect-ratio: 1; background: var(--th-paper-2); }
+  .skeleton .img-sk { aspect-ratio: 1; background: var(--th-paper-3); }
   .skeleton .meta-sk { padding: 14px 16px 16px; }
   .skeleton .ln { height: 8px; background: var(--th-paper-3); margin-bottom: 8px; }
   .skeleton .ln.short { width: 40%; }
@@ -759,7 +765,7 @@
 </section>
 
 <!-- COLLECTION dynamique -->
-<section class="collection">
+<section class="collection" id="collectionSection">
   <div class="head reveal">
     <div class="ttl">
       <h2>Collection <em id="collTitle">Tout</em></h2>
@@ -1010,6 +1016,21 @@ function applyFilters() {
   renderPagination();
 }
 
+/* ─ SCROLL TO COLLECTION ─ Calcule l'offset des éléments sticky (header + toolbar + alphabet) */
+function scrollToCollection() {
+  const section = document.getElementById('collectionSection');
+  if (!section) return;
+  const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 60;
+  const toolbar  = document.querySelector('.toolbar');
+  const alphaBar = document.getElementById('alphaBar');
+  let offset = headerH;
+  if (toolbar)  offset += toolbar.offsetHeight;
+  if (alphaBar && alphaBar.classList.contains('show')) offset += alphaBar.offsetHeight;
+  offset += 12;  // petit padding pour respirer sous la zone sticky
+  const targetY = section.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+}
+
 function renderCollectionHead() {
   const catDef = CATEGORIES.find(c => c.key === currentCat) || CATEGORIES[0];
 
@@ -1048,7 +1069,7 @@ function renderPage() {
   const NEW_THRESHOLD = 14 * 24 * 60 * 60 * 1000;
   const safe = s => String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
 
-  grid.innerHTML = page.map(p => {
+  grid.innerHTML = page.map((p, idx) => {
     const id     = p.id;
     const name   = p.name || p.nom || '—';
     const brand  = p.enseigne_name || p.marque || '—';
@@ -1062,7 +1083,10 @@ function renderPage() {
       ? `<img class="product-photo" src="${safe(img)}" alt="${safe(name)}" loading="lazy" onerror="this.outerHTML='${fbHtml}'">`
       : FALLBACK_SVG;
 
-    return `<a class="card" href="${SCAN_BASE}?id=${encodeURIComponent(id)}" aria-label="${safe(name)} — ${safe(brand)}"><div class="img">${imgHtml}${isNew ? `<span class="new-badge">Nouveau</span>` : ''}${hasGlb ? `<span class="ar-badge">◫ AR</span>` : ''}</div><div class="meta"><div class="br">${safe(brand)}</div><div class="nm">${safe(name)}</div><div class="pr">${price ? Number(price).toLocaleString('fr-FR') + ' €' : '—'}</div></div></a>`;
+    // index capped à 12 pour limiter la durée totale du cascade à ~336ms
+    const animIdx = Math.min(idx, 12);
+
+    return `<a class="card" style="--i:${animIdx}" href="${SCAN_BASE}?id=${encodeURIComponent(id)}" aria-label="${safe(name)} — ${safe(brand)}"><div class="img">${imgHtml}${isNew ? `<span class="new-badge">Nouveau</span>` : ''}${hasGlb ? `<span class="ar-badge">◫ AR</span>` : ''}</div><div class="meta"><div class="br">${safe(brand)}</div><div class="nm">${safe(name)}</div><div class="pr">${price ? Number(price).toLocaleString('fr-FR') + ' €' : '—'}</div></div></a>`;
   }).join('');
 }
 
@@ -1113,6 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('#chips .chip').forEach(chip => {
     chip.addEventListener('click', () => {
       setCategory(chip.dataset.cat);
+      scrollToCollection();
     });
   });
 
@@ -1222,6 +1247,7 @@ function setLetter(L) {
   if (btn) btn.classList.add('active');
   currentPage = 1;
   applyFilters();
+  scrollToCollection();
 }
 
 /* ─ BURGER PANEL (toolbar) ─ */
@@ -1243,6 +1269,9 @@ function buildBurgerList() {
     item.addEventListener('click', () => {
       setCategory(item.dataset.cat);
       closeBurgerPanel();
+      // Petit delay pour laisser le panel commencer à se fermer (transition 300ms)
+      // puis scroller vers les produits
+      setTimeout(scrollToCollection, 50);
     });
   });
 }
