@@ -1404,51 +1404,60 @@
     }
 
     /**
-     * Joue l'effet "Tadam" : un disque doré qui explose depuis le modèle,
-     * un anneau qui se dilate, fond cream qui monte, puis nav.
-     * Durée totale ≈ 1100ms.
+     * 🚨 TEST DEBUG : overlay rouge 2.5s plein écran avec texte "TADAM".
+     * Si l'utilisateur voit le rouge → les overlays fonctionnent, le souci est
+     * dans nos transitions CSS. Sinon → problème de stacking context / overflow.
      */
     function playTadamBurst(onComplete) {
-      console.log('[tadam] BURST start');
-      const mv = document.getElementById('mv');
+      console.log('[tadam] DEBUG TEST start');
 
-      // Centre du model-viewer dans le viewport
-      let cx = window.innerWidth / 2;
-      let cy = window.innerHeight / 2;
-      if (mv) {
-        const rect = mv.getBoundingClientRect();
-        cx = rect.left + rect.width / 2;
-        cy = rect.top + rect.height / 2;
-        // Glow sur le modèle
-        mv.classList.add('tadam-glow');
-      }
-      console.log('[tadam] Centre :', cx, cy);
-
-      // Crée un overlay unique avec les 3 couches : disque + anneau + fond cream
       const fx = document.createElement('div');
-      fx.id = 'tadam-fx';
-      fx.innerHTML = `
-        <div class="tadam-bg"></div>
-        <div class="tadam-disc" style="left:${cx}px;top:${cy}px"></div>
-        <div class="tadam-ring" style="left:${cx}px;top:${cy}px"></div>
-      `;
+      fx.id = 'tadam-debug-overlay';
+      fx.style.cssText = [
+        'position: fixed',
+        'top: 0',
+        'left: 0',
+        'right: 0',
+        'bottom: 0',
+        'width: 100vw',
+        'height: 100vh',
+        'z-index: 2147483647',  // valeur max de z-index
+        'background: rgba(255, 0, 0, 0.92)',
+        'display: flex',
+        'align-items: center',
+        'justify-content: center',
+        'flex-direction: column',
+        'gap: 20px',
+        'color: white',
+        'font-size: 64px',
+        'font-family: serif',
+        'font-weight: bold',
+        'pointer-events: none',
+        'letter-spacing: 0.2em'
+      ].join(';');
+      fx.innerHTML = '<div>✨ TADAM ✨</div><div style="font-size:20px;font-family:sans-serif;letter-spacing:0.1em;opacity:0.85">Si tu vois ce message, dis-le-moi !</div>';
+
       document.body.appendChild(fx);
-      console.log('[tadam] overlay créé dans DOM');
+      console.log('[tadam] DEBUG overlay rouge ajouté au DOM. Visible ?');
+      console.log('[tadam] DEBUG style calculé :', window.getComputedStyle(fx).position, window.getComputedStyle(fx).zIndex);
 
-      // Force le reflow pour que les transitions CSS partent bien de l'état initial
-      void fx.offsetWidth;
-
-      // Déclenche les transitions
-      requestAnimationFrame(() => {
-        fx.classList.add('go');
-        console.log('[tadam] classe .go ajoutée, transitions lancées');
-      });
-
-      // Navigation à la fin de l'effet
+      // Vérifie après 100ms si l'élément est toujours visible et bien dimensionné
       setTimeout(() => {
-        console.log('[tadam] DONE → navigation');
+        const el = document.getElementById('tadam-debug-overlay');
+        if (el) {
+          const r = el.getBoundingClientRect();
+          console.log('[tadam] DEBUG après 100ms — rect :', r.width + 'x' + r.height, 'visible :', r.width > 0 && r.height > 0);
+        } else {
+          console.log('[tadam] DEBUG l\'élément a disparu du DOM !');
+        }
+      }, 100);
+
+      // Navigation à 2.5s pour laisser le temps de VOIR
+      setTimeout(() => {
+        console.log('[tadam] DEBUG fin du test → navigation');
+        fx.remove();
         if (onComplete) onComplete();
-      }, 1000);
+      }, 2500);
     }
 
     // ─── Sélection (favoris) : toggle en localStorage ───
