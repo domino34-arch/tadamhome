@@ -130,15 +130,8 @@
     pointer-events: none;
     z-index: 1;
   }
-  /* Ombre douce au sol */
-  .viewer3d .floor {
-    position: absolute; left: 50%; bottom: 18%;
-    width: 74%; height: 14%;
-    transform: translateX(-50%);
-    background: radial-gradient(ellipse at center, rgba(28,27,24,.18) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 1;
-  }
+  /* L'ombre au sol est gérée nativement par <model-viewer> via shadow-intensity.
+     Pas d'ombre CSS statique pour éviter qu'elle reste figée quand le modèle pivote. */
   .viewer3d model-viewer {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
@@ -697,7 +690,6 @@
 
   <!-- Viewer 3D -->
   <div class="viewer3d">
-    <div class="floor"></div>
 
     <model-viewer
       id="mv"
