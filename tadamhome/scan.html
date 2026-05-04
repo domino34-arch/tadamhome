@@ -15,9 +15,6 @@
 <style>
   /* ─────────────────────────────────────────────
      DESIGN TOKENS — inlinés (couleurs, typo, bordures)
-     Source de vérité de la page. Si un jour un CSS
-     partagé est ajouté au repo, ces valeurs peuvent
-     être déplacées vers un fichier externe.
      ───────────────────────────────────────────── */
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
@@ -149,18 +146,46 @@
     --poster-color: transparent;
     z-index: 2;
   }
-  /* Cache le bouton AR natif du model-viewer (badge AR en bas à droite du visuel).
-     L'AR reste fonctionnelle via mv.activateAR() depuis le bouton « Voir chez moi ». */
+  /* Cache le bouton AR natif du model-viewer */
   .viewer3d model-viewer::part(default-ar-button) { display: none !important; }
   .viewer3d model-viewer [slot="ar-button"] { display: none !important; }
-  /* Placeholder visuel quand pas de model-viewer (fallback) */
+
+  /* ─── Loader élégant pendant le chargement du modèle 3D ───
+     3 points dorés qui pulsent au centre, sur fond beige (la grille blueprint
+     reste visible derrière). Disparaît dès que le poster ou le model 3D charge. */
   .viewer3d .model-fallback {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     z-index: 2;
     pointer-events: none;
+    transition: opacity .4s ease, visibility .4s ease;
   }
-  .viewer3d .model-fallback svg { filter: drop-shadow(0 24px 30px rgba(28,27,24,.18)); }
+  .viewer3d .model-fallback.hide {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .viewer3d .model-fallback .dots {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 18px;
+    background: rgba(245,242,236,.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+  }
+  .viewer3d .model-fallback .dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--th-accent);
+    opacity: .35;
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+  .viewer3d .model-fallback .dots span:nth-child(1) { animation-delay: 0s; }
+  .viewer3d .model-fallback .dots span:nth-child(2) { animation-delay: .15s; }
+  .viewer3d .model-fallback .dots span:nth-child(3) { animation-delay: .30s; }
+  @keyframes dotPulse {
+    0%, 80%, 100% { opacity: .25; transform: scale(1); }
+    40%           { opacity: 1;   transform: scale(1.35); }
+  }
 
   /* Coins UI overlay du viewer (réservés pour usage futur) */
   .viewer3d .ui-corner {
@@ -182,7 +207,7 @@
     border-left: 1px solid var(--th-border);
     position: relative;
     min-width: 0;
-    padding-bottom: 280px; /* espace pour le cta-block ancré */
+    padding-bottom: 280px;
   }
   .info .meta-line {
     font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
@@ -197,13 +222,10 @@
   }
   .info h1 em { font-style: italic; color: var(--th-accent); }
 
-  /* title-row : conteneur pour titre + bloc marque
-     Desktop : empilés (column). Mobile : inline (row, géré dans le media query). */
   .info .title-row {
     display: flex; flex-direction: column; gap: 14px;
   }
 
-  /* Bloc marque */
   .info .brand {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 0;
@@ -253,7 +275,7 @@
   .info .finish-picker .fp-sel { font-family: var(--th-serif); font-size: 14px; }
   .info .finish-picker .fp-sel em { font-style: italic; color: var(--th-accent); }
   .info .finish-picker .fp-count {
-    display: none; /* visible uniquement sur mobile */
+    display: none;
     font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
     color: var(--th-ink-3);
   }
@@ -268,7 +290,7 @@
     background: transparent;
     font: inherit;
     transition: border-color .18s ease, opacity .18s ease, transform .18s ease;
-    opacity: .55; /* swatches non-actifs : visibles mais en retrait */
+    opacity: .55;
   }
   .info .finish-picker .fp-sw .ck {
     display: block; width: 100%; aspect-ratio: 1;
@@ -279,9 +301,6 @@
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
     position: relative; overflow: hidden;
   }
-  /* Quand une vraie image texture est dispo, on l'affiche en couverture
-     (overrides les radial gradients) — la couleur hex reste en background-color
-     comme fallback si l'image ne charge pas. */
   .info .finish-picker .fp-sw.has-texture .ck {
     background-image: var(--swatch-texture);
     background-size: cover;
@@ -313,7 +332,7 @@
     color: var(--th-ink-3); font-style: italic;
   }
 
-  /* Bandeau infos produit (4 cols) */
+  /* Bandeau infos produit */
   .info .info-grid {
     display: flex; justify-content: space-between; align-items: flex-start;
     gap: 12px;
@@ -333,7 +352,6 @@
   }
   .info .info-grid .it-v em { font-style: italic; color: var(--th-accent); }
 
-  /* Prix */
   .info .price {
     display: flex; align-items: flex-end; gap: 10px;
     padding-top: 14px;
@@ -346,7 +364,7 @@
     padding-bottom: 6px;
   }
 
-  /* CTA block ancré au bas de la colonne */
+  /* CTA block */
   .info .cta-block {
     position: absolute;
     left: 32px; right: 32px;
@@ -371,7 +389,7 @@
     white-space: nowrap;
   }
 
-  /* Pair AR — pièce maîtresse */
+  /* Pair AR */
   .ar-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .ar-pair .ar-cta {
     display: flex; flex-direction: column; gap: 8px;
@@ -471,15 +489,9 @@
     font-size: 11px; color: var(--th-ink-2); margin-top: 6px;
   }
 
-  /* ─────────────────────────────────────────────
-     Mobile CTA bar (cachée par défaut, montrée sur petit écran)
-     ───────────────────────────────────────────── */
   .mobile-cta-bar { display: none; }
 
-  /* ─────────────────────────────────────────────
-     Sticky CTA bar — desktop uniquement
-     Apparait quand le bloc CTA original sort du viewport au scroll.
-     ───────────────────────────────────────────── */
+  /* Sticky CTA bar — desktop */
   .cta-sticky {
     position: fixed;
     bottom: 24px;
@@ -526,9 +538,7 @@
     color: white;
     border-color: var(--th-accent);
   }
-  .cta-sticky button.ar-mono {
-    background: var(--th-paper-2);
-  }
+  .cta-sticky button.ar-mono { background: var(--th-paper-2); }
   .cta-sticky button.ar-multi {
     background: var(--th-ink-1);
     color: var(--th-paper-1);
@@ -538,11 +548,7 @@
     background: var(--th-accent);
     border-color: var(--th-accent);
   }
-  .cta-sticky .sep {
-    width: 1px;
-    height: 24px;
-    background: var(--th-border);
-  }
+  .cta-sticky .sep { width: 1px; height: 24px; background: var(--th-border); }
   .cta-sticky button.is-active {
     background: var(--th-accent);
     color: white;
@@ -550,10 +556,9 @@
   }
 
   /* ─────────────────────────────────────────────
-     Responsive — bascule mobile à 768px
+     Responsive — mobile à 768px
      ───────────────────────────────────────────── */
   @media (max-width: 768px) {
-    /* Frame nav slim */
     .frame-nav { padding: 14px 14px; }
     .frame-nav .crumb { display: none; }
     .frame-nav .right .pill { display: none; }
@@ -561,14 +566,8 @@
     .frame-nav .logo img { height: 18px; }
     .frame-nav .logo .logo-text { font-size: 18px; }
 
-    /* Hero en pile */
-    .hero {
-      grid-template-columns: 1fr;
-      min-height: auto;
-    }
-    .viewer3d {
-      min-height: 280px; height: 280px;
-    }
+    .hero { grid-template-columns: 1fr; min-height: auto; }
+    .viewer3d { min-height: 280px; height: 280px; }
 
     .info {
       padding: 18px 20px 14px;
@@ -578,46 +577,25 @@
       padding-bottom: 18px;
     }
 
-    /* Titre + brand inline sur mobile (sur la même ligne) */
     .info .title-row {
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
-    .info h1 {
-      font-size: 20px;
-      flex: 1; min-width: 0;
-      line-height: 1.15;
-    }
-    .info .brand {
-      flex: 0 0 auto;
-      padding: 0;
-      border: 0;
-      gap: 8px;
-    }
-    .info .brand .logo-mark {
-      width: 26px; height: 26px;
-      font-size: 13px;
-    }
+    .info h1 { font-size: 20px; flex: 1; min-width: 0; line-height: 1.15; }
+    .info .brand { flex: 0 0 auto; padding: 0; border: 0; gap: 8px; }
+    .info .brand .logo-mark { width: 26px; height: 26px; font-size: 13px; }
     .info .brand .info-stack .sub { display: none; }
     .info .brand .info-stack .nm { font-size: 13px; }
     .info .brand .arr { font-size: 14px; }
 
-    /* Prix juste sous le titre, compact */
-    .info .price {
-      padding-top: 10px;
-      border-top: 1px solid var(--th-border);
-      gap: 8px;
-    }
+    .info .price { padding-top: 10px; border-top: 1px solid var(--th-border); gap: 8px; }
     .info .price .num { font-size: 22px; }
     .info .price .unit { font-size: 9px; padding-bottom: 3px; }
 
-    /* Picker finitions — header inline avec compteur, hint dual */
     .info .finish-picker { margin: 0 -20px; padding: 14px 20px; }
-    .info .finish-picker .fp-head {
-      align-items: center;
-    }
+    .info .finish-picker .fp-head { align-items: center; }
     .info .finish-picker .fp-lbl {
       letter-spacing: .04em; text-transform: none;
       font-size: 13px; font-family: var(--th-serif);
@@ -625,46 +603,33 @@
     }
     .info .finish-picker .fp-lbl::before { display: none; }
     .info .finish-picker .fp-lbl::after {
-      content: '·';
-      color: var(--th-accent); font-style: italic;
-      margin: 0 6px;
+      content: '·'; color: var(--th-accent); font-style: italic; margin: 0 6px;
     }
-    .info .finish-picker .fp-sel {
-      flex: 1; font-size: 13px;
-    }
-    .info .finish-picker .fp-count {
-      display: inline; /* visible mobile only */
-    }
+    .info .finish-picker .fp-sel { flex: 1; font-size: 13px; }
+    .info .finish-picker .fp-count { display: inline; }
     .info .finish-picker .fp-row {
-      /* !important pour override le JS qui force repeat(N, 1fr) sur desktop ;
-         sur mobile, on veut une taille fixe alignée à gauche, pas pleine largeur. */
       display: grid !important;
       grid-template-columns: repeat(auto-fill, 64px) !important;
       gap: 8px !important;
       justify-content: flex-start !important;
     }
-    .info .finish-picker .fp-sw {
-      padding: 0;
-      width: 64px;
-    }
-    .info .finish-picker .fp-sw .nm-tag { display: none; } /* étiquettes cachées sur mobile */
+    .info .finish-picker .fp-sw { padding: 0; width: 64px; }
+    .info .finish-picker .fp-sw .nm-tag { display: none; }
     .info .finish-picker .fp-hint .hint-desktop { display: none; }
     .info .finish-picker .fp-hint .hint-mobile { display: inline; }
 
-    /* Info-grid : caché sur mobile (cf. image 2) */
     .info .info-grid { display: none; }
 
-    /* La sticky bar desktop n'a pas lieu d'être sur mobile (déjà une bar fixe) */
     .cta-sticky { display: none !important; }
 
-    /* Bloc CTA devient une bar collante en bas */
     .info .cta-block {
       position: fixed;
       left: 0; right: 0; bottom: 0;
       padding: 12px 14px 14px;
       background: rgba(245,242,236,.96);
       -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);      border-top: 1px solid var(--th-border);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--th-border);
       border-bottom: 0;
       gap: 6px;
       z-index: 40;
@@ -681,10 +646,8 @@
     .ar-pair .ar-cta .badge-new { font-size: 7px; padding: 2px 4px; top: 6px; right: 6px; }
     .ar-pair .ar-cta .lbl { font-size: 7px; letter-spacing: .14em; }
 
-    /* Padding bottom du body pour pas que la cta-bar masque le contenu */
     body { padding-bottom: 170px; }
 
-    /* Similaires : scroll horizontal */
     .similar { padding: 36px 20px; }
     .similar .head h2 { font-size: 22px; }
     .similar .head .seeall { font-size: 9px; padding: 9px 14px; }
@@ -708,9 +671,7 @@
     .similar .card { flex: 0 0 160px; }
   }
 
-  /* ─────────────────────────────────────────────
-     Toast — feedback visuel des actions
-     ───────────────────────────────────────────── */
+  /* Toast */
   .toast {
     position: fixed;
     bottom: 24px; left: 50%;
@@ -728,18 +689,10 @@
     max-width: calc(100vw - 32px);
     overflow: hidden; text-overflow: ellipsis;
   }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  /* Sur mobile : remonte le toast au-dessus de la cta-bar collante */
-  @media (max-width: 768px) {
-    .toast { bottom: 180px; }
-  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 768px) { .toast { bottom: 180px; } }
 
-  /* ─────────────────────────────────────────────
-     États de chargement
-     ───────────────────────────────────────────── */
+  /* Skeleton */
   .skel {
     background: linear-gradient(90deg, var(--th-paper-2) 0%, var(--th-paper-3) 50%, var(--th-paper-2) 100%);
     background-size: 200% 100%;
@@ -754,9 +707,7 @@
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════
-     NAV
-     ════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════ NAV ════════════════════════════════════════════ -->
 <header class="frame-nav">
   <div class="left">
     <a class="back" href="catalogue.html" aria-label="Retour">←</a>
@@ -775,16 +726,13 @@
   </div>
 </header>
 
-<!-- ════════════════════════════════════════════
-     HERO — 3D + INFOS
-     ════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════ HERO ════════════════════════════════════════════ -->
 <section class="hero">
 
   <!-- Viewer 3D -->
   <div class="viewer3d">
     <div class="floor"></div>
 
-    <!-- model-viewer (3D + AR natif). src remplie dynamiquement par le JS -->
     <model-viewer
       id="mv"
       alt="Modèle 3D du produit"
@@ -803,78 +751,11 @@
       style="--poster-color: transparent;"
     ></model-viewer>
 
-    <!-- Fallback visuel quand pas encore de modèle chargé (LC2 SVG) -->
-    <div class="model-fallback" id="model-fallback">
-      <svg viewBox="0 0 380 220" width="440" aria-hidden="true">
-        <defs>
-          <radialGradient id="leatherVol" cx="50%" cy="30%" r="80%">
-            <stop offset="0%" stop-color="#8c6a48"/>
-            <stop offset="55%" stop-color="#6e5238"/>
-            <stop offset="100%" stop-color="#2e1f12"/>
-          </radialGradient>
-          <linearGradient id="leatherTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#a07a52"/>
-            <stop offset="60%" stop-color="#6e5238"/>
-            <stop offset="100%" stop-color="#3a2818"/>
-          </linearGradient>
-          <filter id="leatherGrain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="2.6" numOctaves="2" seed="3"/>
-            <feColorMatrix values="0 0 0 0 0.18  0 0 0 0 0.10  0 0 0 0 0.04  0 0 0 0.55 0"/>
-            <feComposite in2="SourceGraphic" operator="in"/>
-          </filter>
-          <linearGradient id="chromePoli" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#5a5852"/>
-            <stop offset="20%" stop-color="#e8e4dc"/>
-            <stop offset="45%" stop-color="#9a978f"/>
-            <stop offset="70%" stop-color="#f2efe7"/>
-            <stop offset="100%" stop-color="#48463f"/>
-          </linearGradient>
-          <linearGradient id="chromeBar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#cfcbc2"/>
-            <stop offset="50%" stop-color="#e8e4dc"/>
-            <stop offset="100%" stop-color="#7a7870"/>
-          </linearGradient>
-        </defs>
-        <!-- Coussins inférieurs (assise) -->
-        <g>
-          <rect x="40" y="100" width="300" height="68" rx="10" fill="url(#leatherVol)"/>
-          <rect x="40" y="100" width="300" height="68" rx="10" fill="url(#leatherTop)" opacity=".35"/>
-          <rect x="40" y="100" width="300" height="68" rx="10" filter="url(#leatherGrain)" opacity=".9"/>
-          <rect x="46" y="104" width="288" height="60" rx="7" fill="none" stroke="rgba(255,232,200,.18)" stroke-width=".6" stroke-dasharray="2 2"/>
-          <g fill="rgba(255,235,205,.35)">
-            <circle cx="90" cy="134" r="1.4"/><circle cx="140" cy="134" r="1.4"/>
-            <circle cx="190" cy="134" r="1.4"/><circle cx="240" cy="134" r="1.4"/>
-            <circle cx="290" cy="134" r="1.4"/>
-          </g>
-          <rect x="46" y="102" width="288" height="6" rx="3" fill="rgba(255,225,190,.22)"/>
-          <rect x="40" y="160" width="300" height="8" rx="4" fill="rgba(0,0,0,.35)"/>
-        </g>
-        <!-- Coussins supérieurs (dossier) -->
-        <g>
-          <rect x="40" y="40" width="300" height="68" rx="10" fill="url(#leatherVol)"/>
-          <rect x="40" y="40" width="300" height="68" rx="10" fill="url(#leatherTop)" opacity=".4"/>
-          <rect x="40" y="40" width="300" height="68" rx="10" filter="url(#leatherGrain)" opacity=".9"/>
-          <rect x="46" y="44" width="288" height="60" rx="7" fill="none" stroke="rgba(255,232,200,.18)" stroke-width=".6" stroke-dasharray="2 2"/>
-          <g fill="rgba(255,235,205,.35)">
-            <circle cx="90" cy="74" r="1.4"/><circle cx="140" cy="74" r="1.4"/>
-            <circle cx="190" cy="74" r="1.4"/><circle cx="240" cy="74" r="1.4"/>
-            <circle cx="290" cy="74" r="1.4"/>
-          </g>
-          <rect x="46" y="42" width="288" height="7" rx="3" fill="rgba(255,225,190,.28)"/>
-          <rect x="40" y="100" width="300" height="8" rx="4" fill="rgba(0,0,0,.35)"/>
-        </g>
-        <!-- Cadre tubulaire chromé -->
-        <g>
-          <rect x="32" y="34" width="14" height="140" rx="6" fill="url(#chromePoli)"/>
-          <rect x="334" y="34" width="14" height="140" rx="6" fill="url(#chromePoli)"/>
-          <rect x="36" y="36" width="2" height="136" fill="rgba(255,255,255,.55)"/>
-          <rect x="340" y="36" width="2" height="136" fill="rgba(255,255,255,.55)"/>
-          <rect x="32" y="170" width="316" height="8" rx="4" fill="url(#chromeBar)"/>
-          <rect x="34" y="171" width="312" height="1.5" fill="rgba(255,255,255,.6)"/>
-          <rect x="36" y="174" width="6" height="10" fill="#3a3832"/>
-          <rect x="338" y="174" width="6" height="10" fill="#3a3832"/>
-        </g>
-      </svg>
+    <!-- Loader élégant — 3 points dorés qui pulsent au centre.
+         Disparaît dès qu'un poster (image catalogue) est défini ou que le model 3D a chargé.
+         Timeout de sécurité de 4.5s. -->
+    <div class="model-fallback" id="model-fallback" aria-hidden="true">
+      <div class="dots"><span></span><span></span><span></span></div>
     </div>
 
   </div>
@@ -923,7 +804,6 @@
       </div>
     </div>
 
-    <!-- Bandeau infos produit -->
     <div class="info-grid">
       <div><div class="it-k">Coloris</div><div class="it-v" id="info-color"><em>Cuir</em> Brandy</div></div>
       <div><div class="it-k">Dimensions</div><div class="it-v" id="info-dim">240 × 70 × 68 cm</div></div>
@@ -936,7 +816,6 @@
       <span class="unit">TTC · livré</span>
     </div>
 
-    <!-- Bloc CTA ancré en bas -->
     <div class="cta-block">
       <div class="save-row">
         <button id="btn-save" type="button">♡ Sélection</button>
@@ -963,11 +842,7 @@
   </div>
 </section>
 
-<!-- ════════════════════════════════════════════
-     STICKY CTA BAR — desktop uniquement, apparait au scroll
-     Reproduit les 5 boutons du cta-block. Cliquer ici délègue au bouton
-     original via .click() pour réutiliser toute la logique existante.
-     ════════════════════════════════════════════ -->
+<!-- Sticky CTA bar — desktop -->
 <div class="cta-sticky" id="cta-sticky" aria-hidden="true">
   <button id="btn-save-sticky" type="button">♡ Sélection</button>
   <button id="btn-share-sticky" type="button">↗ Partager</button>
@@ -977,38 +852,38 @@
   <button class="ar-multi" id="ar-multi-sticky" type="button">◫◫ Composer une scène</button>
 </div>
 
-<!-- ════════════════════════════════════════════
-     PRODUITS SIMILAIRES
-     ════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════ PRODUITS SIMILAIRES ════════════════════════════════════════════ -->
 <section class="similar">
   <div class="head">
     <h2>Dans le <em>même esprit</em></h2>
     <a class="seeall" href="catalogue.html">Voir tout · 24 →</a>
   </div>
-  <div class="row" id="similar-row">
-    <!-- Cards injectées dynamiquement par le JS depuis Supabase -->
-  </div>
+  <div class="row" id="similar-row"></div>
 </section>
 
-<!-- Toast pour feedback des actions -->
 <div id="toast" class="toast"></div>
 
-<!-- ════════════════════════════════════════════
-     SCRIPT — Supabase + render produit
-     Logique alignée sur catalogue.html (mêmes clé, table, helpers)
-     ════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════ SCRIPT ════════════════════════════════════════════ -->
 <script>
-  /* ══════════════════════════════════════════════════════════
-     SUPABASE — exactement comme catalogue.html
-     ══════════════════════════════════════════════════════════ */
+  /* ── SUPABASE ── */
   const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
   const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
   const { createClient } = supabase;
   const sb = createClient(SB_URL, SB_KEY);
 
-  /* ══════════════════════════════════════════════════════════
-     IMAGE RESOLUTION — copie de catalogue.html getProductImage()
-     ══════════════════════════════════════════════════════════ */
+  /* ── LOADER : helper unique pour le cacher ── */
+  let loaderHidden = false;
+  function hideModelLoader() {
+    if (loaderHidden) return;
+    loaderHidden = true;
+    const el = document.getElementById('model-fallback');
+    if (el) el.classList.add('hide');
+  }
+  // Sécurité : si rien n'a chargé en 4.5s, on cache silencieusement le loader
+  // pour ne pas laisser les points pulser éternellement.
+  setTimeout(hideModelLoader, 4500);
+
+  /* ── IMAGE RESOLUTION ── */
   const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
 
   function getProductImage(p) {
@@ -1042,9 +917,7 @@
     return null;
   }
 
-  /* ══════════════════════════════════════════════════════════
-     MODEL 3D RESOLUTION — model_glb_url en priorité (cf. catalogue)
-     ══════════════════════════════════════════════════════════ */
+  /* ── 3D MODEL RESOLUTION ── */
   function getModelUrl(p) {
     const candidates = [
       p.model_glb_url, p.modelGlbUrl, p.glb_url, p.glbUrl, p.glb,
@@ -1087,16 +960,13 @@
     return null;
   }
 
-  /* ══════════════════════════════════════════════════════════
-     UTILS
-     ══════════════════════════════════════════════════════════ */
+  /* ── UTILS ── */
   function escapeHTML(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
   }
 
-  // Met le dernier mot d'un titre en italique or — signature du design
   function emphasizeLastWord(title) {
     if (!title) return '';
     const words = String(title).trim().split(/\s+/);
@@ -1107,7 +977,6 @@
     return `${escapeHTML(head)} <em>${escapeHTML(tail)}</em>`;
   }
 
-  // Format prix FR — identique à catalogue.html
   function formatPrice(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = typeof value === 'number'
@@ -1117,35 +986,28 @@
     return `${Number(n).toLocaleString('fr-FR')} €`;
   }
 
-  /* ══════════════════════════════════════════════════════════
-     RENDER — applique les données produit au DOM
-     ══════════════════════════════════════════════════════════ */
+  /* ── RENDER ── */
   function renderProduct(p) {
     if (!p) return;
 
-    // Titre — name || nom (cf. catalogue.html)
     const title = p.name || p.nom;
     if (title) {
       document.getElementById('product-title').innerHTML = emphasizeLastWord(title);
       document.title = `${title} — TadamHome`;
     }
 
-    // Réf
     const ref = p.reference || p.ref || p.sku || p.code || p.product_code || p.id;
     if (ref) document.getElementById('meta-ref').textContent = `Réf · ${String(ref).slice(0, 12).toUpperCase()}`;
 
-    // Catégorie — category || categorie
     const category = p.category || p.categorie;
     if (category) document.getElementById('meta-cat').textContent = category;
 
-    // Marque — enseigne_name || marque
     const brand = p.enseigne_name || p.marque;
     if (brand) {
       document.getElementById('brand-name').textContent = brand;
       document.getElementById('brand-mark').textContent = brand.charAt(0).toUpperCase();
     }
 
-    // Origine
     const origin = p.origin || p.provenance || p.made_in || p.country || p.brand_origin;
     if (origin) {
       document.getElementById('brand-origin').textContent = origin;
@@ -1153,17 +1015,11 @@
       document.getElementById('brand-origin').textContent = '';
     }
 
-    // Prix — price || prix
     const price = formatPrice(p.price || p.prix);
     if (price) document.getElementById('price-num').textContent = price;
 
-    // Dimensions — gère 3 cas :
-    //   1. Champs séparés width/depth/height (ou null)
-    //   2. Objet { h, l, p } (format BDD actuel)
-    //   3. String "240 × 70 × 68 cm" déjà formatée
     let dimStr = '';
     if (p.width || p.depth || p.height) {
-      // Cas 1 : champs séparés
       const parts = [p.width, p.depth, p.height].filter(v => v !== null && v !== undefined && v !== '');
       if (parts.length) dimStr = parts.join(' × ') + ' cm';
     } else if (p.dimensions) {
@@ -1171,7 +1027,6 @@
       if (typeof d === 'string') {
         dimStr = d;
       } else if (typeof d === 'object') {
-        // Cas 2 : objet — supporte h/l/p (BDD actuelle), width/height/depth, largeur/hauteur/profondeur
         const w = d.l ?? d.width ?? d.largeur ?? d.w ?? d.longueur;
         const h = d.h ?? d.height ?? d.hauteur;
         const dp = d.p ?? d.depth ?? d.profondeur ?? d.d;
@@ -1187,87 +1042,84 @@
     }
     if (dimStr) document.getElementById('info-dim').textContent = dimStr;
 
-    // Livraison
     const delivery = p.delivery || p.delivery_time || p.lead_time || p.shipping_time;
     if (delivery) {
       const html = String(delivery).replace(/(\d+(?:[\s\-–]\d+)?)/, '<em>$1</em>');
       document.getElementById('info-delivery').innerHTML = html;
     }
 
-    // Garantie
     const warranty = p.warranty || p.garantie;
     if (warranty) document.getElementById('info-warranty').textContent = warranty;
 
-    // Breadcrumb
     if (category && brand && title) {
       document.getElementById('breadcrumb').innerHTML =
         `${escapeHTML(category)} · ${escapeHTML(brand)} · <em>${escapeHTML(title)}</em>`;
     }
 
-    // ─── Picker finitions DYNAMIQUE (basé sur p.colors) ───
-    // Format attendu : [{ name, mat, hex, glb, usdz }, ...]
     renderColorPicker(p);
 
-    // ─── Image (poster du model-viewer) ───
-    // Priorité : getProductImage() helper, puis images[0] si rien
     const mv = document.getElementById('mv');
+
+    // Poster image — early hide du loader dès que l'image catalogue charge
     let img = getProductImage(p);
     if (!img && Array.isArray(p.images) && p.images.length > 0) {
       img = p.images[0];
     }
-    if (img && mv) mv.setAttribute('poster', img);
+    if (img && mv) {
+      mv.setAttribute('poster', img);
+      // Pré-charge l'image et cache le loader dès qu'elle est prête —
+      // l'utilisateur voit la photo produit pendant que le 3D continue de charger
+      const preload = new Image();
+      preload.onload = hideModelLoader;
+      preload.onerror = hideModelLoader; // même en cas d'erreur on cache (le loader ne sert plus)
+      preload.src = img;
+    }
 
-    // ─── 3D model (priorité : 1re variante de colors si dispo, sinon model_glb_url) ───
+    // 3D model
     const firstVariant = Array.isArray(p.colors) && p.colors.length > 0 ? p.colors[0] : null;
     const modelUrl = (firstVariant && firstVariant.glb) || getModelUrl(p);
     const usdzUrl = (firstVariant && firstVariant.usdz) || getUsdzUrl(p);
     if (modelUrl && mv) {
       mv.setAttribute('src', modelUrl);
       if (usdzUrl) mv.setAttribute('ios-src', usdzUrl);
-      mv.addEventListener('load', () => {
-        const fb = document.getElementById('model-fallback');
-        if (fb) fb.style.display = 'none';
-      }, { once: true });
+      mv.addEventListener('load', hideModelLoader, { once: true });
+    } else if (img) {
+      // Pas de model 3D mais on a au moins l'image poster — le loader sera caché par le preload ci-dessus
+    } else {
+      // Pas de model ni d'image : on cache le loader rapidement pour pas faire attendre
+      setTimeout(hideModelLoader, 800);
     }
   }
 
-  /* ══════════════════════════════════════════════════════════
-     PICKER FINITIONS — dynamique depuis p.colors
-     Chaque entrée : { name, mat, hex, glb, usdz }
-     ══════════════════════════════════════════════════════════ */
+  /* ── PICKER FINITIONS ── */
   function renderColorPicker(product) {
     const picker = document.querySelector('.finish-picker');
     if (!picker) return;
 
     const colors = Array.isArray(product.colors) ? product.colors : [];
 
-    // Pas de variantes → on cache complètement le picker
     if (colors.length === 0) {
       picker.style.display = 'none';
       return;
     }
 
-    // Met à jour le label initial avec la 1re variante
     const first = colors[0];
     const matLabel = first.mat || 'Finition';
     const nameLabel = first.name || '';
     document.querySelector('.finish-picker .fp-sel').innerHTML =
       `${escapeHTML(matLabel)} <em>${escapeHTML(nameLabel)}</em>`;
 
-    // Met à jour info-color (Coloris dans la grille)
     const infoColor = document.getElementById('info-color');
     if (infoColor) {
       infoColor.innerHTML = `<em>${escapeHTML(matLabel)}</em> ${escapeHTML(nameLabel)}`;
     }
 
-    // Met à jour le compteur "X teintes" (visible mobile)
     const fpCount = document.querySelector('.finish-picker .fp-count');
     if (fpCount) {
       const word = colors.length > 1 ? 'teintes' : 'teinte';
       fpCount.textContent = `${colors.length} ${word}`;
     }
 
-    // Construit la grille de swatches dynamiquement
     const row = document.querySelector('.finish-picker .fp-row');
     if (!row) return;
     row.innerHTML = colors.map((c, i) => {
@@ -1275,7 +1127,6 @@
       const hex = c.hex || c.color || '#999';
       const texture = c.texture || c.swatch_url || c.swatch || c.image;
       const isActive = i === 0;
-      // Si une vraie texture est dispo, on l'affiche en image de fond ; sinon on tombe sur le hex
       const swatchStyle = texture
         ? `--swatch-bg:${escapeHTML(hex)};--swatch-texture:url('${escapeHTML(texture)}')`
         : `--swatch-bg:${escapeHTML(hex)}`;
@@ -1288,22 +1139,18 @@
         </button>`;
     }).join('');
 
-    // Adapte la grille au nombre de variantes (si moins de 8, ajuste les colonnes)
     const cols = Math.min(colors.length, 8);
     row.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-    // Branche le click — change le modèle 3D selon la variante
     row.querySelectorAll('.fp-sw').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx, 10);
         const variant = colors[idx];
         if (!variant) return;
 
-        // Update visuel actif
         row.querySelectorAll('.fp-sw').forEach(b => b.classList.remove('act'));
         btn.classList.add('act');
 
-        // Update label
         const matLbl = variant.mat || 'Finition';
         const nameLbl = variant.name || '';
         document.querySelector('.finish-picker .fp-sel').innerHTML =
@@ -1312,7 +1159,6 @@
           infoColor.innerHTML = `<em>${escapeHTML(matLbl)}</em> ${escapeHTML(nameLbl)}`;
         }
 
-        // Update modèle 3D
         const mv = document.getElementById('mv');
         if (mv && variant.glb) {
           mv.setAttribute('src', variant.glb);
@@ -1324,9 +1170,7 @@
     });
   }
 
-  /* ══════════════════════════════════════════════════════════
-     UI HELPERS — toast feedback
-     ══════════════════════════════════════════════════════════ */
+  /* ── TOAST ── */
   let toastTimer = null;
   function showToast(message) {
     const el = document.getElementById('toast');
@@ -1337,18 +1181,14 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
   }
 
-  /* ══════════════════════════════════════════════════════════
-     ACTIONS — branchement des boutons
-     ══════════════════════════════════════════════════════════ */
+  /* ── ACTIONS ── */
   function setupActions(productId, productData) {
     const mv = document.getElementById('mv');
 
-    // ─── AR Mono : lance l'AR natif via model-viewer ───
     const arMono = document.getElementById('ar-mono-btn');
     if (arMono) {
       arMono.addEventListener('click', () => {
         if (!mv) return;
-        // Vérifie si l'AR est dispo sur cet appareil
         if (mv.canActivateAR) {
           mv.activateAR();
         } else {
@@ -1357,20 +1197,14 @@
       });
     }
 
-    // ─── AR Multi : dépose le produit dans localStorage et navigue vers ar-scene.html ───
-    // ar-scene.html lit la clé 'tadam_ar_scene' au boot et auto-place chaque modèle.
-    // Format attendu : [{ id, name, glb, category, dimensions: {h, l, p} }]
-    // (effet visuel "Tadam" à reprendre plus tard)
     const arMulti = document.getElementById('ar-multi-btn');
     if (arMulti) {
       arMulti.addEventListener('click', () => {
         if (!productId || !productData) {
-          // Pas de produit → on ouvre ar-scene vide, l'utilisateur ajoutera depuis le catalogue
           window.location.href = `ar-scene.html`;
           return;
         }
 
-        // Détermine le GLB à passer : variante active si dispo, sinon le model_glb_url racine
         const colors = Array.isArray(productData.colors) ? productData.colors : [];
         const swatches = document.querySelectorAll('.fp-sw');
         const activeIdx = swatches.length
@@ -1384,7 +1218,6 @@
           return;
         }
 
-        // Construit le payload au format que ar-scene.html attend
         const sceneItem = {
           id: productData.id,
           name: productData.name || productData.nom || 'Produit',
@@ -1403,7 +1236,6 @@
       });
     }
 
-    // ─── Sélection (favoris) : toggle en localStorage ───
     const btnSave = document.getElementById('btn-save');
     if (btnSave && productId) {
       const KEY = 'tadamhome_favorites';
@@ -1420,8 +1252,6 @@
         btnSave.style.borderColor = isSaved ? 'var(--th-accent)' : '';
       };
       refreshLabel();
-      // Synchronise le badge du header au boot (au cas où un produit ait déjà
-      // été mis en favoris depuis une autre page)
       if (typeof window.updateFavBadge === 'function') window.updateFavBadge();
 
       btnSave.addEventListener('click', () => {
@@ -1437,12 +1267,10 @@
           showToast("Ajouté à votre sélection");
         }
         refreshLabel();
-        // Met à jour le badge du header
         if (typeof window.updateFavBadge === 'function') window.updateFavBadge();
       });
     }
 
-    // ─── Partager : navigator.share natif ou fallback copie ───
     const btnShare = document.getElementById('btn-share');
     if (btnShare) {
       btnShare.addEventListener('click', async () => {
@@ -1451,9 +1279,7 @@
         if (navigator.share) {
           try {
             await navigator.share({ title: `${title} — TadamHome`, url });
-          } catch (e) {
-            // user cancelled — silencieux
-          }
+          } catch (e) {}
         } else {
           try {
             await navigator.clipboard.writeText(url);
@@ -1465,7 +1291,6 @@
       });
     }
 
-    // ─── Trouver (en magasin) : stub pour l'instant ───
     const btnFind = document.getElementById('btn-find');
     if (btnFind) {
       btnFind.addEventListener('click', () => {
@@ -1474,10 +1299,7 @@
     }
   }
 
-  /* ══════════════════════════════════════════════════════════
-     PRODUITS SIMILAIRES — chargés depuis Supabase
-     Charge 4 produits de la même catégorie (excluant celui en cours)
-     ══════════════════════════════════════════════════════════ */
+  /* ── PRODUITS SIMILAIRES ── */
   async function loadSimilarProducts(currentProduct) {
     const row = document.getElementById('similar-row');
     if (!row) return;
@@ -1486,7 +1308,6 @@
     const category = currentProduct.category || currentProduct.categorie;
 
     try {
-      // Tentative 1 : produits de la même catégorie
       let products = [];
       if (category) {
         const { data, error } = await sb
@@ -1498,7 +1319,6 @@
         if (!error && data) products = data;
       }
 
-      // Fallback : 4 produits aléatoires si la catégorie n'a pas suffi
       if (products.length < 4) {
         const { data, error } = await sb
           .from('products')
@@ -1506,7 +1326,6 @@
           .neq('id', currentId)
           .limit(8);
         if (!error && data) {
-          // Mélange + complète jusqu'à 4 (évite doublons avec la 1re tentative)
           const existingIds = new Set(products.map(p => p.id));
           const shuffled = data.sort(() => Math.random() - 0.5);
           for (const p of shuffled) {
@@ -1520,13 +1339,11 @@
       }
 
       if (!products.length) {
-        // Pas de produits similaires : on cache la section
         const section = row.closest('.similar');
         if (section) section.style.display = 'none';
         return;
       }
 
-      // Render
       row.innerHTML = products.slice(0, 4).map(p => {
         const name = p.name || p.nom || '—';
         const brand = p.enseigne_name || p.marque || '';
@@ -1538,7 +1355,7 @@
             <rect x="20" y="55" width="160" height="22" rx="4" fill="rgba(184,152,106,.18)"/>
           </svg>`;
         const imgHtml = img
-          ? `<img src="${escapeHTML(img)}" alt="${escapeHTML(name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.outerHTML='${fallbackSvg.replace(/\n/g,'').replace(/'/g,'&#39;')}'">`
+          ? `<img src="${escapeHTML(img)}" alt="${escapeHTML(name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.outerHTML='${fallbackSvg.replace(/\n/g,'').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}'">`
           : fallbackSvg;
         return `
           <article class="card" onclick="window.location.href='scan.html?id=${encodeURIComponent(p.id)}'">
@@ -1552,24 +1369,19 @@
       }).join('');
     } catch (e) {
       console.warn('[scan] Échec chargement similaires :', e);
-      // En cas d'erreur, on cache la section pour ne pas avoir un placeholder vide
       const section = row.closest('.similar');
       if (section) section.style.display = 'none';
     }
   }
 
-  /* ══════════════════════════════════════════════════════════
-     UI GLOBALE — favoris header + sticky CTA bar (desktop)
-     ══════════════════════════════════════════════════════════ */
+  /* ── HEADER FAVORIS + STICKY CTA ── */
   const FAVS_KEY = 'tadamhome_favorites';
 
-  /** Lit la liste des favoris depuis localStorage. */
   function getFavorites() {
     try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); }
     catch { return []; }
   }
 
-  /** Met à jour le badge du bouton Favoris dans le header en fonction du localStorage. */
   function updateFavBadge() {
     const badge = document.getElementById('favs-badge');
     if (!badge) return;
@@ -1581,14 +1393,8 @@
       badge.style.display = 'none';
     }
   }
-  // Exposé pour que setupActions puisse rafraîchir après chaque toggle Sélection
   window.updateFavBadge = updateFavBadge;
 
-  /**
-   * Branche le bouton Favoris du header :
-   * - Affiche le compteur dans le badge
-   * - Au clic : toast informatif (la page favoris dédiée arrivera plus tard)
-   */
   function setupFavoritesHeader() {
     updateFavBadge();
     const btn = document.getElementById('btn-favs-header');
@@ -1599,22 +1405,15 @@
         showToast('Aucun produit en sélection. Touchez ♡ Sélection pour ajouter.');
         return;
       }
-      // Pour l'instant : un toast récap. Plus tard : redirection vers /favoris
       showToast(`${favs.length} produit${favs.length > 1 ? 's' : ''} en sélection · page dédiée bientôt`);
     });
   }
 
-  /**
-   * Sticky CTA bar (desktop) : apparaît quand le bloc CTA original sort du viewport.
-   * Les clicks sur les boutons de la sticky bar délèguent au bouton original
-   * via .click() pour réutiliser toute la logique existante (favoris, partage, AR…).
-   */
   function setupStickyCta() {
     const original = document.querySelector('.cta-block');
     const sticky = document.getElementById('cta-sticky');
     if (!original || !sticky) return;
 
-    // IntersectionObserver — show/hide la sticky bar selon visibilité du bloc original
     if ('IntersectionObserver' in window) {
       const obs = new IntersectionObserver(
         (entries) => {
@@ -1627,7 +1426,6 @@
       obs.observe(original);
     }
 
-    // Délégation des clicks
     const map = [
       ['btn-save-sticky',   'btn-save'],
       ['btn-share-sticky',  'btn-share'],
@@ -1643,8 +1441,6 @@
       }
     });
 
-    // Synchronise l'état "actif" du bouton Sélection sticky avec l'original
-    // (au cas où l'utilisateur toggle depuis le header ou la bar sticky)
     function syncSaveState() {
       const saveOriginal = document.getElementById('btn-save');
       const saveSticky = document.getElementById('btn-save-sticky');
@@ -1653,7 +1449,6 @@
       saveSticky.classList.toggle('is-active', isActive);
       saveSticky.textContent = isActive ? '♥ Sélectionné' : '♡ Sélection';
     }
-    // MutationObserver pour suivre les changements de label sur le btn-save
     const saveBtn = document.getElementById('btn-save');
     if (saveBtn && 'MutationObserver' in window) {
       new MutationObserver(syncSaveState).observe(saveBtn, { childList: true, characterData: true, subtree: true });
@@ -1661,12 +1456,8 @@
     }
   }
 
-  /* ══════════════════════════════════════════════════════════
-     INIT — récupère le produit via ?id=
-     ══════════════════════════════════════════════════════════ */
+  /* ── INIT ── */
   async function init() {
-    // UI globale (header favoris + sticky CTA) — branchée au boot,
-    // indépendamment du chargement du produit.
     setupFavoritesHeader();
     setupStickyCta();
 
@@ -1675,11 +1466,11 @@
 
     if (!productId) {
       console.info('[scan] Pas d\'ID produit dans l\'URL — affichage des données démo (LC2 Grand Confort).');
-      // Branche les actions même en mode démo (mais sans favoris ni similaires Supabase)
       setupActions(null, null);
-      // Cache la section similaires en mode démo (rien à charger sans ID)
       const similarSection = document.querySelector('.similar');
       if (similarSection) similarSection.style.display = 'none';
+      // Mode démo : pas de model 3D, on cache le loader rapidement
+      setTimeout(hideModelLoader, 600);
       return;
     }
 
@@ -1693,15 +1484,16 @@
       if (error) {
         console.warn('[scan] Erreur Supabase :', error.message);
         setupActions(productId, null);
+        hideModelLoader();
         return;
       }
       if (!data) {
         console.warn('[scan] Produit non trouvé pour id =', productId);
         setupActions(productId, null);
+        hideModelLoader();
         return;
       }
 
-      // 🔍 Debug — même style que catalogue.html
       console.group('%c[scan] Produit récupéré', 'color:#B8986A;font-weight:600');
       console.log('Champs disponibles :', Object.keys(data));
       console.log('Produit complet :', data);
@@ -1716,6 +1508,7 @@
     } catch (e) {
       console.error('[scan] Échec de récupération :', e);
       setupActions(productId, null);
+      hideModelLoader();
     }
   }
 
