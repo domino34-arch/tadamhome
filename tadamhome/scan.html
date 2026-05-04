@@ -1,0 +1,1277 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TadamHome — Scan</title>
+<meta name="description" content="Page produit TadamHome — modèle 3D manipulable, AR mono et multi-objets.">
+
+<link rel="stylesheet" href="assets/colors_and_type.css">
+
+<!-- model-viewer (3D + AR natif iOS/Android) -->
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+<!-- Supabase JS — même CDN/version que catalogue.html -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* ─────────────────────────────────────────────
+     FALLBACK : variables CSS inlinées
+     Si assets/colors_and_type.css ne charge pas
+     (ex: fichier ouvert hors du repo), ces valeurs
+     prennent le relais — design préservé.
+     ───────────────────────────────────────────── */
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --th-paper:        #F5F2EC;
+    --th-paper-2:      #EDEAE2;
+    --th-paper-3:      #E4E0D6;
+    --th-white:        #FAFAF8;
+    --th-ink:          #1C1B18;
+    --th-ink-2:        #4A4840;
+    --th-ink-3:        #8A8880;
+
+    --th-accent:       #B8986A;
+    --th-accent-2:     #D4B896;
+    --th-accent-3:     #A07A4A;
+
+    --th-success:      #27704A;
+    --th-danger:       #C0392B;
+
+    --th-border:       rgba(28,27,24,.10);
+    --th-border-soft:  rgba(28,27,24,.07);
+    --th-border-gold:  rgba(184,152,106,.20);
+    --th-border-dark:  rgba(255,255,255,.07);
+
+    --th-shadow-sm:    0 2px 8px rgba(28,27,24,.06);
+    --th-shadow-md:    0 12px 32px rgba(28,27,24,.10);
+
+    --th-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --th-sans:  'Outfit', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  }
+
+  /* ─────────────────────────────────────────────
+     Base
+     ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--th-paper); color: var(--th-ink); font-family: var(--th-sans); font-weight: 300; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  ul, ol { list-style: none; }
+  img, video { max-width: 100%; display: block; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+  /* ─────────────────────────────────────────────
+     Frame nav (sticky en haut)
+     ───────────────────────────────────────────── */
+  .frame-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--th-border);
+    background: rgba(245,242,236,.93);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .frame-nav .left { display: flex; align-items: center; gap: 18px; }
+  .frame-nav .back { font-size: 16px; color: var(--th-ink-2); }
+  .frame-nav .logo img { height: 22px; width: auto; }
+  .frame-nav .logo .logo-text {
+    font-family: var(--th-serif);
+    font-size: 22px; font-weight: 500;
+    letter-spacing: -.01em;
+    color: var(--th-ink);
+    line-height: 1;
+  }
+  .frame-nav .logo .logo-text .accent { color: var(--th-accent); }
+  .frame-nav .crumb { font-size: 9px; letter-spacing: .20em; text-transform: uppercase; color: var(--th-ink-3); }
+  .frame-nav .crumb em { font-style: normal; color: var(--th-accent); }
+  .frame-nav .right { display: flex; gap: 14px; align-items: center; }
+  .frame-nav .icobtn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--th-border);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--th-ink-2); position: relative;
+  }
+  .frame-nav .icobtn .badge {
+    position: absolute; top: -5px; right: -5px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 999px;
+    background: var(--th-accent); color: var(--th-white);
+    font-size: 9px; font-weight: 500;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .frame-nav .pill {
+    font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 8px 14px;
+    border: 1px solid var(--th-accent); color: var(--th-accent);
+  }
+
+  /* ─────────────────────────────────────────────
+     Hero — 3D + Infos
+     ───────────────────────────────────────────── */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 0;
+    min-height: 700px;
+    border-bottom: 1px solid var(--th-border);
+  }
+
+  /* Viewer 3D */
+  .viewer3d {
+    position: relative;
+    background: var(--th-paper-2);
+    overflow: hidden;
+    min-height: 700px;
+  }
+  /* Grille fine de fond — esprit blueprint */
+  .viewer3d::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px),
+      repeating-linear-gradient(90deg, transparent 0 49px, rgba(184,152,106,.08) 49px 50px);
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* Ombre douce au sol */
+  .viewer3d .floor {
+    position: absolute; left: 50%; bottom: 18%;
+    width: 74%; height: 14%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(28,27,24,.18) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .viewer3d model-viewer {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    background: transparent;
+    --poster-color: transparent;
+    z-index: 2;
+  }
+  /* Placeholder visuel quand pas de model-viewer (fallback) */
+  .viewer3d .model-fallback {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .viewer3d .model-fallback svg { filter: drop-shadow(0 24px 30px rgba(28,27,24,.18)); }
+
+  /* Coins UI overlay du viewer (réservés pour usage futur) */
+  .viewer3d .ui-corner {
+    font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--th-ink-3);
+    padding: 8px 12px;
+    background: rgba(250,250,248,.85);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--th-border);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+
+  /* Colonne infos */
+  .info {
+    padding: 28px 32px;
+    background: var(--th-paper);
+    display: flex; flex-direction: column; gap: 14px;
+    border-left: 1px solid var(--th-border);
+    position: relative;
+    min-width: 0;
+    padding-bottom: 280px; /* espace pour le cta-block ancré */
+  }
+  .info .meta-line {
+    font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--th-ink-3);
+    display: flex; gap: 14px; align-items: center;
+  }
+  .info .meta-line .ref { color: var(--th-accent); }
+  .info h1 {
+    font-family: var(--th-serif);
+    font-size: 32px; font-weight: 300;
+    line-height: 1.05; letter-spacing: -.01em;
+  }
+  .info h1 em { font-style: italic; color: var(--th-accent); }
+
+  /* title-row : conteneur pour titre + bloc marque
+     Desktop : empilés (column). Mobile : inline (row, géré dans le media query). */
+  .info .title-row {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  /* Bloc marque */
+  .info .brand {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0;
+    border-top: 1px solid var(--th-border);
+  }
+  .info .brand .logo-mark {
+    width: 38px; height: 38px;
+    border: 1px solid var(--th-border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--th-serif); font-style: italic;
+    font-size: 18px; color: var(--th-accent);
+  }
+  .info .brand .info-stack .nm { font-family: var(--th-serif); font-size: 16px; }
+  .info .brand .info-stack .sub {
+    font-size: 10px; color: var(--th-ink-3);
+    letter-spacing: .12em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .info .brand .arr {
+    margin-left: auto;
+    color: var(--th-accent);
+    font-family: var(--th-serif); font-style: italic;
+    font-size: 18px;
+  }
+
+  /* Picker finitions */
+  .info .finish-picker {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 14px 16px;
+    margin: 0 -16px;
+    background: var(--th-paper-2);
+    border-top: 1px solid var(--th-border);
+    border-bottom: 1px solid var(--th-border);
+  }
+  .info .finish-picker .fp-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .info .finish-picker .fp-lbl {
+    font-size: 9px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--th-ink-3);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .info .finish-picker .fp-lbl::before {
+    content: ''; width: 6px; height: 6px;
+    background: var(--th-accent); border-radius: 50%;
+  }
+  .info .finish-picker .fp-sel { font-family: var(--th-serif); font-size: 14px; }
+  .info .finish-picker .fp-sel em { font-style: italic; color: var(--th-accent); }
+  .info .finish-picker .fp-count {
+    display: none; /* visible uniquement sur mobile */
+    font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--th-ink-3);
+  }
+  .info .finish-picker .fp-hint .hint-mobile { display: none; }
+  .info .finish-picker .fp-row {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
+  }
+  .info .finish-picker .fp-sw {
+    cursor: pointer; position: relative;
+    padding: 3px 3px 18px;
+    border: 1px solid transparent;
+    transition: border-color .18s ease, opacity .18s ease;
+    opacity: .22; /* swatches non-actifs : pâles / vidés */
+  }
+  .info .finish-picker .fp-sw .ck {
+    display: block; width: 100%; aspect-ratio: 1;
+    background-image:
+      radial-gradient(ellipse at 30% 25%, rgba(255,255,255,.35), transparent 55%),
+      radial-gradient(ellipse at 70% 80%, rgba(0,0,0,.35), transparent 55%),
+      var(--swatch-bg, #6e5238);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+    position: relative; overflow: hidden;
+  }
+  /* Grain SVG en overlay pour texture cuir */
+  .info .finish-picker .fp-sw .ck::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='2.4' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/></svg>");
+    background-size: 40px 40px;
+    mix-blend-mode: overlay;
+    opacity: .9;
+    pointer-events: none;
+  }
+  .info .finish-picker .fp-sw .nm-tag {
+    position: absolute; left: 0; right: 0; bottom: 2px;
+    text-align: center;
+    font-size: 8px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--th-ink-3);
+  }
+  .info .finish-picker .fp-sw:hover { opacity: .55; border-color: var(--th-border); }
+  .info .finish-picker .fp-sw.act {
+    opacity: 1;
+    border-color: var(--th-accent);
+  }
+  .info .finish-picker .fp-sw.act .nm-tag { color: var(--th-accent); }
+  .info .finish-picker .fp-sw.act::after {
+    content: ''; position: absolute; inset: -1px;
+    border: 1px solid var(--th-accent); pointer-events: none;
+  }
+  .info .finish-picker .fp-hint {
+    font-size: 9px; letter-spacing: .04em;
+    color: var(--th-ink-3); font-style: italic;
+  }
+
+  /* Bandeau infos produit (4 cols) */
+  .info .info-grid {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .info .info-grid > * { flex: 0 0 auto; }
+  .info .info-grid .it-k {
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--th-ink-3);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .info .info-grid .it-v {
+    font-family: var(--th-serif);
+    font-size: 15px; line-height: 1.3;
+    white-space: nowrap;
+  }
+  .info .info-grid .it-v em { font-style: italic; color: var(--th-accent); }
+
+  /* Prix */
+  .info .price {
+    display: flex; align-items: flex-end; gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--th-border);
+  }
+  .info .price .num { font-family: var(--th-serif); font-size: 38px; font-weight: 400; line-height: 1; }
+  .info .price .unit {
+    font-size: 10px; color: var(--th-ink-3);
+    letter-spacing: .14em; text-transform: uppercase;
+    padding-bottom: 6px;
+  }
+
+  /* CTA block ancré au bas de la colonne */
+  .info .cta-block {
+    position: absolute;
+    left: 32px; right: 32px;
+    bottom: 32px;
+    display: flex; flex-direction: column; gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--th-border);
+    background: var(--th-paper);
+    z-index: 3;
+  }
+  .info .cta-block .save-row {
+    display: flex; gap: 8px; flex-wrap: nowrap;
+  }
+  .info .cta-block .save-row button {
+    flex: 1;
+    font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+    padding: 10px 6px;
+    background: transparent;
+    border: 1px solid var(--th-border);
+    color: var(--th-ink-2);
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    white-space: nowrap;
+  }
+
+  /* Pair AR — pièce maîtresse */
+  .ar-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ar-pair .ar-cta {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 18px;
+    border: 1px solid var(--th-ink);
+    background: var(--th-paper);
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+    color: inherit;
+    text-align: left;
+  }
+  .ar-pair .ar-cta:hover { background: var(--th-paper-2); }
+  .ar-pair .ar-cta.primary {
+    background: var(--th-ink); color: var(--th-white);
+    border-color: var(--th-ink);
+  }
+  .ar-pair .ar-cta.primary:hover { background: #2a2925; }
+  .ar-pair .ar-cta.primary .lbl { color: rgba(255,255,255,.55); }
+  .ar-pair .ar-cta.primary .nm em { color: var(--th-accent-2); }
+  .ar-pair .ar-cta .lbl {
+    font-size: 9px; letter-spacing: .20em; text-transform: uppercase;
+    color: var(--th-accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ar-pair .ar-cta .nm {
+    font-family: var(--th-serif);
+    font-size: 19px; font-weight: 400;
+    line-height: 1.15;
+  }
+  .ar-pair .ar-cta .nm em { font-style: italic; color: var(--th-accent); }
+  .ar-pair .ar-cta .desc {
+    font-size: 11px; color: var(--th-ink-2); line-height: 1.55;
+  }
+  .ar-pair .ar-cta.primary .desc { color: rgba(255,255,255,.65); }
+  .ar-pair .ar-cta .arrow {
+    position: absolute; bottom: 16px; right: 16px;
+    font-family: var(--th-serif); font-style: italic;
+    font-size: 22px; color: var(--th-accent);
+  }
+  .ar-pair .ar-cta .badge-new {
+    position: absolute; top: 12px; right: 12px;
+    font-size: 8px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 3px 6px;
+    background: var(--th-accent); color: var(--th-white);
+  }
+
+  /* ─────────────────────────────────────────────
+     Storytelling — fond foncé, sticky scroll
+     ───────────────────────────────────────────── */
+  .story {
+    padding: 80px 40px;
+    background: var(--th-ink);
+    color: var(--th-white);
+    display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .story .pinned { position: sticky; top: 90px; }
+  .story .pinned .eyb {
+    font-size: 9px; font-weight: 400; letter-spacing: .20em;
+    text-transform: uppercase;
+    color: var(--th-accent-2);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .story .pinned .eyb::before {
+    content: ''; width: 24px; height: 1px; background: var(--th-accent-2);
+  }
+  .story .pinned h2 {
+    font-family: var(--th-serif);
+    font-size: 36px; font-weight: 300;
+    line-height: 1.1;
+    margin-top: 14px;
+  }
+  .story .pinned h2 em { font-style: italic; color: var(--th-accent-2); }
+  .story .pinned p {
+    font-size: 12px;
+    color: rgba(245,242,236,.6);
+    line-height: 1.85;
+    margin-top: 14px;
+  }
+  .story .pinned .summary {
+    margin-top: 28px;
+    display: flex; flex-direction: column; gap: 0;
+    border-top: 1px solid rgba(255,255,255,.18);
+  }
+  .story .pinned .summary a {
+    display: flex; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,.18);
+    font-size: 11px; letter-spacing: .04em;
+    color: rgba(245,242,236,.7);
+  }
+  .story .pinned .summary a:last-child { border-bottom: 0; }
+  .story .pinned .summary a em {
+    font-family: var(--th-serif);
+    color: var(--th-accent-2);
+    font-style: italic;
+    margin-right: 8px;
+  }
+
+  .story .scenes { display: flex; flex-direction: column; gap: 56px; }
+  .story .scene .nb {
+    font-family: var(--th-serif); font-style: italic;
+    color: var(--th-accent-2); font-size: 13px;
+  }
+  .story .scene h3 {
+    font-family: var(--th-serif);
+    font-size: 24px; font-weight: 400;
+    line-height: 1.2;
+    margin-top: 8px;
+  }
+  .story .scene h3 em { font-style: italic; color: var(--th-accent-2); }
+  .story .scene .img {
+    aspect-ratio: 16/10;
+    background: rgba(245,242,236,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    margin-top: 18px;
+    position: relative; overflow: hidden;
+  }
+  .story .scene .img::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(184,152,106,.06) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(184,152,106,.06) 39px 40px);
+  }
+  .story .scene p {
+    font-size: 12px;
+    color: rgba(245,242,236,.55);
+    line-height: 1.8;
+    margin-top: 12px;
+  }
+
+  /* ─────────────────────────────────────────────
+     Produits similaires
+     ───────────────────────────────────────────── */
+  .similar { padding: 80px 40px; background: var(--th-paper); }
+  .similar .head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .similar .head h2 {
+    font-family: var(--th-serif);
+    font-size: 30px; font-weight: 300;
+  }
+  .similar .head h2 em { font-style: italic; color: var(--th-accent); }
+  .similar .head .seeall {
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 11px 20px;
+    background: transparent;
+    color: var(--th-accent);
+    border: 1px solid var(--th-accent);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .similar .row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  }
+  .similar .card { cursor: pointer; }
+  .similar .card .img {
+    aspect-ratio: 4/3;
+    background: var(--th-paper-2);
+    border: 1px solid var(--th-border);
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .similar .card .img::after {
+    content: '◫'; position: absolute; bottom: 8px; right: 8px;
+    font-size: 14px; color: var(--th-accent);
+  }
+  .similar .card .img svg { width: 100%; height: auto; }
+  .similar .card .meta .br {
+    font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--th-ink-3);
+    margin-top: 12px;
+  }
+  .similar .card .meta .nm {
+    font-family: var(--th-serif);
+    font-size: 16px;
+    margin-top: 4px;
+  }
+  .similar .card .meta .pr {
+    font-size: 11px; color: var(--th-ink-2); margin-top: 6px;
+  }
+
+  /* ─────────────────────────────────────────────
+     Mobile CTA bar (cachée par défaut, montrée sur petit écran)
+     ───────────────────────────────────────────── */
+  .mobile-cta-bar { display: none; }
+
+  /* ─────────────────────────────────────────────
+     Responsive — bascule mobile à 768px
+     ───────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    /* Frame nav slim */
+    .frame-nav { padding: 14px 14px; }
+    .frame-nav .crumb { display: none; }
+    .frame-nav .right .pill { display: none; }
+    .frame-nav .right .icobtn { width: 28px; height: 28px; font-size: 12px; }
+    .frame-nav .logo img { height: 18px; }
+    .frame-nav .logo .logo-text { font-size: 18px; }
+
+    /* Hero en pile */
+    .hero {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+    .viewer3d {
+      min-height: 280px; height: 280px;
+    }
+
+    .info {
+      padding: 18px 20px 14px;
+      border-left: 0;
+      border-top: 1px solid var(--th-border);
+      gap: 12px;
+      padding-bottom: 18px;
+    }
+
+    /* Titre + brand inline sur mobile (sur la même ligne) */
+    .info .title-row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .info h1 {
+      font-size: 20px;
+      flex: 1; min-width: 0;
+      line-height: 1.15;
+    }
+    .info .brand {
+      flex: 0 0 auto;
+      padding: 0;
+      border: 0;
+      gap: 8px;
+    }
+    .info .brand .logo-mark {
+      width: 26px; height: 26px;
+      font-size: 13px;
+    }
+    .info .brand .info-stack .sub { display: none; }
+    .info .brand .info-stack .nm { font-size: 13px; }
+    .info .brand .arr { font-size: 14px; }
+
+    /* Prix juste sous le titre, compact */
+    .info .price {
+      padding-top: 10px;
+      border-top: 1px solid var(--th-border);
+      gap: 8px;
+    }
+    .info .price .num { font-size: 22px; }
+    .info .price .unit { font-size: 9px; padding-bottom: 3px; }
+
+    /* Picker finitions — header inline avec compteur, hint dual */
+    .info .finish-picker { margin: 0 -20px; padding: 14px 20px; }
+    .info .finish-picker .fp-head {
+      align-items: center;
+    }
+    .info .finish-picker .fp-lbl {
+      letter-spacing: .04em; text-transform: none;
+      font-size: 13px; font-family: var(--th-serif);
+      color: var(--th-ink);
+    }
+    .info .finish-picker .fp-lbl::before { display: none; }
+    .info .finish-picker .fp-lbl::after {
+      content: '·';
+      color: var(--th-accent); font-style: italic;
+      margin: 0 6px;
+    }
+    .info .finish-picker .fp-sel {
+      flex: 1; font-size: 13px;
+    }
+    .info .finish-picker .fp-count {
+      display: inline; /* visible mobile only */
+    }
+    .info .finish-picker .fp-row {
+      display: grid; grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+    .info .finish-picker .fp-sw { padding: 0; }
+    .info .finish-picker .fp-sw .nm-tag { display: none; } /* étiquettes cachées sur mobile */
+    .info .finish-picker .fp-hint .hint-desktop { display: none; }
+    .info .finish-picker .fp-hint .hint-mobile { display: inline; }
+
+    /* Info-grid : caché sur mobile (cf. image 2) */
+    .info .info-grid { display: none; }
+
+    /* Bloc CTA devient une bar collante en bas */
+    .info .cta-block {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      padding: 12px 14px 14px;
+      background: rgba(245,242,236,.96);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--th-border);
+      border-bottom: 0;
+      gap: 6px;
+      z-index: 40;
+    }
+    .info .cta-block .save-row { gap: 6px; }
+    .info .cta-block .save-row button {
+      font-size: 8px; padding: 8px 4px; letter-spacing: .10em;
+    }
+    .ar-pair { gap: 6px; }
+    .ar-pair .ar-cta { padding: 10px 12px; gap: 4px; }
+    .ar-pair .ar-cta .nm { font-size: 13px; }
+    .ar-pair .ar-cta .desc { font-size: 9px; line-height: 1.4; }
+    .ar-pair .ar-cta .arrow { display: none; }
+    .ar-pair .ar-cta .badge-new { font-size: 7px; padding: 2px 4px; top: 6px; right: 6px; }
+    .ar-pair .ar-cta .lbl { font-size: 7px; letter-spacing: .14em; }
+
+    /* Padding bottom du body pour pas que la cta-bar masque le contenu */
+    body { padding-bottom: 170px; }
+
+    /* Storytelling : pas de sticky, simple flow */
+    .story {
+      grid-template-columns: 1fr;
+      gap: 36px;
+      padding: 40px 20px;
+    }
+    .story .pinned { position: static; }
+    .story .pinned h2 { font-size: 24px; }
+    .story .scene h3 { font-size: 18px; }
+    .story .scenes { gap: 36px; }
+
+    /* Similaires : scroll horizontal */
+    .similar { padding: 36px 20px; }
+    .similar .head h2 { font-size: 22px; }
+    .similar .head .seeall { font-size: 9px; padding: 9px 14px; }
+    .similar .row {
+      display: flex;
+      grid-template-columns: none;
+      gap: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+      margin: 0 -20px;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    .similar .row::-webkit-scrollbar { display: none; }
+    .similar .card { flex: 0 0 200px; }
+    .similar .card .meta .nm { font-size: 14px; }
+  }
+
+  @media (max-width: 480px) {
+    .similar .card { flex: 0 0 160px; }
+  }
+
+  /* ─────────────────────────────────────────────
+     États de chargement
+     ───────────────────────────────────────────── */
+  .skel {
+    background: linear-gradient(90deg, var(--th-paper-2) 0%, var(--th-paper-3) 50%, var(--th-paper-2) 100%);
+    background-size: 200% 100%;
+    animation: skel 1.2s ease-in-out infinite;
+    color: transparent !important;
+  }
+  @keyframes skel {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     NAV
+     ════════════════════════════════════════════ -->
+<header class="frame-nav">
+  <div class="left">
+    <a class="back" href="catalogue.html" aria-label="Retour">←</a>
+    <a class="logo" href="index.html" aria-label="TadamHome">
+      <img src="logo.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+      <span class="logo-text" style="display:none;">Tadam<span class="accent">Home</span></span>
+    </a>
+    <span class="crumb" id="breadcrumb">Salon · Cassina · <em>LC2</em></span>
+  </div>
+  <div class="right">
+    <button class="icobtn" title="Recherche" aria-label="Recherche">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+    <button class="icobtn" title="Favoris" aria-label="Favoris">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M12 21s-7-4.5-9.5-9C.5 8.5 3 4 7 4c2 0 3.5 1 5 3 1.5-2 3-3 5-3 4 0 6.5 4.5 4.5 8C19 16.5 12 21 12 21z"/></svg>
+    </button>
+    <button class="icobtn" title="Sélection" aria-label="Sélection">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="4" y="6" width="16" height="14"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/></svg>
+      <span class="badge">3</span>
+    </button>
+    <span class="pill">Compte</span>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════
+     HERO — 3D + INFOS
+     ════════════════════════════════════════════ -->
+<section class="hero">
+
+  <!-- Viewer 3D -->
+  <div class="viewer3d">
+    <div class="floor"></div>
+
+    <!-- model-viewer (3D + AR natif). src remplie dynamiquement par le JS -->
+    <model-viewer
+      id="mv"
+      alt="Modèle 3D du produit"
+      camera-controls
+      touch-action="pan-y"
+      auto-rotate
+      auto-rotate-delay="5000"
+      rotation-per-second="20deg"
+      exposure="1"
+      shadow-intensity="0"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      style="--poster-color: transparent;"
+    ></model-viewer>
+
+    <!-- Fallback visuel quand pas encore de modèle chargé (LC2 SVG) -->
+    <div class="model-fallback" id="model-fallback">
+      <svg viewBox="0 0 380 220" width="440" aria-hidden="true">
+        <defs>
+          <radialGradient id="leatherVol" cx="50%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#8c6a48"/>
+            <stop offset="55%" stop-color="#6e5238"/>
+            <stop offset="100%" stop-color="#2e1f12"/>
+          </radialGradient>
+          <linearGradient id="leatherTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a07a52"/>
+            <stop offset="60%" stop-color="#6e5238"/>
+            <stop offset="100%" stop-color="#3a2818"/>
+          </linearGradient>
+          <filter id="leatherGrain" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="2.6" numOctaves="2" seed="3"/>
+            <feColorMatrix values="0 0 0 0 0.18  0 0 0 0 0.10  0 0 0 0 0.04  0 0 0 0.55 0"/>
+            <feComposite in2="SourceGraphic" operator="in"/>
+          </filter>
+          <linearGradient id="chromePoli" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5a5852"/>
+            <stop offset="20%" stop-color="#e8e4dc"/>
+            <stop offset="45%" stop-color="#9a978f"/>
+            <stop offset="70%" stop-color="#f2efe7"/>
+            <stop offset="100%" stop-color="#48463f"/>
+          </linearGradient>
+          <linearGradient id="chromeBar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#cfcbc2"/>
+            <stop offset="50%" stop-color="#e8e4dc"/>
+            <stop offset="100%" stop-color="#7a7870"/>
+          </linearGradient>
+        </defs>
+        <!-- Coussins inférieurs (assise) -->
+        <g>
+          <rect x="40" y="100" width="300" height="68" rx="10" fill="url(#leatherVol)"/>
+          <rect x="40" y="100" width="300" height="68" rx="10" fill="url(#leatherTop)" opacity=".35"/>
+          <rect x="40" y="100" width="300" height="68" rx="10" filter="url(#leatherGrain)" opacity=".9"/>
+          <rect x="46" y="104" width="288" height="60" rx="7" fill="none" stroke="rgba(255,232,200,.18)" stroke-width=".6" stroke-dasharray="2 2"/>
+          <g fill="rgba(255,235,205,.35)">
+            <circle cx="90" cy="134" r="1.4"/><circle cx="140" cy="134" r="1.4"/>
+            <circle cx="190" cy="134" r="1.4"/><circle cx="240" cy="134" r="1.4"/>
+            <circle cx="290" cy="134" r="1.4"/>
+          </g>
+          <rect x="46" y="102" width="288" height="6" rx="3" fill="rgba(255,225,190,.22)"/>
+          <rect x="40" y="160" width="300" height="8" rx="4" fill="rgba(0,0,0,.35)"/>
+        </g>
+        <!-- Coussins supérieurs (dossier) -->
+        <g>
+          <rect x="40" y="40" width="300" height="68" rx="10" fill="url(#leatherVol)"/>
+          <rect x="40" y="40" width="300" height="68" rx="10" fill="url(#leatherTop)" opacity=".4"/>
+          <rect x="40" y="40" width="300" height="68" rx="10" filter="url(#leatherGrain)" opacity=".9"/>
+          <rect x="46" y="44" width="288" height="60" rx="7" fill="none" stroke="rgba(255,232,200,.18)" stroke-width=".6" stroke-dasharray="2 2"/>
+          <g fill="rgba(255,235,205,.35)">
+            <circle cx="90" cy="74" r="1.4"/><circle cx="140" cy="74" r="1.4"/>
+            <circle cx="190" cy="74" r="1.4"/><circle cx="240" cy="74" r="1.4"/>
+            <circle cx="290" cy="74" r="1.4"/>
+          </g>
+          <rect x="46" y="42" width="288" height="7" rx="3" fill="rgba(255,225,190,.28)"/>
+          <rect x="40" y="100" width="300" height="8" rx="4" fill="rgba(0,0,0,.35)"/>
+        </g>
+        <!-- Cadre tubulaire chromé -->
+        <g>
+          <rect x="32" y="34" width="14" height="140" rx="6" fill="url(#chromePoli)"/>
+          <rect x="334" y="34" width="14" height="140" rx="6" fill="url(#chromePoli)"/>
+          <rect x="36" y="36" width="2" height="136" fill="rgba(255,255,255,.55)"/>
+          <rect x="340" y="36" width="2" height="136" fill="rgba(255,255,255,.55)"/>
+          <rect x="32" y="170" width="316" height="8" rx="4" fill="url(#chromeBar)"/>
+          <rect x="34" y="171" width="312" height="1.5" fill="rgba(255,255,255,.6)"/>
+          <rect x="36" y="174" width="6" height="10" fill="#3a3832"/>
+          <rect x="338" y="174" width="6" height="10" fill="#3a3832"/>
+        </g>
+      </svg>
+    </div>
+
+  </div>
+
+  <!-- Colonne infos -->
+  <div class="info">
+    <div class="meta-line">
+      <span class="ref" id="meta-ref">Réf · LC2-GC</span>
+      <span>·</span>
+      <span id="meta-cat">Salon · Fauteuil</span>
+    </div>
+
+    <div class="title-row">
+      <h1 id="product-title">LC2 Grand <em>Confort</em></h1>
+
+      <div class="brand">
+        <span class="logo-mark" id="brand-mark">C</span>
+        <div class="info-stack">
+          <div class="nm" id="brand-name">Cassina</div>
+          <div class="sub" id="brand-origin">Meda · Italie</div>
+        </div>
+        <span class="arr">→</span>
+      </div>
+    </div>
+
+    <!-- Picker finitions -->
+    <div class="finish-picker">
+      <div class="fp-head">
+        <span class="fp-lbl">Finition</span>
+        <span class="fp-sel">Cuir <em>Brandy</em></span>
+        <span class="fp-count">8 teintes</span>
+      </div>
+      <div class="fp-row">
+        <span class="fp-sw act" title="Brandy" style="--swatch-bg:#6e5238"><span class="ck"></span><span class="nm-tag">Brandy</span></span>
+        <span class="fp-sw" title="Espresso" style="--swatch-bg:#2a1f15"><span class="ck"></span><span class="nm-tag">Espresso</span></span>
+        <span class="fp-sw" title="Sable" style="--swatch-bg:#a89880"><span class="ck"></span><span class="nm-tag">Sable</span></span>
+        <span class="fp-sw" title="Tabac" style="--swatch-bg:#8b7355"><span class="ck"></span><span class="nm-tag">Tabac</span></span>
+        <span class="fp-sw" title="Noir" style="--swatch-bg:#1a1a1a"><span class="ck"></span><span class="nm-tag">Noir</span></span>
+        <span class="fp-sw" title="Brique" style="--swatch-bg:#c0392b"><span class="ck"></span><span class="nm-tag">Brique</span></span>
+        <span class="fp-sw" title="Forêt" style="--swatch-bg:#27704a"><span class="ck"></span><span class="nm-tag">Forêt</span></span>
+        <span class="fp-sw" title="Écru" style="--swatch-bg:#f5f2ec"><span class="ck"></span><span class="nm-tag">Écru</span></span>
+      </div>
+      <div class="fp-hint">
+        <span class="hint-desktop">Cliquez pour mettre à jour le modèle 3D · puis lancez l'AR</span>
+        <span class="hint-mobile">Touchez pour mettre à jour le modèle 3D · puis lancez l'AR</span>
+      </div>
+    </div>
+
+    <!-- Bandeau infos produit -->
+    <div class="info-grid">
+      <div><div class="it-k">Coloris</div><div class="it-v" id="info-color"><em>Cuir</em> Brandy</div></div>
+      <div><div class="it-k">Dimensions</div><div class="it-v" id="info-dim">240 × 70 × 68 cm</div></div>
+      <div><div class="it-k">Livraison</div><div class="it-v" id="info-delivery"><em>4–6</em> sem.</div></div>
+      <div><div class="it-k">Garantie</div><div class="it-v" id="info-warranty">2 ans</div></div>
+    </div>
+
+    <div class="price">
+      <span class="num" id="price-num">7 850 €</span>
+      <span class="unit">TTC · livré</span>
+    </div>
+
+    <!-- Bloc CTA ancré en bas -->
+    <div class="cta-block">
+      <div class="save-row">
+        <button>♡ Sélection</button>
+        <button>↗ Partager</button>
+        <button>⌖ Trouver</button>
+      </div>
+
+      <div class="ar-pair">
+        <button class="ar-cta" id="ar-mono-btn" type="button">
+          <div class="lbl">◫ AR · Mono</div>
+          <div class="nm">Voir <em>chez moi</em></div>
+          <div class="desc">Posez ce meuble dans votre salon en taille réelle.</div>
+          <span class="arrow">→</span>
+        </button>
+        <button class="ar-cta primary" id="ar-multi-btn" type="button">
+          <span class="badge-new">Nouveau</span>
+          <div class="lbl">◫◫ AR · Multi</div>
+          <div class="nm">Composer une <em>scène</em></div>
+          <div class="desc">Ajoutez canapé, lampe, tapis · construisez votre pièce.</div>
+          <span class="arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     STORYTELLING — fond foncé, sticky scroll
+     ════════════════════════════════════════════ -->
+<section class="story">
+  <div class="pinned">
+    <div class="eyb">L'objet</div>
+    <h2 id="story-title">Né en <em>1928</em>,<br>fait en <em>2025</em></h2>
+    <p id="story-intro">Du dessin original de Le Corbusier, Pierre Jeanneret et Charlotte Perriand, jusqu'aux ateliers de Meda où Cassina assemble chaque pièce à la main. Histoire, matériau, fabrication.</p>
+    <div class="summary">
+      <a href="#scene-1"><span><em>01</em> Histoire</span><span>↓</span></a>
+      <a href="#scene-2"><span><em>02</em> Matériau</span><span>↓</span></a>
+      <a href="#scene-3"><span><em>03</em> Atelier</span><span>↓</span></a>
+      <a href="#scene-4"><span><em>04</em> En scène</span><span>↓</span></a>
+    </div>
+  </div>
+
+  <div class="scenes">
+    <article class="scene" id="scene-1">
+      <span class="nb">— 01</span>
+      <h3>Une <em>icône</em> dessinée pour Cassina</h3>
+      <div class="img"></div>
+      <p>Le Corbusier voulait « un coussin sur un cadre ». 97 ans plus tard, le dessin tient. Cuir pleine fleur, structure tubulaire chromée, sangles cuir.</p>
+    </article>
+    <article class="scene" id="scene-2">
+      <span class="nb">— 02</span>
+      <h3>Le cuir, <em>pendant 18 mois</em></h3>
+      <div class="img"></div>
+      <p>Tannage végétal toscan, repos en fût, finition manuelle. Chaque pièce porte la trace du cuir — une cicatrice, une nuance, un grain.</p>
+    </article>
+    <article class="scene" id="scene-3">
+      <span class="nb">— 03</span>
+      <h3>Assemblé à <em>Meda</em></h3>
+      <div class="img"></div>
+      <p>Atelier Cassina, 14 mains par fauteuil, 3 contrôles. Chaque pièce reçoit un numéro de série gravé sous le piétement.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     PRODUITS SIMILAIRES
+     ════════════════════════════════════════════ -->
+<section class="similar">
+  <div class="head">
+    <h2>Dans le <em>même esprit</em></h2>
+    <a class="seeall" href="catalogue.html">Voir tout · 24 →</a>
+  </div>
+  <div class="row" id="similar-row">
+    <article class="card">
+      <div class="img"><svg viewBox="0 0 200 150"><rect x="30" y="80" width="140" height="55" fill="#3a2818"/><rect x="30" y="40" width="140" height="40" fill="#3a2818"/></svg></div>
+      <div class="meta"><div class="br">Cassina</div><div class="nm">LC3 Petit Confort</div><div class="pr">6 200 € · 4 finitions</div></div>
+    </article>
+    <article class="card">
+      <div class="img"><svg viewBox="0 0 200 150"><circle cx="100" cy="100" r="42" fill="#a89880"/></svg></div>
+      <div class="meta"><div class="br">Vitra</div><div class="nm">Eames Lounge LCW</div><div class="pr">4 850 € · 2 essences</div></div>
+    </article>
+    <article class="card">
+      <div class="img"><svg viewBox="0 0 200 150"><rect x="40" y="60" width="120" height="80" fill="#7A8B7A"/></svg></div>
+      <div class="meta"><div class="br">Hay</div><div class="nm">Mags Soft Module</div><div class="pr">3 100 € · 12 tissus</div></div>
+    </article>
+    <article class="card">
+      <div class="img"><svg viewBox="0 0 200 150"><rect x="50" y="70" width="100" height="65" fill="#B89A6B"/></svg></div>
+      <div class="meta"><div class="br">&Tradition</div><div class="nm">Cloud Sofa</div><div class="pr">5 400 € · 8 coloris</div></div>
+    </article>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SCRIPT — Supabase + render produit
+     Logique alignée sur catalogue.html (mêmes clé, table, helpers)
+     ════════════════════════════════════════════ -->
+<script>
+  /* ══════════════════════════════════════════════════════════
+     SUPABASE — exactement comme catalogue.html
+     ══════════════════════════════════════════════════════════ */
+  const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+  const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+  const { createClient } = supabase;
+  const sb = createClient(SB_URL, SB_KEY);
+
+  /* ══════════════════════════════════════════════════════════
+     IMAGE RESOLUTION — copie de catalogue.html getProductImage()
+     ══════════════════════════════════════════════════════════ */
+  const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
+
+  function getProductImage(p) {
+    const candidates = [
+      p.image_url, p.imageUrl, p.thumbnail_url, p.thumbnailUrl,
+      p.cover_url, p.coverUrl, p.cover, p.thumbnail,
+      p.preview_url, p.previewUrl, p.preview,
+      p.photo_url, p.photoUrl, p.photo,
+      p.image, p.img, p.picture,
+      p.image_path, p.imagePath, p.thumb, p.thumb_url,
+      p.glb_thumbnail, p.glbThumbnail,
+      p.poster, p.poster_url, p.posterUrl,
+      p.visual, p.visual_url
+    ];
+    if (Array.isArray(p.images)   && p.images.length)   candidates.unshift(p.images[0]);
+    if (Array.isArray(p.photos)   && p.photos.length)   candidates.unshift(p.photos[0]);
+    if (Array.isArray(p.pictures) && p.pictures.length) candidates.unshift(p.pictures[0]);
+
+    for (const v of candidates) {
+      if (!v || typeof v !== 'string') continue;
+      const trimmed = v.trim();
+      if (!trimmed) continue;
+      if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
+      const clean = trimmed.replace(/^\/+/, '');
+      const firstSeg = clean.split('/')[0];
+      if (STORAGE_BUCKETS.includes(firstSeg)) {
+        return `${SB_URL}/storage/v1/object/public/${clean}`;
+      }
+      return `${SB_URL}/storage/v1/object/public/products/${clean}`;
+    }
+    return null;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     MODEL 3D RESOLUTION — model_glb_url en priorité (cf. catalogue)
+     ══════════════════════════════════════════════════════════ */
+  function getModelUrl(p) {
+    const candidates = [
+      p.model_glb_url, p.modelGlbUrl, p.glb_url, p.glbUrl, p.glb,
+      p.model_url, p.modelUrl, p.model,
+      p.gltf, p.gltf_url, p.gltfUrl,
+      p.model_3d, p.model3d
+    ];
+    for (const v of candidates) {
+      if (!v || typeof v !== 'string') continue;
+      const trimmed = v.trim();
+      if (!trimmed) continue;
+      if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
+      const clean = trimmed.replace(/^\/+/, '');
+      const firstSeg = clean.split('/')[0];
+      if (STORAGE_BUCKETS.includes(firstSeg)) {
+        return `${SB_URL}/storage/v1/object/public/${clean}`;
+      }
+      return `${SB_URL}/storage/v1/object/public/models/${clean}`;
+    }
+    return null;
+  }
+
+  function getUsdzUrl(p) {
+    const candidates = [
+      p.model_usdz_url, p.modelUsdzUrl, p.usdz_url, p.usdzUrl, p.usdz,
+      p.ios_model, p.iosModel, p.ios_src, p.iosSrc
+    ];
+    for (const v of candidates) {
+      if (!v || typeof v !== 'string') continue;
+      const trimmed = v.trim();
+      if (!trimmed) continue;
+      if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
+      const clean = trimmed.replace(/^\/+/, '');
+      const firstSeg = clean.split('/')[0];
+      if (STORAGE_BUCKETS.includes(firstSeg)) {
+        return `${SB_URL}/storage/v1/object/public/${clean}`;
+      }
+      return `${SB_URL}/storage/v1/object/public/models/${clean}`;
+    }
+    return null;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     UTILS
+     ══════════════════════════════════════════════════════════ */
+  function escapeHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  // Met le dernier mot d'un titre en italique or — signature du design
+  function emphasizeLastWord(title) {
+    if (!title) return '';
+    const words = String(title).trim().split(/\s+/);
+    if (words.length === 0) return '';
+    if (words.length === 1) return `<em>${escapeHTML(words[0])}</em>`;
+    const head = words.slice(0, -1).join(' ');
+    const tail = words[words.length - 1];
+    return `${escapeHTML(head)} <em>${escapeHTML(tail)}</em>`;
+  }
+
+  // Format prix FR — identique à catalogue.html
+  function formatPrice(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = typeof value === 'number'
+      ? value
+      : parseFloat(String(value).replace(/[^\d.,-]/g, '').replace(',', '.'));
+    if (!isFinite(n)) return null;
+    return `${Number(n).toLocaleString('fr-FR')} €`;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     RENDER — applique les données produit au DOM
+     ══════════════════════════════════════════════════════════ */
+  function renderProduct(p) {
+    if (!p) return;
+
+    // Titre — name || nom (cf. catalogue.html)
+    const title = p.name || p.nom;
+    if (title) {
+      document.getElementById('product-title').innerHTML = emphasizeLastWord(title);
+      document.title = `${title} — TadamHome`;
+    }
+
+    // Réf
+    const ref = p.ref || p.reference || p.sku || p.code || p.product_code || p.id;
+    if (ref) document.getElementById('meta-ref').textContent = `Réf · ${String(ref).slice(0, 12).toUpperCase()}`;
+
+    // Catégorie — category || categorie
+    const category = p.category || p.categorie;
+    if (category) document.getElementById('meta-cat').textContent = category;
+
+    // Marque — enseigne_name || marque
+    const brand = p.enseigne_name || p.marque;
+    if (brand) {
+      document.getElementById('brand-name').textContent = brand;
+      document.getElementById('brand-mark').textContent = brand.charAt(0).toUpperCase();
+    }
+
+    // Origine
+    const origin = p.origin || p.provenance || p.made_in || p.country || p.brand_origin;
+    if (origin) {
+      document.getElementById('brand-origin').textContent = origin;
+    } else if (brand) {
+      // Si pas d'origine spécifique, on cache la sous-ligne pour ne pas afficher "Meda · Italie" en dur
+      document.getElementById('brand-origin').textContent = '';
+    }
+
+    // Prix — price || prix
+    const price = formatPrice(p.price || p.prix);
+    if (price) document.getElementById('price-num').textContent = price;
+
+    // Dimensions
+    const dimensions = p.dimensions || p.dimension || p.size || p.sizes;
+    if (dimensions) document.getElementById('info-dim').textContent = dimensions;
+
+    // Coloris / matière — matiere || material (cf. catalogue.html)
+    const matiere = p.matiere || p.material;
+    const colorVal = p.color || p.colour || p.color_name || p.finish || p.finition;
+    if (matiere || colorVal) {
+      const lead = matiere ? matiere.split(',')[0].trim() : 'Cuir';
+      const tail = colorVal || '';
+      document.getElementById('info-color').innerHTML =
+        `<em>${escapeHTML(lead)}</em>${tail ? ' ' + escapeHTML(tail) : ''}`;
+    }
+
+    // Livraison
+    const delivery = p.delivery || p.delivery_time || p.lead_time || p.shipping_time;
+    if (delivery) {
+      const html = String(delivery).replace(/(\d+(?:[\s\-–]\d+)?)/, '<em>$1</em>');
+      document.getElementById('info-delivery').innerHTML = html;
+    }
+
+    // Garantie
+    const warranty = p.warranty || p.garantie;
+    if (warranty) document.getElementById('info-warranty').textContent = warranty;
+
+    // Breadcrumb
+    if (category && brand && title) {
+      document.getElementById('breadcrumb').innerHTML =
+        `${escapeHTML(category)} · ${escapeHTML(brand)} · <em>${escapeHTML(title)}</em>`;
+    }
+
+    // Image (poster du model-viewer en attendant le chargement du 3D)
+    const img = getProductImage(p);
+    const mv = document.getElementById('mv');
+    if (img && mv) mv.setAttribute('poster', img);
+
+    // 3D model — model_glb_url (cf. catalogue.html)
+    const modelUrl = getModelUrl(p);
+    const usdzUrl = getUsdzUrl(p);
+    if (modelUrl && mv) {
+      mv.setAttribute('src', modelUrl);
+      if (usdzUrl) mv.setAttribute('ios-src', usdzUrl);
+      // Quand le 3D est chargé, on cache le SVG fallback
+      mv.addEventListener('load', () => {
+        const fb = document.getElementById('model-fallback');
+        if (fb) fb.style.display = 'none';
+      }, { once: true });
+    }
+    // Si pas de modèle, le SVG fallback du LC2 reste affiché
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     INIT — récupère le produit via ?id=
+     ══════════════════════════════════════════════════════════ */
+  async function init() {
+    const params = new URLSearchParams(location.search);
+    const productId = params.get('id');
+
+    if (!productId) {
+      console.info('[scan] Pas d\'ID produit dans l\'URL — affichage des données démo (LC2 Grand Confort).');
+      return;
+    }
+
+    try {
+      const { data, error } = await sb
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) {
+        console.warn('[scan] Erreur Supabase :', error.message);
+        return;
+      }
+      if (!data) {
+        console.warn('[scan] Produit non trouvé pour id =', productId);
+        return;
+      }
+
+      // 🔍 Debug — même style que catalogue.html
+      console.group('%c[scan] Produit récupéré', 'color:#B8986A;font-weight:600');
+      console.log('Champs disponibles :', Object.keys(data));
+      console.log('Produit complet :', data);
+      console.log('Image résolue :', getProductImage(data) || '❌ aucune');
+      console.log('Modèle 3D résolu :', getModelUrl(data) || '❌ aucun');
+      console.log('USDZ (iOS) résolu :', getUsdzUrl(data) || '❌ aucun');
+      console.groupEnd();
+
+      renderProduct(data);
+    } catch (e) {
+      console.error('[scan] Échec de récupération :', e);
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
