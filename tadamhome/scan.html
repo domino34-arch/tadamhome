@@ -1391,8 +1391,10 @@
     const arMulti = document.getElementById('ar-multi-btn');
     if (arMulti) {
       arMulti.addEventListener('click', () => {
+        console.log('[tadam] AR Multi cliqué', { productId, hasData: !!productData });
+
         if (!productId || !productData) {
-          // Pas de produit → on ouvre ar-scene vide, l'utilisateur ajoutera depuis le catalogue
+          console.log('[tadam] Pas de produit → nav directe ar-scene');
           window.location.href = `ar-scene.html`;
           return;
         }
@@ -1422,6 +1424,7 @@
 
         try {
           localStorage.setItem('tadam_ar_scene', JSON.stringify([sceneItem]));
+          console.log('[tadam] localStorage écrit, on lance le burst');
         } catch (e) {
           console.error('[scan] Échec localStorage tadam_ar_scene :', e);
           showToast("Impossible d'ouvrir le studio AR");
@@ -1429,9 +1432,23 @@
         }
 
         // ─── Effet "Tadam" : burst doré centré sur le modèle ───
-        playTadamBurst(() => {
+        // Sécurité : si playTadamBurst plante pour une raison X, on navigue
+        // quand même au bout de 1.5s grâce au fallback.
+        let navigated = false;
+        const safeNav = () => {
+          if (navigated) return;
+          navigated = true;
           window.location.href = `ar-scene.html`;
-        });
+        };
+        // Fallback de sécurité au cas où l'animation échoue silencieusement
+        setTimeout(safeNav, 1500);
+
+        try {
+          playTadamBurst(safeNav);
+        } catch (err) {
+          console.error('[tadam] Erreur dans playTadamBurst :', err);
+          safeNav();
+        }
       });
     }
 
@@ -1441,18 +1458,25 @@
      * Durée totale ≈ 950ms (la nav se déclenche sur le `dissolve` à 750ms).
      */
     function playTadamBurst(onComplete) {
+      console.log('[tadam] playTadamBurst start');
       const mv = document.getElementById('mv');
-      if (!mv) { onComplete && onComplete(); return; }
+      if (!mv) {
+        console.warn('[tadam] #mv introuvable');
+        onComplete && onComplete();
+        return;
+      }
 
       // Centre du model-viewer dans le viewport (pour positionner les éléments)
       const rect = mv.getBoundingClientRect();
       const cx = rect.left + rect.width  / 2;
       const cy = rect.top  + rect.height / 2;
+      console.log('[tadam] Centre du modèle :', { cx, cy, w: rect.width, h: rect.height });
 
       // Phase 1 — charge : le modèle pulse doucement (200ms)
       mv.classList.add('tadam-charging');
 
       setTimeout(() => {
+        console.log('[tadam] Phase 2 : burst');
         // Phase 2 — burst : injecte les éléments d'animation centrés sur le modèle
         mv.classList.remove('tadam-charging');
         mv.classList.add('tadam-bursting');
@@ -1521,6 +1545,7 @@
 
         // Navigation au pic du dissolve (750ms après le start de phase 2)
         setTimeout(() => {
+          console.log('[tadam] Phase 3 : nav vers ar-scene');
           if (onComplete) onComplete();
         }, 750);
       }, 200);
