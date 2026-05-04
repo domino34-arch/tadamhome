@@ -1185,19 +1185,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Init — chargement des produits, puis application éventuelle du filtre URL
   loadProducts().then(() => {
-    // Lecture du paramètre ?cat=... transmis par scan.html via le bouton retour
     const urlParams = new URLSearchParams(location.search);
+
+    // Cas 1 : ?marque=<nom> → active le mode Marques + lettre correspondante
+    const marqueParam = urlParams.get('marque');
+    if (marqueParam) {
+      const firstLetter = marqueParam.trim().charAt(0).toUpperCase();
+      setCategory('marques');
+      // Petit délai pour laisser l'alphabet bar s'afficher avant de sélectionner la lettre
+      setTimeout(() => {
+        if (firstLetter && /^[A-Z]$/.test(firstLetter)) {
+          setLetter(firstLetter);
+        } else {
+          scrollToCollection();
+        }
+      }, 100);
+      return;
+    }
+
+    // Cas 2 : ?cat=<categorie> → active la catégorie produit correspondante
     const catParam = urlParams.get('cat');
     if (!catParam) return;
 
-    // Trouver la catégorie correspondante dans CATEGORIES
     const lower = catParam.toLowerCase();
     const matchingCat = CATEGORIES.find(c =>
       c.keys && c.keys.some(k => lower.includes(k))
     );
     if (!matchingCat) return;
 
-    // Applique le filtre + scroll vers la collection (sans hero/pièce-vedette)
     setCategory(matchingCat.key);
     setTimeout(scrollToCollection, 150);
   });
