@@ -703,7 +703,10 @@
       id="mv"
       alt="Modèle 3D du produit"
       camera-controls
-      touch-action="pan-y"
+      touch-action="none"
+      disable-pan
+      min-camera-orbit="auto 30deg auto"
+      max-camera-orbit="auto 95deg auto"
       auto-rotate
       auto-rotate-delay="5000"
       rotation-per-second="20deg"
@@ -740,23 +743,15 @@
       </div>
     </div>
 
-    <!-- Picker finitions -->
-    <div class="finish-picker">
+    <!-- Picker finitions — caché par défaut, révélé par renderColorPicker() quand des couleurs existent
+         (évite le flash des swatches démo pendant le chargement Supabase) -->
+    <div class="finish-picker" style="display:none">
       <div class="fp-head">
         <span class="fp-lbl">Finition</span>
-        <span class="fp-sel">Cuir <em>Brandy</em></span>
-        <span class="fp-count">8 teintes</span>
+        <span class="fp-sel">—</span>
+        <span class="fp-count"></span>
       </div>
-      <div class="fp-row">
-        <span class="fp-sw act" title="Brandy" style="--swatch-bg:#6e5238"><span class="ck"></span><span class="nm-tag">Brandy</span></span>
-        <span class="fp-sw" title="Espresso" style="--swatch-bg:#2a1f15"><span class="ck"></span><span class="nm-tag">Espresso</span></span>
-        <span class="fp-sw" title="Sable" style="--swatch-bg:#a89880"><span class="ck"></span><span class="nm-tag">Sable</span></span>
-        <span class="fp-sw" title="Tabac" style="--swatch-bg:#8b7355"><span class="ck"></span><span class="nm-tag">Tabac</span></span>
-        <span class="fp-sw" title="Noir" style="--swatch-bg:#1a1a1a"><span class="ck"></span><span class="nm-tag">Noir</span></span>
-        <span class="fp-sw" title="Brique" style="--swatch-bg:#c0392b"><span class="ck"></span><span class="nm-tag">Brique</span></span>
-        <span class="fp-sw" title="Forêt" style="--swatch-bg:#27704a"><span class="ck"></span><span class="nm-tag">Forêt</span></span>
-        <span class="fp-sw" title="Écru" style="--swatch-bg:#f5f2ec"><span class="ck"></span><span class="nm-tag">Écru</span></span>
-      </div>
+      <div class="fp-row"></div>
       <div class="fp-hint">
         <span class="hint-desktop">Cliquez pour mettre à jour le modèle 3D · puis lancez l'AR</span>
         <span class="hint-mobile">Touchez pour mettre à jour le modèle 3D · puis lancez l'AR</span>
@@ -1036,6 +1031,9 @@
       picker.style.display = 'none';
       return;
     }
+
+    // Révèle le picker (caché par défaut dans le HTML pour éviter le flash des swatches démo)
+    picker.style.display = '';
 
     const first = colors[0];
     const matLabel = first.mat || 'Finition';
