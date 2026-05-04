@@ -1183,8 +1183,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
   }
 
-  // Init
-  loadProducts();
+  // Init — chargement des produits, puis application éventuelle du filtre URL
+  loadProducts().then(() => {
+    // Lecture du paramètre ?cat=... transmis par scan.html via le bouton retour
+    const urlParams = new URLSearchParams(location.search);
+    const catParam = urlParams.get('cat');
+    if (!catParam) return;
+
+    // Trouver la catégorie correspondante dans CATEGORIES
+    const lower = catParam.toLowerCase();
+    const matchingCat = CATEGORIES.find(c =>
+      c.keys && c.keys.some(k => lower.includes(k))
+    );
+    if (!matchingCat) return;
+
+    // Applique le filtre + scroll vers la collection (sans hero/pièce-vedette)
+    setCategory(matchingCat.key);
+    setTimeout(scrollToCollection, 150);
+  });
 });
 
 /* ─ SET CATEGORY (chip ou burger panel) ─ */
