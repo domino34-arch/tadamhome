@@ -559,10 +559,17 @@
       display: inline; /* visible mobile only */
     }
     .info .finish-picker .fp-row {
-      display: grid; grid-template-columns: repeat(8, 1fr);
-      gap: 6px;
+      /* !important pour override le JS qui force repeat(N, 1fr) sur desktop ;
+         sur mobile, on veut une taille fixe alignée à gauche, pas pleine largeur. */
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, 64px) !important;
+      gap: 8px !important;
+      justify-content: flex-start !important;
     }
-    .info .finish-picker .fp-sw { padding: 0; }
+    .info .finish-picker .fp-sw {
+      padding: 0;
+      width: 64px;
+    }
     .info .finish-picker .fp-sw .nm-tag { display: none; } /* étiquettes cachées sur mobile */
     .info .finish-picker .fp-hint .hint-desktop { display: none; }
     .info .finish-picker .fp-hint .hint-mobile { display: inline; }
