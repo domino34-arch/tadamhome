@@ -663,6 +663,128 @@
   @keyframes skel {
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
+  /* ══════════════════════════════════════════════════════════
+     EFFET "TADAM" — burst doré à l'ouverture du studio AR Multi
+     Joué pendant ~900ms avant de naviger vers ar-scene.html.
+     ══════════════════════════════════════════════════════════ */
+  .tadam-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at center,
+      rgba(245, 242, 236, 0) 0%,
+      rgba(245, 242, 236, 0) 40%,
+      rgba(245, 242, 236, 0.95) 100%);
+    transition: opacity .35s ease-out;
+  }
+  .tadam-overlay.dissolve { opacity: 1; }
+
+  /* Le ring qui explose depuis le modèle */
+  .tadam-ring {
+    position: fixed; left: 50%; top: 50%;
+    width: 60px; height: 60px;
+    margin-left: -30px; margin-top: -30px;
+    border: 2px solid #B8986A;
+    border-radius: 50%;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.3);
+    box-shadow:
+      0 0 0 0 rgba(184, 152, 106, 0.4),
+      inset 0 0 20px rgba(184, 152, 106, 0.3);
+  }
+  .tadam-ring.burst {
+    animation: tadam-ring-burst 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes tadam-ring-burst {
+    0%   { opacity: 0; transform: scale(0.3); border-width: 3px; }
+    15%  { opacity: 1; transform: scale(1);   border-width: 3px; }
+    100% { opacity: 0; transform: scale(18);  border-width: 1px; }
+  }
+
+  /* Un second ring décalé pour densifier le burst */
+  .tadam-ring-2 {
+    position: fixed; left: 50%; top: 50%;
+    width: 60px; height: 60px;
+    margin-left: -30px; margin-top: -30px;
+    border: 1.5px solid #B8986A;
+    border-radius: 50%;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  .tadam-ring-2.burst {
+    animation: tadam-ring-burst-2 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
+  }
+  @keyframes tadam-ring-burst-2 {
+    0%   { opacity: 0;   transform: scale(0.3); }
+    20%  { opacity: 0.8; transform: scale(1.2); }
+    100% { opacity: 0;   transform: scale(14);  }
+  }
+
+  /* Les 8 rayons qui irradient en étoile */
+  .tadam-ray {
+    position: fixed; left: 50%; top: 50%;
+    width: 2px; height: 60px;
+    margin-left: -1px; margin-top: -30px;
+    background: linear-gradient(to top,
+      rgba(184, 152, 106, 0) 0%,
+      rgba(184, 152, 106, 0.9) 50%,
+      rgba(255, 235, 200, 1) 100%);
+    transform-origin: 50% 100%;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .tadam-ray.burst {
+    animation: tadam-ray-burst 600ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+  }
+  @keyframes tadam-ray-burst {
+    0%   { opacity: 0; transform: var(--ray-rot) translateY(0)     scaleY(0.3); }
+    20%  { opacity: 1; transform: var(--ray-rot) translateY(-20px) scaleY(1);   }
+    100% { opacity: 0; transform: var(--ray-rot) translateY(-160px) scaleY(0.4); }
+  }
+
+  /* Flash central */
+  .tadam-flash {
+    position: fixed; left: 50%; top: 50%;
+    width: 200px; height: 200px;
+    margin-left: -100px; margin-top: -100px;
+    background: radial-gradient(circle,
+      rgba(255, 235, 200, 0.95) 0%,
+      rgba(184, 152, 106, 0.5) 40%,
+      transparent 70%);
+    border-radius: 50%;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0);
+    filter: blur(8px);
+  }
+  .tadam-flash.burst {
+    animation: tadam-flash-burst 500ms ease-out forwards;
+  }
+  @keyframes tadam-flash-burst {
+    0%   { opacity: 0;   transform: scale(0);   }
+    25%  { opacity: 1;   transform: scale(1.4); }
+    60%  { opacity: 0.6; transform: scale(2.2); }
+    100% { opacity: 0;   transform: scale(3);   }
+  }
+
+  /* Le model-viewer pulse légèrement avant le burst */
+  #mv.tadam-charging {
+    animation: tadam-charge 200ms ease-out forwards;
+  }
+  @keyframes tadam-charge {
+    0%   { transform: scale(1);     filter: brightness(1); }
+    100% { transform: scale(1.04);  filter: brightness(1.15) drop-shadow(0 0 24px rgba(184, 152, 106, 0.6)); }
+  }
+  /* Et reste stable pendant qu'on dissolve l'écran */
+  #mv.tadam-bursting {
+    transform: scale(1.04);
+    filter: brightness(1.15) drop-shadow(0 0 24px rgba(184, 152, 106, 0.6));
   }
 </style>
 </head>
@@ -1263,7 +1385,7 @@
       });
     }
 
-    // ─── AR Multi : dépose le produit dans localStorage et navigue vers ar-scene.html ───
+    // ─── AR Multi : effet "Tadam" doré puis navigue vers ar-scene.html ───
     // ar-scene.html lit la clé 'tadam_ar_scene' au boot et auto-place chaque modèle.
     // Format attendu : [{ id, name, glb, category, dimensions: {h, l, p} }]
     const arMulti = document.getElementById('ar-multi-btn');
@@ -1277,9 +1399,10 @@
 
         // Détermine le GLB à passer : variante active si dispo, sinon le model_glb_url racine
         const colors = Array.isArray(productData.colors) ? productData.colors : [];
-        const activeIdx = Math.max(0, document.querySelectorAll('.fp-sw').length
-          ? Array.from(document.querySelectorAll('.fp-sw')).findIndex(b => b.classList.contains('act'))
-          : 0);
+        const swatches = document.querySelectorAll('.fp-sw');
+        const activeIdx = swatches.length
+          ? Math.max(0, Array.from(swatches).findIndex(b => b.classList.contains('act')))
+          : 0;
         const activeVariant = colors[activeIdx] || colors[0] || null;
 
         const glbUrl = (activeVariant && activeVariant.glb) || productData.model_glb_url || null;
@@ -1299,12 +1422,108 @@
 
         try {
           localStorage.setItem('tadam_ar_scene', JSON.stringify([sceneItem]));
-          window.location.href = `ar-scene.html`;
         } catch (e) {
           console.error('[scan] Échec localStorage tadam_ar_scene :', e);
           showToast("Impossible d'ouvrir le studio AR");
+          return;
         }
+
+        // ─── Effet "Tadam" : burst doré centré sur le modèle ───
+        playTadamBurst(() => {
+          window.location.href = `ar-scene.html`;
+        });
       });
+    }
+
+    /**
+     * Joue l'effet "Tadam" : flash + anneaux + 8 rayons depuis le centre du
+     * model-viewer, puis dissolve cream → callback de navigation.
+     * Durée totale ≈ 950ms (la nav se déclenche sur le `dissolve` à 750ms).
+     */
+    function playTadamBurst(onComplete) {
+      const mv = document.getElementById('mv');
+      if (!mv) { onComplete && onComplete(); return; }
+
+      // Centre du model-viewer dans le viewport (pour positionner les éléments)
+      const rect = mv.getBoundingClientRect();
+      const cx = rect.left + rect.width  / 2;
+      const cy = rect.top  + rect.height / 2;
+
+      // Phase 1 — charge : le modèle pulse doucement (200ms)
+      mv.classList.add('tadam-charging');
+
+      setTimeout(() => {
+        // Phase 2 — burst : injecte les éléments d'animation centrés sur le modèle
+        mv.classList.remove('tadam-charging');
+        mv.classList.add('tadam-bursting');
+
+        // Helper pour positionner un élément absolu au centre du modèle
+        const placeAt = (el) => {
+          el.style.left = cx + 'px';
+          el.style.top  = cy + 'px';
+        };
+
+        // Flash central
+        const flash = document.createElement('div');
+        flash.className = 'tadam-flash';
+        placeAt(flash);
+        flash.style.marginLeft = '-100px';
+        flash.style.marginTop  = '-100px';
+        document.body.appendChild(flash);
+
+        // Premier anneau
+        const ring = document.createElement('div');
+        ring.className = 'tadam-ring';
+        placeAt(ring);
+        ring.style.marginLeft = '-30px';
+        ring.style.marginTop  = '-30px';
+        document.body.appendChild(ring);
+
+        // Second anneau (décalé)
+        const ring2 = document.createElement('div');
+        ring2.className = 'tadam-ring-2';
+        placeAt(ring2);
+        ring2.style.marginLeft = '-30px';
+        ring2.style.marginTop  = '-30px';
+        document.body.appendChild(ring2);
+
+        // 8 rayons qui irradient en étoile
+        const rays = [];
+        for (let i = 0; i < 8; i++) {
+          const ray = document.createElement('div');
+          ray.className = 'tadam-ray';
+          placeAt(ray);
+          ray.style.marginLeft = '-1px';
+          ray.style.marginTop  = '-30px';
+          ray.style.setProperty('--ray-rot', `rotate(${i * 45}deg)`);
+          document.body.appendChild(ray);
+          rays.push(ray);
+        }
+
+        // Overlay cream pour le fade final
+        const overlay = document.createElement('div');
+        overlay.className = 'tadam-overlay';
+        document.body.appendChild(overlay);
+
+        // Force le reflow puis déclenche les animations CSS
+        // (sans ça, l'animation pourrait ne pas se déclencher si l'élément vient d'être ajouté)
+        void flash.offsetWidth;
+
+        flash.classList.add('burst');
+        ring.classList.add('burst');
+        ring2.classList.add('burst');
+        rays.forEach(r => r.classList.add('burst'));
+
+        // Phase 3 — dissolve : commence à 350ms après le burst
+        setTimeout(() => {
+          overlay.classList.add('dissolve');
+        }, 350);
+
+        // Navigation au pic du dissolve (750ms après le start de phase 2)
+        setTimeout(() => {
+          if (onComplete) onComplete();
+        }, 750);
+      }, 200);
     }
 
     // ─── Sélection (favoris) : toggle en localStorage ───
