@@ -676,7 +676,7 @@
 <!-- ════════════════════════════════════════════ NAV ════════════════════════════════════════════ -->
 <header class="frame-nav">
   <div class="left">
-    <a class="back" href="catalogue.html" aria-label="Retour">←</a>
+    <a class="back" id="backBtn" href="catalogue.html" aria-label="Retour">←</a>
     <a class="logo" href="index.html" aria-label="TadamHome">
       <img src="logo.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
       <span class="logo-text" style="display:none;">Tadam<span class="accent">Home</span></span>
@@ -949,6 +949,12 @@
     const category = p.category || p.categorie;
     if (category) document.getElementById('meta-cat').textContent = category;
 
+    // Bouton retour : redirige vers la collection correspondante (catalogue?cat=chaise)
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn && category) {
+      backBtn.href = `catalogue.html?cat=${encodeURIComponent(category)}`;
+    }
+
     const brand = p.enseigne_name || p.marque;
     if (brand) {
       document.getElementById('brand-name').textContent = brand;
@@ -1007,14 +1013,9 @@
 
     const mv = document.getElementById('mv');
 
-    // Poster image (image catalogue) — utilisée par model-viewer comme fallback visuel
-    let img = getProductImage(p);
-    if (!img && Array.isArray(p.images) && p.images.length > 0) {
-      img = p.images[0];
-    }
-    if (img && mv) mv.setAttribute('poster', img);
-
-    // 3D model
+    // 3D model — chargement direct, sans aucun poster/placeholder.
+    // Le fond beige + grille blueprint du .viewer3d reste visible pendant le load,
+    // puis le modèle 3D apparaît directement (fade-in natif du model-viewer).
     const firstVariant = Array.isArray(p.colors) && p.colors.length > 0 ? p.colors[0] : null;
     const modelUrl = (firstVariant && firstVariant.glb) || getModelUrl(p);
     const usdzUrl = (firstVariant && firstVariant.usdz) || getUsdzUrl(p);
