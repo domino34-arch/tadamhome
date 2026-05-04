@@ -149,6 +149,10 @@
     --poster-color: transparent;
     z-index: 2;
   }
+  /* Cache le bouton AR natif du model-viewer (badge AR en bas à droite du visuel).
+     L'AR reste fonctionnelle via mv.activateAR() depuis le bouton « Voir chez moi ». */
+  .viewer3d model-viewer::part(default-ar-button) { display: none !important; }
+  .viewer3d model-viewer [slot="ar-button"] { display: none !important; }
   /* Placeholder visuel quand pas de model-viewer (fallback) */
   .viewer3d .model-fallback {
     position: absolute; inset: 0;
@@ -473,6 +477,79 @@
   .mobile-cta-bar { display: none; }
 
   /* ─────────────────────────────────────────────
+     Sticky CTA bar — desktop uniquement
+     Apparait quand le bloc CTA original sort du viewport au scroll.
+     ───────────────────────────────────────────── */
+  .cta-sticky {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(245, 242, 236, 0.96);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--th-border);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease-out;
+    max-width: calc(100vw - 48px);
+  }
+  .cta-sticky.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .cta-sticky button {
+    border: 1px solid var(--th-border);
+    background: var(--th-paper-1);
+    padding: 9px 14px;
+    font-family: var(--th-sans);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--th-ink-1);
+    white-space: nowrap;
+    transition: all 0.18s ease;
+  }
+  .cta-sticky button:hover {
+    background: var(--th-accent);
+    color: white;
+    border-color: var(--th-accent);
+  }
+  .cta-sticky button.ar-mono {
+    background: var(--th-paper-2);
+  }
+  .cta-sticky button.ar-multi {
+    background: var(--th-ink-1);
+    color: var(--th-paper-1);
+    border-color: var(--th-ink-1);
+  }
+  .cta-sticky button.ar-multi:hover {
+    background: var(--th-accent);
+    border-color: var(--th-accent);
+  }
+  .cta-sticky .sep {
+    width: 1px;
+    height: 24px;
+    background: var(--th-border);
+  }
+  .cta-sticky button.is-active {
+    background: var(--th-accent);
+    color: white;
+    border-color: var(--th-accent);
+  }
+
+  /* ─────────────────────────────────────────────
      Responsive — bascule mobile à 768px
      ───────────────────────────────────────────── */
   @media (max-width: 768px) {
@@ -577,6 +654,9 @@
     /* Info-grid : caché sur mobile (cf. image 2) */
     .info .info-grid { display: none; }
 
+    /* La sticky bar desktop n'a pas lieu d'être sur mobile (déjà une bar fixe) */
+    .cta-sticky { display: none !important; }
+
     /* Bloc CTA devient une bar collante en bas */
     .info .cta-block {
       position: fixed;
@@ -584,8 +664,7 @@
       padding: 12px 14px 14px;
       background: rgba(245,242,236,.96);
       -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid var(--th-border);
+      backdrop-filter: blur(10px);      border-top: 1px solid var(--th-border);
       border-bottom: 0;
       gap: 6px;
       z-index: 40;
@@ -688,15 +767,9 @@
     <span class="crumb" id="breadcrumb">Salon · Cassina · <em>LC2</em></span>
   </div>
   <div class="right">
-    <button class="icobtn" title="Recherche" aria-label="Recherche">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    </button>
-    <button class="icobtn" title="Favoris" aria-label="Favoris">
+    <button class="icobtn" id="btn-favs-header" title="Mes favoris" aria-label="Favoris">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M12 21s-7-4.5-9.5-9C.5 8.5 3 4 7 4c2 0 3.5 1 5 3 1.5-2 3-3 5-3 4 0 6.5 4.5 4.5 8C19 16.5 12 21 12 21z"/></svg>
-    </button>
-    <button class="icobtn" title="Sélection" aria-label="Sélection">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="4" y="6" width="16" height="14"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/></svg>
-      <span class="badge">3</span>
+      <span class="badge" id="favs-badge" style="display:none">0</span>
     </button>
     <span class="pill">Compte</span>
   </div>
@@ -889,6 +962,20 @@
     </div>
   </div>
 </section>
+
+<!-- ════════════════════════════════════════════
+     STICKY CTA BAR — desktop uniquement, apparait au scroll
+     Reproduit les 5 boutons du cta-block. Cliquer ici délègue au bouton
+     original via .click() pour réutiliser toute la logique existante.
+     ════════════════════════════════════════════ -->
+<div class="cta-sticky" id="cta-sticky" aria-hidden="true">
+  <button id="btn-save-sticky" type="button">♡ Sélection</button>
+  <button id="btn-share-sticky" type="button">↗ Partager</button>
+  <button id="btn-find-sticky" type="button">⌖ Trouver</button>
+  <span class="sep"></span>
+  <button class="ar-mono" id="ar-mono-sticky" type="button">◫ Voir chez moi</button>
+  <button class="ar-multi" id="ar-multi-sticky" type="button">◫◫ Composer une scène</button>
+</div>
 
 <!-- ════════════════════════════════════════════
      PRODUITS SIMILAIRES
@@ -1333,6 +1420,10 @@
         btnSave.style.borderColor = isSaved ? 'var(--th-accent)' : '';
       };
       refreshLabel();
+      // Synchronise le badge du header au boot (au cas où un produit ait déjà
+      // été mis en favoris depuis une autre page)
+      if (typeof window.updateFavBadge === 'function') window.updateFavBadge();
+
       btnSave.addEventListener('click', () => {
         const favs = getFavs();
         const idx = favs.indexOf(productId);
@@ -1346,6 +1437,8 @@
           showToast("Ajouté à votre sélection");
         }
         refreshLabel();
+        // Met à jour le badge du header
+        if (typeof window.updateFavBadge === 'function') window.updateFavBadge();
       });
     }
 
@@ -1466,9 +1559,117 @@
   }
 
   /* ══════════════════════════════════════════════════════════
+     UI GLOBALE — favoris header + sticky CTA bar (desktop)
+     ══════════════════════════════════════════════════════════ */
+  const FAVS_KEY = 'tadamhome_favorites';
+
+  /** Lit la liste des favoris depuis localStorage. */
+  function getFavorites() {
+    try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  /** Met à jour le badge du bouton Favoris dans le header en fonction du localStorage. */
+  function updateFavBadge() {
+    const badge = document.getElementById('favs-badge');
+    if (!badge) return;
+    const count = getFavorites().length;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  // Exposé pour que setupActions puisse rafraîchir après chaque toggle Sélection
+  window.updateFavBadge = updateFavBadge;
+
+  /**
+   * Branche le bouton Favoris du header :
+   * - Affiche le compteur dans le badge
+   * - Au clic : toast informatif (la page favoris dédiée arrivera plus tard)
+   */
+  function setupFavoritesHeader() {
+    updateFavBadge();
+    const btn = document.getElementById('btn-favs-header');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const favs = getFavorites();
+      if (favs.length === 0) {
+        showToast('Aucun produit en sélection. Touchez ♡ Sélection pour ajouter.');
+        return;
+      }
+      // Pour l'instant : un toast récap. Plus tard : redirection vers /favoris
+      showToast(`${favs.length} produit${favs.length > 1 ? 's' : ''} en sélection · page dédiée bientôt`);
+    });
+  }
+
+  /**
+   * Sticky CTA bar (desktop) : apparaît quand le bloc CTA original sort du viewport.
+   * Les clicks sur les boutons de la sticky bar délèguent au bouton original
+   * via .click() pour réutiliser toute la logique existante (favoris, partage, AR…).
+   */
+  function setupStickyCta() {
+    const original = document.querySelector('.cta-block');
+    const sticky = document.getElementById('cta-sticky');
+    if (!original || !sticky) return;
+
+    // IntersectionObserver — show/hide la sticky bar selon visibilité du bloc original
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(e => {
+            sticky.classList.toggle('show', !e.isIntersecting);
+          });
+        },
+        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+      );
+      obs.observe(original);
+    }
+
+    // Délégation des clicks
+    const map = [
+      ['btn-save-sticky',   'btn-save'],
+      ['btn-share-sticky',  'btn-share'],
+      ['btn-find-sticky',   'btn-find'],
+      ['ar-mono-sticky',    'ar-mono-btn'],
+      ['ar-multi-sticky',   'ar-multi-btn'],
+    ];
+    map.forEach(([stickyId, originalId]) => {
+      const stickyBtn = document.getElementById(stickyId);
+      const targetBtn = document.getElementById(originalId);
+      if (stickyBtn && targetBtn) {
+        stickyBtn.addEventListener('click', () => targetBtn.click());
+      }
+    });
+
+    // Synchronise l'état "actif" du bouton Sélection sticky avec l'original
+    // (au cas où l'utilisateur toggle depuis le header ou la bar sticky)
+    function syncSaveState() {
+      const saveOriginal = document.getElementById('btn-save');
+      const saveSticky = document.getElementById('btn-save-sticky');
+      if (!saveOriginal || !saveSticky) return;
+      const isActive = /Sélectionné/i.test(saveOriginal.textContent);
+      saveSticky.classList.toggle('is-active', isActive);
+      saveSticky.textContent = isActive ? '♥ Sélectionné' : '♡ Sélection';
+    }
+    // MutationObserver pour suivre les changements de label sur le btn-save
+    const saveBtn = document.getElementById('btn-save');
+    if (saveBtn && 'MutationObserver' in window) {
+      new MutationObserver(syncSaveState).observe(saveBtn, { childList: true, characterData: true, subtree: true });
+      syncSaveState();
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════
      INIT — récupère le produit via ?id=
      ══════════════════════════════════════════════════════════ */
   async function init() {
+    // UI globale (header favoris + sticky CTA) — branchée au boot,
+    // indépendamment du chargement du produit.
+    setupFavoritesHeader();
+    setupStickyCta();
+
     const params = new URLSearchParams(location.search);
     const productId = params.get('id');
 
