@@ -663,11 +663,7 @@
   @keyframes skel {
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
-  /* ══════════════════════════════════════════════════════════
-     EFFET "TADAM" — animé en JavaScript pur (cf. playTadamBurst).
-     Ce bloc ne contient plus de styles : tout est appliqué via JS
-     pour éviter les problèmes d'optimisation/timing CSS.
-     ══════════════════════════════════════════════════════════ */
+  }
 </style>
 </head>
 <body>
@@ -1267,16 +1263,15 @@
       });
     }
 
-    // ─── AR Multi : effet "Tadam" doré puis navigue vers ar-scene.html ───
+    // ─── AR Multi : dépose le produit dans localStorage et navigue vers ar-scene.html ───
     // ar-scene.html lit la clé 'tadam_ar_scene' au boot et auto-place chaque modèle.
     // Format attendu : [{ id, name, glb, category, dimensions: {h, l, p} }]
+    // (effet visuel "Tadam" à reprendre plus tard)
     const arMulti = document.getElementById('ar-multi-btn');
     if (arMulti) {
       arMulti.addEventListener('click', () => {
-        console.log('[tadam] AR Multi cliqué', { productId, hasData: !!productData });
-
         if (!productId || !productData) {
-          console.log('[tadam] Pas de produit → nav directe ar-scene');
+          // Pas de produit → on ouvre ar-scene vide, l'utilisateur ajoutera depuis le catalogue
           window.location.href = `ar-scene.html`;
           return;
         }
@@ -1306,86 +1301,12 @@
 
         try {
           localStorage.setItem('tadam_ar_scene', JSON.stringify([sceneItem]));
-          console.log('[tadam] localStorage écrit, on lance le burst');
+          window.location.href = `ar-scene.html`;
         } catch (e) {
           console.error('[scan] Échec localStorage tadam_ar_scene :', e);
           showToast("Impossible d'ouvrir le studio AR");
-          return;
-        }
-
-        // ─── Effet "Tadam" : burst doré centré sur le modèle ───
-        // Sécurité : si playTadamBurst plante pour une raison X, on navigue
-        // quand même au bout de 1.5s grâce au fallback.
-        let navigated = false;
-        const safeNav = () => {
-          if (navigated) return;
-          navigated = true;
-          window.location.href = `ar-scene.html`;
-        };
-        // Fallback de sécurité au cas où l'animation échoue silencieusement
-        setTimeout(safeNav, 1500);
-
-        try {
-          playTadamBurst(safeNav);
-        } catch (err) {
-          console.error('[tadam] Erreur dans playTadamBurst :', err);
-          safeNav();
         }
       });
-    }
-
-    /**
-     * Effet "Tadam" : un sparkle doré scintillant superposé sur le modèle.
-     * Le modèle ne bouge pas, ne change pas de luminosité — uniquement un
-     * drop-shadow doré qui oscille (4 cycles) avec une enveloppe fade-in/out.
-     */
-    function playTadamBurst(onComplete) {
-      console.log('[tadam] sparkle start');
-
-      const mv = document.getElementById('mv');
-      if (!mv) {
-        if (onComplete) onComplete();
-        return;
-      }
-
-      const DURATION = 1000;
-      const start = performance.now();
-
-      function frame(now) {
-        const elapsed = now - start;
-        const t = Math.min(1, elapsed / DURATION);
-
-        // Oscillation : 4 cycles sur la durée (Math.sin de 0 à 4π)
-        const sparkle = (Math.sin(t * Math.PI * 8) * 0.5 + 0.5);
-
-        // Enveloppe : fade-in puis fade-out (sinusoïde de 0 à π)
-        const envelope = Math.sin(t * Math.PI);
-
-        // Intensité combinée
-        const intensity = sparkle * envelope;
-
-        const glowSize = intensity * 60;       // 0 → 60px
-        const glowOpacity = intensity * 0.95;  // 0 → 0.95
-
-        mv.style.filter =
-          'drop-shadow(0 0 ' + glowSize + 'px rgba(255, 224, 165, ' + glowOpacity + ')) ' +
-          'drop-shadow(0 0 ' + (glowSize * 0.5) + 'px rgba(184, 152, 106, ' + glowOpacity + '))';
-
-        if (t < 1) {
-          requestAnimationFrame(frame);
-        } else {
-          // Reset propre du filter à la fin
-          mv.style.filter = '';
-          console.log('[tadam] sparkle terminé');
-        }
-      }
-      requestAnimationFrame(frame);
-
-      // Navigation à la fin
-      setTimeout(() => {
-        console.log('[tadam] DONE → navigation');
-        if (onComplete) onComplete();
-      }, DURATION);
     }
 
     // ─── Sélection (favoris) : toggle en localStorage ───
