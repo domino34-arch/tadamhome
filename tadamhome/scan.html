@@ -6,8 +6,6 @@
 <title>TadamHome — Scan</title>
 <meta name="description" content="Page produit TadamHome — modèle 3D manipulable, AR mono et multi-objets.">
 
-<link rel="stylesheet" href="assets/colors_and_type.css">
-
 <!-- model-viewer (3D + AR natif iOS/Android) -->
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 
@@ -16,10 +14,10 @@
 
 <style>
   /* ─────────────────────────────────────────────
-     FALLBACK : variables CSS inlinées
-     Si assets/colors_and_type.css ne charge pas
-     (ex: fichier ouvert hors du repo), ces valeurs
-     prennent le relais — design préservé.
+     DESIGN TOKENS — inlinés (couleurs, typo, bordures)
+     Source de vérité de la page. Si un jour un CSS
+     partagé est ajouté au repo, ces valeurs peuvent
+     être déplacées vers un fichier externe.
      ───────────────────────────────────────────── */
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
@@ -412,92 +410,6 @@
   }
 
   /* ─────────────────────────────────────────────
-     Storytelling — fond foncé, sticky scroll
-     ───────────────────────────────────────────── */
-  .story {
-    padding: 80px 40px;
-    background: var(--th-ink);
-    color: var(--th-white);
-    display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px;
-    align-items: flex-start;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-  }
-  .story .pinned { position: sticky; top: 90px; }
-  .story .pinned .eyb {
-    font-size: 9px; font-weight: 400; letter-spacing: .20em;
-    text-transform: uppercase;
-    color: var(--th-accent-2);
-    display: inline-flex; align-items: center; gap: 10px;
-  }
-  .story .pinned .eyb::before {
-    content: ''; width: 24px; height: 1px; background: var(--th-accent-2);
-  }
-  .story .pinned h2 {
-    font-family: var(--th-serif);
-    font-size: 36px; font-weight: 300;
-    line-height: 1.1;
-    margin-top: 14px;
-  }
-  .story .pinned h2 em { font-style: italic; color: var(--th-accent-2); }
-  .story .pinned p {
-    font-size: 12px;
-    color: rgba(245,242,236,.6);
-    line-height: 1.85;
-    margin-top: 14px;
-  }
-  .story .pinned .summary {
-    margin-top: 28px;
-    display: flex; flex-direction: column; gap: 0;
-    border-top: 1px solid rgba(255,255,255,.18);
-  }
-  .story .pinned .summary a {
-    display: flex; justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,.18);
-    font-size: 11px; letter-spacing: .04em;
-    color: rgba(245,242,236,.7);
-  }
-  .story .pinned .summary a:last-child { border-bottom: 0; }
-  .story .pinned .summary a em {
-    font-family: var(--th-serif);
-    color: var(--th-accent-2);
-    font-style: italic;
-    margin-right: 8px;
-  }
-
-  .story .scenes { display: flex; flex-direction: column; gap: 56px; }
-  .story .scene .nb {
-    font-family: var(--th-serif); font-style: italic;
-    color: var(--th-accent-2); font-size: 13px;
-  }
-  .story .scene h3 {
-    font-family: var(--th-serif);
-    font-size: 24px; font-weight: 400;
-    line-height: 1.2;
-    margin-top: 8px;
-  }
-  .story .scene h3 em { font-style: italic; color: var(--th-accent-2); }
-  .story .scene .img {
-    aspect-ratio: 16/10;
-    background: rgba(245,242,236,.04);
-    border: 1px solid rgba(255,255,255,.08);
-    margin-top: 18px;
-    position: relative; overflow: hidden;
-  }
-  .story .scene .img::before {
-    content: ''; position: absolute; inset: 0;
-    background:
-      repeating-linear-gradient(0deg, transparent 0 39px, rgba(184,152,106,.06) 39px 40px),
-      repeating-linear-gradient(90deg, transparent 0 39px, rgba(184,152,106,.06) 39px 40px);
-  }
-  .story .scene p {
-    font-size: 12px;
-    color: rgba(245,242,236,.55);
-    line-height: 1.8;
-    margin-top: 12px;
-  }
-
-  /* ─────────────────────────────────────────────
      Produits similaires
      ───────────────────────────────────────────── */
   .similar { padding: 80px 40px; background: var(--th-paper); }
@@ -680,17 +592,6 @@
     /* Padding bottom du body pour pas que la cta-bar masque le contenu */
     body { padding-bottom: 170px; }
 
-    /* Storytelling : pas de sticky, simple flow */
-    .story {
-      grid-template-columns: 1fr;
-      gap: 36px;
-      padding: 40px 20px;
-    }
-    .story .pinned { position: static; }
-    .story .pinned h2 { font-size: 24px; }
-    .story .scene h3 { font-size: 18px; }
-    .story .scenes { gap: 36px; }
-
     /* Similaires : scroll horizontal */
     .similar { padding: 36px 20px; }
     .similar .head h2 { font-size: 22px; }
@@ -713,6 +614,35 @@
 
   @media (max-width: 480px) {
     .similar .card { flex: 0 0 160px; }
+  }
+
+  /* ─────────────────────────────────────────────
+     Toast — feedback visuel des actions
+     ───────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--th-ink); color: var(--th-white);
+    padding: 12px 22px;
+    font-size: 12px; font-weight: 400;
+    letter-spacing: .04em;
+    font-family: var(--th-sans);
+    opacity: 0;
+    transition: opacity .3s ease, transform .3s ease;
+    z-index: 999;
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Sur mobile : remonte le toast au-dessus de la cta-bar collante */
+  @media (max-width: 768px) {
+    .toast { bottom: 180px; }
   }
 
   /* ─────────────────────────────────────────────
@@ -923,9 +853,9 @@
     <!-- Bloc CTA ancré en bas -->
     <div class="cta-block">
       <div class="save-row">
-        <button>♡ Sélection</button>
-        <button>↗ Partager</button>
-        <button>⌖ Trouver</button>
+        <button id="btn-save" type="button">♡ Sélection</button>
+        <button id="btn-share" type="button">↗ Partager</button>
+        <button id="btn-find" type="button">⌖ Trouver</button>
       </div>
 
       <div class="ar-pair">
@@ -948,44 +878,6 @@
 </section>
 
 <!-- ════════════════════════════════════════════
-     STORYTELLING — fond foncé, sticky scroll
-     ════════════════════════════════════════════ -->
-<section class="story">
-  <div class="pinned">
-    <div class="eyb">L'objet</div>
-    <h2 id="story-title">Né en <em>1928</em>,<br>fait en <em>2025</em></h2>
-    <p id="story-intro">Du dessin original de Le Corbusier, Pierre Jeanneret et Charlotte Perriand, jusqu'aux ateliers de Meda où Cassina assemble chaque pièce à la main. Histoire, matériau, fabrication.</p>
-    <div class="summary">
-      <a href="#scene-1"><span><em>01</em> Histoire</span><span>↓</span></a>
-      <a href="#scene-2"><span><em>02</em> Matériau</span><span>↓</span></a>
-      <a href="#scene-3"><span><em>03</em> Atelier</span><span>↓</span></a>
-      <a href="#scene-4"><span><em>04</em> En scène</span><span>↓</span></a>
-    </div>
-  </div>
-
-  <div class="scenes">
-    <article class="scene" id="scene-1">
-      <span class="nb">— 01</span>
-      <h3>Une <em>icône</em> dessinée pour Cassina</h3>
-      <div class="img"></div>
-      <p>Le Corbusier voulait « un coussin sur un cadre ». 97 ans plus tard, le dessin tient. Cuir pleine fleur, structure tubulaire chromée, sangles cuir.</p>
-    </article>
-    <article class="scene" id="scene-2">
-      <span class="nb">— 02</span>
-      <h3>Le cuir, <em>pendant 18 mois</em></h3>
-      <div class="img"></div>
-      <p>Tannage végétal toscan, repos en fût, finition manuelle. Chaque pièce porte la trace du cuir — une cicatrice, une nuance, un grain.</p>
-    </article>
-    <article class="scene" id="scene-3">
-      <span class="nb">— 03</span>
-      <h3>Assemblé à <em>Meda</em></h3>
-      <div class="img"></div>
-      <p>Atelier Cassina, 14 mains par fauteuil, 3 contrôles. Chaque pièce reçoit un numéro de série gravé sous le piétement.</p>
-    </article>
-  </div>
-</section>
-
-<!-- ════════════════════════════════════════════
      PRODUITS SIMILAIRES
      ════════════════════════════════════════════ -->
 <section class="similar">
@@ -994,24 +886,12 @@
     <a class="seeall" href="catalogue.html">Voir tout · 24 →</a>
   </div>
   <div class="row" id="similar-row">
-    <article class="card">
-      <div class="img"><svg viewBox="0 0 200 150"><rect x="30" y="80" width="140" height="55" fill="#3a2818"/><rect x="30" y="40" width="140" height="40" fill="#3a2818"/></svg></div>
-      <div class="meta"><div class="br">Cassina</div><div class="nm">LC3 Petit Confort</div><div class="pr">6 200 € · 4 finitions</div></div>
-    </article>
-    <article class="card">
-      <div class="img"><svg viewBox="0 0 200 150"><circle cx="100" cy="100" r="42" fill="#a89880"/></svg></div>
-      <div class="meta"><div class="br">Vitra</div><div class="nm">Eames Lounge LCW</div><div class="pr">4 850 € · 2 essences</div></div>
-    </article>
-    <article class="card">
-      <div class="img"><svg viewBox="0 0 200 150"><rect x="40" y="60" width="120" height="80" fill="#7A8B7A"/></svg></div>
-      <div class="meta"><div class="br">Hay</div><div class="nm">Mags Soft Module</div><div class="pr">3 100 € · 12 tissus</div></div>
-    </article>
-    <article class="card">
-      <div class="img"><svg viewBox="0 0 200 150"><rect x="50" y="70" width="100" height="65" fill="#B89A6B"/></svg></div>
-      <div class="meta"><div class="br">&Tradition</div><div class="nm">Cloud Sofa</div><div class="pr">5 400 € · 8 coloris</div></div>
-    </article>
+    <!-- Cards injectées dynamiquement par le JS depuis Supabase -->
   </div>
 </section>
+
+<!-- Toast pour feedback des actions -->
+<div id="toast" class="toast"></div>
 
 <!-- ════════════════════════════════════════════
      SCRIPT — Supabase + render produit
@@ -1250,6 +1130,200 @@
   }
 
   /* ══════════════════════════════════════════════════════════
+     UI HELPERS — toast feedback
+     ══════════════════════════════════════════════════════════ */
+  let toastTimer = null;
+  function showToast(message) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     ACTIONS — branchement des boutons
+     ══════════════════════════════════════════════════════════ */
+  function setupActions(productId, productData) {
+    const mv = document.getElementById('mv');
+
+    // ─── AR Mono : lance l'AR natif via model-viewer ───
+    const arMono = document.getElementById('ar-mono-btn');
+    if (arMono) {
+      arMono.addEventListener('click', () => {
+        if (!mv) return;
+        // Vérifie si l'AR est dispo sur cet appareil
+        if (mv.canActivateAR) {
+          mv.activateAR();
+        } else {
+          showToast("AR non supporté sur cet appareil");
+        }
+      });
+    }
+
+    // ─── AR Multi : redirige vers ar-scene.html avec le produit en initial ───
+    const arMulti = document.getElementById('ar-multi-btn');
+    if (arMulti) {
+      arMulti.addEventListener('click', () => {
+        if (productId) {
+          window.location.href = `ar-scene.html?initial=${encodeURIComponent(productId)}`;
+        } else {
+          window.location.href = `ar-scene.html`;
+        }
+      });
+    }
+
+    // ─── Sélection (favoris) : toggle en localStorage ───
+    const btnSave = document.getElementById('btn-save');
+    if (btnSave && productId) {
+      const KEY = 'tadamhome_favorites';
+      const getFavs = () => {
+        try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+        catch { return []; }
+      };
+      const setFavs = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+      const refreshLabel = () => {
+        const favs = getFavs();
+        const isSaved = favs.includes(productId);
+        btnSave.innerHTML = isSaved ? '♥ Sélectionné' : '♡ Sélection';
+        btnSave.style.color = isSaved ? 'var(--th-accent)' : '';
+        btnSave.style.borderColor = isSaved ? 'var(--th-accent)' : '';
+      };
+      refreshLabel();
+      btnSave.addEventListener('click', () => {
+        const favs = getFavs();
+        const idx = favs.indexOf(productId);
+        if (idx >= 0) {
+          favs.splice(idx, 1);
+          setFavs(favs);
+          showToast("Retiré de votre sélection");
+        } else {
+          favs.push(productId);
+          setFavs(favs);
+          showToast("Ajouté à votre sélection");
+        }
+        refreshLabel();
+      });
+    }
+
+    // ─── Partager : navigator.share natif ou fallback copie ───
+    const btnShare = document.getElementById('btn-share');
+    if (btnShare) {
+      btnShare.addEventListener('click', async () => {
+        const title = (productData && (productData.name || productData.nom)) || 'TadamHome';
+        const url = window.location.href;
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: `${title} — TadamHome`, url });
+          } catch (e) {
+            // user cancelled — silencieux
+          }
+        } else {
+          try {
+            await navigator.clipboard.writeText(url);
+            showToast("Lien copié dans le presse-papiers");
+          } catch {
+            showToast("Impossible de copier le lien");
+          }
+        }
+      });
+    }
+
+    // ─── Trouver (en magasin) : stub pour l'instant ───
+    const btnFind = document.getElementById('btn-find');
+    if (btnFind) {
+      btnFind.addEventListener('click', () => {
+        showToast("Recherche en magasin · bientôt disponible");
+      });
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PRODUITS SIMILAIRES — chargés depuis Supabase
+     Charge 4 produits de la même catégorie (excluant celui en cours)
+     ══════════════════════════════════════════════════════════ */
+  async function loadSimilarProducts(currentProduct) {
+    const row = document.getElementById('similar-row');
+    if (!row) return;
+
+    const currentId = currentProduct.id;
+    const category = currentProduct.category || currentProduct.categorie;
+
+    try {
+      // Tentative 1 : produits de la même catégorie
+      let products = [];
+      if (category) {
+        const { data, error } = await sb
+          .from('products')
+          .select('*')
+          .neq('id', currentId)
+          .ilike('category', `%${category}%`)
+          .limit(4);
+        if (!error && data) products = data;
+      }
+
+      // Fallback : 4 produits aléatoires si la catégorie n'a pas suffi
+      if (products.length < 4) {
+        const { data, error } = await sb
+          .from('products')
+          .select('*')
+          .neq('id', currentId)
+          .limit(8);
+        if (!error && data) {
+          // Mélange + complète jusqu'à 4 (évite doublons avec la 1re tentative)
+          const existingIds = new Set(products.map(p => p.id));
+          const shuffled = data.sort(() => Math.random() - 0.5);
+          for (const p of shuffled) {
+            if (products.length >= 4) break;
+            if (!existingIds.has(p.id)) {
+              products.push(p);
+              existingIds.add(p.id);
+            }
+          }
+        }
+      }
+
+      if (!products.length) {
+        // Pas de produits similaires : on cache la section
+        const section = row.closest('.similar');
+        if (section) section.style.display = 'none';
+        return;
+      }
+
+      // Render
+      row.innerHTML = products.slice(0, 4).map(p => {
+        const name = p.name || p.nom || '—';
+        const brand = p.enseigne_name || p.marque || '';
+        const price = formatPrice(p.price || p.prix);
+        const img = getProductImage(p);
+        const fallbackSvg = `
+          <svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <rect x="20" y="70" width="160" height="55" rx="6" fill="rgba(184,152,106,.25)"/>
+            <rect x="20" y="55" width="160" height="22" rx="4" fill="rgba(184,152,106,.18)"/>
+          </svg>`;
+        const imgHtml = img
+          ? `<img src="${escapeHTML(img)}" alt="${escapeHTML(name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.outerHTML='${fallbackSvg.replace(/\n/g,'').replace(/'/g,'&#39;')}'">`
+          : fallbackSvg;
+        return `
+          <article class="card" onclick="window.location.href='scan.html?id=${encodeURIComponent(p.id)}'">
+            <div class="img">${imgHtml}</div>
+            <div class="meta">
+              ${brand ? `<div class="br">${escapeHTML(brand)}</div>` : ''}
+              <div class="nm">${escapeHTML(name)}</div>
+              ${price ? `<div class="pr">${price}</div>` : ''}
+            </div>
+          </article>`;
+      }).join('');
+    } catch (e) {
+      console.warn('[scan] Échec chargement similaires :', e);
+      // En cas d'erreur, on cache la section pour ne pas avoir un placeholder vide
+      const section = row.closest('.similar');
+      if (section) section.style.display = 'none';
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════
      INIT — récupère le produit via ?id=
      ══════════════════════════════════════════════════════════ */
   async function init() {
@@ -1258,6 +1332,11 @@
 
     if (!productId) {
       console.info('[scan] Pas d\'ID produit dans l\'URL — affichage des données démo (LC2 Grand Confort).');
+      // Branche les actions même en mode démo (mais sans favoris ni similaires Supabase)
+      setupActions(null, null);
+      // Cache la section similaires en mode démo (rien à charger sans ID)
+      const similarSection = document.querySelector('.similar');
+      if (similarSection) similarSection.style.display = 'none';
       return;
     }
 
@@ -1270,10 +1349,12 @@
 
       if (error) {
         console.warn('[scan] Erreur Supabase :', error.message);
+        setupActions(productId, null);
         return;
       }
       if (!data) {
         console.warn('[scan] Produit non trouvé pour id =', productId);
+        setupActions(productId, null);
         return;
       }
 
@@ -1287,8 +1368,11 @@
       console.groupEnd();
 
       renderProduct(data);
+      setupActions(productId, data);
+      loadSimilarProducts(data);
     } catch (e) {
       console.error('[scan] Échec de récupération :', e);
+      setupActions(productId, null);
     }
   }
 
