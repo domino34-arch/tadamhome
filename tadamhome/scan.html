@@ -1335,65 +1335,48 @@
     }
 
     /**
-     * Effet "Tadam" : scintillement doré subtil sur le modèle 3D uniquement
-     * (pas d'overlay plein écran). Le modèle pulse, brille, scintille,
-     * puis on navigue vers ar-scene.html.
+     * Effet "Tadam" : un sparkle doré scintillant superposé sur le modèle.
+     * Le modèle ne bouge pas, ne change pas de luminosité — uniquement un
+     * drop-shadow doré qui oscille (4 cycles) avec une enveloppe fade-in/out.
      */
     function playTadamBurst(onComplete) {
-      console.log('[tadam] BURST start (scintillement)');
+      console.log('[tadam] sparkle start');
 
       const mv = document.getElementById('mv');
       if (!mv) {
-        // Pas de modèle visible → on navigue direct
-        console.log('[tadam] pas de mv, nav directe');
         if (onComplete) onComplete();
         return;
       }
 
-      // S'assure que le mv peut afficher le glow (transform-origin centré)
-      mv.style.transformOrigin = 'center center';
-      mv.style.willChange = 'transform, filter';
-
-      // Animation du modèle : pulse + glow qui s'intensifie
-      const DURATION = 900;
+      const DURATION = 1000;
       const start = performance.now();
-
-      function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
-      function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
       function frame(now) {
         const elapsed = now - start;
         const t = Math.min(1, elapsed / DURATION);
 
-        // Pulse (scale 1 → 1.08 → 1.04)
-        const pulseT = easeInOutSine(t);
-        const scale = 1 + pulseT * 0.08;
+        // Oscillation : 4 cycles sur la durée (Math.sin de 0 à 4π)
+        const sparkle = (Math.sin(t * Math.PI * 8) * 0.5 + 0.5);
 
-        // Brightness (1 → 1.4)
-        const brightness = 1 + easeOutQuad(t) * 0.4;
+        // Enveloppe : fade-in puis fade-out (sinusoïde de 0 à π)
+        const envelope = Math.sin(t * Math.PI);
 
-        // Drop-shadow doré : intensité croissante, puis diminue à la fin
-        // Pic de l'intensité à 70%, puis légèrement réduit
-        const glowT = t < 0.7 ? (t / 0.7) : (1 - (t - 0.7) / 0.3 * 0.3);
-        const glowSize = 20 + glowT * 50;          // 20px → 70px
-        const glowOpacity = 0.3 + glowT * 0.7;     // 0.3 → 1.0
+        // Intensité combinée
+        const intensity = sparkle * envelope;
 
-        // Sparkle : un petit halo doré supplémentaire qui scintille
-        // (sin oscillant donne l'effet scintillement)
-        const sparkleT = Math.sin(t * Math.PI * 6) * 0.5 + 0.5;  // 3 cycles
-        const sparkleSize = 10 + sparkleT * 30;
-        const sparkleOpacity = 0.4 + sparkleT * 0.4;
+        const glowSize = intensity * 60;       // 0 → 60px
+        const glowOpacity = intensity * 0.95;  // 0 → 0.95
 
-        mv.style.transform = 'scale(' + scale + ')';
         mv.style.filter =
-          'brightness(' + brightness + ') ' +
-          'drop-shadow(0 0 ' + glowSize + 'px rgba(184, 152, 106, ' + glowOpacity + ')) ' +
-          'drop-shadow(0 0 ' + sparkleSize + 'px rgba(255, 224, 165, ' + sparkleOpacity + '))';
+          'drop-shadow(0 0 ' + glowSize + 'px rgba(255, 224, 165, ' + glowOpacity + ')) ' +
+          'drop-shadow(0 0 ' + (glowSize * 0.5) + 'px rgba(184, 152, 106, ' + glowOpacity + '))';
 
         if (t < 1) {
           requestAnimationFrame(frame);
         } else {
-          console.log('[tadam] animation terminée');
+          // Reset propre du filter à la fin
+          mv.style.filter = '';
+          console.log('[tadam] sparkle terminé');
         }
       }
       requestAnimationFrame(frame);
