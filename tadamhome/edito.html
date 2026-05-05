@@ -486,17 +486,20 @@ function showError(msg) {
 
 // ── THREE.JS ─────────────────────────────────────────────────────
 function fitModel(model) {
-  // Wrap dans un groupe pour éviter les propriétés read-only du GLB
-  const group = new THREE.Group();
-  group.add(model);
-  const box = new THREE.Box3().setFromObject(group);
+  // 1. Calcule le centre du modèle brut
+  const box = new THREE.Box3().setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
   const maxDim = Math.max(size.x, size.y, size.z);
-  group.scale.setScalar(1.4 / maxDim);
-  const box2 = new THREE.Box3().setFromObject(group);
-  const center = box2.getCenter(new THREE.Vector3());
-  group.position.set(-center.x, -center.y, -center.z);
-  return group;
+  // 2. inner : déplace le modèle pour que son centre soit à l'origine
+  const inner = new THREE.Group();
+  inner.position.set(-center.x, -center.y + size.y * 0.0, -center.z);
+  inner.add(model);
+  // 3. pivot : scale + rotation autour du centre réel du meuble
+  const pivot = new THREE.Group();
+  pivot.add(inner);
+  pivot.scale.setScalar(1.3 / maxDim);
+  return pivot;
 }
 function makeRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
@@ -572,7 +575,7 @@ function initScenes() {
   (function(){
     const canvas = document.getElementById('hero-canvas');
     const { renderer, scene, camera } = makeRenderer(canvas);
-    camera.position.set(0, 0.2, 5.5); camera.lookAt(0, -0.1, 0);
+    camera.position.set(0, 0.15, 5.8); camera.lookAt(0, -0.25, 0);
     autoResize(renderer, camera, canvas.parentElement);
     let model = null, t = 0;
     loadModel(gltf => { model = cloneModel(gltf); scene.add(model); });
@@ -585,7 +588,7 @@ function initScenes() {
   (function(){
     const canvas = document.getElementById('sticky-canvas');
     const { renderer, scene, camera } = makeRenderer(canvas);
-    camera.position.set(2.0, 0.4, 5.5); camera.lookAt(0, -0.1, 0);
+    camera.position.set(1.6, 0.2, 3.8); camera.lookAt(0, 0, 0);
     autoResize(renderer, camera, canvas.parentElement);
     let model = null, targetRot = 0.3, currentRot = 0.3;
     let autoRotate = true;
