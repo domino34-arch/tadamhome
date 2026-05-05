@@ -753,6 +753,64 @@
     to { opacity: 1; transform: none; }
   }
 
+  /* ═══════════════════════════════════════════════════════
+     LANDSCAPE MOBILE — viewport faible en hauteur (iPhone/Android landscape)
+     Le h1 par défaut est trop grand pour la hauteur dispo et déborde
+     par-dessus la nav fixe. Réduit les tailles + centre .copy
+     verticalement (au lieu de bottom) + cache le scroll-cue.
+     ═══════════════════════════════════════════════════════ */
+  @media (max-height: 500px) and (orientation: landscape) {
+    /* Topnav : réduction du padding pour gagner de l'espace vertical */
+    .topnav { padding: 12px 22px; }
+    .topnav.scrolled { padding: 10px 22px; }
+    .topnav .logo-img { height: 18px; }
+    @media (min-width: 900px) {
+      .topnav { padding: 14px 32px; }
+      .topnav.scrolled { padding: 12px 32px; }
+    }
+
+    /* H1 : taille drastiquement réduite + line-height serré */
+    .hero h1 {
+      font-size: clamp(22px, 4.4vw, 38px);
+      line-height: 1.05;
+    }
+    .hero .eyb {
+      font-size: 9px;
+      margin-bottom: 10px;
+    }
+
+    /* Copy : centrée verticalement plutôt qu'ancrée en bas
+       (évite la collision avec la nav quand le h1 a 3 lignes) */
+    .hero .copy {
+      top: 50%;
+      bottom: auto;
+      transform: translateY(-50%);
+      left: 22px; right: 22px;
+      max-width: 600px;
+    }
+    .hero .copy p {
+      font-size: 11px;
+      line-height: 1.55;
+      margin-top: 10px;
+      max-width: 480px;
+    }
+
+    /* CTAs en ligne, plus compacts */
+    .hero .ctas {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .hero .ctas .btn {
+      padding: 9px 16px;
+      font-size: 9px;
+    }
+
+    /* Scroll-cue : pas la place verticale en landscape mobile */
+    .hero .scroll-cue { display: none !important; }
+  }
+
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
