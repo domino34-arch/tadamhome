@@ -486,13 +486,17 @@ function showError(msg) {
 
 // ── THREE.JS ─────────────────────────────────────────────────────
 function fitModel(model) {
-  const box = new THREE.Box3().setFromObject(model);
-  const maxDim = Math.max(...box.getSize(new THREE.Vector3()).toArray());
-  model.scale.setScalar(2.0 / maxDim);
-  const box2 = new THREE.Box3().setFromObject(model);
-  const center2 = box2.getCenter(new THREE.Vector3());
-  model.position.sub(center2);
-  return model;
+  // Wrap dans un groupe pour éviter les propriétés read-only du GLB
+  const group = new THREE.Group();
+  group.add(model);
+  const box = new THREE.Box3().setFromObject(group);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  group.scale.setScalar(2.0 / maxDim);
+  const box2 = new THREE.Box3().setFromObject(group);
+  const center = box2.getCenter(new THREE.Vector3());
+  group.position.set(-center.x, -center.y, -center.z);
+  return group;
 }
 function makeRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
