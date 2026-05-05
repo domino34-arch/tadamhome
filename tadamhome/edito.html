@@ -512,8 +512,10 @@ function makeRenderer(canvas) {
   const key = new THREE.DirectionalLight(0xFFF8F0, 2.2);
   key.position.set(4,8,6); key.castShadow = true;
   scene.add(key);
-  scene.add(Object.assign(new THREE.DirectionalLight(0xD4CFC7, 0.6), {position: new THREE.Vector3(-4,3,-4)}));
-  scene.add(Object.assign(new THREE.DirectionalLight(0xB8965A, 0.3), {position: new THREE.Vector3(0,6,-8)}));
+  const fill = new THREE.DirectionalLight(0xD4CFC7, 0.6);
+  fill.position.set(-4, 3, -4); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xB8965A, 0.3);
+  rim.position.set(0, 6, -8); scene.add(rim);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(20,20), new THREE.ShadowMaterial({opacity:0.08}));
   floor.rotation.x = -Math.PI/2; floor.position.y = -1.0; floor.receiveShadow = true;
   scene.add(floor);
