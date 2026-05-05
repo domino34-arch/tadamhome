@@ -234,15 +234,15 @@ nav {
 <div id="sticky-section">
   <div class="viewer-sticky">
     <canvas id="sticky-canvas"></canvas>
-    <div class="hotspot" id="hs1" style="left:36%;top:30%">
+    <div class="hotspot" id="hs1" style="left:28%;top:42%">
       <div class="hotspot-dot"></div>
       <div class="hotspot-label">Structure acier chromé</div>
     </div>
-    <div class="hotspot" id="hs2" style="left:62%;top:52%">
+    <div class="hotspot" id="hs2" style="left:55%;top:38%">
       <div class="hotspot-dot"></div>
       <div class="hotspot-label">Cuir pleine fleur</div>
     </div>
-    <div class="hotspot" id="hs3" style="left:48%;top:74%">
+    <div class="hotspot" id="hs3" style="left:50%;top:62%">
       <div class="hotspot-dot"></div>
       <div class="hotspot-label">Coussin indépendant</div>
     </div>
@@ -492,7 +492,7 @@ function fitModel(model) {
   const box = new THREE.Box3().setFromObject(group);
   const size = box.getSize(new THREE.Vector3());
   const maxDim = Math.max(size.x, size.y, size.z);
-  group.scale.setScalar(2.0 / maxDim);
+  group.scale.setScalar(1.4 / maxDim);
   const box2 = new THREE.Box3().setFromObject(group);
   const center = box2.getCenter(new THREE.Vector3());
   group.position.set(-center.x, -center.y, -center.z);
@@ -572,7 +572,7 @@ function initScenes() {
   (function(){
     const canvas = document.getElementById('hero-canvas');
     const { renderer, scene, camera } = makeRenderer(canvas);
-    camera.position.set(0, 0.5, 4.5); camera.lookAt(0, 0, 0);
+    camera.position.set(0, 0.2, 5.5); camera.lookAt(0, -0.1, 0);
     autoResize(renderer, camera, canvas.parentElement);
     let model = null, t = 0;
     loadModel(gltf => { model = cloneModel(gltf); scene.add(model); });
@@ -585,16 +585,22 @@ function initScenes() {
   (function(){
     const canvas = document.getElementById('sticky-canvas');
     const { renderer, scene, camera } = makeRenderer(canvas);
-    camera.position.set(2.2, 0.8, 4.0); camera.lookAt(0, 0, 0);
+    camera.position.set(2.0, 0.4, 5.5); camera.lookAt(0, -0.1, 0);
     autoResize(renderer, camera, canvas.parentElement);
     let model = null, targetRot = 0.3, currentRot = 0.3;
+    let autoRotate = true;
     loadModel(gltf => { model = cloneModel(gltf); scene.add(model); model.rotation.y = currentRot; });
     const stickySection = document.querySelector('#sticky-section');
     window.addEventListener('scroll', () => {
       const progress = Math.max(0, (window.scrollY - stickySection.offsetTop) / 900);
-      targetRot = 0.3 + progress * Math.PI * 1.4;
+      if (progress > 0.05) {
+        autoRotate = false;
+        targetRot = 0.3 + progress * Math.PI * 1.4;
+      }
     });
+    let autoT = 0.3;
     (function loop(){ requestAnimationFrame(loop);
+      if (autoRotate) { autoT += 0.004; targetRot = autoT; }
       currentRot += (targetRot - currentRot) * 0.055;
       if(model) model.rotation.y = currentRot;
       renderer.render(scene, camera); })();
