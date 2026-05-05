@@ -487,7 +487,7 @@ function fitModel(model) {
   // 3. pivot : scale + rotation autour du centre réel du meuble
   const pivot = new THREE.Group();
   pivot.add(inner);
-  pivot.scale.setScalar(1.3 / maxDim);
+  pivot.scale.setScalar(1.65 / maxDim);
   return pivot;
 }
 function makeRenderer(canvas) {
@@ -565,9 +565,27 @@ function initScenes() {
     camera.position.set(0, 0.15, 5.8); camera.lookAt(0, -0.25, 0);
     autoResize(renderer, camera, canvas.parentElement);
     let model = null, t = 0;
+    // Blob shadow hero
+    const hShadowC = document.createElement('canvas');
+    hShadowC.width = 256; hShadowC.height = 128;
+    const hCtx = hShadowC.getContext('2d');
+    const hGrad = hCtx.createRadialGradient(128,64,0,128,64,115);
+    hGrad.addColorStop(0,'rgba(28,27,24,0.13)');
+    hGrad.addColorStop(0.6,'rgba(28,27,24,0.05)');
+    hGrad.addColorStop(1,'rgba(28,27,24,0)');
+    hCtx.fillStyle = hGrad;
+    hCtx.beginPath(); hCtx.ellipse(128,64,120,56,0,0,Math.PI*2); hCtx.fill();
+    const hShadowTex = new THREE.CanvasTexture(hShadowC);
+    const hShadowMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4,1.1),
+      new THREE.MeshBasicMaterial({map:hShadowTex,transparent:true,depthWrite:false})
+    );
+    hShadowMesh.rotation.x = -Math.PI/2; hShadowMesh.position.y = -0.67;
+    scene.add(hShadowMesh);
+
     loadModel(gltf => { model = cloneModel(gltf); scene.add(model); });
-    (function loop(){ requestAnimationFrame(loop); t += 0.008;
-      if(model){ model.rotation.y = t; model.position.y = Math.sin(t*0.6)*0.04; }
+    (function loop(){ requestAnimationFrame(loop); t += 0.0018;
+      if(model){ model.rotation.y = t; model.position.y = Math.sin(t*0.3)*0.02; }
       renderer.render(scene, camera); })();
   })();
 
@@ -606,7 +624,6 @@ function initScenes() {
       { id: 'a1', label: 'Cuir pleine fleur',       local: new THREE.Vector3(0.28, 0.18, 0.08),  side:  1 },
       { id: 'a2', label: 'Coussin indépendant',      local: new THREE.Vector3(0.02,-0.18, 0.38),  side:  1 },
     ];
-    let activeAnchor = null;
 
     // ── PROJECT 3D → 2D ──
     function project(v3, model) {
@@ -620,56 +637,72 @@ function initScenes() {
     }
 
     // ── DRAW SVG HOTSPOTS ──
+    // Calcule la bounding box du modèle en screen space
+    function getModelScreenBounds(model) {
+      const corners = [
+        new THREE.Vector3(-0.65, -0.65, -0.65), new THREE.Vector3( 0.65, -0.65, -0.65),
+        new THREE.Vector3(-0.65,  0.65, -0.65), new THREE.Vector3( 0.65,  0.65, -0.65),
+        new THREE.Vector3(-0.65, -0.65,  0.65), new THREE.Vector3( 0.65, -0.65,  0.65),
+        new THREE.Vector3(-0.65,  0.65,  0.65), new THREE.Vector3( 0.65,  0.65,  0.65),
+      ];
+      const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
+      let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+      corners.forEach(function(c) {
+        const w = c.clone().applyMatrix4(model.matrixWorld);
+        w.project(camera);
+        const sx = (w.x + 1) / 2 * cw;
+        const sy = (-w.y + 1) / 2 * ch;
+        if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
+      });
+      return { minX:minX, maxX:maxX, minY:minY, maxY:maxY,
+               cx:(minX+maxX)/2, cy:(minY+maxY)/2,
+               w:maxX-minX, h:maxY-minY };
+    }
+
     function drawHotspots(model) {
       if (!svg) return;
       const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
       svg.setAttribute('viewBox', '0 0 ' + cw + ' ' + ch);
+      const b = getModelScreenBounds(model);
+
+      // Points d'ancrage relatifs à la bounding box screen
+      const pts = [
+        { x: b.cx - b.w*0.28, y: b.cy - b.h*0.08, label: 'Structure acier chromé', side: -1 },
+        { x: b.cx + b.w*0.22, y: b.cy - b.h*0.22, label: 'Cuir pleine fleur',       side:  1 },
+        { x: b.cx + b.w*0.05, y: b.cy + b.h*0.20, label: 'Coussin indépendant',     side:  1 },
+      ];
 
       let markup = '';
-      anchors.forEach(function(a, i) {
-        const p = project(a.local, model);
-        if (!p.visible) return;
+      pts.forEach(function(pt, i) {
+        const dotX = pt.x, dotY = pt.y;
+        const side = pt.side;
+        // Ligne : diagonale courte puis horizontale (style Perriand)
+        const diagX = dotX + side * 22;
+        const diagY = dotY - 18;
+        const horizX = diagX + side * 44;
+        const horizY = diagY;
 
-        const isActive = activeAnchor === i;
-        const side = a.side;
-        const lineLen = 52 + i * 8;
-        const lx2 = p.x + side * lineLen;
-        const ly2 = p.y - 22 - i * 4;
-        const lx3 = lx2 + side * 38;
-        const ly3 = ly2;
-        const dotR = isActive ? 5 : 4;
-        const dotOpacity = isActive ? 1 : 0.85;
-        const labelX = side > 0 ? lx3 + 6 : lx3 - 4;
+        markup += '<g class="hs-anchor" data-idx="' + i + '" style="cursor:pointer">';
+        // Dot
+        markup += '<circle cx="' + dotX + '" cy="' + dotY + '" r="3.5"';
+        markup += ' fill="#B8965A" stroke="#EDEAE4" stroke-width="1.5"/>';
+        // Ligne diagonale
+        markup += '<line x1="' + dotX + '" y1="' + dotY + '" x2="' + diagX + '" y2="' + diagY + '"';
+        markup += ' stroke="#B8965A" stroke-width="0.65" opacity="0.8"/>';
+        // Ligne horizontale
+        markup += '<line x1="' + diagX + '" y1="' + diagY + '" x2="' + horizX + '" y2="' + horizY + '"';
+        markup += ' stroke="#B8965A" stroke-width="0.65" opacity="0.8"/>';
+        // Label
+        const tx = side > 0 ? horizX + 5 : horizX - 5;
         const anchor = side > 0 ? 'start' : 'end';
-        const labelOpacity = isActive ? 0 : 0.75;
-
-        markup += '<g class="hs-anchor" data-idx="' + i + '">';
-        markup += '<circle class="hs-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + dotR + '"';
-        markup += ' fill="#B8965A" opacity="' + dotOpacity + '" stroke="#EDEAE4" stroke-width="1.5"/>';
-        markup += '<line x1="' + p.x + '" y1="' + p.y + '" x2="' + lx2 + '" y2="' + ly2 + '"';
-        markup += ' stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>';
-        markup += '<line x1="' + lx2 + '" y1="' + ly2 + '" x2="' + lx3 + '" y2="' + ly3 + '"';
-        markup += ' stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>';
-        if (isActive) {
-          const rx = side > 0 ? lx3 : lx3 - 148;
-          markup += '<rect x="' + rx + '" y="' + (ly3 - 13) + '" width="148" height="20" fill="#1A1814"/>';
-          const tx = side > 0 ? lx3 + 8 : lx3 - 140;
-          markup += '<text x="' + tx + '" y="' + (ly3 + 2) + '" class="hs-label-text" fill="#EDEAE4">' + a.label + '</text>';
-        } else {
-          markup += '<text x="' + labelX + '" y="' + (ly3 + 2) + '"';
-          markup += ' class="hs-label-text" text-anchor="' + anchor + '"';
-          markup += ' fill="#1A1814" opacity="0.75">' + a.label + '</text>';
-        }
+        markup += '<text x="' + tx + '" y="' + (horizY + 3) + '"';
+        markup += ' font-family="Jost,sans-serif" font-size="8" font-weight="400"';
+        markup += ' letter-spacing="1.5" text-anchor="' + anchor + '"';
+        markup += ' fill="#3D3A34" opacity="0.9" text-transform="uppercase">' + pt.label + '</text>';
         markup += '</g>';
       });
       svg.innerHTML = markup;
-
-      svg.querySelectorAll('.hs-anchor').forEach(function(el) {
-        el.addEventListener('click', function() {
-          const idx = parseInt(el.dataset.idx);
-          activeAnchor = activeAnchor === idx ? null : idx;
-        });
-      });
     }
 
     let model = null, targetRot = 0.3, currentRot = 0.3;
