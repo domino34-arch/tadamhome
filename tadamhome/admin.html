@@ -17,8 +17,6 @@
   --sidebar:#1C1B18;
   --serif:'Cormorant Garamond',serif;--sans:'Outfit',sans-serif;
 }
-
-/* LOCK */
 #lock{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--sidebar);display:flex;align-items:center;justify-content:center}
 .lock-box{width:100%;max-width:340px;padding:0 28px;text-align:center}
 .lock-sub{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:40px;font-family:var(--sans)}
@@ -27,12 +25,8 @@
 .lock-btn{width:100%;padding:14px;background:var(--accent);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .3s}
 .lock-btn:hover{background:var(--acc3)}
 .lock-err{font-size:12px;color:rgba(192,57,43,.8);min-height:20px;margin-top:8px;font-family:var(--sans)}
-
-/* LAYOUT */
 body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
 .app{display:flex;height:100vh;overflow:hidden}
-
-/* SIDEBAR */
 .sidebar{width:220px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;overflow:hidden}
 .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
 .sidebar-logo img{height:22px;object-fit:contain;display:block}
@@ -47,8 +41,6 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .sidebar-user{font-size:11px;color:rgba(255,255,255,.3);margin-bottom:8px;font-family:var(--sans)}
 .sidebar-logout{background:none;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all .2s;width:100%}
 .sidebar-logout:hover{border-color:rgba(184,152,106,.3);color:var(--accent)}
-
-/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{height:52px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
 .topbar-title{font-family:var(--serif);font-size:22px;font-weight:300}
@@ -57,21 +49,14 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .topbar-btn:hover{background:var(--accent)}
 .topbar-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .topbar-btn.ghost:hover{border-color:var(--accent);color:var(--accent);background:transparent}
-
 .content{flex:1;overflow-y:auto;padding:24px}
-
-/* PANELS */
 .panel{display:none}
 .panel.active{display:block}
-
-/* STAT CARDS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:2px}
 .stat-card{background:var(--white);padding:20px;border:1px solid var(--border)}
 .stat-ico{font-size:20px;margin-bottom:10px;opacity:.5}
 .stat-val{font-family:var(--serif);font-size:36px;font-weight:300;line-height:1;color:var(--ink);margin-bottom:4px}
 .stat-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
-
-/* FORM CARDS */
 .form-card{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
 .form-card-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .form-card-head h3{font-family:var(--serif);font-size:20px;font-weight:300}
@@ -82,10 +67,8 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:0}
 .field label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
 .field input,.field select,.field textarea{padding:10px 12px;border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;font-weight:300}
-.field input:focus,.field select:focus{border-color:var(--accent)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
 .field textarea{resize:vertical;min-height:80px}
-
-/* FILE DROP ZONES */
 .drop-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:2px}
 .drop-zone{border:1px dashed rgba(184,152,106,.3);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--white)}
 .drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(184,152,106,.03)}
@@ -101,8 +84,6 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .drop-done{font-size:11px;color:var(--green);margin-top:6px;display:none;font-family:var(--sans)}
 .url-input{width:100%;padding:10px 14px;border:1px solid var(--border);background:var(--bg2,#EDEAE2);font-family:var(--sans);font-size:12px;color:var(--muted);outline:none;margin-top:2px;font-style:italic}
 .url-input:focus{border-color:var(--accent);color:var(--ink)}
-
-/* FORM ACTIONS */
 .form-actions{display:flex;align-items:center;gap:12px;padding:16px 0 0}
 .btn-primary{padding:12px 28px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .3s;display:flex;align-items:center;gap:8px}
 .btn-primary:hover{background:var(--accent)}
@@ -113,8 +94,6 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .form-msg.err{color:var(--red)}
 .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* COLORS SECTION */
 .colors-section{margin-bottom:2px;background:var(--white);border:1px solid var(--border)}
 .colors-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .colors-head h4{font-family:var(--serif);font-size:18px;font-weight:300}
@@ -141,8 +120,6 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .color-texture-zone:hover{border-color:var(--accent)}
 .color-texture-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .color-texture-prev{width:100%;height:50px;object-fit:cover;display:none;margin-top:6px;border:1px solid var(--border)}
-
-/* PHOTOS SECTION */
 .photos-section{background:var(--white);border:1px solid var(--border);margin-bottom:2px}
 .photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:16px 20px}
 .photo-card{aspect-ratio:4/3;position:relative;border:1px solid var(--border);overflow:hidden}
@@ -155,8 +132,6 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
 .photo-add input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .photo-add-ico{font-size:20px;color:var(--accent)}
 .photo-add-txt{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:center}
-
-/* TABLE */
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 th{padding:10px 14px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400;text-align:left;border-bottom:1px solid var(--border);font-family:var(--sans);background:var(--bg);white-space:nowrap}
@@ -167,27 +142,23 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .td-name{font-family:var(--serif);font-size:16px;font-weight:400}
 .td-badge{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border);color:var(--muted);font-family:var(--sans)}
 .td-badge.ok{border-color:rgba(39,112,74,.25);color:var(--green)}
+.td-badge.publie{border-color:rgba(184,152,106,.4);color:var(--accent)}
 .row-actions{display:flex;gap:4px;flex-wrap:nowrap}
 .row-btn{padding:5px 10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .2s;white-space:nowrap}
 .row-btn:hover{border-color:var(--accent);color:var(--accent)}
 .row-btn.del:hover{border-color:var(--red);color:var(--red)}
-
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
 .section-title{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--ink)}
 .section-title em{font-style:italic;color:var(--accent)}
 .recent-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:6px;margin-bottom:12px}
 .recent-label::before{content:'';display:block;width:20px;height:1px;background:var(--accent)}
-
-/* CATALOGUE SEARCH */
 .search-bar{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);padding:10px 14px;margin-bottom:2px}
 .search-bar input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
 .search-bar input::placeholder{color:var(--muted)}
-
-/* MODALS */
 .modal-bg{position:fixed;inset:0;z-index:500;background:rgba(28,27,24,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg.show{display:flex}
 .modal{background:var(--white);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:popIn .25s ease}
-.modal-lg{max-width:680px}
+.modal-lg{max-width:720px}
 @keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 .modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
 .modal-head h3{font-family:var(--serif);font-size:22px;font-weight:300}
@@ -204,8 +175,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .modal-file-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
 .modal-file-name{font-size:12px;color:var(--ink);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .modal-file-name.none{color:var(--muted);font-style:italic;font-family:var(--sans)}
-
-/* MESHY */
 .meshy-drop{border:1px dashed rgba(184,152,106,.3);background:var(--white);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:2px}
 .meshy-drop:hover,.meshy-drop.over{border-color:var(--accent);background:rgba(184,152,106,.03)}
 .meshy-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -216,30 +185,42 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .meshy-api-row{display:flex;gap:8px;align-items:center;margin-bottom:2px;background:var(--white);border:1px solid var(--border);padding:12px 16px}
 .meshy-api-row label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);white-space:nowrap}
 .meshy-api-input{flex:1;border:none;background:transparent;font-family:monospace;font-size:12px;color:var(--ink);outline:none}
-
-/* QR MODAL */
 .qr-code-wrap{display:flex;justify-content:center;padding:20px 0;background:var(--bg);border:1px solid var(--border);margin-bottom:12px}
 .qr-url{font-size:11px;color:var(--muted);font-family:monospace;word-break:break-all;padding:8px;background:var(--bg);border:1px solid var(--border);text-align:center}
-
-/* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--white);padding:10px 20px;font-size:12px;letter-spacing:.04em;border-left:2px solid var(--accent);opacity:0;transition:all .3s;z-index:9000;pointer-events:none;font-family:var(--sans)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{border-left-color:var(--green)}
 .toast.err{border-left-color:var(--red)}
 
-/* RESPONSIVE */
+/* ── ICÔNES SPECIFIQUES ── */
+.edito-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:2px}
+.edito-card-preview{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);margin-bottom:2px;cursor:pointer;transition:border-color .2s}
+.edito-card-preview:hover{border-color:var(--accent)}
+.edito-num{font-family:var(--serif);font-size:28px;font-weight:300;color:rgba(184,152,106,.4);width:40px;flex-shrink:0;text-align:center}
+.edito-info{flex:1;min-width:0}
+.edito-meuble{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--ink)}
+.edito-meta{font-size:10px;color:var(--muted);font-family:var(--sans);letter-spacing:.06em;margin-top:2px}
+.edito-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.edito-status-dot.publie{background:var(--green)}
+.edito-status-dot.brouillon{background:var(--muted)}
+.product-link-select{width:100%;padding:10px 12px;border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;transition:border-color .2s}
+.product-link-select:focus{border-color:var(--accent)}
+.char-count{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:right;margin-top:3px}
+.field textarea.long{min-height:120px}
+
 @media(max-width:768px){
   .sidebar{width:180px}
   .stats-grid{grid-template-columns:1fr 1fr}
   .form-grid{grid-template-columns:1fr}
   .drop-grid{grid-template-columns:1fr}
+  .edito-stats{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
-<div id="lock" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#1C1B18;display:flex;align-items:center;justify-content:center">
+<!-- LOCK -->
+<div id="lock">
   <div class="lock-box">
     <img src="logo_blanc.png" alt="TadamHome" style="height:26px;display:block;margin:0 auto 8px;object-fit:contain" onerror="this.style.display='none'"/>
     <div class="lock-sub">Espace administration</div>
@@ -251,8 +232,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
 <!-- APP -->
 <div class="app" id="app" style="display:none">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <img src="logo_blanc.png" alt="TadamHome" style="height:20px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=\'font-family:serif;color:#B8986A;font-size:16px\'>TadamHome</span>'"/>
@@ -262,6 +241,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
     <button class="nav-btn" onclick="showPanel('upload')"><span class="ico">↑</span>Ajouter un modèle</button>
     <button class="nav-btn" onclick="showPanel('meshy')"><span class="ico">✦</span>Générer avec IA</button>
     <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
+    <button class="nav-btn" onclick="showPanel('icones')"><span class="ico">✦</span>Icônes<span class="sidebar-badge" id="navBadgeIcones">0</span></button>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">Liens</div>
     <button class="nav-btn" onclick="window.open('catalogue.html','_blank')"><span class="ico">←</span>Retour au site</button>
@@ -272,11 +252,10 @@ tr:hover td{background:rgba(184,152,106,.03)}
     </div>
   </aside>
 
-  <!-- MAIN -->
   <div class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbarTitle">Vue d'<em style="font-style:italic;color:var(--accent)">ensemble</em></div>
-      <div class="topbar-right">
+      <div class="topbar-right" id="topbarActions">
         <button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button>
         <button class="topbar-btn" onclick="showPanel('upload')">+ Ajouter</button>
       </div>
@@ -306,13 +285,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
               <div class="field"><label>Nom *</label><input type="text" id="fNom" placeholder="ex. Canapé Mags"/></div>
               <div class="field"><label>Marque *</label><input type="text" id="fMarque" placeholder="ex. Hay"/></div>
               <div class="field"><label>Catégorie</label>
-                <select id="fCat">
-                  <option value="">Choisir…</option>
-                  <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-                  <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-                  <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                  <option>Lit</option><option>Autre</option>
-                </select>
+                <select id="fCat"><option value="">Choisir…</option><option>Sofa</option><option>Canapé</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
               </div>
               <div class="field"><label>Prix (€)</label><input type="number" id="fPrix" placeholder="ex. 1290"/></div>
             </div>
@@ -323,13 +296,10 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </div>
           </div>
         </div>
-
         <div class="drop-grid">
           <div class="drop-zone" id="zoneGlb">
             <input type="file" id="fileGlb" accept=".glb,.gltf" onchange="uploadFile(this,'glb')"/>
-            <div class="drop-ico">◈</div>
-            <div class="drop-name">Fichier GLB</div>
-            <div class="drop-sub">Android & Web · Chrome</div>
+            <div class="drop-ico">◈</div><div class="drop-name">Fichier GLB</div><div class="drop-sub">Android & Web · Chrome</div>
             <div class="drop-tags"><span class="tag">GLB</span><span class="tag">GLTF</span></div>
             <div id="lblGlb" style="font-size:11px;color:var(--accent);margin-top:8px;font-family:var(--sans)">ou cliquez pour parcourir</div>
             <div class="drop-progress" id="progGlb"><div class="drop-bar" id="barGlb"></div></div>
@@ -337,16 +307,13 @@ tr:hover td{background:rgba(184,152,106,.03)}
           </div>
           <div class="drop-zone" id="zoneUsdz">
             <input type="file" id="fileUsdz" accept=".usdz" onchange="uploadFile(this,'usdz')"/>
-            <div class="drop-ico">◇</div>
-            <div class="drop-name">Fichier USDZ</div>
-            <div class="drop-sub">iPhone & iPad · Safari</div>
+            <div class="drop-ico">◇</div><div class="drop-name">Fichier USDZ</div><div class="drop-sub">iPhone & iPad · Safari</div>
             <div class="drop-tags"><span class="tag">USDZ</span></div>
             <div id="lblUsdz" style="font-size:11px;color:var(--accent);margin-top:8px;font-family:var(--sans)">ou cliquez pour parcourir</div>
             <div class="drop-progress" id="progUsdz"><div class="drop-bar" id="barUsdz"></div></div>
             <div class="drop-done" id="doneUsdz"></div>
           </div>
         </div>
-
         <div class="form-card" style="margin-bottom:2px">
           <div class="form-card-body" style="padding:12px 16px">
             <div class="form-grid">
@@ -355,22 +322,17 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </div>
           </div>
         </div>
-
-        <!-- PHOTOS -->
         <div class="photos-section">
           <div class="form-card-head"><h3>Photos produit</h3><span>La 1ère photo = visuel principal du catalogue</span></div>
           <div class="photos-grid" id="uploadPhotosGrid">
             <div class="photo-add" onclick="document.getElementById('uploadPhotoInput').click()">
               <input type="file" id="uploadPhotoInput" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'upload')"/>
-              <div class="photo-add-ico">+</div>
-              <div class="photo-add-txt">Ajouter photos<br>JPG, PNG</div>
+              <div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter photos<br>JPG, PNG</div>
             </div>
           </div>
         </div>
-
-        <!-- COLORIS -->
         <div class="colors-section">
-          <div class="colors-head"><h4>Coloris & textures</h4><span>Optionnel — permet le changement de tissu sur la page AR</span></div>
+          <div class="colors-head"><h4>Coloris & textures</h4><span>Optionnel</span></div>
           <div class="colors-body">
             <div class="colors-list" id="uploadColorsList"><div class="color-empty">Aucun coloris ajouté</div></div>
             <div class="color-form">
@@ -404,7 +366,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </div>
           </div>
         </div>
-
         <div class="form-card">
           <div class="form-card-body">
             <div class="form-actions">
@@ -431,7 +392,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <img id="meshyPreview" class="meshy-prev"/>
         </div>
         <div style="margin-bottom:2px"><input type="text" id="meshyImgUrl" class="url-input" style="width:100%;padding:12px 16px;border:1px solid var(--border)" placeholder="ou URL directe de l'image…"/></div>
-
         <div class="form-card">
           <div class="form-card-head"><h3>Informations produit</h3></div>
           <div class="form-card-body">
@@ -439,13 +399,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
               <div class="field"><label>Nom *</label><input type="text" id="mNom" placeholder="ex. Canapé Mags"/></div>
               <div class="field"><label>Marque *</label><input type="text" id="mMarque" placeholder="ex. Hay"/></div>
               <div class="field"><label>Catégorie</label>
-                <select id="mCat">
-                  <option value="">Choisir…</option>
-                  <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-                  <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-                  <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-                  <option>Lit</option><option>Autre</option>
-                </select>
+                <select id="mCat"><option value="">Choisir…</option><option>Sofa</option><option>Canapé</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
               </div>
               <div class="field"><label>Prix (€)</label><input type="number" id="mPrix" placeholder="ex. 1290"/></div>
             </div>
@@ -461,7 +415,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </div>
           </div>
         </div>
-
         <div class="meshy-status" id="meshyStatus">
           <div id="meshyStatusTxt">Initialisation…</div>
           <div class="meshy-progress"><div class="meshy-bar" id="meshyBar"></div></div>
@@ -470,9 +423,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
       <!-- CATALOGUE -->
       <div class="panel" id="panelCatalogue">
-        <div class="section-head">
-          <div class="section-title">Vos <em>modèles</em></div>
-        </div>
+        <div class="section-head"><div class="section-title">Vos <em>modèles</em></div></div>
         <div class="recent-label">Catalogue complet</div>
         <div class="search-bar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -480,11 +431,192 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadProducts()">↺ Actualiser</button>
           <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="showPanel('upload')">+ Ajouter</button>
         </div>
-        <div class="form-card">
-          <div class="table-wrap" id="catTable"></div>
+        <div class="form-card"><div class="table-wrap" id="catTable"></div></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- ICÔNES                                  -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="panel" id="panelIcones">
+        <div class="section-head" style="margin-bottom:2px">
+          <div class="section-title">Vos <em>Icônes</em></div>
+        </div>
+
+        <!-- Stats Icônes -->
+        <div class="edito-stats">
+          <div class="stat-card"><div class="stat-ico">✦</div><div class="stat-val" id="stEditoTotal">0</div><div class="stat-lbl">Éditos total</div></div>
+          <div class="stat-card"><div class="stat-ico">◉</div><div class="stat-val" id="stEditoPublie">0</div><div class="stat-lbl">Publiés</div></div>
+          <div class="stat-card"><div class="stat-ico">◌</div><div class="stat-val" id="stEditoBrouillon">0</div><div class="stat-lbl">Brouillons</div></div>
+        </div>
+
+        <!-- Search + actions -->
+        <div class="search-bar" style="margin-top:2px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="editoSearch" placeholder="Rechercher un édito…" oninput="filterEditoTable()"/>
+          <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadEditorials()">↺ Actualiser</button>
+          <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="openNewEdito()">+ Nouvel édito</button>
+        </div>
+
+        <!-- Table éditos -->
+        <div class="form-card" style="margin-top:2px">
+          <div class="table-wrap" id="editoTable"></div>
         </div>
       </div>
 
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MODAL ÉDITO (création + édition)           -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="modal-bg" id="editoModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3 id="editoModalTitle">Nouvel édito</h3>
+      <button class="modal-close" onclick="closeEditoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Identité -->
+      <div class="modal-section">
+        <div class="modal-section-title">Identité de l'édito</div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field">
+            <label>Numéro d'édition *</label>
+            <input type="number" id="eiNumero" placeholder="ex. 7"/>
+          </div>
+          <div class="field">
+            <label>Slug URL *</label>
+            <input type="text" id="eiSlug" placeholder="ex. lc2-le-corbusier"/>
+          </div>
+          <div class="field">
+            <label>Date de publication</label>
+            <input type="date" id="eiDate"/>
+          </div>
+          <div class="field">
+            <label>Statut</label>
+            <select id="eiStatut">
+              <option value="brouillon">Brouillon</option>
+              <option value="publie">Publié</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Le meuble -->
+      <div class="modal-section">
+        <div class="modal-section-title">Le meuble</div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field">
+            <label>Nom du meuble *</label>
+            <input type="text" id="eiNomMeuble" placeholder="ex. LC2"/>
+          </div>
+          <div class="field">
+            <label>Marque / Éditeur *</label>
+            <input type="text" id="eiMarque" placeholder="ex. Cassina"/>
+          </div>
+          <div class="field">
+            <label>Designer(s)</label>
+            <input type="text" id="eiDesigners" placeholder="ex. Le Corbusier · Charlotte Perriand"/>
+          </div>
+          <div class="field">
+            <label>Année de création</label>
+            <input type="number" id="eiAnnee" placeholder="ex. 1928"/>
+          </div>
+          <div class="field">
+            <label>Catégorie</label>
+            <select id="eiCategorie">
+              <option value="">Choisir…</option>
+              <option>Assise</option>
+              <option>Canapé</option>
+              <option>Table</option>
+              <option>Luminaire</option>
+              <option>Rangement</option>
+              <option>Lit</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Mouvement design</label>
+            <select id="eiMouvement">
+              <option value="">Choisir…</option>
+              <option>Bauhaus</option>
+              <option>Modernisme</option>
+              <option>Brutalisme</option>
+              <option>Memphis</option>
+              <option>Scandinave</option>
+              <option>Art Déco</option>
+              <option>Minimalisme</option>
+              <option>Pop Art</option>
+              <option>Postmodernisme</option>
+              <option>Fonctionnalisme</option>
+              <option>Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="field"><label>Largeur (cm)</label><input type="number" id="eiLarg" placeholder="ex. 76"/></div>
+          <div class="field"><label>Hauteur (cm)</label><input type="number" id="eiHaut" placeholder="ex. 67"/></div>
+          <div class="field"><label>Profondeur (cm)</label><input type="number" id="eiProf" placeholder="ex. 70"/></div>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>Prix indicatif (€)</label>
+          <input type="number" id="eiPrix" placeholder="ex. 4500"/>
+        </div>
+      </div>
+
+      <!-- Contenu éditorial -->
+      <div class="modal-section">
+        <div class="modal-section-title">Contenu éditorial</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Citation / Pull quote</label>
+          <input type="text" id="eiCitation" placeholder="ex. La maison est une machine à habiter…"/>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Chapitre 1 — Histoire</label>
+          <textarea id="eiHistoire" class="long" placeholder="Racontez l'histoire du meuble, son contexte de création, l'époque…" oninput="updateCharCount(this,'ccHistoire')"></textarea>
+          <div class="char-count" id="ccHistoire">0 caractères</div>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Chapitre 2 — Le Designer</label>
+          <textarea id="eiDesigner" class="long" placeholder="Qui est le designer ? Parcours, influences, autres œuvres notables…" oninput="updateCharCount(this,'ccDesigner')"></textarea>
+          <div class="char-count" id="ccDesigner">0 caractères</div>
+        </div>
+        <div class="field">
+          <label>Chapitre 3 — Mouvement & contexte</label>
+          <textarea id="eiTexteMouvement" class="long" placeholder="Le mouvement design, l'époque, les influences contemporaines…" oninput="updateCharCount(this,'ccMouvement')"></textarea>
+          <div class="char-count" id="ccMouvement">0 caractères</div>
+        </div>
+      </div>
+
+      <!-- Modèle 3D -->
+      <div class="modal-section">
+        <div class="modal-section-title">Modèle 3D</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Lier à un produit du catalogue</label>
+          <select id="eiProductId" class="product-link-select" onchange="onProductLink()">
+            <option value="">— Choisir un produit existant —</option>
+          </select>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:4px">Le GLB du produit sélectionné sera utilisé dans l'édito</div>
+        </div>
+        <div class="field">
+          <label>ou URL GLB directe</label>
+          <input type="text" id="eiGlbUrl" placeholder="https://… (laissez vide si produit lié)"/>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:4px" id="eiGlbLinked"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeEditoModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveEdito('brouillon')" style="background:var(--muted)">
+        <div class="spin" id="spinEditoBrouillon"></div>Sauver brouillon
+      </button>
+      <button class="btn-primary" id="btnSaveEdito" onclick="saveEdito('publie')">
+        <div class="spin" id="spinEditoPublie"></div>
+        <span id="editoSaveLbl">Publier</span>
+      </button>
     </div>
   </div>
 </div>
@@ -518,25 +650,18 @@ tr:hover td{background:rgba(184,152,106,.03)}
   </div>
 </div>
 
-<!-- EDIT MODAL -->
+<!-- EDIT PRODUCT MODAL -->
 <div class="modal-bg" id="editModal">
   <div class="modal modal-lg">
     <div class="modal-head"><h3 id="editTitle">Modifier le produit</h3><button class="modal-close" onclick="closeEdit()">✕</button></div>
     <div class="modal-body">
-      <!-- Infos -->
       <div class="modal-section">
         <div class="modal-section-title">Informations</div>
         <div class="form-grid" style="margin-bottom:10px">
           <div class="field"><label>Nom</label><input type="text" id="eName"/></div>
           <div class="field"><label>Marque</label><input type="text" id="eMarque"/></div>
           <div class="field"><label>Catégorie</label>
-            <select id="eCat">
-              <option value="">Choisir…</option>
-              <option>Sofa</option><option>Canapé</option><option>Fauteuil</option>
-              <option>Chaise</option><option>Table basse</option><option>Table à manger</option>
-              <option>Bureau</option><option>Luminaire</option><option>Rangement</option>
-              <option>Lit</option><option>Autre</option>
-            </select>
+            <select id="eCat"><option value="">Choisir…</option><option>Sofa</option><option>Canapé</option><option>Fauteuil</option><option>Chaise</option><option>Table basse</option><option>Table à manger</option><option>Bureau</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
           </div>
           <div class="field"><label>Prix (€)</label><input type="number" id="ePrix"/></div>
         </div>
@@ -546,7 +671,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div class="field"><label>Profondeur (cm)</label><input type="number" id="eProf"/></div>
         </div>
       </div>
-      <!-- GLB -->
       <div class="modal-section">
         <div class="modal-section-title">Fichier GLB — Android & Web</div>
         <div class="modal-file-current"><div class="modal-file-info"><div class="modal-file-label">Fichier actuel</div><div class="modal-file-name" id="eGlbCurrent">—</div></div></div>
@@ -558,7 +682,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
         </div>
         <div class="field"><label>ou URL GLB directe</label><input type="text" id="eGlbUrl"/></div>
       </div>
-      <!-- USDZ -->
       <div class="modal-section">
         <div class="modal-section-title">Fichier USDZ — iPhone AR</div>
         <div class="modal-file-current"><div class="modal-file-info"><div class="modal-file-label">Fichier actuel</div><div class="modal-file-name" id="eUsdzCurrent">—</div></div></div>
@@ -570,7 +693,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
         </div>
         <div class="field"><label>ou URL USDZ directe</label><input type="text" id="eUsdzUrl"/></div>
       </div>
-      <!-- Photos -->
       <div class="modal-section">
         <div class="modal-section-title">Photos produit</div>
         <div class="photos-grid" id="editPhotosGrid" style="padding:0;margin-bottom:0">
@@ -580,12 +702,10 @@ tr:hover td{background:rgba(184,152,106,.03)}
           </div>
         </div>
       </div>
-      <!-- Coloris -->
       <div class="modal-section">
         <div class="modal-section-title">Coloris & textures</div>
         <div id="editColorsList" style="margin-bottom:10px"><div class="color-empty">Aucun coloris</div></div>
         <div class="color-form">
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--sans)">Ajouter / remplacer un coloris</div>
           <div class="color-form-grid">
             <input type="color" id="eColorHex" class="color-picker" value="#B8986A"/>
             <div class="field" style="margin:0"><input type="text" id="eColorName" placeholder="ex. Noir Kvadrat"/></div>
@@ -637,24 +757,22 @@ const {createClient} = supabase;
 const sb = createClient(SUPA_URL, SUPA_KEY);
 
 /* ══ STATE ══ */
-let allProducts = [];
-let deleteId    = null;
-let editId      = null;
-let editGlbUrl  = null;
-let editUsdzUrl = null;
-let editColors  = [];
-let editPhotos  = [];
-
-let uploadColors = [];
-let uploadPhotos = [];
+let allProducts   = [];
+let allEditorials = [];
+let deleteId      = null;
+let deleteType    = 'product'; // 'product' | 'edito'
+let editId        = null;
+let editGlbUrl    = null;
+let editUsdzUrl   = null;
+let editColors    = [];
+let editPhotos    = [];
+let uploadColors  = [];
+let uploadPhotos  = [];
 let uTexUrl = null, uGlbUrlCo = null, uUsdzUrlCo = null;
 let eTexUrl = null, eGlbUrlCo = null, eUsdzUrlCo = null;
-let glbUrl = null, usdzUrl = null;
-
-let meshyGlbUrl  = null;
-let meshyUsdzUrl = null;
-let meshyImgUrl  = null;
-let meshyTaskId  = null;
+let glbUrl  = null, usdzUrl   = null;
+let meshyGlbUrl  = null, meshyUsdzUrl = null, meshyImgUrl = null, meshyTaskId = null;
+let currentEditoId = null; // édito en cours d'édition
 
 /* ══ LOCK ══ */
 function unlock() {
@@ -662,10 +780,10 @@ function unlock() {
   if (pw === ADMIN_PW) {
     document.getElementById('lock').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    // Load Meshy key
     const mk = localStorage.getItem('meshy_key');
     if (mk) document.getElementById('meshyKey').value = mk;
     loadProducts();
+    loadEditorials();
   } else {
     const el = document.getElementById('lockErr');
     el.textContent = 'Mot de passe incorrect.';
@@ -675,11 +793,8 @@ function unlock() {
 document.addEventListener('DOMContentLoaded', () => {
   const lp = document.getElementById('lockPw');
   if (lp) lp.addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
-  // Drag & drop on GLB/USDZ zones
-  setupDropZone('zoneGlb','fileGlb','glb');
-  setupDropZone('zoneUsdz','fileUsdz','usdz');
-  setupDropZone('eZoneGlb','eFileGlb','eglb');
-  setupDropZone('eZoneUsdz','eFileUsdz','eusdz');
+  setupDropZone('zoneGlb','fileGlb');
+  setupDropZone('zoneUsdz','fileUsdz');
 });
 function logout() {
   document.getElementById('lock').style.display = 'flex';
@@ -692,7 +807,12 @@ const panelTitles = {
   overview: 'Vue d\'<em style="font-style:italic;color:var(--accent)">ensemble</em>',
   upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
   meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
-  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>'
+  catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
+  icones:   'Vos <em style="font-style:italic;color:var(--accent)">Icônes</em>'
+};
+const panelActions = {
+  icones: `<button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>`,
+  default:`<button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button><button class="topbar-btn" onclick="showPanel('upload')">+ Ajouter</button>`
 };
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -700,11 +820,12 @@ function showPanel(name) {
   const p = document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1));
   if (p) p.classList.add('active');
   document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
+  document.getElementById('topbarActions').innerHTML = panelActions[name] || panelActions.default;
   document.querySelector('.content').scrollTop = 0;
-  // Highlight nav
-  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'catalogue'};
+  // nav highlight
+  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes'};
   document.querySelectorAll('.nav-btn').forEach(b => {
-    if (b.textContent.toLowerCase().includes(map[name]||'')) b.classList.add('active');
+    if (b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
   });
 }
 
@@ -719,6 +840,7 @@ async function loadProducts() {
   document.getElementById('navBadge').textContent = allProducts.length;
   renderTable(allProducts.slice(0,6), 'overviewTable');
   renderTable(allProducts, 'catTable');
+  populateProductSelect();
 }
 function filterTable() {
   const q = document.getElementById('catSearch').value.toLowerCase();
@@ -731,7 +853,7 @@ function filterTable() {
 function renderTable(products, id) {
   const el = document.getElementById(id);
   if (!products.length) {
-    el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun produit — ajoutez votre premier modèle 3D</div>';
+    el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun produit</div>';
     return;
   }
   let h = '<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
@@ -747,12 +869,237 @@ function renderTable(products, id) {
         <button class="row-btn" onclick="openEdit('${p.id}')">✏ Éditer</button>
         <button class="row-btn" onclick="showQR('${p.id}','${nm}')">QR</button>
         <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button>
-        <button class="row-btn del" onclick="askDelete('${p.id}','${nm}')">✕</button>
+        <button class="row-btn del" onclick="askDelete('${p.id}','${nm}','product')">✕</button>
       </div></td>
     </tr>`;
   });
   h += '</tbody></table>';
   el.innerHTML = h;
+}
+
+/* ══ POPULATE PRODUCT SELECT (for édito modal) ══ */
+function populateProductSelect() {
+  const sel = document.getElementById('eiProductId');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Choisir un produit existant —</option>';
+  allProducts.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.dataset.glb = p.model_glb_url || '';
+    opt.textContent = `${p.enseigne_name ? p.enseigne_name+' · ' : ''}${p.name}${p.model_glb_url?' ✓':' (sans GLB)'}`;
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+function onProductLink() {
+  const sel = document.getElementById('eiProductId');
+  const opt = sel.options[sel.selectedIndex];
+  const glb = opt?.dataset?.glb || '';
+  const infoEl = document.getElementById('eiGlbLinked');
+  if (glb) {
+    infoEl.textContent = '✓ GLB lié : ' + glb.split('/').pop();
+    infoEl.style.color = 'var(--green)';
+    document.getElementById('eiGlbUrl').value = '';
+  } else {
+    infoEl.textContent = opt?.value ? '⚠ Ce produit n\'a pas de GLB' : '';
+    infoEl.style.color = 'var(--red)';
+  }
+}
+
+/* ══ EDITORIALS ══ */
+async function loadEditorials() {
+  const {data, error} = await sb.from('editorials').select('*').order('numero', {ascending:false});
+  if (error) { toast('Erreur chargement éditos : '+error.message, 'err'); return; }
+  allEditorials = data || [];
+  const publie    = allEditorials.filter(e => e.statut === 'publie').length;
+  const brouillon = allEditorials.filter(e => e.statut !== 'publie').length;
+  document.getElementById('stEditoTotal').textContent    = allEditorials.length;
+  document.getElementById('stEditoPublie').textContent   = publie;
+  document.getElementById('stEditoBrouillon').textContent= brouillon;
+  document.getElementById('navBadgeIcones').textContent  = allEditorials.length;
+  renderEditoTable(allEditorials);
+}
+function filterEditoTable() {
+  const q = document.getElementById('editoSearch').value.toLowerCase();
+  renderEditoTable(allEditorials.filter(e =>
+    (e.nom_meuble||'').toLowerCase().includes(q) ||
+    (e.marque||'').toLowerCase().includes(q) ||
+    (e.designers||'').toLowerCase().includes(q) ||
+    (e.mouvement||'').toLowerCase().includes(q)
+  ));
+}
+function renderEditoTable(editorials) {
+  const el = document.getElementById('editoTable');
+  if (!editorials.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun édito — créez votre premier ✦</div>';
+    return;
+  }
+  let h = `<table><thead><tr>
+    <th>N°</th><th>Meuble</th><th>Marque / Designer</th>
+    <th>Catégorie</th><th>Mouvement</th><th>GLB</th><th>Statut</th><th>Actions</th>
+  </tr></thead><tbody>`;
+  editorials.forEach(e => {
+    const nm = (e.nom_meuble||'').replace(/'/g,"\\'");
+    const isPub = e.statut === 'publie';
+    h += `<tr>
+      <td style="font-family:var(--serif);font-size:20px;font-weight:300;color:rgba(184,152,106,.6)">${e.numero||'—'}</td>
+      <td>
+        <div class="td-brand">${e.marque||'—'}</div>
+        <div class="td-name">${e.nom_meuble||'—'}${e.annee?' <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">· '+e.annee+'</span>':''}</div>
+      </td>
+      <td style="font-size:12px;color:var(--muted)">${e.designers||'—'}</td>
+      <td>${e.categorie||'—'}</td>
+      <td>${e.mouvement||'—'}</td>
+      <td><span class="td-badge ${e.model_glb_url||e.product_id?'ok':''}">${e.model_glb_url?'✓ GLB':e.product_id?'✓ Lié':'✗'}</span></td>
+      <td>
+        <span class="td-badge ${isPub?'publie':''}">${isPub?'● Publié':'○ Brouillon'}</span>
+      </td>
+      <td><div class="row-actions">
+        <button class="row-btn" onclick="openEditEdito('${e.id}')">✏ Éditer</button>
+        <button class="row-btn" onclick="window.open('icones/edito-${e.slug||e.id}.html','_blank')">Voir</button>
+        <button class="row-btn del" onclick="askDelete('${e.id}','${nm}','edito')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  h += '</tbody></table>';
+  el.innerHTML = h;
+}
+
+/* ══ ÉDITO MODAL ══ */
+function openNewEdito() {
+  currentEditoId = null;
+  document.getElementById('editoModalTitle').textContent = 'Nouvel édito';
+  document.getElementById('editoSaveLbl').textContent    = 'Publier';
+  // Reset all fields
+  ['eiNumero','eiSlug','eiNomMeuble','eiMarque','eiDesigners','eiAnnee',
+   'eiPrix','eiLarg','eiHaut','eiProf','eiCitation',
+   'eiHistoire','eiDesigner','eiTexteMouvement','eiGlbUrl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('eiCategorie').value  = '';
+  document.getElementById('eiMouvement').value  = '';
+  document.getElementById('eiStatut').value     = 'brouillon';
+  document.getElementById('eiProductId').value  = '';
+  document.getElementById('eiGlbLinked').textContent = '';
+  document.getElementById('eiDate').value = new Date().toISOString().split('T')[0];
+  // Reset char counts
+  ['ccHistoire','ccDesigner','ccMouvement'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '0 caractères';
+  });
+  // Auto-numero
+  const maxNum = allEditorials.reduce((m, e) => Math.max(m, e.numero||0), 0);
+  document.getElementById('eiNumero').value = maxNum + 1;
+  populateProductSelect();
+  document.getElementById('editoModal').classList.add('show');
+}
+function openEditEdito(id) {
+  const e = allEditorials.find(x => x.id === id);
+  if (!e) return;
+  currentEditoId = id;
+  document.getElementById('editoModalTitle').textContent = 'Modifier — ' + (e.nom_meuble||'');
+  document.getElementById('editoSaveLbl').textContent    = 'Enregistrer';
+  document.getElementById('eiNumero').value       = e.numero || '';
+  document.getElementById('eiSlug').value         = e.slug || '';
+  document.getElementById('eiNomMeuble').value    = e.nom_meuble || '';
+  document.getElementById('eiMarque').value       = e.marque || '';
+  document.getElementById('eiDesigners').value    = e.designers || '';
+  document.getElementById('eiAnnee').value        = e.annee || '';
+  document.getElementById('eiPrix').value         = e.prix || '';
+  document.getElementById('eiLarg').value         = e.dimensions?.l || '';
+  document.getElementById('eiHaut').value         = e.dimensions?.h || '';
+  document.getElementById('eiProf').value         = e.dimensions?.p || '';
+  document.getElementById('eiCategorie').value    = e.categorie || '';
+  document.getElementById('eiMouvement').value    = e.mouvement || '';
+  document.getElementById('eiStatut').value       = e.statut || 'brouillon';
+  document.getElementById('eiCitation').value     = e.citation || '';
+  document.getElementById('eiHistoire').value     = e.texte_histoire || '';
+  document.getElementById('eiDesigner').value     = e.texte_designer || '';
+  document.getElementById('eiTexteMouvement').value = e.texte_mouvement || '';
+  document.getElementById('eiGlbUrl').value       = e.model_glb_url || '';
+  document.getElementById('eiDate').value         = e.date_publication || '';
+  // Char counts
+  ['eiHistoire','eiDesigner','eiTexteMouvement'].forEach((fId, i) => {
+    const ccId = ['ccHistoire','ccDesigner','ccMouvement'][i];
+    const val = document.getElementById(fId).value;
+    document.getElementById(ccId).textContent = val.length + ' caractères';
+  });
+  populateProductSelect();
+  if (e.product_id) {
+    document.getElementById('eiProductId').value = e.product_id;
+    onProductLink();
+  } else {
+    document.getElementById('eiGlbLinked').textContent = '';
+  }
+  document.getElementById('editoModal').classList.add('show');
+}
+function closeEditoModal() {
+  document.getElementById('editoModal').classList.remove('show');
+  currentEditoId = null;
+}
+async function saveEdito(forcedStatut) {
+  const nom = document.getElementById('eiNomMeuble').value.trim();
+  const marque = document.getElementById('eiMarque').value.trim();
+  if (!nom || !marque) { toast('Nom du meuble et Marque requis', 'err'); return; }
+
+  const statut = forcedStatut || document.getElementById('eiStatut').value;
+  const spinId = statut === 'publie' ? 'spinEditoPublie' : 'spinEditoBrouillon';
+  setSpin(spinId, true);
+
+  const larg = parseFloat(document.getElementById('eiLarg').value) || null;
+  const haut = parseFloat(document.getElementById('eiHaut').value) || null;
+  const prof = parseFloat(document.getElementById('eiProf').value) || null;
+
+  const productId = document.getElementById('eiProductId').value || null;
+  // Resolve GLB: direct url, or from linked product
+  let glbUrl = document.getElementById('eiGlbUrl').value.trim() || null;
+  if (!glbUrl && productId) {
+    const linked = allProducts.find(p => p.id === productId);
+    if (linked) glbUrl = linked.model_glb_url || null;
+  }
+
+  const payload = {
+    numero:          parseInt(document.getElementById('eiNumero').value) || null,
+    slug:            document.getElementById('eiSlug').value.trim() || null,
+    nom_meuble:      nom,
+    marque:          marque,
+    designers:       document.getElementById('eiDesigners').value.trim() || null,
+    annee:           parseInt(document.getElementById('eiAnnee').value) || null,
+    categorie:       document.getElementById('eiCategorie').value || null,
+    mouvement:       document.getElementById('eiMouvement').value || null,
+    prix:            parseFloat(document.getElementById('eiPrix').value) || null,
+    citation:        document.getElementById('eiCitation').value.trim() || null,
+    texte_histoire:  document.getElementById('eiHistoire').value.trim() || null,
+    texte_designer:  document.getElementById('eiDesigner').value.trim() || null,
+    texte_mouvement: document.getElementById('eiTexteMouvement').value.trim() || null,
+    product_id:      productId,
+    model_glb_url:   glbUrl,
+    statut:          statut,
+    date_publication:document.getElementById('eiDate').value || null,
+    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null
+  };
+
+  let error;
+  if (currentEditoId) {
+    ({error} = await sb.from('editorials').update(payload).eq('id', currentEditoId));
+  } else {
+    ({error} = await sb.from('editorials').insert([payload]));
+  }
+  setSpin(spinId, false);
+  if (error) { toast('Erreur : '+error.message, 'err'); return; }
+
+  const verb = currentEditoId ? 'mis à jour' : 'créé';
+  toast(`✓ Édito "${nom}" ${verb} (${statut === 'publie' ? 'publié' : 'brouillon'})`, 'ok');
+  closeEditoModal();
+  loadEditorials();
+}
+
+/* ══ CHAR COUNT ══ */
+function updateCharCount(textarea, countId) {
+  const el = document.getElementById(countId);
+  if (el) el.textContent = textarea.value.length + ' caractères';
 }
 
 /* ══ FILE UPLOAD ══ */
@@ -800,8 +1147,7 @@ async function addProduct() {
   const prof = parseFloat(document.getElementById('fProf').value)||null;
   const finalGlb  = glbUrl  || document.getElementById('fGlbUrl').value.trim()  || null;
   const finalUsdz = usdzUrl || document.getElementById('fUsdzUrl').value.trim() || null;
-
-  setSpin('spinAdd', true); setSpin('btnAdd', false);
+  setSpin('spinAdd', true);
   const {error} = await sb.from('products').insert([{
     name: nom, enseigne_name: marque, category: cat||null, price: prix,
     model_glb_url: finalGlb, model_usdz_url: finalUsdz, is_active: true,
@@ -852,86 +1198,67 @@ async function uploadColorTexture(input, prefix) {
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(error){document.getElementById(nameId).textContent='✗ Erreur';return;}
   const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  const url=pub.publicUrl;
-  if(prefix==='u') uTexUrl=url;
-  else eTexUrl=url;
+  if(prefix==='u') uTexUrl=pub.publicUrl; else eTexUrl=pub.publicUrl;
   document.getElementById(nameId).textContent='✓ '+file.name;
 }
 async function uploadColorFile(input, prefix, type) {
   const file=input.files[0]; if(!file) return;
-  const lblId = (prefix==='u'?'u':'e')+(type==='glb'?'GlbLbl':'UsdzLbl');
+  const lblId=(prefix==='u'?'u':'e')+(type==='glb'?'GlbLbl':'UsdzLbl');
   document.getElementById(lblId).textContent='⏳ Upload…';
   const ext=file.name.split('.').pop();
   const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
   const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-  const url=pub.publicUrl;
-  if(prefix==='u'){ if(type==='glb') uGlbUrlCo=url; else uUsdzUrlCo=url; }
-  else { if(type==='glb') eGlbUrlCo=url; else eUsdzUrlCo=url; }
+  if(prefix==='u'){if(type==='glb') uGlbUrlCo=pub.publicUrl; else uUsdzUrlCo=pub.publicUrl;}
+  else{if(type==='glb') eGlbUrlCo=pub.publicUrl; else eUsdzUrlCo=pub.publicUrl;}
   document.getElementById(lblId).textContent='✓ '+file.name;
 }
 function addUploadColor() {
   const name=document.getElementById('uName').value.trim();
   if(!name){document.getElementById('uColorMsg').textContent='Nom requis';return;}
-  const hex=document.getElementById('uHex').value;
-  const mat=document.getElementById('uMat').value.trim();
-  const glb=uGlbUrlCo||document.getElementById('uGlbUrl2').value.trim()||null;
-  const usdz=uUsdzUrlCo||document.getElementById('uUsdzUrl2').value.trim()||null;
-  uploadColors.push({name,hex,mat:mat||null,texture:uTexUrl||null,glb,usdz});
+  uploadColors.push({name,hex:document.getElementById('uHex').value,mat:document.getElementById('uMat').value.trim()||null,texture:uTexUrl||null,glb:uGlbUrlCo||document.getElementById('uGlbUrl2').value.trim()||null,usdz:uUsdzUrlCo||document.getElementById('uUsdzUrl2').value.trim()||null});
   renderColorsList('upload');
-  document.getElementById('uName').value='';
-  document.getElementById('uMat').value='';
-  document.getElementById('uGlbUrl2').value='';
-  document.getElementById('uUsdzUrl2').value='';
+  document.getElementById('uName').value='';document.getElementById('uMat').value='';
+  document.getElementById('uGlbUrl2').value='';document.getElementById('uUsdzUrl2').value='';
   document.getElementById('uTexPreview').style.display='none';
   document.getElementById('uTexName').textContent='ou cliquez pour parcourir';
   document.getElementById('uColorMsg').textContent='';
-  uTexUrl=null; uGlbUrlCo=null; uUsdzUrlCo=null;
+  uTexUrl=null;uGlbUrlCo=null;uUsdzUrlCo=null;
 }
 function addEditColor() {
   const name=document.getElementById('eColorName').value.trim();
   if(!name){document.getElementById('eColorMsg').textContent='Nom requis';return;}
-  const hex=document.getElementById('eColorHex').value;
-  const mat=document.getElementById('eColorMat').value.trim();
-  const glb=eGlbUrlCo||document.getElementById('eGlbUrlCo').value.trim()||null;
-  const usdz=eUsdzUrlCo||document.getElementById('eUsdzUrlCo').value.trim()||null;
-  editColors.push({name,hex,mat:mat||null,texture:eTexUrl||null,glb,usdz});
+  editColors.push({name,hex:document.getElementById('eColorHex').value,mat:document.getElementById('eColorMat').value.trim()||null,texture:eTexUrl||null,glb:eGlbUrlCo||document.getElementById('eGlbUrlCo').value.trim()||null,usdz:eUsdzUrlCo||document.getElementById('eUsdzUrlCo').value.trim()||null});
   renderColorsList('edit');
-  document.getElementById('eColorName').value='';
-  document.getElementById('eColorMat').value='';
-  document.getElementById('eGlbUrlCo').value='';
-  document.getElementById('eUsdzUrlCo').value='';
+  document.getElementById('eColorName').value='';document.getElementById('eColorMat').value='';
+  document.getElementById('eGlbUrlCo').value='';document.getElementById('eUsdzUrlCo').value='';
   document.getElementById('eTexPreview').style.display='none';
   document.getElementById('eTexName').textContent='ou cliquer';
   document.getElementById('eColorMsg').textContent='';
-  eTexUrl=null; eGlbUrlCo=null; eUsdzUrlCo=null;
+  eTexUrl=null;eGlbUrlCo=null;eUsdzUrlCo=null;
 }
-function removeColor(panel,idx) {
-  if(panel==='upload') uploadColors.splice(idx,1);
-  else editColors.splice(idx,1);
+function removeColor(panel,idx){
+  if(panel==='upload') uploadColors.splice(idx,1); else editColors.splice(idx,1);
   renderColorsList(panel);
 }
-function renderColorsList(panel) {
-  const arr = panel==='upload'?uploadColors:editColors;
-  const id  = panel==='upload'?'uploadColorsList':'editColorsList';
-  const el  = document.getElementById(id); if(!el) return;
+function renderColorsList(panel){
+  const arr=panel==='upload'?uploadColors:editColors;
+  const id=panel==='upload'?'uploadColorsList':'editColorsList';
+  const el=document.getElementById(id); if(!el) return;
   if(!arr.length){el.innerHTML='<div class="color-empty">Aucun coloris ajouté</div>';return;}
-  el.innerHTML=arr.map((c,i)=>`
-    <div class="color-row">
-      <div class="color-swatch" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}"></div>
-      <div class="color-info">
-        <div class="color-name">${c.name}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
-        <div class="color-status">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div>
-      </div>
-      <button class="color-del" onclick="removeColor('${panel}',${i})">✕</button>
-    </div>`).join('');
+  el.innerHTML=arr.map((c,i)=>`<div class="color-row">
+    <div class="color-swatch" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}"></div>
+    <div class="color-info"><div class="color-name">${c.name}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
+    <div class="color-status">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div></div>
+    <button class="color-del" onclick="removeColor('${panel}',${i})">✕</button>
+  </div>`).join('');
 }
 
 /* ══ PHOTOS ══ */
-async function handlePhotoUpload(files, panel) {
+async function handlePhotoUpload(files, panel){
   if(!files||!files.length) return;
-  const arr = panel==='upload'?uploadPhotos:editPhotos;
+  const arr=panel==='upload'?uploadPhotos:editPhotos;
   for(const file of Array.from(files)){
     if(arr.length>=6){toast('Maximum 6 photos','err');break;}
     const ext=file.name.split('.').pop();
@@ -945,25 +1272,16 @@ async function handlePhotoUpload(files, panel) {
   renderPhotosGrid(panel);
 }
 function removePhoto(panel,idx){
-  if(panel==='upload') uploadPhotos.splice(idx,1);
-  else editPhotos.splice(idx,1);
+  if(panel==='upload') uploadPhotos.splice(idx,1); else editPhotos.splice(idx,1);
   renderPhotosGrid(panel);
 }
 function renderPhotosGrid(panel){
   const arr=panel==='upload'?uploadPhotos:editPhotos;
-  const id =panel==='upload'?'uploadPhotosGrid':'editPhotosGrid';
-  const el =document.getElementById(id); if(!el) return;
+  const id=panel==='upload'?'uploadPhotosGrid':'editPhotosGrid';
+  const el=document.getElementById(id); if(!el) return;
   const inputId=panel==='upload'?'uploadPhotoInput':'editPhotoInput';
-  let h=arr.map((p,i)=>`
-    <div class="photo-card">
-      <img src="${p.url}" alt="${p.name}" loading="lazy"/>
-      ${i===0?'<div class="photo-cover">Principale</div>':''}
-      <button class="photo-del" onclick="removePhoto('${panel}',${i})">✕</button>
-    </div>`).join('');
-  if(arr.length<6) h+=`<div class="photo-add" onclick="document.getElementById('${inputId}').click()">
-    <input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'${panel}')"/>
-    <div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter<br>photos</div>
-  </div>`;
+  let h=arr.map((p,i)=>`<div class="photo-card"><img src="${p.url}" alt="${p.name}" loading="lazy"/>${i===0?'<div class="photo-cover">Principale</div>':''}<button class="photo-del" onclick="removePhoto('${panel}',${i})">✕</button></div>`).join('');
+  if(arr.length<6) h+=`<div class="photo-add" onclick="document.getElementById('${inputId}').click()"><input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'${panel}')"/><div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter<br>photos</div></div>`;
   el.innerHTML=h;
 }
 
@@ -980,34 +1298,37 @@ function showQR(id,nom){
 function closeQR(){document.getElementById('qrModal').classList.remove('show');}
 function downloadQR(){
   const c=document.getElementById('qrContainer');
-  const canvas=c.querySelector('canvas'); const img=c.querySelector('img');
+  const canvas=c.querySelector('canvas'),img=c.querySelector('img');
   const a=document.createElement('a'); a.download='qr-tadamhome.png';
   if(canvas) a.href=canvas.toDataURL(); else if(img) a.href=img.src; else return;
   a.click(); toast('QR Code téléchargé','ok');
 }
 
-/* ══ DELETE ══ */
-function askDelete(id,nom){
-  deleteId=id;
+/* ══ DELETE (products + éditos) ══ */
+function askDelete(id, nom, type='product'){
+  deleteId=id; deleteType=type;
   document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Cette action est irréversible.`;
   document.getElementById('confirmModal').classList.add('show');
 }
 function closeConfirm(){document.getElementById('confirmModal').classList.remove('show');deleteId=null;}
 async function confirmDelete(){
   if(!deleteId) return;
-  const {error}=await sb.from('products').delete().eq('id',deleteId);
+  const table = deleteType === 'edito' ? 'editorials' : 'products';
+  const {error}=await sb.from(table).delete().eq('id',deleteId);
   closeConfirm();
   if(error){toast('Erreur : '+error.message,'err');}
-  else{toast('Produit supprimé','ok');loadProducts();}
+  else{
+    toast('Supprimé','ok');
+    if(deleteType==='edito') loadEditorials(); else loadProducts();
+  }
 }
 
-/* ══ EDIT ══ */
+/* ══ EDIT PRODUCT ══ */
 function openEdit(id){
   const p=allProducts.find(x=>x.id===id); if(!p) return;
   editId=id; editGlbUrl=null; editUsdzUrl=null;
   editColors=JSON.parse(JSON.stringify(p.colors||[]));
   editPhotos=(p.images||[]).map(url=>({url,name:url.split('/').pop()}));
-
   document.getElementById('editTitle').textContent='Modifier — '+(p.name||'');
   document.getElementById('eName').value=p.name||'';
   document.getElementById('eMarque').value=p.enseigne_name||'';
@@ -1016,21 +1337,18 @@ function openEdit(id){
   document.getElementById('eLarg').value=p.dimensions?.l||'';
   document.getElementById('eHaut').value=p.dimensions?.h||'';
   document.getElementById('eProf').value=p.dimensions?.p||'';
-
   const glbEl=document.getElementById('eGlbCurrent');
   glbEl.textContent=p.model_glb_url?p.model_glb_url.split('/').pop():'Aucun';
   glbEl.className='modal-file-name'+(p.model_glb_url?'':' none');
   const usdzEl=document.getElementById('eUsdzCurrent');
   usdzEl.textContent=p.model_usdz_url?p.model_usdz_url.split('/').pop():'Aucun';
   usdzEl.className='modal-file-name'+(p.model_usdz_url?'':' none');
-
   ['eFileGlb','eFileUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['eLblGlb','eLblUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Glissez pour remplacer · ou cliquez';});
   ['eProgGlb','eProgUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   ['eDoneGlb','eDoneUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   document.getElementById('eGlbUrl').value='';
   document.getElementById('eUsdzUrl').value='';
-
   renderColorsList('edit');
   renderPhotosGrid('edit');
   document.getElementById('editModal').classList.add('show');
@@ -1046,7 +1364,7 @@ async function uploadEditFile(input, type){
   const isGlb=type==='glb';
   const lblId=isGlb?'eLblGlb':'eLblUsdz';
   const progId=isGlb?'eProgGlb':'eProgUsdz';
-  const barId =isGlb?'eBarGlb':'eBarUsdz';
+  const barId=isGlb?'eBarGlb':'eBarUsdz';
   const doneId=isGlb?'eDoneGlb':'eDoneUsdz';
   document.getElementById(progId).style.display='block';
   document.getElementById(barId).style.width='20%';
@@ -1070,8 +1388,7 @@ async function saveEdit(){
   const haut=parseFloat(document.getElementById('eHaut').value)||null;
   const prof=parseFloat(document.getElementById('eProf').value)||null;
   const payload={
-    name:nom,
-    enseigne_name:document.getElementById('eMarque').value.trim()||null,
+    name:nom, enseigne_name:document.getElementById('eMarque').value.trim()||null,
     category:document.getElementById('eCat').value||null,
     price:parseFloat(document.getElementById('ePrix').value)||null,
     dimensions:(larg||haut||prof)?{l:larg,h:haut,p:prof}:null,
@@ -1094,12 +1411,8 @@ function handleMeshyImage(file){
   if(!file) return;
   document.getElementById('meshyFileName').textContent='✓ '+file.name;
   const reader=new FileReader();
-  reader.onload=e=>{
-    const p=document.getElementById('meshyPreview');
-    p.src=e.target.result; p.style.display='block';
-  };
+  reader.onload=e=>{const p=document.getElementById('meshyPreview');p.src=e.target.result;p.style.display='block';};
   reader.readAsDataURL(file);
-  // Upload to Supabase for Meshy URL
   uploadMeshyImage(file);
 }
 async function uploadMeshyImage(file){
@@ -1114,124 +1427,77 @@ async function generateMeshy(){
   const key=document.getElementById('meshyKey').value.trim();
   if(!key){toast('Clé API Meshy requise','err');return;}
   localStorage.setItem('meshy_key',key);
-
   const nom=document.getElementById('mNom').value.trim();
   const marque=document.getElementById('mMarque').value.trim();
   if(!nom||!marque){toast('Nom et Marque requis','err');return;}
-
   const imgUrl=meshyImgUrl||document.getElementById('meshyImgUrl').value.trim();
   if(!imgUrl){toast('Image requise','err');return;}
-
   const haut=parseFloat(document.getElementById('mHaut').value)||null;
-  const cat=document.getElementById('mCat').value;
-
   setSpin('spinMeshy',true);
   const statusEl=document.getElementById('meshyStatus');
   statusEl.style.display='block';
   document.getElementById('meshyStatusTxt').textContent='Envoi à Meshy AI…';
   document.getElementById('meshyBar').style.width='10%';
-
-  const body={
-    image_url:imgUrl,
-    ai_model:'meshy-6',
-    topology:'quad',
-    target_polycount:30000,
-    enable_pbr:true,
-    auto_size:haut?false:true,
-    origin_at:'bottom',
-    target_formats:['glb','usdz']
-  };
+  const body={image_url:imgUrl,ai_model:'meshy-6',topology:'quad',target_polycount:30000,enable_pbr:true,auto_size:haut?false:true,origin_at:'bottom',target_formats:['glb','usdz']};
   if(haut) body.resize_height=haut/100;
   if(document.getElementById('mPrompt').value.trim()) body.prompt=document.getElementById('mPrompt').value.trim();
-
   try{
-    const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d`,{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
+    const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d`,{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();
-    if(!data.result){throw new Error(data.message||'Erreur Meshy');}
+    if(!data.result) throw new Error(data.message||'Erreur Meshy');
     meshyTaskId=data.result;
     document.getElementById('meshyStatusTxt').textContent='Génération en cours… (2-5 min)';
-    pollMeshy(key, nom, marque);
-  }catch(e){
-    setSpin('spinMeshy',false);
-    toast('Erreur Meshy : '+e.message,'err');
-  }
+    pollMeshy(key,nom,marque);
+  }catch(e){setSpin('spinMeshy',false);toast('Erreur Meshy : '+e.message,'err');}
 }
-async function pollMeshy(key, nom, marque){
+async function pollMeshy(key,nom,marque){
   let progress=10;
   const interval=setInterval(async()=>{
     try{
-      const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d/${meshyTaskId}`,{
-        headers:{'Authorization':'Bearer '+key}
-      });
+      const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d/${meshyTaskId}`,{headers:{'Authorization':'Bearer '+key}});
       const data=await resp.json();
       progress=data.progress||progress;
       document.getElementById('meshyBar').style.width=progress+'%';
       document.getElementById('meshyStatusTxt').textContent=`Génération : ${progress}%`;
-
       if(data.status==='SUCCEEDED'){
         clearInterval(interval);
         meshyGlbUrl=data.model_urls?.glb||null;
         meshyUsdzUrl=data.model_urls?.usdz||null;
         document.getElementById('meshyStatusTxt').textContent='✓ Modèle généré ! Sauvegarde…';
         document.getElementById('meshyBar').style.width='100%';
-        await saveMeshyProduct(nom, marque);
+        await saveMeshyProduct(nom,marque);
       } else if(data.status==='FAILED'){
-        clearInterval(interval);
-        setSpin('spinMeshy',false);
-        toast('Génération échouée','err');
+        clearInterval(interval);setSpin('spinMeshy',false);toast('Génération échouée','err');
       }
-    }catch(e){ clearInterval(interval); setSpin('spinMeshy',false); }
-  }, 8000);
+    }catch(e){clearInterval(interval);setSpin('spinMeshy',false);}
+  },8000);
 }
-async function saveMeshyProduct(nom, marque){
+async function saveMeshyProduct(nom,marque){
   const larg=parseFloat(document.getElementById('mLarg').value)||null;
   const haut=parseFloat(document.getElementById('mHaut').value)||null;
   const prof=parseFloat(document.getElementById('mProf').value)||null;
-  const {error}=await sb.from('products').insert([{
-    name:nom, enseigne_name:marque,
-    category:document.getElementById('mCat').value||null,
-    price:parseFloat(document.getElementById('mPrix').value)||null,
-    model_glb_url:meshyGlbUrl, model_usdz_url:meshyUsdzUrl||null,
-    is_active:true,
-    dimensions:(larg||haut||prof)?{l:larg,h:haut,p:prof}:null
-  }]);
+  const {error}=await sb.from('products').insert([{name:nom,enseigne_name:marque,category:document.getElementById('mCat').value||null,price:parseFloat(document.getElementById('mPrix').value)||null,model_glb_url:meshyGlbUrl,model_usdz_url:meshyUsdzUrl||null,is_active:true,dimensions:(larg||haut||prof)?{l:larg,h:haut,p:prof}:null}]);
   setSpin('spinMeshy',false);
   if(error){toast('Erreur sauvegarde : '+error.message,'err');return;}
   toast('✓ '+nom+' généré et sauvegardé !','ok');
-  loadProducts();
-  showPanel('catalogue');
+  loadProducts(); showPanel('catalogue');
 }
-
-/* ══ DRAG & DROP MESHY ══ */
 document.addEventListener('DOMContentLoaded',()=>{
   const meshyDrop=document.getElementById('meshyDrop');
   if(meshyDrop){
     meshyDrop.addEventListener('dragover',e=>{e.preventDefault();meshyDrop.classList.add('over');});
     meshyDrop.addEventListener('dragleave',()=>meshyDrop.classList.remove('over'));
-    meshyDrop.addEventListener('drop',e=>{
-      e.preventDefault(); meshyDrop.classList.remove('over');
-      const f=e.dataTransfer.files[0];
-      if(f){ document.getElementById('meshyFile').files=e.dataTransfer.files; handleMeshyImage(f); }
-    });
+    meshyDrop.addEventListener('drop',e=>{e.preventDefault();meshyDrop.classList.remove('over');const f=e.dataTransfer.files[0];if(f){document.getElementById('meshyFile').files=e.dataTransfer.files;handleMeshyImage(f);}});
   }
 });
 
 /* ══ UTILS ══ */
-function setSpin(id, show){
-  const el=document.getElementById(id); if(!el) return;
-  el.style.display=show?'block':'none';
-}
+function setSpin(id,show){const el=document.getElementById(id);if(!el)return;el.style.display=show?'block':'none';}
 let toastT;
-function toast(msg, type=''){
+function toast(msg,type=''){
   const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.className='toast show'+(type?' '+type:'');
-  clearTimeout(toastT);
-  toastT=setTimeout(()=>el.classList.remove('show'),3000);
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000);
 }
 </script>
 </body>
