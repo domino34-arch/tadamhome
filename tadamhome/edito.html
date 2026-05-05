@@ -623,51 +623,49 @@ function initScenes() {
     function drawHotspots(model) {
       if (!svg) return;
       const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
-      svg.setAttribute('viewBox', \`0 0 \${cw} \${ch}\`);
+      svg.setAttribute('viewBox', '0 0 ' + cw + ' ' + ch);
 
       let markup = '';
-      anchors.forEach((a, i) => {
+      anchors.forEach(function(a, i) {
         const p = project(a.local, model);
         if (!p.visible) return;
 
         const isActive = activeAnchor === i;
-        const side = a.side; // -1 left, 1 right
-        const lineLen = 52 + (i * 8);
+        const side = a.side;
+        const lineLen = 52 + i * 8;
         const lx2 = p.x + side * lineLen;
         const ly2 = p.y - 22 - i * 4;
         const lx3 = lx2 + side * 38;
         const ly3 = ly2;
-
-        // Dot pulsant
         const dotR = isActive ? 5 : 4;
         const dotOpacity = isActive ? 1 : 0.85;
+        const labelX = side > 0 ? lx3 + 6 : lx3 - 4;
+        const anchor = side > 0 ? 'start' : 'end';
+        const labelOpacity = isActive ? 0 : 0.75;
 
-        // Ligne brisée style Perriand : diagonal puis horizontal
-        markup += \`
-          <g class="hs-anchor" data-idx="\${i}">
-            <circle class="hs-dot" cx="\${p.x}" cy="\${p.y}" r="\${dotR}"
-              fill="#B8965A" opacity="\${dotOpacity}" stroke="#EDEAE4" stroke-width="1.5"/>
-            <line x1="\${p.x}" y1="\${p.y}" x2="\${lx2}" y2="\${ly2}"
-              stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>
-            <line x1="\${lx2}" y1="\${ly2}" x2="\${lx3}" y2="\${ly3}"
-              stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>
-            \${isActive ? \`
-            <rect x="\${side > 0 ? lx3 : lx3 - 140}" y="\${ly3 - 13}" width="140" height="20"
-              fill="#1A1814" rx="0"/>
-            <text x="\${side > 0 ? lx3 + 8 : lx3 - 132}" y="\${ly3 + 2}"
-              class="hs-label-text" fill="#EDEAE4">\${a.label}</text>
-            \` : \`
-            <text x="\${side > 0 ? lx3 + 6 : lx3 - 4}" y="\${ly3 + 2}"
-              class="hs-label-text" text-anchor="\${side > 0 ? 'start' : 'end'}"
-              fill="#1A1814" opacity="0.75">\${a.label}</text>
-            \`}
-          </g>\`;
+        markup += '<g class="hs-anchor" data-idx="' + i + '">';
+        markup += '<circle class="hs-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + dotR + '"';
+        markup += ' fill="#B8965A" opacity="' + dotOpacity + '" stroke="#EDEAE4" stroke-width="1.5"/>';
+        markup += '<line x1="' + p.x + '" y1="' + p.y + '" x2="' + lx2 + '" y2="' + ly2 + '"';
+        markup += ' stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>';
+        markup += '<line x1="' + lx2 + '" y1="' + ly2 + '" x2="' + lx3 + '" y2="' + ly3 + '"';
+        markup += ' stroke="#B8965A" stroke-width="0.7" opacity="0.7"/>';
+        if (isActive) {
+          const rx = side > 0 ? lx3 : lx3 - 148;
+          markup += '<rect x="' + rx + '" y="' + (ly3 - 13) + '" width="148" height="20" fill="#1A1814"/>';
+          const tx = side > 0 ? lx3 + 8 : lx3 - 140;
+          markup += '<text x="' + tx + '" y="' + (ly3 + 2) + '" class="hs-label-text" fill="#EDEAE4">' + a.label + '</text>';
+        } else {
+          markup += '<text x="' + labelX + '" y="' + (ly3 + 2) + '"';
+          markup += ' class="hs-label-text" text-anchor="' + anchor + '"';
+          markup += ' fill="#1A1814" opacity="0.75">' + a.label + '</text>';
+        }
+        markup += '</g>';
       });
       svg.innerHTML = markup;
 
-      // Re-bind clicks après re-render SVG
-      svg.querySelectorAll('.hs-anchor').forEach(el => {
-        el.addEventListener('click', () => {
+      svg.querySelectorAll('.hs-anchor').forEach(function(el) {
+        el.addEventListener('click', function() {
           const idx = parseInt(el.dataset.idx);
           activeAnchor = activeAnchor === idx ? null : idx;
         });
