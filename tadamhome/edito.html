@@ -548,22 +548,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     const arBtn = document.querySelector('.ar-btn');
-    if (arBtn) {
-      const productId = d.product_id || d.products?.id || null;
-      console.log('[AR Button] product_id résolu :', productId, '| édito :', d.slug || d.id);
-      arBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (productId) {
-          window.location.href = `scan.html?id=${productId}`;
-        } else if (d.slug) {
-          // Fallback : essaie de trouver un produit qui matche le slug
-          window.location.href = `scan.html?slug=${d.slug}`;
-        } else {
-          // Dernier recours : page catalogue
-          window.location.href = `catalogue.html`;
-        }
-      });
+    if (arBtn && (d.product_id || d.products?.id)) {
+      arBtn.onclick = () => {
+        window.location.href = `scan.html?id=${d.product_id || d.products.id}`;
+      };
     }
 
     loadRelatedProducts(d.marque, d.product_id);
@@ -903,9 +891,7 @@ window.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    document.addEventListener('click', function(e) {
-      // Ne ferme pas le tooltip si on clique sur un hotspot ou le bouton AR
-      if (e.target.closest('.hs-fixed') || e.target.closest('.ar-btn') || e.target.closest('.ar-float')) return;
+    document.addEventListener('click', function() {
       tooltip.classList.remove('show');
       activeHs = null;
     });
