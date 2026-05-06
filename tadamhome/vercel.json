@@ -4,9 +4,7 @@
   "rewrites": [
     { "source": "/",          "destination": "/index.html" },
     { "source": "/login",     "destination": "/login.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
-  ],
-  "routes": [
-    { "src": "/edito/(.*)", "dest": "/edito.html" }
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/edito",     "destination": "/edito.html" }
   ]
 }
