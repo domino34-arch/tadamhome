@@ -61,19 +61,30 @@ nav {
 #hero {
   height: 100svh;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-  padding-bottom: 64px;
+  padding-bottom: 56px;
   position: relative; overflow: hidden;
-  background: var(--viewer-bg);
+  background: var(--cream); /* warm gray pour le bloc texte */
 }
-/* Grille uniquement dans les zones 3D — comme catalogue.html .editorial .image */
-#hero::before, .viewer-sticky::before {
+/* La scène 3D occupe le haut, dans une zone dark avec grille */
+.hero-stage {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 62%;
+  background: var(--viewer-bg);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 39px, var(--grid) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, var(--grid) 39px 40px);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+/* Grille pour le sticky viewer aussi */
+.viewer-sticky::before {
   content: ''; position: absolute; inset: 0;
   background-image:
     repeating-linear-gradient(0deg, transparent 0 39px, var(--grid) 39px 40px),
     repeating-linear-gradient(90deg, transparent 0 39px, var(--grid) 39px 40px);
   pointer-events: none; z-index: 1;
 }
-#hero-canvas { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2; pointer-events: none; }
+#hero-canvas { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2; pointer-events: none; display:block; }
 .hero-eyebrow {
   font-size: 9px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold);
   margin-bottom: 14px; position: relative; z-index: 2;
@@ -176,16 +187,16 @@ nav {
 }
 .ar-float.hidden { opacity: 0; transform: translateX(-50%) translateY(10px); pointer-events: none; }
 .ar-btn {
-  background: rgba(250,250,248,0.94); color: #1C1B18; border: none;
-  padding: 9px 16px;
-  display: flex; align-items: center; gap: 8px; cursor: pointer;
-  font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase;
-  transition: background 0.3s;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  background: var(--gold); color: var(--ink); border: none;
+  padding: 11px 18px;
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+  transition: background 0.3s, transform 0.3s;
   white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(184,152,106,0.25);
 }
-.ar-btn:hover { background: var(--gold); color: var(--ink); }
-.ar-icon { width: 18px; height: 18px; border: 1px solid rgba(28,27,24,0.3); display: flex; align-items: center; justify-content: center; flex-shrink:0; }
+.ar-btn:hover { background: #A07A4A; transform: translateY(-1px); }
+.ar-icon { width: 18px; height: 18px; border: 1px solid rgba(250,250,248,0.4); display: flex; align-items: center; justify-content: center; flex-shrink:0; }
 
 /* END CARD */
 #end-card { padding: 60px 0 120px; background: var(--cream); border-top: 1px solid rgba(184,152,106,0.18); }
@@ -289,14 +300,16 @@ nav {
 <nav>
   <a href="icones/index.html" class="nav-back">← Icônes</a>
   <span class="nav-issue" id="nav-issue">—</span>
-  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Tadamhome" style="height:18px;width:auto;display:block" onerror="this.outerHTML='Tadam'"/></a>
+  <a href="index.html" class="nav-logo"><img src="logo_blanc.png" alt="Tadamhome" style="height:18px;width:auto;display:block" onerror="this.outerHTML='Tadam'"/></a>
 </nav>
 
 <section id="hero">
-  <canvas id="hero-canvas"></canvas>
-  <div class="hero-loader" id="hero-loader">
-    <span class="loader-pct">0%</span>
-    <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+  <div class="hero-stage">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-loader" id="hero-loader">
+      <span class="loader-pct">0%</span>
+      <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+    </div>
   </div>
   <p class="hero-eyebrow" id="hero-eyebrow">Icône du design</p>
   <h1 class="hero-title" id="hero-title">—</h1>
