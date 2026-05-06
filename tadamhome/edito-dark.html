@@ -622,17 +622,23 @@ window.addEventListener('DOMContentLoaded', () => {
     return pivot;
   }
 
-  // Détection mobile pour ajuster la qualité (évite les chauffes / lags)
+  // Détection mobile pour ajuster certains réglages
   const IS_MOBILE = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  const MAX_DPR = IS_MOBILE ? 1.5 : 2;
+  // Pixel ratio élevé = bords nets et anti-tremblement à la rotation
+  const MAX_DPR = 2.5;
 
   function makeRenderer(canvas) {
     const renderer = new THREE.WebGLRenderer({
-      canvas, antialias: !IS_MOBILE, alpha: true,
-      powerPreference: 'high-performance'
+      canvas,
+      antialias: true,           // ✦ MSAA toujours actif — élimine le scintillement des arêtes
+      alpha: true,
+      powerPreference: 'high-performance',
+      stencil: false,            // optimisation : pas besoin du stencil buffer
+      depth: true,
+      preserveDrawingBuffer: false
     });
     renderer.setPixelRatio(Math.min(devicePixelRatio, MAX_DPR));
-    renderer.shadowMap.enabled = !IS_MOBILE; // Pas d'ombres sur mobile = plus fluide
+    renderer.shadowMap.enabled = !IS_MOBILE; // ombres uniquement desktop
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -698,14 +704,33 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const loader = new THREE.GLTFLoader();
+    // Trouve un renderer existant pour récupérer la valeur max d'anisotropie
+    const tmpRenderer = new THREE.WebGLRenderer({ antialias: false });
+    const MAX_ANISO = tmpRenderer.capabilities.getMaxAnisotropy();
+    tmpRenderer.dispose();
+
     loader.load(
       MODEL_URL,
       (gltf) => {
         cachedGltf = gltf;
-        gltf.scene.traverse(n => { if(n.isMesh){
-          n.castShadow = !IS_MOBILE;
-          n.receiveShadow = !IS_MOBILE;
-        }});
+        gltf.scene.traverse(n => {
+          if (n.isMesh) {
+            n.castShadow = !IS_MOBILE;
+            n.receiveShadow = !IS_MOBILE;
+            n.frustumCulled = false; // évite des "pop" lors de la rotation
+            // ✦ Filtrage anisotropique haute qualité sur toutes les textures
+            const mat = n.material;
+            const maps = mat ? [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap, mat.aoMap, mat.emissiveMap] : [];
+            maps.forEach(tex => {
+              if (!tex) return;
+              tex.anisotropy = MAX_ANISO;
+              tex.minFilter = THREE.LinearMipmapLinearFilter;
+              tex.magFilter = THREE.LinearFilter;
+              tex.generateMipmaps = true;
+              tex.needsUpdate = true;
+            });
+          }
+        });
         loadQueue.forEach(cb => cb(gltf));
         document.getElementById('hero-loader')?.classList.add('loaded');
       },
@@ -757,9 +782,17 @@ window.addEventListener('DOMContentLoaded', () => {
       autoResize(renderer, camera, canvas.parentElement);
       let model = null, t = 0;
       loadModel(gltf => { model = cloneModel(gltf); scene.add(model); });
+      // Boucle d'animation avec delta-time stable (évite les saccades)
+      let prevTime = performance.now();
       makeRAFController(() => {
-        t += 0.0018;
-        if(model){ model.rotation.y = t; model.position.y = Math.sin(t*0.3)*0.02; }
+        const now = performance.now();
+        const dt = Math.min((now - prevTime) / 1000, 0.05); // clamp 50ms max
+        prevTime = now;
+        t += dt * 0.11; // ~ même vitesse qu'avant mais lié au temps réel
+        if (model) {
+          model.rotation.y = t;
+          model.position.y = Math.sin(t*0.3)*0.02;
+        }
         renderer.render(scene, camera);
       }, document.getElementById('hero'));
     })();
