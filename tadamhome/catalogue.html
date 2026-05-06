@@ -397,8 +397,8 @@
       <div class="sp"><div class="l">Prix indicatif</div><div class="v">9 200 € — 14 800 €</div></div>
     </div>
     <div class="ctas">
-      <a href="scan.html?id=lc2-grand-confort" class="btn btn-dark">◫ Voir en AR</a>
-      <a href="scan.html?id=lc2-grand-confort" class="btn btn-out-dark">Fiche complète</a>
+      <a href="#" id="featuredArBtn" class="btn btn-dark">◫ Voir en AR</a>
+      <a href="#" id="featuredFicheBtn" class="btn btn-out-dark">Fiche complète</a>
     </div>
   </div>
 </section>
@@ -561,10 +561,40 @@ async function loadProducts() {
     updateMeta();
     refreshAlphabetState();
     applyFilters();
+    wireFeaturedButtons(); // ✦ Branche les boutons "Voir en AR" / "Fiche complète" sur le LC2 réel
   } catch (e) {
     console.error(e);
     showToast('Erreur de chargement');
     document.getElementById('grid').innerHTML = `<div class="empty"><div class="empty-ico">◇</div><div class="empty-h">Impossible de charger le catalogue</div><p class="empty-p">Vérifiez votre connexion et réessayez.</p></div>`;
+  }
+}
+
+// Cherche le produit LC2 dans Supabase et branche les CTAs de la pièce vedette
+function wireFeaturedButtons() {
+  const arBtn = document.getElementById('featuredArBtn');
+  const ficheBtn = document.getElementById('featuredFicheBtn');
+  if (!arBtn || !ficheBtn) return;
+
+  // Trouve le LC2 par nom (insensible à la casse, tolère "LC2", "LC 2", "LC2 Grand Confort", etc.)
+  const lc2 = allProducts.find(p => {
+    const name = (p.name || p.nom || '').toLowerCase();
+    return name === 'lc2' || name.startsWith('lc2 ') || name.startsWith('lc 2');
+  });
+
+  if (lc2 && lc2.id) {
+    const url = `scan.html?id=${encodeURIComponent(lc2.id)}`;
+    arBtn.href = url;
+    ficheBtn.href = url;
+    console.log('[Featured] LC2 lié à scan.html?id=' + lc2.id);
+  } else {
+    // Fallback : si pas trouvé, désactive et explique
+    arBtn.style.opacity = '0.5';
+    ficheBtn.style.opacity = '0.5';
+    arBtn.onclick = ficheBtn.onclick = (e) => {
+      e.preventDefault();
+      showToast('Produit LC2 introuvable dans Supabase');
+    };
+    console.warn('[Featured] Produit LC2 introuvable');
   }
 }
 
