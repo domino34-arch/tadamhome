@@ -957,7 +957,7 @@ function renderEditoTable(editorials) {
       </td>
       <td><div class="row-actions">
         <button class="row-btn" onclick="openEditEdito('${e.id}')">✏ Éditer</button>
-        <button class="row-btn" onclick=window.open('/edito?slug=' + (e.slug||e.id), '_blank')">Voir</button>
+        <button class="row-btn" onclick="window.open('/edito?slug=' + (e.slug||e.id), '_blank')">Voir</button>
         <button class="row-btn del" onclick="askDelete('${e.id}','${nm}','edito')">✕</button>
       </div></td>
     </tr>`;
