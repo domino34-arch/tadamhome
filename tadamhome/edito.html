@@ -155,11 +155,11 @@ nav {
 
 /* FLOATING CTA */
 .ar-float {
-  position: fixed; bottom: 16px; right: 20px;
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
   z-index: 90;
   transition: opacity 0.4s, transform 0.4s;
 }
-.ar-float.hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+.ar-float.hidden { opacity: 0; transform: translateX(-50%) translateY(10px); pointer-events: none; }
 .ar-btn {
   background: rgba(26,24,20,0.82); color: var(--cream); border: none;
   padding: 8px 14px;
@@ -236,30 +236,31 @@ nav {
 </section>
 
 <div id="sticky-section">
-  <div id="scroll-story">
   <div class="viewer-sticky">
     <canvas id="sticky-canvas"></canvas>
 
-    <!-- Story overlay — label contextuel -->
-    <div class="story-label" id="story-label-0">
-      <div class="story-label-num">01 · Structure</div>
-      <div class="story-label-title">Acier chromé tubulaire</div>
-      <div class="story-label-text">Soudé à la main, il porte les coussins sans les dissimuler.</div>
+    <!-- Hotspots fixes cliquables -->
+    <div class="hs-fixed" id="hsf0" style="left:38%;top:36%"
+         data-title="Cuir pleine fleur"
+         data-text="Tannage végétal, couture sellier. Chaque pièce vieillit différemment.">
+      <div class="hs-fdot"></div>
     </div>
-    <div class="story-label" id="story-label-1">
-      <div class="story-label-num">02 · Coussin</div>
-      <div class="story-label-title">Cuir pleine fleur</div>
-      <div class="story-label-text">Tannage végétal, couture sellier. Chaque pièce vieillit différemment.</div>
+    <div class="hs-fixed" id="hsf1" style="left:54%;top:56%"
+         data-title="Coussin indépendant"
+         data-text="Posé librement sur la structure — il peut être retourné et retiré sans outil.">
+      <div class="hs-fdot"></div>
     </div>
-    <div class="story-label" id="story-label-2">
-      <div class="story-label-num">03 · Assise</div>
-      <div class="story-label-title">Coussin indépendant</div>
-      <div class="story-label-text">Posé librement sur la structure — il peut être retourné, retiré.</div>
+    <div class="hs-fixed" id="hsf2" style="left:24%;top:54%"
+         data-title="Structure acier chromé"
+         data-text="Tubes en acier chromé soudés à la main — ils portent les coussins sans les dissimuler.">
+      <div class="hs-fdot"></div>
     </div>
 
-    <!-- Hotspot dot contextuel -->
-    <div class="story-dot" id="story-dot"></div>
-  </div>
+    <!-- Tooltip -->
+    <div class="hs-tooltip" id="hs-tooltip">
+      <div class="hs-tooltip-title" id="hs-tooltip-title"></div>
+      <div class="hs-tooltip-text" id="hs-tooltip-text"></div>
+    </div>
   </div>
 
   <div class="editorial-content">
@@ -597,13 +598,15 @@ function initScenes() {
       renderer.render(scene, camera); })();
   })();
 
-  // STICKY — scroll story Apple-style, 3 waypoints camera
+  // STICKY — vue fixe centrée, hotspots cliquables
   (function(){
     const canvas = document.getElementById('sticky-canvas');
     const { renderer, scene, camera } = makeRenderer(canvas);
+    // Vue légèrement plongeante centrée — montre l'assise
+    camera.position.set(0, 0.75, 3.1); camera.lookAt(0, 0.05, 0);
     autoResize(renderer, camera, canvas.parentElement);
 
-    // Blob shadow
+    // Blob shadow douce
     const sC = document.createElement('canvas');
     sC.width = 256; sC.height = 128;
     const sCtx2 = sC.getContext('2d');
@@ -621,121 +624,64 @@ function initScenes() {
     sMesh.rotation.x = -Math.PI/2; sMesh.position.y = -0.66;
     scene.add(sMesh);
 
-    // ── WAYPOINTS CAMÉRA ─────────────────────────────────────────
-    // Chaque waypoint : position caméra + target lookAt + rotation modèle + position hotspot
-    const WAYPOINTS = [
-      {
-        // Vue générale 3/4 + focus structure chrome
-        camPos:    new THREE.Vector3(-1.1, 0.3, 3.0),
-        camTarget: new THREE.Vector3(-0.2, 0.05, 0),
-        modelRot:  0.22 * Math.PI,
-        dotLeft: '30%', dotTop: '52%',
-        labelId: 'story-label-0'
-      },
-      {
-        // Focus coussin dossier — caméra de face légèrement haute
-        camPos:    new THREE.Vector3(0.2, 0.5, 2.8),
-        camTarget: new THREE.Vector3(0, 0.2, -0.1),
-        modelRot:  0.05 * Math.PI,
-        dotLeft: '52%', dotTop: '30%',
-        labelId: 'story-label-1'
-      },
-      {
-        // Focus assise — caméra plus haute pour voir le coussin d'assise
-        camPos:    new THREE.Vector3(0.4, 1.2, 2.4),
-        camTarget: new THREE.Vector3(0, -0.15, 0.1),
-        modelRot:  0.15 * Math.PI,
-        dotLeft: '48%', dotTop: '58%',
-        labelId: 'story-label-2'
-      }
-    ];
-
-    // Lerp vecteur
-    function lerpV3(a, b, t, out) {
-      out.x = a.x + (b.x - a.x) * t;
-      out.y = a.y + (b.y - a.y) * t;
-      out.z = a.z + (b.z - a.z) * t;
-    }
-    function lerpN(a, b, t) { return a + (b - a) * t; }
-    function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
-
-    // État courant interpolé
-    let curCamPos    = WAYPOINTS[0].camPos.clone();
-    let curCamTarget = WAYPOINTS[0].camTarget.clone();
-    let curModelRot  = WAYPOINTS[0].modelRot;
-
-    // Références DOM
-    const dot    = document.getElementById('story-dot');
-    const labels = WAYPOINTS.map(w => document.getElementById(w.labelId));
-    let lastWp   = -1;
-
-    function updateStoryOverlays(wpIdx, t) {
-      // Label : affiche le label du waypoint courant
-      labels.forEach(function(l, i) {
-        if (l) l.classList.toggle('show', i === wpIdx);
-      });
-      // Dot position
-      if (dot) {
-        const wp = WAYPOINTS[wpIdx];
-        dot.style.left = wp.dotLeft;
-        dot.style.top  = wp.dotTop;
-        dot.classList.add('show');
-      }
-    }
-
-    // Scroll driver
-    function onScroll() {
-      const story = document.getElementById('scroll-story');
-      if (!story) return;
-      const rect = story.getBoundingClientRect();
-      const storyH = story.offsetHeight;
-      const viewH  = window.innerHeight;
-      // Progress 0→1 sur toute la hauteur du scroll-story
-      const scrolled = -rect.top;
-      const maxScroll = storyH - viewH;
-      const progress = Math.max(0, Math.min(1, scrolled / maxScroll));
-
-      // Divise en N-1 segments (N waypoints)
-      const N = WAYPOINTS.length;
-      const seg = (N - 1) * progress;
-      const wpA = Math.min(Math.floor(seg), N - 2);
-      const wpB = wpA + 1;
-      const t   = easeInOut(seg - wpA);
-
-      // Lerp camera
-      lerpV3(WAYPOINTS[wpA].camPos,    WAYPOINTS[wpB].camPos,    t, curCamPos);
-      lerpV3(WAYPOINTS[wpA].camTarget, WAYPOINTS[wpB].camTarget, t, curCamTarget);
-      curModelRot = lerpN(WAYPOINTS[wpA].modelRot, WAYPOINTS[wpB].modelRot, t);
-
-      // Waypoint dominant = le plus proche
-      const dominant = t < 0.5 ? wpA : wpB;
-      updateStoryOverlays(dominant, t);
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-
     let model = null;
     loadModel(gltf => {
       model = cloneModel(gltf);
-      model.rotation.y = WAYPOINTS[0].modelRot;
+      model.rotation.y = Math.PI * 0.08; // légèrement de 3/4
       scene.add(model);
-      // Init labels
-      if (labels[0]) labels[0].classList.add('show');
-      if (dot) { dot.style.left = WAYPOINTS[0].dotLeft; dot.style.top = WAYPOINTS[0].dotTop; dot.classList.add('show'); }
     });
 
-    // Render loop — applique les valeurs interpolées
     (function loop(){
       requestAnimationFrame(loop);
-      camera.position.lerp(curCamPos, 0.07);
-      camera.lookAt(curCamTarget);
-      if (model) model.rotation.y += (curModelRot - model.rotation.y) * 0.07;
       renderer.render(scene, camera);
     })();
   })();
 }
 
-// hotspots gérés par scroll story
+// ── HOTSPOTS CLIQUABLES ──────────────────────────────────────────
+(function() {
+  const tooltip  = document.getElementById('hs-tooltip');
+  const ttTitle  = document.getElementById('hs-tooltip-title');
+  const ttText   = document.getElementById('hs-tooltip-text');
+  const viewer   = document.querySelector('.viewer-sticky');
+  if (!tooltip || !viewer) return;
+
+  let activeHs = null;
+
+  document.querySelectorAll('.hs-fixed').forEach(function(hs) {
+    hs.addEventListener('click', function(e) {
+      e.stopPropagation();
+
+      if (activeHs === hs.id && tooltip.classList.contains('show')) {
+        tooltip.classList.remove('show');
+        activeHs = null;
+        return;
+      }
+      activeHs = hs.id;
+      ttTitle.textContent = hs.dataset.title || '';
+      ttText.textContent  = hs.dataset.text  || '';
+
+      // Position du tooltip par rapport au viewer
+      const vRect  = viewer.getBoundingClientRect();
+      const hsRect = hs.getBoundingClientRect();
+      let left = hsRect.left - vRect.left + 16;
+      let top  = hsRect.top  - vRect.top  - 56;
+      // Empêche de déborder à droite
+      if (left + 230 > vRect.width) left = left - 240;
+      // Empêche de déborder en haut
+      if (top < 8) top = hsRect.top - vRect.top + 16;
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = top  + 'px';
+      tooltip.classList.add('show');
+    });
+  });
+
+  document.addEventListener('click', function() {
+    tooltip.classList.remove('show');
+    activeHs = null;
+  });
+})();
 
 // ── CHAPTER REVEAL ───────────────────────────────────────────────
 const io = new IntersectionObserver(
