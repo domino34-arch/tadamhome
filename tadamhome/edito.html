@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LC2 — Icônes · Tadamhome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<style>
+:root {
+  --cream: #EDEAE4;
+  --cream-dark: #E0DCD4;
+  --gold: #B8965A;
+  --gold-light: #D4AF72;
+  --ink: #1A1814;
+  --ink-mid: #3D3A34;
+  --ink-soft: #7A766E;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  max-width: 430px;
+  margin: 0 auto;
+}
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  z-index: 100;
+  padding: 18px 24px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(237,234,228,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.nav-logo {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 400; letter-spacing: 0.08em;
+  color: var(--ink); text-decoration: none;
+}
+.nav-issue { font-size: 9px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-left: auto; }
+.nav-back { font-size: 9px; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-soft); text-decoration: none; }
+
+/* HERO */
+#hero {
+  height: 100svh;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: 64px;
+  position: relative; overflow: hidden;
+  background: var(--cream);
+}
+#hero-canvas { position: absolute; top:0; left:0; width:100%; height:100%; }
+.hero-eyebrow {
+  font-size: 9px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold);
+  margin-bottom: 14px; position: relative; z-index: 2;
+  opacity: 0; animation: fadeUp 1s 0.4s forwards;
+}
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 96px; font-weight: 300; line-height: 0.88; letter-spacing: -0.03em; color: var(--ink);
+  position: relative; z-index: 2; text-align: center;
+  opacity: 0; animation: fadeUp 1s 0.6s forwards;
+}
+.hero-sub {
+  font-size: 10px; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft);
+  margin-top: 18px; position: relative; z-index: 2;
+  opacity: 0; animation: fadeUp 1s 0.8s forwards;
+}
+.hero-scroll {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 2;
+  opacity: 0; animation: fadeIn 1s 1.4s forwards;
+}
+.hero-scroll span { font-size: 8px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-soft); }
+.scroll-line {
+  width: 1px; height: 36px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  animation: linePulse 2s infinite;
+}
+
+/* STICKY */
+#sticky-section { position: relative; }
+.viewer-sticky {
+  position: sticky; top: 56px; height: 46svh;
+  background: var(--cream);
+  display: block; /* block pour que position:absolute enfants fonctionne */
+  z-index: 10;
+  border-bottom: 1px solid rgba(184,150,90,0.15);
+}
+#sticky-canvas { width: 100%; height: 100%; position: absolute; top:0; left:0; z-index: 1; pointer-events: none; display: block; }
+.hotspot { position: absolute; width: 32px; height: 32px; cursor: pointer; z-index: 20; }
+.hotspot-dot {
+  width: 10px; height: 10px; background: var(--gold);
+  border: 2px solid var(--cream); border-radius: 50%;
+  position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  animation: pulseDot 2.5s infinite;
+}
+.hotspot-label {
+  position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
+  background: var(--ink); color: var(--cream);
+  font-size: 9px; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase;
+  white-space: nowrap; padding: 5px 10px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.hotspot.active .hotspot-label { opacity: 1; }
+
+/* EDITORIAL */
+.editorial-content { padding: 0 28px; background: var(--cream); }
+.chapter {
+  padding: 52px 0; border-bottom: 1px solid rgba(26,24,20,0.08);
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.chapter.visible { opacity: 1; transform: translateY(0); }
+.chapter-number {
+  font-size: 8px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold);
+  margin-bottom: 22px; display: flex; align-items: center; gap: 12px;
+}
+.chapter-number::after { content:''; flex:1; height:1px; background: rgba(184,150,90,0.25); }
+.chapter-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 34px; font-weight: 300; line-height: 1.1; color: var(--ink);
+  margin-bottom: 22px; letter-spacing: -0.01em;
+}
+.chapter-title em { font-style: italic; color: var(--gold); }
+.chapter-body { font-size: 14px; font-weight: 300; line-height: 1.9; color: var(--ink-mid); }
+.chapter-body p + p { margin-top: 14px; }
+.pull-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-style: italic; font-weight: 300; line-height: 1.45; color: var(--ink);
+  border-left: 2px solid var(--gold); padding-left: 20px; margin: 32px 0;
+}
+.data-row { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 28px; }
+.data-cell { background: var(--cream-dark); padding: 16px 14px; }
+.data-cell .value { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 300; color: var(--ink); display: block; line-height: 1; margin-bottom: 4px; }
+.data-cell .label { font-size: 9px; font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-soft); }
+.tag { display: inline-flex; align-items: center; border: 1px solid var(--gold); padding: 7px 14px; margin-top: 20px; margin-right: 6px; font-size: 9px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.timeline { margin-top: 28px; padding-left: 22px; position: relative; }
+.timeline::before { content:''; position:absolute; left:5px; top:6px; bottom:6px; width:1px; background: linear-gradient(to bottom, var(--gold), rgba(184,150,90,0.1)); }
+.timeline-item { position: relative; margin-bottom: 24px; }
+.timeline-item::before { content:''; position:absolute; left:-20px; top:6px; width:8px; height:8px; background: var(--gold); }
+.timeline-year { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--gold); display: block; }
+.timeline-text { font-size: 13px; font-weight: 300; color: var(--ink-mid); line-height: 1.65; margin-top: 2px; }
+
+/* FLOATING CTA */
+.ar-float {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 90;
+  transition: opacity 0.4s, transform 0.4s;
+}
+.ar-float.hidden { opacity: 0; transform: translateX(-50%) translateY(10px); pointer-events: none; }
+.ar-btn {
+  background: rgba(26,24,20,0.82); color: var(--cream); border: none;
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase;
+  transition: background 0.3s;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+.ar-btn:hover { background: var(--gold); }
+.ar-icon { width: 18px; height: 18px; border: 1px solid rgba(237,234,228,0.2); display: flex; align-items: center; justify-content: center; flex-shrink:0; }
+
+/* END CARD */
+#end-card { padding: 60px 0 120px; background: var(--ink); }
+.end-header { padding: 0 28px 32px; border-bottom: 1px solid rgba(237,234,228,0.08); margin-bottom: 32px; }
+.end-eyebrow { font-size: 9px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+.end-title { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--cream); line-height: 1.1; }
+.end-sub { font-size: 12px; font-weight: 300; color: rgba(237,234,228,0.4); margin-top: 8px; letter-spacing: 0.05em; }
+.collection-strip { display: flex; gap: 2px; padding: 0 28px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.collection-strip::-webkit-scrollbar { display: none; }
+.col-card { flex: 0 0 158px; background: rgba(237,234,228,0.04); border: 1px solid rgba(237,234,228,0.08); cursor: pointer; transition: border-color 0.3s; }
+.col-card:hover { border-color: var(--gold); }
+.col-visual { height: 128px; display: flex; align-items: center; justify-content: center; background: rgba(237,234,228,0.03); position: relative; overflow: hidden; }
+.col-visual svg { width: 80px; height: 80px; opacity: 0.65; transition: transform 0.5s, opacity 0.3s; }
+.col-card:hover .col-visual svg { transform: scale(1.06) rotate(4deg); opacity: 1; }
+.ar-badge { position: absolute; top: 8px; right: 8px; background: var(--gold); font-size: 7px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cream); padding: 3px 7px; }
+.col-info { padding: 12px 14px; }
+.col-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; color: var(--cream); display: block; margin-bottom: 2px; }
+.col-desc { font-size: 9px; font-weight: 300; letter-spacing: 0.08em; color: rgba(237,234,228,0.4); }
+.brand-cta { margin: 32px 28px 0; border: 1px solid rgba(184,150,90,0.35); padding: 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.3s, border-color 0.3s; }
+.brand-cta:hover { background: rgba(184,150,90,0.08); border-color: var(--gold); }
+.brand-cta-label { font-size: 9px; font-weight: 400; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 5px; }
+.brand-cta-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: var(--cream); }
+.brand-cta-arrow { color: var(--gold); font-size: 22px; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes linePulse { 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.35;transform:scaleY(.65)} }
+@keyframes pulseDot { 0%{box-shadow:0 0 0 0 rgba(184,150,90,.55)} 70%{box-shadow:0 0 0 9px rgba(184,150,90,0)} 100%{box-shadow:0 0 0 0 rgba(184,150,90,0)} }
+
+.hero-loader {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  z-index:3; display:flex; flex-direction:column; align-items:center; gap:10px;
+  transition:opacity 0.6s;
+}
+.hero-loader.loaded { opacity:0; pointer-events:none; }
+.loader-pct { font-size:10px; font-weight:300; letter-spacing:0.3em; text-transform:uppercase; color:var(--gold); }
+.loader-bar-wrap { width:64px; height:1px; background:rgba(184,150,90,0.2); position:relative; overflow:hidden; }
+.loader-bar { position:absolute; left:0; top:0; height:100%; background:var(--gold); width:0%; transition:width 0.3s; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="icones/index.html" class="nav-back">← Icônes</a>
+  <span class="nav-issue" id="nav-issue">—</span>
+  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Tadamhome" style="height:18px;width:auto;display:block" onerror="this.outerHTML='Tadam'"/></a>
+</nav>
+
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-loader" id="hero-loader">
+    <span class="loader-pct">0%</span>
+    <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+  </div>
+  <p class="hero-eyebrow" id="hero-eyebrow">Icône du design</p>
+  <h1 class="hero-title" id="hero-title">—</h1>
+  <p class="hero-sub" id="hero-sub">—</p>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    <span>Découvrir</span>
+  </div>
+</section>
+
+<div id="sticky-section">
+  <div class="viewer-sticky">
+    <canvas id="sticky-canvas"></canvas>
+
+    <!-- Hotspots fixes cliquables -->
+    <div class="hs-fixed" id="hsf0" style="left:50%;top:30%"
+         data-title="Cuir pleine fleur"
+         data-text="Tannage végétal, couture sellier. Chaque pièce vieillit différemment.">
+      <div class="hs-fdot"></div>
+    </div>
+    <div class="hs-fixed" id="hsf1" style="left:50%;top:60%"
+         data-title="Coussin indépendant"
+         data-text="Posé librement sur la structure — il peut être retourné et retiré sans outil.">
+      <div class="hs-fdot"></div>
+    </div>
+    <div class="hs-fixed" id="hsf2" style="left:22%;top:50%"
+         data-title="Structure acier chromé"
+         data-text="Tubes en acier chromé soudés à la main — ils portent les coussins sans les dissimuler.">
+      <div class="hs-fdot"></div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="hs-tooltip" id="hs-tooltip">
+      <div class="hs-tooltip-title" id="hs-tooltip-title"></div>
+      <div class="hs-tooltip-text" id="hs-tooltip-text"></div>
+    </div>
+  </div>
+
+  <div class="editorial-content">
+    <!-- Chapitre 1 : Histoire -->
+    <div class="chapter" id="ch-histoire">
+      <div class="chapter-number">01 · Histoire</div>
+      <h2 class="chapter-title" id="ch1-title">—</h2>
+      <div class="chapter-body" id="ch1-body"></div>
+      <blockquote class="pull-quote" id="pull-quote" style="display:none"></blockquote>
+      <div class="data-row" id="data-row"></div>
+    </div>
+
+    <!-- Chapitre 2 : Designer -->
+    <div class="chapter" id="ch-designer">
+      <div class="chapter-number">02 · Le Designer</div>
+      <h2 class="chapter-title" id="ch2-title">—</h2>
+      <div class="chapter-body" id="ch2-body"></div>
+      <div id="ch2-tags"></div>
+    </div>
+
+    <!-- Chapitre 3 : Mouvement -->
+    <div class="chapter" id="ch-mouvement">
+      <div class="chapter-number">03 · Mouvement</div>
+      <h2 class="chapter-title" id="ch3-title">—</h2>
+      <div class="chapter-body" id="ch3-body"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<section id="end-card">
+  <div class="end-header">
+    <p class="end-eyebrow" id="end-eyebrow">Collection</p>
+    <h2 class="end-title" id="end-title">Autres modèles<br>disponibles en AR</h2>
+    <p class="end-sub">Visualisez dans votre espace</p>
+  </div>
+  <div class="collection-strip" id="collection-strip">
+    <!-- populated dynamically -->
+  </div>
+  <div class="brand-cta" id="brand-cta" style="display:none">
+    <div>
+      <span class="brand-cta-label" id="brand-cta-label">Partenaire officiel</span>
+      <span class="brand-cta-title" id="brand-cta-title">Voir la collection</span>
+    </div>
+    <span class="brand-cta-arrow">→</span>
+  </div>
+</section>
+
+<div class="ar-float" id="ar-float">
+  <button class="ar-btn">
+    <span>Voir dans mon espace</span>
+    <div class="ar-icon">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#EDEAE4" stroke-width="1"/>
+        <path d="M7 1V13M1 4L13 4M1 10L13 10" stroke="#EDEAE4" stroke-width="0.5" opacity="0.5"/>
+      </svg>
+    </div>
+  </button>
+</div>
+
+<script>
+// ── SUPABASE ──────────────────────────────────────────────────────
+const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+let MODEL_URL = null;
+let EDITO_DATA = null;
+
+// ── INIT ─────────────────────────────────────────────────────────
+async function initEdito() {
+  // Récupère le slug depuis l'URL : edito.html?slug=lc2
+  const params  = new URLSearchParams(window.location.search);
+  const slug    = params.get('slug');
+  const id      = params.get('id');
+
+  if (!slug && !id) { showError('Aucun édito spécifié.'); return; }
+
+  // Fetch édito + produit lié si nécessaire
+  let query = sb.from('editorials').select('*, products(id, name, enseigne_name, model_glb_url, model_usdz_url)');
+  if (slug) query = query.eq('slug', slug);
+  else      query = query.eq('id', id);
+
+  const { data, error } = await query.single();
+
+  if (error || !data) { showError('Édito introuvable.'); return; }
+  EDITO_DATA = data;
+
+  // Résout l'URL du GLB
+  MODEL_URL = data.model_glb_url
+    || data.products?.model_glb_url
+    || null;
+
+  populatePage(data);
+  initScenes(); // démarre le 3D une fois les données disponibles
+}
+
+// ── POPULATE DOM ─────────────────────────────────────────────────
+function populatePage(d) {
+  // <title>
+  document.title = `${d.nom_meuble} — Icônes · Tadamhome`;
+
+  // Nav
+  if (d.numero) document.getElementById('nav-issue').textContent = `N° ${String(d.numero).padStart(2,'0')} · ${d.date_publication ? new Date(d.date_publication).getFullYear() : ''}`;
+
+  // Hero
+  document.getElementById('hero-eyebrow').textContent = `Icône du design · ${d.marque || ''}`;
+  document.getElementById('hero-title').textContent   = d.nom_meuble || '—';
+  const sub = [d.designers, d.annee ? String(d.annee) : null].filter(Boolean).join(' · ');
+  document.getElementById('hero-sub').textContent     = sub;
+
+  // Chapitre 1 — Histoire
+  if (d.texte_histoire) {
+    document.getElementById('ch1-title').innerHTML = formatTitle(d.nom_meuble);
+    document.getElementById('ch1-body').innerHTML  = textToParagraphs(d.texte_histoire);
+  } else {
+    document.getElementById('ch-histoire').style.display = 'none';
+  }
+
+  // Pull quote
+  if (d.citation) {
+    const q = document.getElementById('pull-quote');
+    q.textContent    = `"${d.citation}"`;
+    q.style.display  = 'block';
+  }
+
+  // Data cells
+  const dataRow = document.getElementById('data-row');
+  const cells = [];
+  if (d.annee)      cells.push({ val: d.annee,          lbl: 'Création' });
+  if (d.annee)      cells.push({ val: new Date().getFullYear() - d.annee, lbl: 'Années d\'existence' });
+  if (d.categorie)  cells.push({ val: d.categorie,      lbl: 'Catégorie' });
+  if (d.marque)     cells.push({ val: d.marque,         lbl: 'Éditeur officiel' });
+  if (d.prix)       cells.push({ val: d.prix + ' €',    lbl: 'Prix indicatif' });
+  dataRow.innerHTML = cells.map(c =>
+    `<div class="data-cell"><span class="value">${c.val}</span><span class="label">${c.lbl}</span></div>`
+  ).join('');
+
+  // Chapitre 2 — Designer
+  if (d.texte_designer) {
+    const designers = d.designers ? d.designers.split('·')[0].trim() : 'Le Designer';
+    document.getElementById('ch2-title').innerHTML = formatTitle(designers);
+    document.getElementById('ch2-body').innerHTML  = textToParagraphs(d.texte_designer);
+  } else {
+    document.getElementById('ch-designer').style.display = 'none';
+  }
+
+  // Tags mouvement
+  if (d.mouvement) {
+    document.getElementById('ch2-tags').innerHTML =
+      d.mouvement.split(',').map(m => `<span class="tag">${m.trim()}</span>`).join('');
+  }
+
+  // Chapitre 3 — Mouvement
+  if (d.texte_mouvement) {
+    document.getElementById('ch3-title').innerHTML = `L\'<em>${d.mouvement || 'Mouvement'}</em>`;
+    document.getElementById('ch3-body').innerHTML  = textToParagraphs(d.texte_mouvement);
+  } else {
+    document.getElementById('ch-mouvement').style.display = 'none';
+  }
+
+  // End card
+  document.getElementById('end-eyebrow').textContent = `${d.marque || ''} · Collection`;
+  document.getElementById('end-title').innerHTML     = `Autres modèles<br>disponibles en AR`;
+
+  // CTA marque
+  if (d.marque) {
+    const cta = document.getElementById('brand-cta');
+    cta.style.display = 'flex';
+    document.getElementById('brand-cta-label').textContent = 'Partenaire officiel';
+    document.getElementById('brand-cta-title').textContent = `Voir la collection ${d.marque}`;
+  }
+
+  // Bouton AR → scan.html avec l'id produit si lié
+  const arBtn = document.querySelector('.ar-btn');
+  if (arBtn && (d.product_id || d.products?.id)) {
+    arBtn.onclick = () => {
+      window.location.href = `scan.html?id=${d.product_id || d.products.id}`;
+    };
+  }
+
+  // Autres modèles de la même marque
+  loadRelatedProducts(d.marque, d.product_id);
+}
+
+// ── RELATED PRODUCTS ─────────────────────────────────────────────
+async function loadRelatedProducts(marque, excludeId) {
+  if (!marque) return;
+  const { data } = await sb
+    .from('products')
+    .select('id, name, category, model_glb_url, images')
+    .ilike('enseigne_name', marque)
+    .neq('id', excludeId || '00000000-0000-0000-0000-000000000000')
+    .limit(6);
+
+  const strip = document.getElementById('collection-strip');
+  if (!data || !data.length) { strip.parentElement.style.display = 'none'; return; }
+
+  strip.innerHTML = data.map(p => {
+    const img  = (p.images && p.images[0]) ? p.images[0] : null;
+    const visual = img
+      ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;opacity:0.8" loading="lazy"/>`
+      : `<svg viewBox="0 0 80 80" fill="none" style="width:60px;height:60px;opacity:0.5">
+           <rect x="20" y="25" width="40" height="30" fill="#B8965A" opacity="0.6"/>
+           <rect x="16" y="55" width="6" height="10" fill="#7A766E"/>
+           <rect x="58" y="55" width="6" height="10" fill="#7A766E"/>
+         </svg>`;
+    return `<div class="col-card" onclick="window.location.href='scan.html?id=${p.id}'">
+      <div class="col-visual">${visual}<div class="ar-badge">AR</div></div>
+      <div class="col-info">
+        <span class="col-name">${p.name}</span>
+        <span class="col-desc">${p.category || ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function textToParagraphs(text) {
+  if (!text) return '';
+  return text.split('\n').filter(l => l.trim()).map(l => `<p>${l}</p>`).join('');
+}
+function formatTitle(str) {
+  if (!str) return '—';
+  // Met le dernier mot en italique doré
+  const words = str.trim().split(' ');
+  if (words.length === 1) return `<em>${str}</em>`;
+  const last = words.pop();
+  return `${words.join(' ')} <em>${last}</em>`;
+}
+function showError(msg) {
+  document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'Jost',sans-serif;font-size:14px;color:#7A766E;flex-direction:column;gap:16px;background:#EDEAE4">
+    <span style="font-size:32px;opacity:0.3">◈</span>
+    <p>${msg}</p>
+    <a href="icones/index.html" style="color:#B8965A;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;text-decoration:none">← Retour aux Icônes</a>
+  </div>`;
+}
+
+// ── THREE.JS ─────────────────────────────────────────────────────
+function fitModel(model) {
+  // 1. Calcule le centre du modèle brut
+  const box = new THREE.Box3().setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  // 2. inner : déplace le modèle pour que son centre soit à l'origine
+  const inner = new THREE.Group();
+  inner.position.set(-center.x, -center.y + size.y * 0.0, -center.z);
+  inner.add(model);
+  // 3. pivot : scale + rotation autour du centre réel du meuble
+  const pivot = new THREE.Group();
+  pivot.add(inner);
+  pivot.scale.setScalar(1.45 / maxDim);
+  return pivot;
+}
+function makeRenderer(canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  scene.add(new THREE.AmbientLight(0xEDEAE4, 0.9));
+  const key = new THREE.DirectionalLight(0xFFF8F0, 2.2);
+  key.position.set(4,8,6); key.castShadow = true;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xD4CFC7, 0.6);
+  fill.position.set(-4, 3, -4); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xB8965A, 0.3);
+  rim.position.set(0, 6, -8); scene.add(rim);
+  // No floor shadow — blob shadow added per scene
+  return { renderer, scene, camera };
+}
+function autoResize(renderer, camera, el) {
+  function resize() {
+    const w = el.offsetWidth, h = el.offsetHeight;
+    renderer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  resize(); window.addEventListener('resize', resize);
+}
+
+// Cache GLB chargé une seule fois
+let cachedGltf = null;
+const loadQueue = [];
+function loadModel(callback) {
+  if (cachedGltf) { callback(cachedGltf); return; }
+  loadQueue.push(callback);
+  if (loadQueue.length > 1) return;
+  if (!MODEL_URL) {
+    // Pas de GLB : cache le loader et skip
+    document.getElementById('hero-loader')?.classList.add('loaded');
+    return;
+  }
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    MODEL_URL,
+    (gltf) => {
+      cachedGltf = gltf;
+      gltf.scene.traverse(n => { if(n.isMesh){n.castShadow=true;n.receiveShadow=true;} });
+      loadQueue.forEach(cb => cb(gltf));
+      document.getElementById('hero-loader')?.classList.add('loaded');
+    },
+    (xhr) => {
+      const pct = xhr.total ? Math.round(xhr.loaded/xhr.total*100) : 0;
+      document.querySelectorAll('.loader-pct').forEach(el => el.textContent = pct+'%');
+      const bar = document.getElementById('loader-bar');
+      if (bar) bar.style.width = pct+'%';
+    },
+    (err) => {
+      console.warn('GLB non chargé :', err);
+      document.getElementById('hero-loader')?.classList.add('loaded');
+    }
+  );
+}
+function cloneModel(gltf) {
+  const clone = gltf.scene.clone(true);
+  return fitModel(clone);
+}
+
+function initScenes() {
+  // HERO
+  (function(){
+    const canvas = document.getElementById('hero-canvas');
+    const { renderer, scene, camera } = makeRenderer(canvas);
+    camera.position.set(0, 0.15, 5.8); camera.lookAt(0, -0.25, 0);
+    autoResize(renderer, camera, canvas.parentElement);
+    let model = null, t = 0;
+    loadModel(gltf => { model = cloneModel(gltf); scene.add(model); });
+    (function loop(){ requestAnimationFrame(loop); t += 0.0018;
+      if(model){ model.rotation.y = t; model.position.y = Math.sin(t*0.3)*0.02; }
+      renderer.render(scene, camera); })();
+  })();
+
+  // STICKY — vue fixe centrée, hotspots cliquables
+  (function(){
+    const canvas = document.getElementById('sticky-canvas');
+    const { renderer, scene, camera } = makeRenderer(canvas);
+    // Vue légèrement plongeante centrée — montre l'assise
+    camera.position.set(0, 0.75, 3.1); camera.lookAt(0, 0.05, 0);
+    autoResize(renderer, camera, canvas.parentElement);
+
+    // Blob shadow douce
+    const sC = document.createElement('canvas');
+    sC.width = 256; sC.height = 128;
+    const sCtx2 = sC.getContext('2d');
+    const sGrad = sCtx2.createRadialGradient(128,64,0,128,64,112);
+    sGrad.addColorStop(0,'rgba(28,27,24,0.14)');
+    sGrad.addColorStop(0.6,'rgba(28,27,24,0.05)');
+    sGrad.addColorStop(1,'rgba(28,27,24,0)');
+    sCtx2.fillStyle = sGrad;
+    sCtx2.beginPath(); sCtx2.ellipse(128,64,120,56,0,0,Math.PI*2); sCtx2.fill();
+    const sTex = new THREE.CanvasTexture(sC);
+    const sMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.2,1.0),
+      new THREE.MeshBasicMaterial({map:sTex,transparent:true,depthWrite:false})
+    );
+    sMesh.rotation.x = -Math.PI/2; sMesh.position.y = -0.66;
+    scene.add(sMesh);
+
+    let model = null;
+    loadModel(gltf => {
+      model = cloneModel(gltf);
+      model.rotation.y = 0; // vue de face
+      scene.add(model);
+    });
+
+    (function loop(){
+      requestAnimationFrame(loop);
+      renderer.render(scene, camera);
+    })();
+  })();
+}
+
+// ── HOTSPOTS CLIQUABLES ──────────────────────────────────────────
+(function() {
+  const tooltip  = document.getElementById('hs-tooltip');
+  const ttTitle  = document.getElementById('hs-tooltip-title');
+  const ttText   = document.getElementById('hs-tooltip-text');
+  const viewer   = document.querySelector('.viewer-sticky');
+  if (!tooltip || !viewer) return;
+
+  let activeHs = null;
+
+  document.querySelectorAll('.hs-fixed').forEach(function(hs) {
+    hs.addEventListener('click', function(e) {
+      e.stopPropagation();
+
+      if (activeHs === hs.id && tooltip.classList.contains('show')) {
+        tooltip.classList.remove('show');
+        activeHs = null;
+        return;
+      }
+      activeHs = hs.id;
+      ttTitle.textContent = hs.dataset.title || '';
+      ttText.textContent  = hs.dataset.text  || '';
+
+      // Position du tooltip par rapport au viewer
+      const vRect  = viewer.getBoundingClientRect();
+      const hsRect = hs.getBoundingClientRect();
+      let left = hsRect.left - vRect.left + 16;
+      let top  = hsRect.top  - vRect.top  - 56;
+      // Empêche de déborder à droite
+      if (left + 230 > vRect.width) left = left - 240;
+      // Empêche de déborder en haut
+      if (top < 8) top = hsRect.top - vRect.top + 16;
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = top  + 'px';
+      tooltip.classList.add('show');
+    });
+  });
+
+  document.addEventListener('click', function() {
+    tooltip.classList.remove('show');
+    activeHs = null;
+  });
+})();
+
+// ── CHAPTER REVEAL ───────────────────────────────────────────────
+const io = new IntersectionObserver(
+  entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); }),
+  { threshold: 0.1 }
+);
+document.querySelectorAll('.chapter').forEach(c => io.observe(c));
+
+// ── HIDE FLOATING CTA on end card ────────────────────────────────
+const arFloat = document.getElementById('ar-float');
+new IntersectionObserver(
+  entries => entries.forEach(e => arFloat.classList.toggle('hidden', e.isIntersecting)),
+  { threshold: 0.05 }
+).observe(document.getElementById('end-card'));
+
+// ── START ─────────────────────────────────────────────────────────
+initEdito();
+</script>
+</body>
+</html>
