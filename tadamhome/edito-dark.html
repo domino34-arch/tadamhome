@@ -18,17 +18,21 @@
   --ink: #F5F1EA;
   --ink-mid: #C8C2B8;
   --ink-soft: #8A847A;
-  --grid: rgba(184,150,90,0.08);
+  --grid: rgba(184,150,90,0.13);
+}
+html {
+  background: #0A0A0A;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-attachment: fixed;
+  min-height: 100%;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 body {
-  background: var(--cream);
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 32px 32px;
-  background-position: -1px -1px;
+  background: transparent;
   color: var(--ink);
   font-family: 'Jost', sans-serif;
   font-weight: 300;
@@ -64,7 +68,7 @@ nav {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
   padding-bottom: 64px;
   position: relative; overflow: hidden;
-  background: var(--cream);
+  background: transparent;
 }
 #hero-canvas { position: absolute; top:0; left:0; width:100%; height:100%; }
 .hero-eyebrow {
@@ -99,8 +103,8 @@ nav {
 #sticky-section { position: relative; }
 .viewer-sticky {
   position: sticky; top: 56px; height: 46svh;
-  background: var(--cream);
-  display: block; /* block pour que position:absolute enfants fonctionne */
+  background: transparent;
+  display: block;
   z-index: 10;
   border-bottom: 1px solid rgba(184,150,90,0.15);
 }
@@ -122,7 +126,7 @@ nav {
 .hotspot.active .hotspot-label { opacity: 1; }
 
 /* EDITORIAL */
-.editorial-content { padding: 0 28px; background: var(--cream); }
+.editorial-content { padding: 0 28px; background: transparent; }
 .chapter {
   padding: 52px 0; border-bottom: 1px solid rgba(245,241,234,0.06);
   opacity: 0; transform: translateY(28px);
