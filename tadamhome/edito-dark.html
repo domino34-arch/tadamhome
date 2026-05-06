@@ -228,16 +228,16 @@ nav {
 }
 .ar-float.hidden { opacity: 0; transform: translate3d(-50%, 10px, 0); pointer-events: none; }
 .ar-btn {
-  background: rgba(250,250,248,0.94); color: #1C1B18; border: none;
-  padding: 9px 16px;
-  display: flex; align-items: center; gap: 8px; cursor: pointer;
-  font-family: 'Outfit', sans-serif; font-size: 8px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase;
-  transition: background 0.3s;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  background: var(--gold); color: var(--ink); border: none;
+  padding: 11px 18px;
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+  transition: background 0.3s, transform 0.3s;
   white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(184,152,106,0.3);
 }
-.ar-btn:hover, .ar-btn:active { background: var(--gold); color: var(--ink); }
-.ar-icon { width: 18px; height: 18px; border: 1px solid rgba(28,27,24,0.3); display: flex; align-items: center; justify-content: center; flex-shrink:0; }
+.ar-btn:hover, .ar-btn:active { background: #A07A4A; transform: translateY(-1px); }
+.ar-icon { width: 18px; height: 18px; border: 1px solid rgba(250,250,248,0.4); display: flex; align-items: center; justify-content: center; flex-shrink:0; }
 
 /* END CARD */
 #end-card { padding: 60px 0 calc(120px + env(safe-area-inset-bottom, 0)); background: var(--cream); border-top: 1px solid rgba(184,152,106,0.18); }
@@ -306,10 +306,10 @@ nav {
 
 .hs-tooltip {
   position: absolute;
-  width: 220px; max-width: 70%;
+  width: 178px;
   background: rgba(28,27,24,0.96);
   border: 1px solid rgba(184,152,106,0.4);
-  padding: 12px 14px;
+  padding: 10px 12px;
   z-index: 30;
   opacity: 0; pointer-events: none;
   transform: translateY(-6px);
@@ -342,7 +342,7 @@ nav {
 <nav>
   <a href="icones/index.html" class="nav-back">← Icônes</a>
   <span class="nav-issue" id="nav-issue">—</span>
-  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Tadamhome" width="18" height="18" onerror="this.outerHTML='Tadam'"/></a>
+  <a href="index.html" class="nav-logo"><img src="logo_blanc.png" alt="Tadamhome" width="18" height="18" onerror="this.outerHTML='Tadam'"/></a>
 </nav>
 
 <section id="hero">
@@ -431,8 +431,8 @@ nav {
     <span>Voir dans mon espace</span>
     <div class="ar-icon">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#1C1B18" stroke-width="1"/>
-        <path d="M7 1V13M1 4L13 4M1 10L13 10" stroke="#1C1B18" stroke-width="0.5" opacity="0.5"/>
+        <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#FAFAF8" stroke-width="1"/>
+        <path d="M7 1V13M1 4L13 4M1 10L13 10" stroke="#FAFAF8" stroke-width="0.5" opacity="0.5"/>
       </svg>
     </div>
   </button>
@@ -801,7 +801,7 @@ window.addEventListener('DOMContentLoaded', () => {
     (function(){
       const canvas = document.getElementById('sticky-canvas');
       const { renderer, scene, camera } = makeRenderer(canvas);
-      camera.position.set(0, 0.75, 3.1); camera.lookAt(0, 0.05, 0);
+      camera.position.set(0, 0.55, 3.1); camera.lookAt(0, -0.18, 0);
       autoResize(renderer, camera, canvas.parentElement);
 
       // Blob shadow douce
@@ -819,7 +819,7 @@ window.addEventListener('DOMContentLoaded', () => {
         new THREE.PlaneGeometry(2.2,1.0),
         new THREE.MeshBasicMaterial({map:sTex,transparent:true,depthWrite:false})
       );
-      sMesh.rotation.x = -Math.PI/2; sMesh.position.y = -0.66;
+      sMesh.rotation.x = -Math.PI/2; sMesh.position.y = -0.78;
       scene.add(sMesh);
 
       let model = null;
@@ -856,12 +856,35 @@ window.addEventListener('DOMContentLoaded', () => {
         activeHs = hs.id;
         ttTitle.textContent = hs.dataset.title || '';
         ttText.textContent  = hs.dataset.text  || '';
+
         const vRect  = viewer.getBoundingClientRect();
         const hsRect = hs.getBoundingClientRect();
-        let left = hsRect.left - vRect.left + 16;
-        let top  = hsRect.top  - vRect.top  - 56;
-        if (left + 230 > vRect.width) left = left - 240;
-        if (top < 8) top = hsRect.top - vRect.top + 16;
+        const hsX    = hsRect.left - vRect.left + hsRect.width/2;
+        const hsY    = hsRect.top  - vRect.top  + hsRect.height/2;
+
+        // Mesure réelle du tooltip après injection du texte
+        tooltip.style.visibility = 'hidden';
+        tooltip.classList.add('show');
+        const ttW = tooltip.offsetWidth;
+        const ttH = tooltip.offsetHeight;
+        tooltip.classList.remove('show');
+        tooltip.style.visibility = '';
+
+        const margin = 10;
+        // Position horizontale : à droite du hotspot par défaut, sinon à gauche, sinon clampé
+        let left = hsX + 22;
+        if (left + ttW > vRect.width - margin) {
+          // Pas la place à droite → essaie à gauche du hotspot
+          left = hsX - 22 - ttW;
+        }
+        if (left < margin) left = margin;
+        if (left + ttW > vRect.width - margin) left = vRect.width - ttW - margin;
+
+        // Position verticale : au-dessus par défaut, sinon en dessous
+        let top = hsY - ttH - 12;
+        if (top < margin) top = hsY + 22;
+        if (top + ttH > vRect.height - margin) top = vRect.height - ttH - margin;
+
         tooltip.style.left = left + 'px';
         tooltip.style.top  = top  + 'px';
         tooltip.classList.add('show');
