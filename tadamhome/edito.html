@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icônes — Tadamhome</title>
+<meta name="description" content="Le LC2 ou la grille du confort. Une icône du design, son histoire, son anatomie — et la possibilité de l'essayer chez vous en réalité augmentée.">
+
+<!-- Fonts: Cormorant Garamond (display) + Jost (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Google's <model-viewer> for 3D — auto-rotate, no controls (musée mode) -->
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   TADAMHOME — Newsletter Icônes
+   Brand: cream #EDEAE4 / gold #B8986A / ink #1C1B18
+   Type:  Cormorant Garamond (display) + Jost (body)
+   Edges: square corners (no radii)
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --th-paper:        #F5F2EC;
+  --th-paper-2:      #EDEAE4;        /* primary brand cream */
+  --th-paper-3:      #E4E0D6;
+  --th-white:        #FAFAF8;
+  --th-ink:          #1C1B18;
+  --th-ink-2:        #4A4840;
+  --th-ink-3:        #8A8880;
+  --th-accent:       #B8986A;        /* primary gold */
+  --th-accent-2:     #D4B896;
+  --th-accent-3:     #A07A4A;
+  --th-border:       rgba(28,27,24,.10);
+  --th-border-soft:  rgba(28,27,24,.07);
+  --th-shadow-sm:    0 2px 8px rgba(28,27,24,.06);
+  --th-shadow-md:    0 12px 32px rgba(28,27,24,.10);
+  --th-serif:        'Cormorant Garamond', Georgia, serif;
+  --th-sans:         'Outfit', system-ui, -apple-system, sans-serif;
+  --th-ease-out:     cubic-bezier(.00,.00,.20,1.00);
+  --th-dark:         #0F0E0C;
+}
+
+/* RESET */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--th-paper-2);
+  visibility: hidden;
+  color: var(--th-ink);
+  font-family: var(--th-sans);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+img, video { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+em { font-style: italic; }
+
+/* SHARED PRIMITIVES */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 56px; }
+@media (max-width: 768px) { .wrap { padding: 0 22px; } }
+
+.eyebrow {
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--th-accent); font-weight: 400;
+  display: inline-flex; align-items: center; gap: 12px;
+}
+.eyebrow::before { content: ''; width: 28px; height: 1px; background: var(--th-accent); }
+
+.label-meta {
+  font-size: 9px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--th-ink-3); font-weight: 400;
+}
+.label-meta em {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--th-accent);
+}
+
+/* ═══════════ TOP BAR ═══════════ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 56px;
+  background: var(--th-paper);
+  border-bottom: 1px solid var(--th-border);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.topbar .brand {
+  font-family: var(--th-serif); font-size: 17px; font-weight: 400;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.topbar .brand em { color: var(--th-accent); font-style: italic; }
+.topbar .brand img { height: 18px; width: auto; }
+.topbar .meta {
+  display: flex; align-items: center; gap: 22px;
+}
+.topbar .meta a {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--th-ink-2); transition: color .2s;
+}
+.topbar .meta a:hover { color: var(--th-accent); }
+.topbar .meta .sep { width: 1px; height: 14px; background: var(--th-border); }
+@media (max-width: 768px) {
+  .topbar { padding: 14px 22px; }
+  .topbar .meta .label-meta { display: none; }
+}
+
+/* ═══════════ MASTHEAD — couverture lifestyle ═══════════ */
+.masthead {
+  position: relative;
+  min-height: 70vh;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  color: var(--th-white);
+  overflow: hidden;
+  /* Fallback warm-interior gradient if --cover-image isn't set.
+     Replace --cover-image to plug in your lifestyle photo. */
+  background-color: #1C1B18;
+  background-image:
+    radial-gradient(ellipse at 30% 70%, rgba(184,150,90,.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 35%, rgba(184,150,90,.10) 0%, transparent 60%),
+    linear-gradient(135deg, #1C1B18 0%, #3A2E22 50%, #1C1B18 100%);
+  background-size: cover;
+  background-position: center;
+}
+/* When you set --cover-image, it layers on top of the gradient fallback */
+.masthead[style*="--cover-image"] {
+  background-image: var(--cover-image);
+}
+/* Dark overlay at top + bottom — keeps text readable, leaves the photo's center clean */
+.masthead::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(15,14,12,.55) 0%,
+      rgba(15,14,12,.10) 22%,
+      rgba(15,14,12,0)   45%,
+      rgba(15,14,12,0)   55%,
+      rgba(15,14,12,.55) 80%,
+      rgba(15,14,12,.85) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.masthead .wrap {
+  position: relative; z-index: 2;
+  padding-top: 80px;
+  padding-bottom: 56px;
+  width: 100%;
+}
+.masthead .issue-top {
+  position: absolute;
+  top: 88px; left: 56px; right: 56px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
+  color: rgba(255,255,255,.75);
+  z-index: 2;
+}
+.masthead .issue-top em {
+  font-family: var(--th-serif); font-style: italic; font-size: 14px;
+  letter-spacing: 0; text-transform: none; color: var(--th-accent);
+}
+.masthead .issue-top .right {
+  display: inline-flex; align-items: center; gap: 14px;
+  color: rgba(255,255,255,.6);
+}
+.masthead .row {
+  display: grid; grid-template-columns: 1.6fr 1fr; gap: 64px;
+  align-items: end;
+}
+.masthead h1 {
+  font-family: var(--th-serif); font-weight: 300;
+  font-size: clamp(48px, 7vw, 96px); line-height: .98; letter-spacing: -.015em;
+  color: var(--th-white);
+  text-shadow: 0 2px 24px rgba(0,0,0,.25);
+}
+.masthead h1 em { font-style: italic; color: var(--th-accent); }
+.masthead .by {
+  margin-top: 28px;
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255,255,255,.7);
+}
+.masthead .by em {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--th-white);
+}
+.masthead .summary {
+  max-width: 380px; font-size: 13px; line-height: 1.85;
+  color: rgba(255,255,255,.85);
+}
+.masthead .summary::first-line {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 19px; color: var(--th-white);
+}
+/* Subtle credit line at bottom-right */
+.masthead .photo-credit {
+  position: absolute;
+  bottom: 18px; right: 56px;
+  font-size: 8px; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+  z-index: 3;
+}
+
+@media (max-width: 900px) {
+  .masthead { min-height: 75vh; }
+  .masthead .row { grid-template-columns: 1fr; gap: 28px; }
+  .masthead .summary { max-width: none; }
+  .masthead .issue-top { left: 22px; right: 22px; top: 76px; }
+  .masthead .issue-top .right .label-meta { display: none; }
+  .masthead .photo-credit { right: 22px; }
+}
+@media (max-width: 600px) {
+  .masthead { min-height: 80vh; }
+  .masthead .wrap { padding-top: 96px; padding-bottom: 36px; }
+}
+
+/* ═══════════ HERO 3D — vitrine de musée ═══════════ */
+.hero-3d {
+  padding: 56px 0 64px;
+  background: var(--th-paper-2);
+  position: relative;
+}
+.hero-3d .stage {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 90%, rgba(28,27,24,.10) 0%, transparent 60%),
+    linear-gradient(180deg, var(--th-paper) 0%, var(--th-paper-2) 100%);
+  border-top: 1px solid var(--th-border);
+  border-bottom: 1px solid var(--th-border);
+  aspect-ratio: 16/9;
+  width: 100%;
+  overflow: hidden;
+}
+.hero-3d model-viewer {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  --poster-color: transparent;
+}
+/* Decorative corners */
+.hero-3d .stage::before,
+.hero-3d .stage::after {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  border-color: var(--th-accent); pointer-events: none;
+}
+.hero-3d .stage::before { top: 14px; left: 14px; border-top: 1px solid; border-left: 1px solid; }
+.hero-3d .stage::after  { bottom: 14px; right: 14px; border-bottom: 1px solid; border-right: 1px solid; }
+.hero-3d .corner-tr,
+.hero-3d .corner-bl {
+  position: absolute; width: 14px; height: 14px;
+  border-color: var(--th-accent); pointer-events: none;
+}
+.hero-3d .corner-tr { top: 14px; right: 14px; border-top: 1px solid; border-right: 1px solid; }
+.hero-3d .corner-bl { bottom: 14px; left: 14px; border-bottom: 1px solid; border-left: 1px solid; }
+
+.hero-3d .badge {
+  position: absolute; top: 22px; left: 22px;
+  font-size: 9px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--th-accent); padding: 6px 12px;
+  border: 1px solid rgba(184,150,90,.4);
+  background: rgba(245,242,236,.7);
+  backdrop-filter: blur(8px);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.hero-3d .badge .dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--th-accent);
+  animation: pulseGold 2s ease-in-out infinite;
+}
+@keyframes pulseGold {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(184,150,90,.5); }
+  50% { opacity: .6; box-shadow: 0 0 0 8px rgba(184,150,90,0); }
+}
+/* Fallback poster (when no GLB loaded) */
+.hero-3d .stage .poster {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; color: var(--th-ink-3);
+  pointer-events: none;
+}
+.hero-3d .stage .poster .label {
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
+}
+.hero-3d .stage .poster .name {
+  font-family: var(--th-serif); font-style: italic; font-size: 28px;
+  font-weight: 300; color: var(--th-accent);
+}
+.hero-3d .caption {
+  display: flex; justify-content: space-between;
+  margin-top: 16px;
+  font-size: 9px; letter-spacing: .20em; text-transform: uppercase;
+  color: var(--th-ink-3);
+}
+.hero-3d .caption em {
+  font-family: var(--th-serif); font-style: italic; color: var(--th-accent);
+  letter-spacing: 0; text-transform: none; font-size: 12px;
+}
+@media (max-width: 768px) {
+  .hero-3d { padding: 32px 0 40px; }
+  .hero-3d .stage { aspect-ratio: 4/5; }
+  .hero-3d .caption { flex-direction: column; gap: 6px; }
+}
+
+/* ═══════════ ARTICLE BODY — chapitres ═══════════ */
+.article {
+  padding: 64px 0 80px;
+  max-width: 760px; margin: 0 auto;
+}
+.article .lede {
+  font-family: var(--th-serif); font-style: italic; font-weight: 300;
+  font-size: clamp(22px, 2.4vw, 30px); line-height: 1.35;
+  padding: 32px 0; border-top: 1px solid var(--th-border); border-bottom: 1px solid var(--th-border);
+  color: var(--th-ink);
+}
+.article .lede::first-letter {
+  font-family: var(--th-serif); font-style: normal; font-weight: 400;
+  font-size: 92px; float: left; line-height: .85;
+  padding: 4px 16px 0 0; color: var(--th-accent);
+}
+.article .chap {
+  margin-top: 56px; margin-bottom: 12px;
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
+  color: var(--th-accent); display: inline-flex; align-items: center; gap: 12px;
+}
+.article .chap em {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 14px; letter-spacing: 0; text-transform: none;
+}
+.article h3 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.1; color: var(--th-ink);
+}
+.article h3 em { font-style: italic; color: var(--th-accent); }
+.article p {
+  font-size: 15px; line-height: 1.85; color: var(--th-ink); margin-top: 18px;
+}
+.article p + p { margin-top: 14px; }
+.article p strong { font-weight: 500; color: var(--th-ink); }
+
+/* ═══════════ ANATOMIE — photo + hotspots ═══════════ */
+.anatomy {
+  background: var(--th-paper);
+  padding: 72px 0;
+  border-top: 1px solid var(--th-border);
+}
+.anatomy .head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 40px; flex-wrap: wrap; gap: 16px;
+}
+.anatomy .head .left { max-width: 540px; }
+.anatomy .head h2 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1; margin-top: 6px;
+}
+.anatomy .head h2 em { font-style: italic; color: var(--th-accent); }
+.anatomy .head .legend {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--th-ink-3);
+}
+.anatomy .grid {
+  display: grid; grid-template-columns: 1fr 320px; gap: 36px;
+  align-items: stretch;
+}
+.anatomy .stage-img {
+  position: relative; aspect-ratio: 4/3; width: 100%;
+  background:
+    radial-gradient(ellipse at 50% 80%, rgba(28,27,24,.06) 0%, transparent 60%),
+    var(--th-paper-2);
+  border: 1px solid var(--th-border);
+  overflow: hidden;
+}
+/* Replaceable photo container */
+.anatomy .stage-img .photo {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(135deg, var(--th-paper-2) 0%, var(--th-paper-3) 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--th-ink-3);
+  font-family: var(--th-serif); font-style: italic; font-size: 14px;
+}
+.anatomy .stage-img .photo::before {
+  content: 'Photo anatomique'; opacity: .5;
+}
+
+.anatomy .pin {
+  position: absolute; width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--th-accent); color: var(--th-white);
+  font-family: var(--th-serif); font-style: italic; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform .2s var(--th-ease-out);
+  box-shadow: 0 0 0 4px rgba(245,242,236,.7), 0 4px 14px rgba(0,0,0,.18);
+  z-index: 2;
+}
+.anatomy .pin:hover { transform: scale(1.12); }
+.anatomy .pin.active { background: var(--th-ink); }
+.anatomy .pin .ring {
+  position: absolute; inset: -10px;
+  border: 1px solid var(--th-accent); border-radius: 50%;
+  animation: pinPulse 2.4s ease-out infinite; pointer-events: none;
+}
+@keyframes pinPulse {
+  0% { transform: scale(.7); opacity: 1; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+.anatomy .panel {
+  background: var(--th-paper-2);
+  border: 1px solid var(--th-border);
+  padding: 28px;
+  display: flex; flex-direction: column;
+}
+.anatomy .panel .num {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 36px; font-weight: 300; color: var(--th-accent); line-height: 1;
+}
+.anatomy .panel h4 {
+  font-family: var(--th-serif); font-size: 22px; font-weight: 400;
+  margin-top: 10px; line-height: 1.2;
+}
+.anatomy .panel p {
+  font-size: 13px; line-height: 1.75; color: var(--th-ink-2); margin-top: 12px;
+}
+.anatomy .panel .nav {
+  display: flex; gap: 6px; margin-top: auto; padding-top: 22px;
+}
+.anatomy .panel .nav span {
+  flex: 1; height: 2px; background: var(--th-paper-3); transition: background .3s;
+}
+.anatomy .panel .nav span.on { background: var(--th-accent); }
+
+@media (max-width: 900px) {
+  .anatomy .grid { grid-template-columns: 1fr; gap: 22px; }
+  .anatomy .pin { width: 26px; height: 26px; font-size: 12px; }
+}
+
+/* ═══════════ TIMELINE — variation D · fond sombre ═══════════ */
+.timeline-d {
+  background: var(--th-dark);
+  color: var(--th-white);
+  padding: 88px 0;
+  position: relative;
+  overflow: hidden;
+}
+.timeline-d::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(184,150,90,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184,150,90,.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  z-index: 0;
+}
+.timeline-d > * { position: relative; z-index: 1; }
+.timeline-d .head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 32px; margin-bottom: 40px; flex-wrap: wrap;
+}
+.timeline-d .head .left { max-width: 540px; }
+.timeline-d .head .eyebrow { color: var(--th-accent); }
+.timeline-d .head .eyebrow::before { background: var(--th-accent); }
+.timeline-d .head h2 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1; margin-top: 8px;
+}
+.timeline-d .head h2 em { font-style: italic; color: var(--th-accent); }
+.timeline-d .head .right {
+  max-width: 380px; font-size: 12px; line-height: 1.7;
+  color: rgba(255,255,255,.6); text-align: right;
+}
+.timeline-d .head .right strong { color: var(--th-white); font-weight: 400; }
+
+.timeline-d .rail-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 0; margin-bottom: 22px;
+  border-top: 1px solid rgba(184,150,90,.18);
+  border-bottom: 1px solid rgba(184,150,90,.18);
+}
+.timeline-d .rail-head .lbl {
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+}
+.timeline-d .rail-head .span {
+  font-family: var(--th-serif); font-style: italic; font-size: 16px;
+  color: var(--th-accent);
+}
+
+.timeline-d .track {
+  position: relative; padding: 16px 0;
+  height: 320px;
+}
+.timeline-d .track .line {
+  position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+  background: rgba(184,150,90,.22);
+}
+.timeline-d .track .line::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 38%; background: var(--th-accent);
+}
+.timeline-d .stations {
+  position: relative; display: grid; grid-template-columns: repeat(7, 1fr);
+  height: 100%; align-items: center;
+}
+.timeline-d .stn {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; height: 100%;
+}
+.timeline-d .stn .top, .timeline-d .stn .bot {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 0 10px;
+}
+.timeline-d .stn .top { justify-content: flex-end; padding-bottom: 22px; }
+.timeline-d .stn .bot { justify-content: flex-start; padding-top: 22px; }
+.timeline-d .stn .dot {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(184,150,90,.3); border: 1px solid rgba(184,150,90,.5);
+  z-index: 2; transition: all .3s var(--th-ease-out);
+}
+.timeline-d .stn.done .dot { background: var(--th-accent); border-color: var(--th-accent); }
+.timeline-d .stn.on .dot {
+  width: 18px; height: 18px;
+  background: var(--th-accent); border-color: var(--th-accent);
+  box-shadow: 0 0 0 6px rgba(184,150,90,.18);
+}
+.timeline-d .stn .stamp {
+  font-size: 8px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--th-accent); text-align: center; margin-bottom: 6px;
+}
+.timeline-d .stn .year {
+  font-family: var(--th-serif); font-style: italic; font-weight: 300;
+  font-size: 22px; color: var(--th-accent); line-height: 1; text-align: center;
+  transition: font-size .3s;
+}
+.timeline-d .stn.on .year { font-size: 30px; }
+.timeline-d .stn .ev {
+  font-size: 10px; letter-spacing: .04em; line-height: 1.4;
+  color: rgba(255,255,255,.6); text-align: center; margin-top: 6px;
+}
+.timeline-d .stn.on .ev { color: var(--th-white); }
+.timeline-d .stn .place {
+  font-size: 8px; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.35); text-align: center; margin-top: 4px;
+}
+/* alternating top/bot */
+.timeline-d .stn:nth-child(even) .top { visibility: hidden; }
+.timeline-d .stn:nth-child(odd) .bot { visibility: hidden; }
+.timeline-d .stn .tick {
+  position: absolute; left: 50%; width: 1px;
+  background: rgba(184,150,90,.18);
+}
+.timeline-d .stn:nth-child(odd) .tick { top: 50%; height: 28px; }
+.timeline-d .stn:nth-child(even) .tick { bottom: 50%; height: 28px; }
+
+/* MOBILE TIMELINE — vertical rail */
+@media (max-width: 768px) {
+  .timeline-d { padding: 56px 0; }
+  .timeline-d .track { height: auto; padding: 0; }
+  .timeline-d .track .line { display: none; }
+  .timeline-d .stations {
+    grid-template-columns: 1fr; padding-left: 28px;
+    position: relative;
+  }
+  .timeline-d .stations::before {
+    content: ''; position: absolute; left: 8px; top: 12px; bottom: 12px;
+    width: 1px; background: rgba(184,150,90,.25);
+  }
+  .timeline-d .stn { flex-direction: column; align-items: flex-start;
+    padding: 14px 0; min-height: auto; }
+  /* Show both .top and .bot stacked, but hide whichever is empty
+     (odd stations have content in .top, even in .bot — see HTML) */
+  .timeline-d .stn .top, .timeline-d .stn .bot {
+    visibility: visible !important;
+    padding: 0; align-items: flex-start; flex: 0 0 auto;
+    width: 100%;
+  }
+  .timeline-d .stn .top:empty, .timeline-d .stn .bot:empty { display: none; }
+  .timeline-d .stn .dot {
+    position: absolute; top: 22px; left: -20px;
+    transform: none;
+  }
+  .timeline-d .stn.on .dot { left: -23px; top: 19px; }
+  .timeline-d .stn .stamp,
+  .timeline-d .stn .year,
+  .timeline-d .stn .ev,
+  .timeline-d .stn .place { text-align: left; }
+  .timeline-d .stn .year { font-size: 20px; }
+  .timeline-d .stn.on .year { font-size: 26px; }
+  .timeline-d .stn .tick { display: none; }
+}
+
+/* ═══════════ AR CTA ═══════════ */
+.ar-cta {
+  background: var(--th-ink);
+  color: var(--th-white);
+  padding: 88px 0;
+}
+.ar-cta .grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+  align-items: center;
+}
+.ar-cta .left .eyebrow { color: var(--th-accent); }
+.ar-cta .left .eyebrow::before { background: var(--th-accent); }
+.ar-cta h2 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(36px, 4.5vw, 56px);
+  line-height: 1.05; margin-top: 18px; color: var(--th-white);
+}
+.ar-cta h2 em { font-style: italic; color: var(--th-accent); }
+.ar-cta p {
+  font-size: 14px; line-height: 1.85; color: rgba(255,255,255,.65);
+  max-width: 380px; margin-top: 22px;
+}
+.ar-cta .actions {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 32px; align-items: flex-start;
+}
+.ar-cta .cta-primary {
+  background: var(--th-accent); color: var(--th-white);
+  font-family: var(--th-sans); font-size: 11px; font-weight: 500;
+  letter-spacing: .18em; text-transform: uppercase;
+  padding: 18px 28px;
+  display: inline-flex; align-items: center; gap: 14px;
+  transition: background .25s, transform .25s;
+}
+.ar-cta .cta-primary:hover {
+  background: var(--th-white); color: var(--th-ink);
+  transform: translateY(-1px);
+}
+.ar-cta .cta-primary .arr {
+  font-family: var(--th-serif); font-style: italic; font-size: 18px;
+}
+.ar-cta .cta-secondary {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255,255,255,.7); padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.3);
+  transition: color .2s, border-color .2s;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.ar-cta .cta-secondary:hover { color: var(--th-accent); border-bottom-color: var(--th-accent); }
+
+.ar-cta .right {
+  position: relative; aspect-ratio: 1/1; width: 100%;
+  background:
+    linear-gradient(135deg, rgba(184,150,90,.08) 0%, rgba(255,255,255,.02) 100%);
+  border: 1px solid rgba(184,150,90,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--th-serif); font-style: italic; font-size: 18px;
+  color: rgba(255,255,255,.4);
+  overflow: hidden;
+}
+.ar-cta .right::before,
+.ar-cta .right::after {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  border-color: var(--th-accent);
+}
+.ar-cta .right::before { top: 14px; left: 14px; border-top: 1px solid; border-left: 1px solid; }
+.ar-cta .right::after  { bottom: 14px; right: 14px; border-bottom: 1px solid; border-right: 1px solid; }
+.ar-cta .right .placeholder { text-align: center; padding: 20px; }
+.ar-cta .right .placeholder small {
+  display: block; font-family: var(--th-sans); font-style: normal;
+  font-size: 9px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--th-accent); margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .ar-cta { padding: 56px 0; }
+  .ar-cta .grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+/* ═══════════ ARCHIVES ═══════════ */
+.archives {
+  background: var(--th-paper);
+  padding: 72px 0;
+  border-top: 1px solid var(--th-border);
+}
+.archives .head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 36px; flex-wrap: wrap; gap: 14px;
+}
+.archives h2 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(28px, 3vw, 36px);
+}
+.archives h2 em { font-style: italic; color: var(--th-accent); }
+.archives .head a {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--th-ink-2); padding-bottom: 4px;
+  border-bottom: 1px solid var(--th-border);
+  transition: color .2s, border-color .2s;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.archives .head a:hover { color: var(--th-accent); border-bottom-color: var(--th-accent); }
+.archives .head a .arr {
+  font-family: var(--th-serif); font-style: italic; font-size: 14px;
+}
+
+.archives .grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.archives .card {
+  background: var(--th-paper-2);
+  border: 1px solid var(--th-border);
+  padding: 18px;
+  transition: transform .3s var(--th-ease-out), box-shadow .3s;
+  cursor: pointer;
+}
+.archives .card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--th-shadow-md);
+}
+.archives .card .img {
+  width: 100%; aspect-ratio: 4/5; margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--th-paper-3) 0%, var(--th-paper-2) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--th-serif); font-style: italic; font-size: 18px;
+  color: var(--th-ink-3); position: relative;
+}
+.archives .card .img::before,
+.archives .card .img::after {
+  content: ''; position: absolute; width: 10px; height: 10px;
+  border-color: var(--th-accent); opacity: .5;
+}
+.archives .card .img::before { top: 10px; left: 10px; border-top: 1px solid; border-left: 1px solid; }
+.archives .card .img::after  { bottom: 10px; right: 10px; border-bottom: 1px solid; border-right: 1px solid; }
+.archives .card .n {
+  font-family: var(--th-serif); font-style: italic;
+  font-size: 14px; color: var(--th-accent);
+}
+.archives .card .t {
+  font-family: var(--th-serif); font-weight: 300; font-size: 19px;
+  margin-top: 4px; line-height: 1.2;
+}
+.archives .card .by {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--th-ink-3); margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .archives .grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .archives .grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════ FOOTER · S'ABONNER ═══════════ */
+.subscribe {
+  background: var(--th-ink);
+  color: var(--th-white);
+  padding: 64px 0 36px;
+}
+.subscribe .row {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px;
+  align-items: end;
+}
+.subscribe h2 {
+  font-family: var(--th-serif); font-weight: 300; font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.1; color: var(--th-white);
+}
+.subscribe h2 em { font-style: italic; color: var(--th-accent); }
+.subscribe p {
+  font-size: 12px; line-height: 1.75; color: rgba(255,255,255,.6);
+  margin-top: 14px; max-width: 380px;
+}
+.subscribe .sub-form {
+  display: flex; gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,.3);
+  transition: border-color .2s;
+}
+.subscribe .sub-form:focus-within { border-bottom-color: var(--th-accent); }
+.subscribe .sub-form input {
+  flex: 1; background: transparent; border: none;
+  color: var(--th-white); font-family: inherit; font-size: 13px;
+  padding: 14px 0; outline: none;
+}
+.subscribe .sub-form input::placeholder { color: rgba(255,255,255,.4); }
+.subscribe .sub-form button {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  font-weight: 500; color: var(--th-accent); padding: 14px 0;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color .2s;
+}
+.subscribe .sub-form button:hover { color: var(--th-white); }
+.subscribe .legal {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+  margin-top: 40px; padding-top: 22px;
+  border-top: 1px solid rgba(255,255,255,.10);
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+.subscribe .legal a { transition: color .2s; }
+.subscribe .legal a:hover { color: var(--th-accent); }
+
+@media (max-width: 768px) {
+  .subscribe { padding: 48px 0 28px; }
+  .subscribe .row { grid-template-columns: 1fr; gap: 24px; }
+}
+
+/* ═══════════ ENTRY ANIMATION ═══════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .fade-up { opacity: 0; transform: translateY(14px); transition: opacity .8s var(--th-ease-out), transform .8s var(--th-ease-out); }
+  .fade-up.in { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MIX — version « cabinet de curiosités »
+   Crème pour les longs moments de lecture, hero 3D converti
+   en spot de musée sombre. Le noir est volontairement *chaud*
+   (#1F1814) pour dialoguer avec la crème, pas du black gallery.
+   ═══════════════════════════════════════════════════════════ */
+
+/* HERO 3D — vitrine sombre dans la pagination crème
+   On garde la même largeur (contained dans le wrap), seul
+   le fond bascule en noir chaud. C'est l'ajustement le plus
+   léger possible, mais l'effet est radical. */
+.hero-3d .stage {
+  background:
+    radial-gradient(ellipse at 50% 95%, rgba(0,0,0,.55) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 38%, rgba(184,150,90,.10) 0%, transparent 60%),
+    linear-gradient(180deg, #2A2218 0%, #1F1814 55%, #1A1410 100%);
+  border-color: rgba(184,150,90,.20);
+  border-top-color: rgba(184,150,90,.14);
+  border-bottom-color: rgba(184,150,90,.14);
+  /* Inset subtle gold rim — like a museum vitrine frame */
+  box-shadow:
+    inset 0 1px 0 rgba(184,150,90,.08),
+    inset 0 -1px 0 rgba(184,150,90,.08),
+    0 24px 48px -16px rgba(0,0,0,.18);
+}
+.hero-3d .badge {
+  background: rgba(31,24,20,.7);
+  border-color: rgba(184,150,90,.4);
+  color: var(--th-accent);
+  backdrop-filter: blur(8px);
+}
+.hero-3d .stage .poster .label { color: rgba(255,255,255,.5); }
+.hero-3d .stage .poster .name { color: var(--th-accent); }
+
+/* ═══════════════════════════════════════════════════════════
+   STORY BLOCK — sticky scrollytelling
+   Le hero 3D reste fixé au sommet pendant que l'article
+   défile en dessous. À la fin du dernier chapitre, le hero
+   se décolle naturellement et la page enchaîne sur l'anatomie.
+   ═══════════════════════════════════════════════════════════ */
+.story-block {
+  position: relative;
+  background: var(--th-paper-2);
+}
+.story-block .hero-3d {
+  position: sticky;
+  top: 60px;                     /* clear topbar (~56-60px) */
+  z-index: 5;                    /* sous le topbar (z=100), au-dessus de l'article */
+  padding: 18px 0 0;             /* compact en mode sticky */
+  background: var(--th-paper-2); /* opaque obligatoire pour le sticky */
+}
+.story-block .hero-3d .stage {
+  /* on échappe à l'aspect-ratio 16/9 et on contraint en hauteur viewport */
+  aspect-ratio: auto;
+  height: 55vh;
+  min-height: 320px;
+  max-height: 560px;
+}
+.story-block .hero-3d .caption {
+  margin-top: 12px;
+  padding-bottom: 14px;
+}
+
+/* L'article scrolle juste sous le hero sticky */
+.story-block .article {
+  position: relative;
+  z-index: 1;
+  padding-top: 32px;     /* pas trop de margin pour que le 1er paragraphe soit visible vite */
+  padding-bottom: 64vh;  /* respiration en bas pour que le dernier para puisse être pleinement lu avant que le hero se décolle */
+}
+
+/* MOBILE — sticky plus compact pour laisser de la place au texte */
+@media (max-width: 900px) {
+  .story-block .hero-3d {
+    top: 56px;
+    padding: 12px 0 0;
+  }
+  .story-block .hero-3d .stage {
+    height: 42vh;
+    min-height: 260px;
+    max-height: 420px;
+  }
+  .story-block .article {
+    padding-top: 24px;
+    padding-bottom: 48vh;
+  }
+}
+@media (max-width: 600px) {
+  .story-block .hero-3d .stage { height: 38vh; min-height: 240px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIVING TIMELINE — point qui circule + stations qui s'illuminent
+   ═══════════════════════════════════════════════════════════ */
+
+/* Reset progressif de la ligne dorée (animée maintenant)
+   Note de sync : la ligne et le point parcourent l'intégralité
+   du rail (0% → 100%), pas seulement entre les centres de stations.
+   C'est ce qui garantit un rythme RÉGULIER : chaque traversée de
+   colonne dure exactement cycleDuration / 7, y compris la première.
+   Le snap-back de fin est masqué par un fondu d'opacity sur le dernier 1%. */
+.timeline-d .track .line::before {
+  width: 0;
+  animation: tl-progress 16s linear infinite;
+}
+@keyframes tl-progress {
+  0%      { width: 0%; opacity: 1; }
+  99%     { width: 99%; opacity: 1; }
+  100%    { width: 100%; opacity: 0; }
+}
+
+/* Le point qui circule sur le rail — départ à 0%, fin à 100%.
+   Mouvement parfaitement linéaire = vitesse constante = chaque
+   colonne traversée dans le même temps. */
+.timeline-d .head-dot {
+  position: absolute;
+  top: 50%; left: 0%;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--th-accent);
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 4px rgba(184,150,90,.18),
+    0 0 18px 2px rgba(184,150,90,.55);
+  z-index: 3;
+  animation: tl-run 16s linear infinite;
+  pointer-events: none;
+}
+@keyframes tl-run {
+  0%      { left: 0%; opacity: 1; }
+  99%     { left: 99%; opacity: 1; }
+  100%    { left: 100%; opacity: 0; }
+}
+
+/* Transitions pour les stations — courtes pour que le passage soit net.
+   On combine ces .12s avec le LOOKAHEAD du JS (~0.8% de rail = ~120ms
+   d'avance) pour que la station soit pleinement éclairée AU MOMENT où
+   le point la traverse, pas 120ms après. */
+.timeline-d .stn .dot,
+.timeline-d .stn .year,
+.timeline-d .stn .ev,
+.timeline-d .stn .stamp,
+.timeline-d .stn .place {
+  transition: color .12s var(--th-ease-out),
+              background .12s var(--th-ease-out),
+              opacity .12s var(--th-ease-out),
+              font-size .12s var(--th-ease-out),
+              width .12s var(--th-ease-out),
+              height .12s var(--th-ease-out),
+              box-shadow .12s var(--th-ease-out);
+}
+
+/* Quand l'animation est active, les stations non-actives s'estompent */
+.timeline-d.live .stn:not(.on) .year,
+.timeline-d.live .stn:not(.on) .stamp { opacity: .35; }
+.timeline-d.live .stn:not(.on) .ev    { opacity: .25; }
+.timeline-d.live .stn:not(.on) .place { opacity: .20; }
+.timeline-d.live .stn.done .year,
+.timeline-d.live .stn.done .stamp { opacity: .55; }
+.timeline-d.live .stn.done .ev,
+.timeline-d.live .stn.done .place { opacity: .35; }
+
+/* MOBILE — l'anim horizontale n'a pas de sens en rail vertical, on garde
+   uniquement le cycle d'illumination des stations */
+@media (max-width: 768px) {
+  .timeline-d .head-dot { display: none; }
+  .timeline-d .track .line::before { animation: none; width: 0; }
+}
+
+/* RESPECT prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .timeline-d .head-dot { animation: none; }
+  .timeline-d .track .line::before { animation: none; width: 38%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── TOP BAR ─── -->
+<header class="topbar">
+  <a class="brand" href="/">
+    <!-- Replace with your logo -->
+    <span style="font-family:var(--th-serif);">Tadamhome <em>/ Icônes</em></span>
+  </a>
+  <div class="meta">
+    <span class="label-meta">Édition <em>N°14</em> · 7 mai 2026</span>
+    <span class="sep"></span>
+    <a href="/icones/archives">Archives →</a>
+  </div>
+</header>
+
+<!-- ─── MASTHEAD — COUVERTURE LIFESTYLE ─── -->
+<!--
+  ════════════════════════════════════════════════════════════════
+  TODO: branche ta photo lifestyle du LC2 en remplaçant l'attribut
+        style="" ci-dessous par :
+        style="--cover-image: url('https://...lc2-en-situation.jpg');"
+
+  Conseils pour bien choisir la photo :
+  • Format paysage, haute résolution (≥ 2400px de large)
+  • Le fauteuil idéalement à gauche ou centre, jamais en bas-gauche
+    (le titre vient se poser dans cette zone)
+  • Une zone visuellement « calme » dans la moitié inférieure gauche
+    (mur uni, sol, ombre) pour que le titre reste lisible
+  • Lumière naturelle, ambiance « salon habité » plutôt que showroom
+  ════════════════════════════════════════════════════════════════
+-->
+<section class="masthead" data-edito-bg="hero" style="">
+  <!-- Top: issue number + meta, on photo -->
+  <div class="issue-top">
+    <span data-edito="numero-kicker">Édition <em>N°—</em></span>
+    <span class="right">
+      <span class="label-meta" data-edito="date-byline">— · — min de lecture</span>
+    </span>
+  </div>
+
+  <div class="wrap">
+    <div class="row">
+      <div class="left">
+        <h1 data-edito="titre">—</h1>
+        <div class="by" data-edito="byline">Par <em>Tadamhome</em></div>
+      </div>
+      <p class="summary" data-edito="summary">—</p>
+    </div>
+  </div>
+
+  <!-- Discrete photo credit, bottom-right -->
+  <span class="photo-credit" data-edito="hero-credit">Ph. —</span>
+</section>
+
+<!-- ─── STORY BLOCK : hero 3D sticky + article qui scrolle dessous ─── -->
+<div class="story-block">
+
+<!-- ─── HERO 3D — vitrine de musée (auto-rotate, no controls) ─── -->
+<section class="hero-3d">
+  <div class="wrap">
+    <div class="stage">
+      <span class="corner-tr"></span>
+      <span class="corner-bl"></span>
+      <span class="badge"><span class="dot"></span>Modèle 3D · Vue libre</span>
+
+      <!--
+        ════════════════════════════════════════════════════════════
+        TODO: remplacer src="" par l'URL Supabase du modèle GLB du LC2
+        Exemple: src="https://wbunwfxecvxngypuehop.supabase.co/storage/v1/object/public/products/lc2.glb"
+        ════════════════════════════════════════════════════════════
+        Note: PAS de camera-controls (pas manipulable),
+              auto-rotate avec rotation lente type musée.
+      -->
+      <model-viewer
+        src=""
+        alt="Fauteuil LC2 — Le Corbusier, Jeanneret, Perriand · 1928"
+        auto-rotate
+        auto-rotate-delay="0"
+        rotation-per-second="18deg"
+        interaction-prompt="none"
+        disable-zoom
+        disable-pan
+        disable-tap
+        shadow-intensity="1"
+        shadow-softness="0.9"
+        exposure="1.05"
+        environment-image="neutral">
+        <!-- Fallback poster shown when no GLB is loaded yet -->
+        <div class="poster" slot="poster">
+          <span class="label">— En attente du modèle —</span>
+          <span class="name">LC2 · 1928</span>
+          <span class="label" style="opacity:.5;">Branchez l'URL Supabase</span>
+        </div>
+      </model-viewer>
+    </div>
+    <div class="caption">
+      <span data-edito="caption-3d"><em>—</em></span>
+      <span>Modèle 3D · Tadamhome</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ARTICLE — chapitres ─── -->
+<article class="article">
+  <div class="wrap" style="padding:0;">
+    <p class="lede" data-edito="lede">—</p>
+
+    <div class="chap">Chapitre <em>I</em> · L'objet</div>
+    <h3>Une structure qui se montre, un confort qui se pose <em>dessus.</em></h3>
+    <p>Avant le LC2, le fauteuil club anglais cachait sa charpente sous le cuir et le crin. Le Corbusier renverse la pudeur : le tube d'acier chromé devient l'œuvre, le coussin un module amovible. Quatre coussins, quatre poses possibles. Le fauteuil n'impose plus une posture — il en propose plusieurs.</p>
+    <p>Cette grammaire, déposée en 1928 au Salon d'Automne sous le nom <em>« Equipement intérieur d'une habitation »</em>, inaugure ce que Charlotte Perriand appellera plus tard « le mobilier qui n'a plus honte de sa technique ».</p>
+
+    <div class="chap" data-edito="chap2-kicker">Chapitre <em>II</em> · Le designer</div>
+    <h3 data-edito="chap2-titre">—</h3>
+    <div data-edito="chap2-body"></div>
+
+    <div class="chap">Chapitre <em>III</em> · Postérité</div>
+    <h3>De la pièce de salon à la <em>pièce de musée.</em></h3>
+    <p>En 1965, Cassina relance la production sous licence — le LC2 devient l'un des premiers <em>« classiques modernes »</em> réédités à l'identique. Le MoMA l'intègre à sa collection permanente en 1985. Aujourd'hui, le tube chromé reste le même, les coussins existent en vingt teintes, et le fauteuil franchit les frontières de l'intérieur pour rejoindre le jardin.</p>
+  </div>
+</article>
+
+</div><!-- /.story-block -->
+
+<!-- ─── ANATOMIE — 5 détails cliquables ─── -->
+<section class="anatomy">
+  <div class="wrap">
+    <div class="head">
+      <div class="left">
+        <div class="eyebrow">Anatomie cliquable</div>
+        <h2 data-edito="anatomy-h2">Cinq détails qui font le <em>—</em>.</h2>
+      </div>
+      <span class="legend">Cliquez les épingles · 5 détails</span>
+    </div>
+
+    <div class="grid">
+      <div class="stage-img">
+        <img class="photo" id="anatomy-photo" alt="Vue anatomique" style="width:100%;height:100%;object-fit:cover;display:block"/>
+        <div id="anatomy-pins-container"><!-- généré par JS --></div>
+      </div>
+
+      <div class="panel" id="anatomy-panel">
+        <span class="num" id="anatomy-num">01</span>
+        <h4 id="anatomy-title">—</h4>
+        <p id="anatomy-body">Cliquez une épingle pour découvrir le détail.</p>
+        <div class="nav" id="anatomy-nav"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TIMELINE — variation D · fond sombre + grille dorée ─── -->
+<section class="timeline-d">
+  <div class="wrap">
+    <div class="head">
+      <div class="left">
+        <div class="eyebrow" data-edito="timeline-eyebrow">— L'histoire</div>
+        <h2 data-edito="timeline-h2">Sept moments, <em>une</em> trajectoire.</h2>
+      </div>
+      <div class="right" data-edito="timeline-intro"><strong>—</strong></div>
+    </div>
+
+    <div class="rail-head">
+      <span class="lbl">— Le fil</span>
+      <span class="span" data-edito="timeline-span">— ——— —</span>
+    </div>
+
+    <div class="track">
+      <div class="line"></div>
+      <div class="head-dot"></div>
+      <div class="stations"><!-- généré par JS --></div>
+          <div class="dot"></div><span class="tick"></span>
+          <div class="bot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── AR CTA ─── -->
+<section class="ar-cta">
+  <div class="wrap">
+    <div class="grid">
+      <div class="left">
+        <div class="eyebrow">— Essayez chez vous</div>
+        <h2>Le LC2 dans <em>votre</em> salon, en réalité augmentée.</h2>
+        <p>Tadamhome scanne votre intérieur, place le fauteuil à l'échelle réelle, et vous laisse comparer avec ce qui s'y trouve déjà. Sans inscription.</p>
+        <div class="actions">
+          <!-- TODO: lien vers scan.html avec l'identifiant produit du LC2 -->
+          <a class="cta-primary" id="ar-cta" href="#">Voir <span data-edito="ar-cta-name">cet objet</span> chez moi <span class="arr">→</span></a>
+          <a class="cta-secondary" href="/catalogue.html">Découvrir le catalogue <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="right">
+        <!-- TODO: remplacer par <img> ou <video> mockup AR du LC2 placé dans un salon -->
+        <div class="placeholder">
+          <small>Aperçu AR</small>
+          Le LC2 placé<br>chez vous
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ARCHIVES ─── -->
+<section class="archives">
+  <div class="wrap">
+    <div class="head">
+      <h2>Éditions <em>précédentes</em></h2>
+      <a href="/icones/archives">Toutes les archives <span class="arr">→</span></a>
+    </div>
+    <div class="grid">
+      <a class="card" href="/icones/egg-chair">
+        <div class="img">N°13</div>
+        <div class="n">N°13</div>
+        <div class="t">L'Egg Chair, l'œuf qui contient son monde.</div>
+        <div class="by">Arne Jacobsen · 1958</div>
+      </a>
+      <a class="card" href="/icones/eames-lounge">
+        <div class="img">N°12</div>
+        <div class="n">N°12</div>
+        <div class="t">L'Eames Lounge, le luxe assis.</div>
+        <div class="by">Charles & Ray Eames · 1956</div>
+      </a>
+      <a class="card" href="/icones/arco">
+        <div class="img">N°11</div>
+        <div class="n">N°11</div>
+        <div class="t">Arco, l'arche qui suspend la lumière.</div>
+        <div class="by">A. & P. Castiglioni · 1962</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER · S'ABONNER ─── -->
+<footer class="subscribe">
+  <div class="wrap">
+    <div class="row">
+      <div>
+        <h2>Recevez <em>Icônes</em> chaque mois.</h2>
+        <p>Une pièce, son histoire, son AR. Pas de promo, pas de tracking lourd — juste du design, et la possibilité de l'essayer chez vous.</p>
+      </div>
+      <div>
+        <form class="sub-form" id="subForm" novalidate>
+          <input type="email" placeholder="vous@email.com" required aria-label="Adresse e-mail">
+          <button type="submit">S'abonner →</button>
+        </form>
+      </div>
+    </div>
+    <div class="legal">
+      <span>© Tadamhome 2026 · Newsletter Icônes</span>
+      <span><a href="/preferences">Préférences</a> · <a href="/unsubscribe">Se désabonner</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════
+   ANATOMIE — pin click → update panel
+   ═══════════════════════════════════════════════ */
+const ANATOMY_DATA = {
+  '1': {
+    num: '01',
+    title: 'Le tube d\'acier chromé',
+    text: 'La structure courbée d\'un seul jet par cintrage à chaud, finition chrome miroir. Sur les éditions récentes, l\'acier est en moyenne 1,5 mm plus épais que sur une copie — d\'où la rigidité.'
+  },
+  '2': {
+    num: '02',
+    title: 'Le coussin du dossier',
+    text: 'Posé librement sur la structure, retenu par gravité seule. Sa garniture en plumes (édition Cassina) lui donne ce pli caractéristique en fer à cheval lorsqu\'on s\'y appuie.'
+  },
+  '3': {
+    num: '03',
+    title: 'Les coussins d\'assise',
+    text: 'Deux modules indépendants, garnissage mousse haute densité enveloppé de plumes. Cette double densité explique la fermeté qui dure — là où les copies s\'affaissent en deux saisons.'
+  },
+  '4': {
+    num: '04',
+    title: 'Les pieds boule',
+    text: 'Quatre patins sphériques en acier chromé, rivetés au tube. Le détail qui fait que le fauteuil semble flotter à un centimètre du sol — la signature visuelle invisible.'
+  },
+  '5': {
+    num: '05',
+    title: 'La sangle de cuir',
+    text: 'Tendue à l\'arrière entre les deux montants verticaux. Elle empêche le coussin de basculer vers l\'arrière sans rien rigidifier — l\'élégance d\'une solution mécanique invisible.'
+  }
+};
+
+const pins = document.querySelectorAll('.anatomy .pin');
+const panel = document.getElementById('anatomy-panel');
+
+pins.forEach(pin => {
+  pin.addEventListener('click', () => {
+    const id = pin.dataset.pin;
+    const data = ANATOMY_DATA[id];
+    if (!data) return;
+
+    // update active state
+    pins.forEach(p => p.classList.remove('active'));
+    pin.classList.add('active');
+
+    // update panel
+    panel.querySelector('.num').textContent = data.num;
+    panel.querySelector('h4').textContent = data.title;
+    panel.querySelector('p').textContent = data.text;
+
+    const navSpans = panel.querySelectorAll('.nav span');
+    navSpans.forEach((s, i) => s.classList.toggle('on', i + 1 === parseInt(id)));
+  });
+});
+
+/* ═══════════════════════════════════════════════
+   SUB FORM — graceful no-op until backend wired
+   ═══════════════════════════════════════════════ */
+document.getElementById('subForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const input = e.target.querySelector('input');
+  const btn = e.target.querySelector('button');
+  // TODO: connecter à votre service (Supabase / Mailchimp / Resend …)
+  btn.textContent = 'Inscrit ✓';
+  btn.style.color = 'var(--th-accent)';
+  input.value = '';
+  input.placeholder = 'Merci ! On vous écrit le 1er du mois prochain.';
+  setTimeout(() => {
+    btn.textContent = 'S\'abonner →';
+    input.placeholder = 'vous@email.com';
+  }, 4000);
+});
+
+/* ═══════════════════════════════════════════════
+   LIVING TIMELINE — illumination pilotée par la
+   POSITION RÉELLE du point (rAF 60fps).
+   Avec point qui démarre à 0% et finit à 100%
+   linéairement, chaque colonne du rail est parcourue
+   dans exactement le même temps : rythme régulier.
+   ═══════════════════════════════════════════════ */
+(function liveTimeline() {
+  const timeline = document.querySelector('.timeline-d');
+  if (!timeline) return;
+  const stations = timeline.querySelectorAll('.stn');
+  const dot      = timeline.querySelector('.head-dot');
+  const track    = timeline.querySelector('.track');
+  if (!stations.length || !dot || !track) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  timeline.classList.add('live');
+
+  const total = stations.length;   // 7 stations
+  let lastIndex = -1;
+
+  function update() {
+    const dotRect   = dot.getBoundingClientRect();
+    const trackRect = track.getBoundingClientRect();
+    if (!trackRect.width) {
+      requestAnimationFrame(update);
+      return;
+    }
+    const dotCenterX     = dotRect.left + dotRect.width / 2;
+    const dotPctFromLeft = (dotCenterX - trackRect.left) / trackRect.width;
+
+    // La station active est simplement celle dont le point occupe la colonne
+    let activeIndex = Math.floor(dotPctFromLeft * total);
+    activeIndex = Math.max(0, Math.min(total - 1, activeIndex));
+
+    if (activeIndex !== lastIndex) {
+      lastIndex = activeIndex;
+      stations.forEach((s, i) => {
+        s.classList.remove('on', 'done');
+        if (i === activeIndex) s.classList.add('on');
+        if (i < activeIndex)   s.classList.add('done');
+      });
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  requestAnimationFrame(update);
+})();
+
+/* ═══════════════════════════════════════════════
+   FADE-IN on scroll (subtle)
+   ═══════════════════════════════════════════════ */
+if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => e.isIntersecting && e.target.classList.add('in'));
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.masthead, .hero-3d, .article, .anatomy, .timeline-d, .ar-cta, .archives').forEach(el => {
+    // Skip elements inside .story-block — `transform` on a sticky element
+    // (or its parent) creates a new stacking context that breaks sticky positioning.
+    if (el.closest('.story-block')) return;
+    el.classList.add('fade-up');
+    io.observe(el);
+  });
+}
+</script>
+
+
+<!-- ═══ DATA LOADER · fetch editorial from Supabase by slug ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async () => {
+  const SUPA_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+  const SUPA_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+  const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  // ── Get slug from URL (?slug=lc2-le-corbusier or ?slug=...) ──
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('slug');
+
+  if (!slug) {
+    document.body.style.visibility = 'visible';
+    document.body.innerHTML = '<div style="padding:80px 24px;text-align:center;font-family:Outfit,sans-serif"><h1 style="font-family:Cormorant Garamond,serif;font-weight:300;font-size:42px;margin-bottom:16px">Édito introuvable</h1><p>Aucun slug fourni dans l\'URL. Format attendu : <code>edito.html?slug=…</code></p></div>';
+    return;
+  }
+
+  // ── Fetch the editorial + linked product (for fallback GLB & AR id) ──
+  const { data: edito, error } = await sb
+    .from('editorials')
+    .select('*, products(id, model_glb_url, model_usdz_url)')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (error || !edito) {
+    document.body.style.visibility = 'visible';
+    document.body.innerHTML = `<div style="padding:80px 24px;text-align:center;font-family:Outfit,sans-serif"><h1 style="font-family:Cormorant Garamond,serif;font-weight:300;font-size:42px;margin-bottom:16px">Édito introuvable</h1><p>Pas de publication trouvée pour le slug <strong>"${slug}"</strong>.</p><p style="margin-top:24px;font-size:12px;color:#888">${error ? error.message : ''}</p></div>`;
+    return;
+  }
+
+  document.title = (edito.nom_meuble ? edito.nom_meuble + ' · ' : '') + 'Icônes — Tadamhome';
+
+  // ── Helpers ─────────────────────────────────────────────────
+  const setHTML = (sel, html) => {
+    document.querySelectorAll(sel).forEach(el => { if (html != null) el.innerHTML = html; });
+  };
+  const setText = (sel, text) => {
+    document.querySelectorAll(sel).forEach(el => { if (text != null) el.textContent = text; });
+  };
+  const setBg = (sel, url) => {
+    document.querySelectorAll(sel).forEach(el => { if (url) el.style.setProperty('--hero-bg', `url("${url}")`); });
+  };
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    const d = new Date(iso);
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  };
+  const readingTime = (texts) => {
+    const words = texts.filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length;
+    return Math.max(2, Math.round(words / 200));
+  };
+  const paragraphs = (text) => {
+    if (!text) return '<p>—</p>';
+    return text.split(/\n\s*\n/).filter(p => p.trim()).map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`).join('');
+  };
+
+  // ── 1) MASTHEAD ─────────────────────────────────────────────
+  const kicker = (edito.numero ? `Édition <em>N°${edito.numero}</em>` : '') +
+                 (edito.categorie ? ' · ' + edito.categorie : '') +
+                 (edito.mouvement ? ' · ' + edito.mouvement : '');
+  setHTML('[data-edito="numero-kicker"]', kicker);
+
+  const minutes = readingTime([edito.chapeau, edito.texte_histoire, edito.texte_designer, edito.texte_mouvement]);
+  setText('[data-edito="date-byline"]', fmtDate(edito.date_publication) + ' · ' + minutes + ' min de lecture');
+
+  // Title — accept HTML (em, br) directly from DB
+  setHTML('[data-edito="titre"]',
+          edito.titre || `Le <em>${edito.nom_meuble || '—'}</em>`);
+
+  setText('[data-edito="hero-credit"]', edito.hero_credit ? 'Ph. ' + edito.hero_credit : 'Ph. — à créditer');
+
+  setText('[data-edito="summary"]', edito.chapeau || '');
+
+  // Hero background photo — set inline on the masthead via background-image
+  const masthead = document.querySelector('[data-edito-bg="hero"]');
+  if (masthead && edito.hero_image_url) {
+    masthead.style.backgroundImage = `linear-gradient(180deg, rgba(20,18,14,.10) 0%, rgba(20,18,14,.20) 50%, rgba(20,18,14,.55) 100%), url("${edito.hero_image_url}")`;
+    masthead.style.backgroundSize = 'cover';
+    masthead.style.backgroundPosition = 'center';
+  }
+
+  // Caption under 3D
+  setHTML('[data-edito="caption-3d"]',
+          `<em>${edito.nom_meuble || '—'}</em>${edito.annee ? ' · ' + edito.annee : ''}${edito.marque ? ' — édition ' + edito.marque : ''}`);
+
+  // ── 2) 3D MODEL ─────────────────────────────────────────────
+  const glbUrl = edito.model_glb_url || edito.products?.model_glb_url;
+  if (glbUrl) {
+    document.querySelectorAll('model-viewer').forEach(mv => mv.setAttribute('src', glbUrl));
+  }
+
+  // ── 3) ARTICLE — lede + 3 chapters ──────────────────────────
+  setText('[data-edito="lede"]', edito.chapeau || edito.citation || '');
+
+  setHTML('[data-edito="chap1-kicker"]', edito.chap1_kicker || 'Chapitre <em>I</em> · L\'objet');
+  setText('[data-edito="chap1-titre"]', edito.chap1_titre || 'L\'objet');
+  setHTML('[data-edito="chap1-body"]', paragraphs(edito.texte_histoire));
+
+  setHTML('[data-edito="chap2-kicker"]', edito.chap2_kicker || 'Chapitre <em>II</em> · Le designer');
+  setText('[data-edito="chap2-titre"]', edito.chap2_titre || 'Le designer');
+  setHTML('[data-edito="chap2-body"]', paragraphs(edito.texte_designer));
+
+  setHTML('[data-edito="chap3-kicker"]', edito.chap3_kicker || 'Chapitre <em>III</em> · Postérité');
+  setText('[data-edito="chap3-titre"]', edito.chap3_titre || 'Postérité');
+  setHTML('[data-edito="chap3-body"]', paragraphs(edito.texte_mouvement));
+
+  // ── 4) ANATOMY ──────────────────────────────────────────────
+  setHTML('[data-edito="anatomy-h2"]',
+          `Cinq détails qui font le <em>${edito.nom_meuble || '—'}</em>.`);
+
+  // Anatomy photo
+  const anatomyPhoto = document.getElementById('anatomy-photo');
+  if (anatomyPhoto && edito.anatomie_image_url) {
+    anatomyPhoto.src = edito.anatomie_image_url;
+  }
+
+  // Anatomy pins
+  const pins = Array.isArray(edito.anatomie_pins) ? edito.anatomie_pins : [];
+  const pinsContainer = document.getElementById('anatomy-pins-container');
+  const panel = document.getElementById('anatomy-panel');
+  const numEl = document.getElementById('anatomy-num');
+  const titleEl = document.getElementById('anatomy-title');
+  const bodyEl = document.getElementById('anatomy-body');
+  const navEl = document.getElementById('anatomy-nav');
+
+  if (pinsContainer) {
+    pinsContainer.innerHTML = pins.map((p, i) => `
+      <div class="pin${i===0?' active':''}" data-pin-idx="${i}" style="top: ${p.y}%; left: ${p.x}%;">${i+1}${i===0?'<span class="ring"></span>':''}</div>
+    `).join('');
+  }
+  if (navEl && pins.length) {
+    navEl.innerHTML = pins.map((_, i) => `<span${i===0?' class="on"':''}></span>`).join('');
+  }
+  // Show first pin's content by default
+  if (pins.length) {
+    const first = pins[0];
+    if (numEl) numEl.textContent = '01';
+    if (titleEl) titleEl.textContent = first.titre || '—';
+    if (bodyEl) bodyEl.textContent = first.texte || '';
+  }
+
+  // Wire pin click handlers
+  document.querySelectorAll('.pin[data-pin-idx]').forEach(pinEl => {
+    pinEl.addEventListener('click', () => {
+      const idx = parseInt(pinEl.dataset.pinIdx);
+      const p = pins[idx]; if (!p) return;
+      // Active pin styling
+      document.querySelectorAll('.pin').forEach(x => x.classList.remove('active'));
+      pinEl.classList.add('active');
+      // Update panel
+      if (numEl) numEl.textContent = String(idx + 1).padStart(2, '0');
+      if (titleEl) titleEl.textContent = p.titre || '—';
+      if (bodyEl) bodyEl.textContent = p.texte || '';
+      // Update nav dots
+      if (navEl) {
+        navEl.querySelectorAll('span').forEach((s, i) => {
+          s.classList.toggle('on', i === idx);
+        });
+      }
+    });
+  });
+
+  // ── 5) TIMELINE ─────────────────────────────────────────────
+  const stations = Array.isArray(edito.timeline_stations) ? edito.timeline_stations : [];
+  if (stations.length) {
+    // First and last year for the rail header
+    const years = stations.map(s => s.annee).filter(Boolean);
+    if (years.length >= 2) {
+      setHTML('[data-edito="timeline-span"]', `${years[0]} ——— ${years[years.length-1]}`);
+      setHTML('[data-edito="timeline-intro"]',
+        `<strong>${years[0]} — ${years[years.length-1]}.</strong> ${stations.length} stations racontent comment ${edito.nom_meuble||'cet objet'} a traversé le temps.`);
+    }
+
+    setHTML('[data-edito="timeline-eyebrow"]',
+            `— L\'histoire du ${edito.nom_meuble || ''}`);
+
+    const stationsEl = document.querySelector('.timeline-d .stations');
+    if (stationsEl) {
+      stationsEl.innerHTML = stations.map((s, i) => {
+        const isTop = i % 2 === 0;
+        const block = `
+          <div class="${isTop ? 'top' : 'bot'}">
+            <div class="stamp">— ${s.stamp || ''}</div>
+            <div class="year">${s.annee || ''}</div>
+            <div class="ev">${(s.evenement || '').replace(/\n/g, '<br>')}</div>
+            ${s.lieu ? `<div class="place">${s.lieu}</div>` : ''}
+          </div>`;
+        return `
+          <div class="stn done">
+            ${isTop ? block : '<div class="top"></div>'}
+            <div class="dot"></div><span class="tick"></span>
+            ${!isTop ? block : '<div class="bot"></div>'}
+          </div>`;
+      }).join('');
+    }
+  }
+
+  // ── 6) AR CTA ──────────────────────────────────────────────
+  const arCta = document.getElementById('ar-cta');
+  const arProductId = edito.product_id || edito.products?.id;
+  if (arCta) {
+    if (arProductId) {
+      arCta.href = `https://tadamhome.fr/scan?id=${arProductId}`;
+    } else if (glbUrl) {
+      // No product link but we have a GLB — fallback (not ideal but better than dead link)
+      arCta.href = '#';
+      arCta.style.opacity = '0.5';
+      arCta.title = 'Aucun produit lié';
+    } else {
+      arCta.style.display = 'none';
+    }
+  }
+  setText('[data-edito="ar-cta-name"]', edito.nom_meuble ? `le ${edito.nom_meuble}` : 'cet objet');
+
+  // ── 7) Reveal page ─────────────────────────────────────────
+  document.body.style.visibility = 'visible';
+})();
+</script>
+
+</body>
+</html>
