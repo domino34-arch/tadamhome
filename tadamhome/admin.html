@@ -208,6 +208,46 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .char-count{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:right;margin-top:3px}
 .field textarea.long{min-height:120px}
 
+/* ── NEWSLETTER · Anatomie & Timeline ── */
+.anatomie-row,
+.timeline-row{
+  display:flex;
+  gap:14px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  padding:14px 16px;
+  margin-bottom:6px;
+}
+.anatomie-num,
+.timeline-num{
+  font-family:var(--serif);
+  font-size:32px;
+  font-weight:300;
+  color:rgba(184,152,106,.45);
+  width:42px;
+  flex-shrink:0;
+  text-align:center;
+  line-height:1;
+  letter-spacing:.04em;
+}
+.anatomie-fields,
+.timeline-fields{
+  flex:1;
+  min-width:0;
+}
+.anatomie-fields .field,
+.timeline-fields .field{
+  margin-bottom:8px;
+}
+.anatomie-fields .field:last-child,
+.timeline-fields .field:last-child{
+  margin-bottom:0;
+}
+.anatomie-fields textarea{
+  min-height:50px;
+  font-size:12px;
+}
+
 @media(max-width:768px){
   .sidebar{width:180px}
   .stats-grid{grid-template-columns:1fr 1fr}
@@ -590,6 +630,78 @@ tr:hover td{background:rgba(184,152,106,.03)}
         </div>
       </div>
 
+      <!-- ═══ NEWSLETTER · Titre & Chapô ═══ -->
+      <div class="modal-section">
+        <div class="modal-section-title">Titre éditorial & chapô</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Titre complet (peut contenir &lt;em&gt; et &lt;br&gt;)</label>
+          <textarea id="eiTitre" rows="3" placeholder="Le <em>LC2</em><br>ou la grille<br>du confort." style="font-family:var(--serif);font-size:17px;line-height:1.3"></textarea>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:4px">
+            &lt;em&gt;mot&lt;/em&gt; = mot en italique or · &lt;br&gt; = retour à la ligne
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Chapô — paragraphe d'introduction (lede)</label>
+          <textarea id="eiChapeau" class="long" placeholder="Conçu en 1928 par Le Corbusier, Pierre Jeanneret et Charlotte Perriand…" oninput="updateCharCount(this,'ccChapeau')"></textarea>
+          <div class="char-count" id="ccChapeau">0 caractères</div>
+        </div>
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--sans)">Titres des trois chapitres</div>
+        <div class="form-grid">
+          <div class="field"><label>Titre chapitre 1 (l'objet)</label><input type="text" id="eiChap1Titre" placeholder="ex. Le coussin sur tube"/></div>
+          <div class="field"><label>Titre chapitre 2 (designer)</label><input type="text" id="eiChap2Titre" placeholder="ex. Trois cerveaux, une grille"/></div>
+        </div>
+        <div class="field" style="margin-top:8px"><label>Titre chapitre 3 (postérité)</label><input type="text" id="eiChap3Titre" placeholder="ex. L'icône qui ne plie pas"/></div>
+      </div>
+
+      <!-- ═══ NEWSLETTER · Photos ═══ -->
+      <div class="modal-section">
+        <div class="modal-section-title">Photos newsletter</div>
+        <div class="form-grid">
+          <div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--sans)">Couverture (lifestyle)</div>
+            <div class="drop-zone" style="padding:18px 14px">
+              <input type="file" id="fileEditoHero" accept=".jpg,.jpeg,.png,.webp" onchange="uploadEditoImage(this,'hero')"/>
+              <div class="drop-ico" style="font-size:18px">⊞</div>
+              <div class="drop-name" style="font-size:13px">Photo lifestyle</div>
+              <div class="drop-sub">JPG, PNG · ratio 4:3 conseillé</div>
+              <div class="drop-done" id="doneEditoHero"></div>
+            </div>
+            <input type="text" id="eiHeroUrl" class="url-input" placeholder="ou URL directe…"/>
+            <input type="text" id="eiHeroCredit" placeholder="Crédit photo (ex. Cassina Archives)" style="width:100%;padding:8px 12px;border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:12px;margin-top:6px;outline:none;color:var(--ink)"/>
+          </div>
+          <div>
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--sans)">Vue anatomique (avec épingles)</div>
+            <div class="drop-zone" style="padding:18px 14px">
+              <input type="file" id="fileEditoAnatomie" accept=".jpg,.jpeg,.png,.webp" onchange="uploadEditoImage(this,'anatomie')"/>
+              <div class="drop-ico" style="font-size:18px">⊕</div>
+              <div class="drop-name" style="font-size:13px">Photo anatomique</div>
+              <div class="drop-sub">Photo nette · fond clair</div>
+              <div class="drop-done" id="doneEditoAnatomie"></div>
+            </div>
+            <input type="text" id="eiAnatomieUrl" class="url-input" placeholder="ou URL directe…"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ NEWSLETTER · Anatomie 5 épingles ═══ -->
+      <div class="modal-section">
+        <div class="modal-section-title">Anatomie · 5 épingles cliquables</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--sans);margin-bottom:10px;line-height:1.5">
+          Chaque épingle pointe un détail anatomique sur la photo ci-dessus.<br>
+          Position en % : <strong>0,0</strong> = haut-gauche · <strong>100,100</strong> = bas-droite.
+        </div>
+        <div id="anatomiePins"><!-- généré par buildAnatomieRows() --></div>
+      </div>
+
+      <!-- ═══ NEWSLETTER · Timeline 7 stations ═══ -->
+      <div class="modal-section">
+        <div class="modal-section-title">Timeline · 7 stations</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--sans);margin-bottom:10px;line-height:1.5">
+          Sept moments clés. Le point lumineux les parcourra en boucle sur la page éditoriale.
+        </div>
+        <div id="timelineStations"><!-- généré par buildTimelineRows() --></div>
+      </div>
+
       <!-- Modèle 3D -->
       <div class="modal-section">
         <div class="modal-section-title">Modèle 3D</div>
@@ -760,7 +872,7 @@ const sb = createClient(SUPA_URL, SUPA_KEY);
 let allProducts   = [];
 let allEditorials = [];
 let deleteId      = null;
-let deleteType    = 'product'; // 'product' | 'edito'
+let deleteType    = 'product';
 let editId        = null;
 let editGlbUrl    = null;
 let editUsdzUrl   = null;
@@ -772,7 +884,9 @@ let uTexUrl = null, uGlbUrlCo = null, uUsdzUrlCo = null;
 let eTexUrl = null, eGlbUrlCo = null, eUsdzUrlCo = null;
 let glbUrl  = null, usdzUrl   = null;
 let meshyGlbUrl  = null, meshyUsdzUrl = null, meshyImgUrl = null, meshyTaskId = null;
-let currentEditoId = null; // édito en cours d'édition
+let currentEditoId = null;
+let editoHeroUrl     = null;   // newsletter hero
+let editoAnatomieUrl = null;   // newsletter anatomie
 
 /* ══ LOCK ══ */
 function unlock() {
@@ -822,7 +936,6 @@ function showPanel(name) {
   document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
   document.getElementById('topbarActions').innerHTML = panelActions[name] || panelActions.default;
   document.querySelector('.content').scrollTop = 0;
-  // nav highlight
   const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes'};
   document.querySelectorAll('.nav-btn').forEach(b => {
     if (b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
@@ -877,7 +990,7 @@ function renderTable(products, id) {
   el.innerHTML = h;
 }
 
-/* ══ POPULATE PRODUCT SELECT (for édito modal) ══ */
+/* ══ POPULATE PRODUCT SELECT (édito modal) ══ */
 function populateProductSelect() {
   const sel = document.getElementById('eiProductId');
   if (!sel) return;
@@ -957,13 +1070,151 @@ function renderEditoTable(editorials) {
       </td>
       <td><div class="row-actions">
         <button class="row-btn" onclick="openEditEdito('${e.id}')">✏ Éditer</button>
-        <button class="row-btn" onclick="window.open('/edito?slug=' + (e.slug||e.id), '_blank')">Voir</button>
+        <button class="row-btn" onclick="window.open('/edito.html?slug=' + (e.slug||e.id), '_blank')">Voir</button>
         <button class="row-btn del" onclick="askDelete('${e.id}','${nm}','edito')">✕</button>
       </div></td>
     </tr>`;
   });
   h += '</tbody></table>';
   el.innerHTML = h;
+}
+
+/* ══ NEWSLETTER · Build dynamic rows (anatomie + timeline) ══ */
+function buildAnatomieRows() {
+  const html = [1,2,3,4,5].map(n => `
+    <div class="anatomie-row">
+      <div class="anatomie-num">${String(n).padStart(2,'0')}</div>
+      <div class="anatomie-fields">
+        <div class="field">
+          <label>Titre du détail</label>
+          <input type="text" id="pin${n}Titre" placeholder="ex. Le tube chromé"/>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="pin${n}Texte" rows="2" placeholder="ex. Acier nickelé poli, courbure obtenue à froid…"></textarea>
+        </div>
+        <div class="form-grid">
+          <div class="field" style="margin:0">
+            <label>Position X (%)</label>
+            <input type="number" id="pin${n}X" min="0" max="100" placeholder="50"/>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Position Y (%)</label>
+            <input type="number" id="pin${n}Y" min="0" max="100" placeholder="50"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  const target = document.getElementById('anatomiePins');
+  if (target) target.innerHTML = html;
+}
+
+function buildTimelineRows() {
+  const defaults = ['I · Rencontre','II · Atelier','III · Salon','IV · Pause','V · Renaissance','VI · Musée','VII · Présent'];
+  const html = [1,2,3,4,5,6,7].map(n => `
+    <div class="timeline-row">
+      <div class="timeline-num">${String(n).padStart(2,'0')}</div>
+      <div class="timeline-fields">
+        <div class="form-grid">
+          <div class="field" style="margin:0"><label>Année</label><input type="text" id="ts${n}Annee" placeholder="ex. 1928"/></div>
+          <div class="field" style="margin:0"><label>Stamp éditorial</label><input type="text" id="ts${n}Stamp" placeholder="${defaults[n-1]}"/></div>
+        </div>
+        <div class="field"><label>Événement</label><input type="text" id="ts${n}Evenement" placeholder="ex. Salon d'Automne · présentation publique"/></div>
+        <div class="field"><label>Lieu (optionnel)</label><input type="text" id="ts${n}Lieu" placeholder="ex. Paris · Grand Palais"/></div>
+      </div>
+    </div>
+  `).join('');
+  const target = document.getElementById('timelineStations');
+  if (target) target.innerHTML = html;
+}
+
+function collectAnatomiePins() {
+  const pins = [];
+  for (let n = 1; n <= 5; n++) {
+    const titre = (document.getElementById(`pin${n}Titre`)?.value || '').trim();
+    const texte = (document.getElementById(`pin${n}Texte`)?.value || '').trim();
+    const x = parseFloat(document.getElementById(`pin${n}X`)?.value);
+    const y = parseFloat(document.getElementById(`pin${n}Y`)?.value);
+    if (titre || texte) {
+      pins.push({
+        titre, texte,
+        x: isNaN(x) ? 50 : Math.max(0, Math.min(100, x)),
+        y: isNaN(y) ? 50 : Math.max(0, Math.min(100, y))
+      });
+    }
+  }
+  return pins;
+}
+
+function collectTimelineStations() {
+  const stations = [];
+  for (let n = 1; n <= 7; n++) {
+    const annee = (document.getElementById(`ts${n}Annee`)?.value || '').trim();
+    const stamp = (document.getElementById(`ts${n}Stamp`)?.value || '').trim();
+    const evenement = (document.getElementById(`ts${n}Evenement`)?.value || '').trim();
+    const lieu = (document.getElementById(`ts${n}Lieu`)?.value || '').trim();
+    if (annee || stamp || evenement) {
+      stations.push({annee, stamp, evenement, lieu});
+    }
+  }
+  return stations;
+}
+
+function populateAnatomiePins(pins) {
+  if (!Array.isArray(pins)) return;
+  pins.forEach((p, i) => {
+    const n = i + 1;
+    if (n > 5) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    set(`pin${n}Titre`, p.titre);
+    set(`pin${n}Texte`, p.texte);
+    set(`pin${n}X`, p.x);
+    set(`pin${n}Y`, p.y);
+  });
+}
+
+function populateTimelineStations(stations) {
+  if (!Array.isArray(stations)) return;
+  stations.forEach((s, i) => {
+    const n = i + 1;
+    if (n > 7) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    set(`ts${n}Annee`, s.annee);
+    set(`ts${n}Stamp`, s.stamp);
+    set(`ts${n}Evenement`, s.evenement);
+    set(`ts${n}Lieu`, s.lieu);
+  });
+}
+
+async function uploadEditoImage(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const doneId = type === 'hero' ? 'doneEditoHero' : 'doneEditoAnatomie';
+  const doneEl = document.getElementById(doneId);
+  if (doneEl) {
+    doneEl.style.display = 'block';
+    doneEl.textContent = '⏳ Upload en cours…';
+    doneEl.style.color = 'var(--muted)';
+  }
+  const ext = file.name.split('.').pop();
+  const path = `editos/${type}_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const {error} = await sb.storage.from(BUCKET).upload(path, file, {upsert: true});
+  if (error) {
+    if (doneEl) {
+      doneEl.textContent = '✗ Erreur : ' + error.message;
+      doneEl.style.color = 'var(--red)';
+    }
+    return;
+  }
+  const {data: pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+  const url = pub.publicUrl;
+  if (type === 'hero') editoHeroUrl = url;
+  else editoAnatomieUrl = url;
+  if (doneEl) {
+    doneEl.textContent = '✓ ' + file.name;
+    doneEl.style.color = 'var(--green)';
+  }
 }
 
 /* ══ ÉDITO MODAL ══ */
@@ -974,7 +1225,9 @@ function openNewEdito() {
   // Reset all fields
   ['eiNumero','eiSlug','eiNomMeuble','eiMarque','eiDesigners','eiAnnee',
    'eiPrix','eiLarg','eiHaut','eiProf','eiCitation',
-   'eiHistoire','eiDesigner','eiTexteMouvement','eiGlbUrl'].forEach(id => {
+   'eiHistoire','eiDesigner','eiTexteMouvement','eiGlbUrl',
+   'eiTitre','eiChapeau','eiHeroUrl','eiHeroCredit','eiAnatomieUrl',
+   'eiChap1Titre','eiChap2Titre','eiChap3Titre'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -984,17 +1237,26 @@ function openNewEdito() {
   document.getElementById('eiProductId').value  = '';
   document.getElementById('eiGlbLinked').textContent = '';
   document.getElementById('eiDate').value = new Date().toISOString().split('T')[0];
-  // Reset char counts
-  ['ccHistoire','ccDesigner','ccMouvement'].forEach(id => {
+  ['ccHistoire','ccDesigner','ccMouvement','ccChapeau'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '0 caractères';
   });
+  ['doneEditoHero','doneEditoAnatomie'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  editoHeroUrl = null;
+  editoAnatomieUrl = null;
   // Auto-numero
   const maxNum = allEditorials.reduce((m, e) => Math.max(m, e.numero||0), 0);
   document.getElementById('eiNumero').value = maxNum + 1;
   populateProductSelect();
+  // Build dynamic rows
+  buildAnatomieRows();
+  buildTimelineRows();
   document.getElementById('editoModal').classList.add('show');
 }
+
 function openEditEdito(id) {
   const e = allEditorials.find(x => x.id === id);
   if (!e) return;
@@ -1020,12 +1282,27 @@ function openEditEdito(id) {
   document.getElementById('eiTexteMouvement').value = e.texte_mouvement || '';
   document.getElementById('eiGlbUrl').value       = e.model_glb_url || '';
   document.getElementById('eiDate').value         = e.date_publication || '';
+  // Newsletter additions
+  document.getElementById('eiTitre').value        = e.titre || '';
+  document.getElementById('eiChapeau').value      = e.chapeau || '';
+  document.getElementById('eiHeroUrl').value      = e.hero_image_url || '';
+  document.getElementById('eiHeroCredit').value   = e.hero_credit || '';
+  document.getElementById('eiAnatomieUrl').value  = e.anatomie_image_url || '';
+  document.getElementById('eiChap1Titre').value   = e.chap1_titre || '';
+  document.getElementById('eiChap2Titre').value   = e.chap2_titre || '';
+  document.getElementById('eiChap3Titre').value   = e.chap3_titre || '';
   // Char counts
-  ['eiHistoire','eiDesigner','eiTexteMouvement'].forEach((fId, i) => {
-    const ccId = ['ccHistoire','ccDesigner','ccMouvement'][i];
+  ['eiHistoire','eiDesigner','eiTexteMouvement','eiChapeau'].forEach((fId, i) => {
+    const ccId = ['ccHistoire','ccDesigner','ccMouvement','ccChapeau'][i];
     const val = document.getElementById(fId).value;
     document.getElementById(ccId).textContent = val.length + ' caractères';
   });
+  ['doneEditoHero','doneEditoAnatomie'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  editoHeroUrl = null;
+  editoAnatomieUrl = null;
   populateProductSelect();
   if (e.product_id) {
     document.getElementById('eiProductId').value = e.product_id;
@@ -1033,12 +1310,21 @@ function openEditEdito(id) {
   } else {
     document.getElementById('eiGlbLinked').textContent = '';
   }
+  // Build & populate dynamic rows
+  buildAnatomieRows();
+  buildTimelineRows();
+  setTimeout(() => {
+    populateAnatomiePins(e.anatomie_pins || []);
+    populateTimelineStations(e.timeline_stations || []);
+  }, 0);
   document.getElementById('editoModal').classList.add('show');
 }
+
 function closeEditoModal() {
   document.getElementById('editoModal').classList.remove('show');
   currentEditoId = null;
 }
+
 async function saveEdito(forcedStatut) {
   const nom = document.getElementById('eiNomMeuble').value.trim();
   const marque = document.getElementById('eiMarque').value.trim();
@@ -1053,12 +1339,14 @@ async function saveEdito(forcedStatut) {
   const prof = parseFloat(document.getElementById('eiProf').value) || null;
 
   const productId = document.getElementById('eiProductId').value || null;
-  // Resolve GLB: direct url, or from linked product
   let glbUrl = document.getElementById('eiGlbUrl').value.trim() || null;
   if (!glbUrl && productId) {
     const linked = allProducts.find(p => p.id === productId);
     if (linked) glbUrl = linked.model_glb_url || null;
   }
+
+  const heroUrl     = editoHeroUrl     || document.getElementById('eiHeroUrl').value.trim()     || null;
+  const anatomieUrl = editoAnatomieUrl || document.getElementById('eiAnatomieUrl').value.trim() || null;
 
   const payload = {
     numero:          parseInt(document.getElementById('eiNumero').value) || null,
@@ -1078,7 +1366,18 @@ async function saveEdito(forcedStatut) {
     model_glb_url:   glbUrl,
     statut:          statut,
     date_publication:document.getElementById('eiDate').value || null,
-    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null
+    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null,
+    // ── Newsletter ──
+    titre:              document.getElementById('eiTitre').value.trim() || null,
+    chapeau:            document.getElementById('eiChapeau').value.trim() || null,
+    hero_image_url:     heroUrl,
+    hero_credit:        document.getElementById('eiHeroCredit').value.trim() || null,
+    anatomie_image_url: anatomieUrl,
+    anatomie_pins:      collectAnatomiePins(),
+    timeline_stations:  collectTimelineStations(),
+    chap1_titre:        document.getElementById('eiChap1Titre').value.trim() || null,
+    chap2_titre:        document.getElementById('eiChap2Titre').value.trim() || null,
+    chap3_titre:        document.getElementById('eiChap3Titre').value.trim() || null
   };
 
   let error;
@@ -1088,7 +1387,7 @@ async function saveEdito(forcedStatut) {
     ({error} = await sb.from('editorials').insert([payload]));
   }
   setSpin(spinId, false);
-  if (error) { toast('Erreur : '+error.message, 'err'); return; }
+  if (error) { toast('Erreur : ' + error.message, 'err'); return; }
 
   const verb = currentEditoId ? 'mis à jour' : 'créé';
   toast(`✓ Édito "${nom}" ${verb} (${statut === 'publie' ? 'publié' : 'brouillon'})`, 'ok');
@@ -1304,7 +1603,7 @@ function downloadQR(){
   a.click(); toast('QR Code téléchargé','ok');
 }
 
-/* ══ DELETE (products + éditos) ══ */
+/* ══ DELETE ══ */
 function askDelete(id, nom, type='product'){
   deleteId=id; deleteType=type;
   document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Cette action est irréversible.`;
