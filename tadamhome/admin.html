@@ -620,9 +620,24 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div class="field"><label>Nom *</label><input type="text" id="sName" placeholder="ex. Chêne clair"/></div>
           <div class="field"><label>Slug (URL)</label><input type="text" id="sSlug" placeholder="ex. chene-clair (auto-généré)"/></div>
         </div>
-        <div class="form-grid">
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field"><label>Catégorie</label>
+            <select id="sCategory">
+              <option value="">— Choisir une catégorie —</option>
+              <option value="parquet">Parquet</option>
+              <option value="carrelage">Carrelage</option>
+              <option value="marbre">Marbre</option>
+              <option value="beton">Béton ciré</option>
+              <option value="pierre">Pierre</option>
+              <option value="moquette">Moquette</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
           <div class="field"><label>Ordre d'affichage</label><input type="number" id="sOrder" value="0"/></div>
+        </div>
+        <div class="form-grid">
           <div class="field"><label>Couleur de fond (fallback / brouillard)</label><input type="color" id="sBgColor" value="#EEEBE3" style="height:40px;padding:4px"/></div>
+          <div></div>
         </div>
         <div class="sol-checkbox-row" onclick="document.getElementById('sActive').click()">
           <input type="checkbox" id="sActive" checked onclick="event.stopPropagation()"/>
@@ -1623,8 +1638,9 @@ function renderSolTable(sols) {
     el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucune texture — créez votre première ▭</div>';
     return;
   }
+  const CAT_LABELS = {parquet:'Parquet',carrelage:'Carrelage',marbre:'Marbre',beton:'Béton ciré',pierre:'Pierre',moquette:'Moquette',autre:'Autre'};
   let h = '<table><thead><tr>'
-    + '<th>Aperçu</th><th>Nom</th><th>Répétitions</th><th>Rugosité</th><th>Statut</th><th>Actions</th>'
+    + '<th>Aperçu</th><th>Nom</th><th>Catégorie</th><th>Répétitions</th><th>Rugosité</th><th>Statut</th><th>Actions</th>'
     + '</tr></thead><tbody>';
   sols.forEach(s => {
     const nm = (s.name||'').replace(/'/g,"\\'");
@@ -1633,12 +1649,14 @@ function renderSolTable(sols) {
       : '<div class="sol-thumb-cell empty"></div>';
     const isDef = !!s.is_default;
     const isAct = !!s.is_active;
+    const catLbl = s.category ? (CAT_LABELS[s.category] || s.category) : '—';
     h += '<tr>'
       + '<td>'+thumb+'</td>'
       + '<td>'
         + '<div class="td-name">'+(s.name||'—')+(isDef?'<span class="sol-default-mark">★ Défaut</span>':'')+'</div>'
         + '<div class="td-brand" style="margin-top:2px;color:var(--muted);text-transform:none;letter-spacing:0;font-family:monospace;font-size:10px">'+(s.slug||s.id.slice(0,8))+'</div>'
       + '</td>'
+      + '<td>'+catLbl+'</td>'
       + '<td style="font-family:monospace;font-size:12px">'+(s.repeat_x||4)+' × '+(s.repeat_y||4)+'</td>'
       + '<td style="font-family:monospace;font-size:12px">'+Number(s.roughness??0.85).toFixed(2)+'</td>'
       + '<td><span class="td-badge '+(isAct?'ok':'')+'">'+(isAct?'● Active':'○ Inactive')+'</span></td>'
@@ -1658,6 +1676,7 @@ function openNewSol() {
   document.getElementById('solModalTitle').textContent = 'Nouvelle texture de sol';
   document.getElementById('solSaveLbl').textContent = 'Créer';
   ['sName','sSlug','sImageUrl'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sCategory').value = '';
   document.getElementById('sOrder').value = (allSols.length || 0);
   document.getElementById('sBgColor').value = '#EEEBE3';
   document.getElementById('sActive').checked  = true;
@@ -1684,6 +1703,7 @@ function openEditSol(id) {
   document.getElementById('solSaveLbl').textContent = 'Enregistrer';
   document.getElementById('sName').value     = s.name || '';
   document.getElementById('sSlug').value     = s.slug || '';
+  document.getElementById('sCategory').value = s.category || '';
   document.getElementById('sImageUrl').value = s.image_url || '';
   document.getElementById('sOrder').value    = s.sort_order ?? 0;
   document.getElementById('sBgColor').value  = s.bg_color || '#EEEBE3';
@@ -1774,6 +1794,7 @@ async function saveSol() {
   const payload = {
     name,
     slug: slug || null,
+    category: document.getElementById('sCategory').value || null,
     image_url: imageUrl,
     repeat_x: parseFloat(document.getElementById('sRepeatX').value) || 4,
     repeat_y: parseFloat(document.getElementById('sRepeatY').value) || 4,
