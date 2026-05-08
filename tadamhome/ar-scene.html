@@ -257,7 +257,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <div class="topbar-right">
       <!-- Ambiance: sol + luminosité -->
       <button class="t-btn" onclick="openAmbiance()" title="Ambiance">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="15" y1="3" x2="15" y2="9"/><line x1="9" y1="9" x2="9" y2="15"/><line x1="15" y1="15" x2="15" y2="21"/></svg>
         <span class="t-btn-lbl">Ambiance</span>
       </button>
       <button class="t-btn" onclick="openScenes()" title="Mes scenes">
@@ -403,6 +403,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   </div>
   <div class="amb-body">
     <div class="sov-section-title">Sol</div>
+    <div class="cat-filter floor-cat-filter" id="floorCatFilter"></div>
     <div class="amb-block">
       <div class="floor-grid" id="floorGrid"></div>
     </div>
@@ -563,19 +564,20 @@ let currentFloorId = null;
 
 const FALLBACK_FLOOR = {
   id: '_fallback',
-  name: 'Sol par défaut',
+  name: 'Carreaux blancs',
+  category: 'carrelage',
   image_url: null,
   repeat_x: 1, repeat_y: 1,
-  roughness: 0.92,
-  bg_color: '#EEEBE3',
-  is_default: true
+  roughness: 0.50,        /* léger satiné carreau émaillé */
+  bg_color: '#F5F4F0',    /* blanc cassé chaud */
+  is_default: false       /* la priorité reste aux textures de la DB marquées default */
 };
 
 /* FLOOR mesh — MeshStandardMaterial pour répondre correctement à la lumière */
 const floorGeo = new THREE.PlaneGeometry(14, 14);
 const floorMat = new THREE.MeshStandardMaterial({
-  color: 0xE4DFD6,
-  roughness: 0.85,
+  color: 0xF5F4F0,       /* blanc cassé chaud par défaut */
+  roughness: 0.50,
   metalness: 0.0
 });
 const floorMesh = new THREE.Mesh(floorGeo, floorMat);
@@ -584,8 +586,10 @@ floorMesh.receiveShadow = true;
 floorMesh.name = 'floor';
 scene.add(floorMesh);
 
-const grid = new THREE.GridHelper(14, 28, 0xBCB09A, 0xBCB09A);
-grid.material.opacity = 0.35;
+/* Grille = joints des carreaux quand le sol est en mode "Carreaux blancs".
+   Cachée dès qu'une texture image (parquet, marbre…) s'applique. */
+const grid = new THREE.GridHelper(14, 28, 0xB8B0A4, 0xB8B0A4);
+grid.material.opacity = 0.55;
 grid.material.transparent = true;
 grid.name = 'grid';
 scene.add(grid);
@@ -621,9 +625,10 @@ async function loadFloorTextures() {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     if (error) throw error;
-    FLOOR_PRESETS = (data || []).map(d => ({
+    const dbPresets = (data || []).map(d => ({
       id: d.id,
       name: d.name,
+      category: d.category || 'autre',
       image_url: d.image_url,
       repeat_x: Number(d.repeat_x) || 4,
       repeat_y: Number(d.repeat_y) || 4,
@@ -631,9 +636,12 @@ async function loadFloorTextures() {
       bg_color: d.bg_color || '#EEEBE3',
       is_default: !!d.is_default
     }));
+    /* Le sol "Carreaux blancs" est toujours proposé en tête du picker —
+       option permanente, indépendante de la base. */
+    FLOOR_PRESETS = [FALLBACK_FLOOR, ...dbPresets];
   } catch (e) {
     console.warn('[loadFloorTextures] failed', e);
-    FLOOR_PRESETS = [];
+    FLOOR_PRESETS = [FALLBACK_FLOOR];
   }
   return FLOOR_PRESETS;
 }
@@ -2259,12 +2267,55 @@ function spin(show, txt) {
    AMBIANCE — modal Sol + Luminosité
    ======================================================================== */
 window.openAmbiance = function() {
+  renderFloorCatFilter();
   renderFloorGrid();
-  syncBrightnessSlider();
   document.getElementById('ambOv').classList.add('open');
 };
 window.closeAmbiance = function() {
   document.getElementById('ambOv').classList.remove('open');
+};
+
+/* État du filtre catégorie de la modale Ambiance */
+let currentFloorCat = 'all';
+
+const FLOOR_CAT_LABELS = {
+  parquet:'Parquet', carrelage:'Carrelage', marbre:'Marbre',
+  beton:'Béton ciré', pierre:'Pierre', moquette:'Moquette', autre:'Autre'
+};
+
+function renderFloorCatFilter() {
+  const filterEl = document.getElementById('floorCatFilter');
+  if (!filterEl) return;
+  if (!FLOOR_PRESETS.length) { filterEl.innerHTML = ''; return; }
+  /* Compte les textures par catégorie */
+  const counts = { all: FLOOR_PRESETS.length };
+  for (const p of FLOOR_PRESETS) {
+    const k = p.category || 'autre';
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  /* On n'affiche pas la barre s'il n'y a qu'une seule catégorie réelle */
+  const realCats = Object.keys(counts).filter(k => k !== 'all');
+  if (realCats.length <= 1) { filterEl.innerHTML = ''; return; }
+  const order = ['all','parquet','carrelage','marbre','beton','pierre','moquette','autre'];
+  filterEl.innerHTML = order
+    .filter(k => k === 'all' || counts[k])
+    .map(k => {
+      const n = counts[k] || 0;
+      const lbl = (k === 'all') ? 'Tout' : (FLOOR_CAT_LABELS[k] || k);
+      const on  = (currentFloorCat === k) ? ' on' : '';
+      return '<button class="cat-pill' + on + '" data-fcat="' + k + '" onclick="setFloorCatFilter(\'' + k + '\')">'
+           + '<span>' + lbl + '</span>'
+           + '<span class="cat-count">' + n + '</span>'
+           + '</button>';
+    }).join('');
+}
+
+window.setFloorCatFilter = function(k) {
+  currentFloorCat = k;
+  document.querySelectorAll('#floorCatFilter .cat-pill').forEach(b => {
+    b.classList.toggle('on', b.dataset.fcat === k);
+  });
+  renderFloorGrid();
 };
 
 function renderFloorGrid() {
@@ -2273,7 +2324,14 @@ function renderFloorGrid() {
     g.innerHTML = '<div style="grid-column:1/-1;padding:24px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans)">Aucune texture disponible.<br/>Ajoutez-en depuis l\'admin.</div>';
     return;
   }
-  g.innerHTML = FLOOR_PRESETS.map(p => {
+  const filtered = (currentFloorCat === 'all')
+    ? FLOOR_PRESETS
+    : FLOOR_PRESETS.filter(p => (p.category || 'autre') === currentFloorCat);
+  if (!filtered.length) {
+    g.innerHTML = '<div style="grid-column:1/-1;padding:24px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans)">Aucune texture dans cette catégorie</div>';
+    return;
+  }
+  g.innerHTML = filtered.map(p => {
     const on = (p.id === currentFloorId) ? ' on' : '';
     const safeId = String(p.id).replace(/'/g, "\\'");
     /* Vignette : image uploadée si dispo, sinon couleur de fond */
@@ -2598,18 +2656,21 @@ applyFloor('_fallback');
 /* Puis on charge la liste des sols depuis Supabase, et on applique le bon */
 loadFloorTextures().then(() => {
   let chosenId = null;
+  /* 1. Sol précédemment choisi (localStorage) */
   try {
     const savedFloor = localStorage.getItem('tadam_floor');
     if (savedFloor && FLOOR_PRESETS.some(p => p.id === savedFloor)) {
       chosenId = savedFloor;
     }
   } catch(_) {}
+  /* 2. Sol marqué "default" en base — priorité aux vraies textures uploadées */
   if (!chosenId) {
-    const def = FLOOR_PRESETS.find(p => p.is_default);
+    const def = FLOOR_PRESETS.find(p => p.id !== '_fallback' && p.is_default);
     if (def) chosenId = def.id;
-    else if (FLOOR_PRESETS.length) chosenId = FLOOR_PRESETS[0].id;
   }
-  if (chosenId) applyFloor(chosenId);
+  /* 3. Par défaut : Carreaux blancs */
+  if (!chosenId) chosenId = '_fallback';
+  applyFloor(chosenId);
 }).catch(() => {});
 
 loadCatalogue();
