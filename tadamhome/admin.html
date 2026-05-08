@@ -6,6 +6,9 @@
 <title>TadamHome — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js"}}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -208,45 +211,28 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .char-count{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:right;margin-top:3px}
 .field textarea.long{min-height:120px}
 
-/* ── NEWSLETTER · Anatomie & Timeline ── */
-.anatomie-row,
-.timeline-row{
-  display:flex;
-  gap:14px;
-  background:var(--bg);
-  border:1px solid var(--border);
-  padding:14px 16px;
-  margin-bottom:6px;
-}
-.anatomie-num,
-.timeline-num{
-  font-family:var(--serif);
-  font-size:32px;
-  font-weight:300;
-  color:rgba(184,152,106,.45);
-  width:42px;
-  flex-shrink:0;
-  text-align:center;
-  line-height:1;
-  letter-spacing:.04em;
-}
-.anatomie-fields,
-.timeline-fields{
-  flex:1;
-  min-width:0;
-}
-.anatomie-fields .field,
-.timeline-fields .field{
-  margin-bottom:8px;
-}
-.anatomie-fields .field:last-child,
-.timeline-fields .field:last-child{
-  margin-bottom:0;
-}
-.anatomie-fields textarea{
-  min-height:50px;
-  font-size:12px;
-}
+/* ── SOLS / TEXTURES ── */
+.sol-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:2px}
+.sol-thumb-cell{width:64px;height:48px;border:1px solid var(--border);background:var(--bg);overflow:hidden;display:block}
+.sol-thumb-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.sol-thumb-cell.empty{background:repeating-conic-gradient(#E4DFD6 0 25%, #EDEAE2 0 50%) 0 0/16px 16px}
+.sol-default-mark{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(184,152,106,.4);color:var(--accent);font-family:var(--sans);margin-left:6px}
+/* Modal "Sol" — preview live */
+.sol-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.sol-slider-row{display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center}
+.sol-slider-row input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--border);outline:none;margin:0}
+.sol-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;border:2px solid var(--white);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sol-slider-row input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;border:2px solid var(--white)}
+.sol-slider-num{padding:6px 10px;border:1px solid var(--border);background:var(--bg);font-family:monospace;font-size:12px;text-align:right;outline:none}
+.sol-slider-num:focus{border-color:var(--accent)}
+.sol-preview-wrap{position:relative;background:#1C1B18;border:1px solid var(--border);overflow:hidden;aspect-ratio:4/3}
+.sol-preview-wrap canvas{display:block;width:100%;height:100%}
+.sol-preview-hint{position:absolute;top:8px;left:10px;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);color:rgba(255,255,255,.85);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;font-family:var(--sans);pointer-events:none}
+.sol-preview-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans);pointer-events:none}
+.sol-checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);margin-top:8px;cursor:pointer}
+.sol-checkbox-row input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.sol-checkbox-row label{font-family:var(--sans);font-size:12px;color:var(--ink);cursor:pointer;flex:1}
+.sol-checkbox-row .sol-checkbox-hint{font-size:10px;color:var(--muted)}
 
 @media(max-width:768px){
   .sidebar{width:180px}
@@ -254,6 +240,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
   .form-grid{grid-template-columns:1fr}
   .drop-grid{grid-template-columns:1fr}
   .edito-stats{grid-template-columns:1fr 1fr}
+  .sol-stats{grid-template-columns:1fr 1fr}
+  .sol-form-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -282,6 +270,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
     <button class="nav-btn" onclick="showPanel('meshy')"><span class="ico">✦</span>Générer avec IA</button>
     <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
     <button class="nav-btn" onclick="showPanel('icones')"><span class="ico">✦</span>Icônes<span class="sidebar-badge" id="navBadgeIcones">0</span></button>
+    <button class="nav-btn" onclick="showPanel('sols')"><span class="ico">▭</span>Sols<span class="sidebar-badge" id="navBadgeSols">0</span></button>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">Liens</div>
     <button class="nav-btn" onclick="window.open('catalogue.html','_blank')"><span class="ico">←</span>Retour au site</button>
@@ -474,32 +463,47 @@ tr:hover td{background:rgba(184,152,106,.03)}
         <div class="form-card"><div class="table-wrap" id="catTable"></div></div>
       </div>
 
-      <!-- ═══════════════════════════════════════ -->
-      <!-- ICÔNES                                  -->
-      <!-- ═══════════════════════════════════════ -->
+      <!-- ICÔNES -->
       <div class="panel" id="panelIcones">
         <div class="section-head" style="margin-bottom:2px">
           <div class="section-title">Vos <em>Icônes</em></div>
         </div>
-
-        <!-- Stats Icônes -->
         <div class="edito-stats">
           <div class="stat-card"><div class="stat-ico">✦</div><div class="stat-val" id="stEditoTotal">0</div><div class="stat-lbl">Éditos total</div></div>
           <div class="stat-card"><div class="stat-ico">◉</div><div class="stat-val" id="stEditoPublie">0</div><div class="stat-lbl">Publiés</div></div>
           <div class="stat-card"><div class="stat-ico">◌</div><div class="stat-val" id="stEditoBrouillon">0</div><div class="stat-lbl">Brouillons</div></div>
         </div>
-
-        <!-- Search + actions -->
         <div class="search-bar" style="margin-top:2px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="editoSearch" placeholder="Rechercher un édito…" oninput="filterEditoTable()"/>
           <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadEditorials()">↺ Actualiser</button>
           <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="openNewEdito()">+ Nouvel édito</button>
         </div>
-
-        <!-- Table éditos -->
         <div class="form-card" style="margin-top:2px">
           <div class="table-wrap" id="editoTable"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SOLS / TEXTURES                         -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="panel" id="panelSols">
+        <div class="section-head" style="margin-bottom:2px">
+          <div class="section-title">Vos <em>Sols</em></div>
+        </div>
+        <div class="sol-stats">
+          <div class="stat-card"><div class="stat-ico">▭</div><div class="stat-val" id="stSolTotal">0</div><div class="stat-lbl">Textures total</div></div>
+          <div class="stat-card"><div class="stat-ico">◉</div><div class="stat-val" id="stSolActive">0</div><div class="stat-lbl">Actives</div></div>
+          <div class="stat-card"><div class="stat-ico">★</div><div class="stat-val" id="stSolDefault">0</div><div class="stat-lbl">Par défaut</div></div>
+        </div>
+        <div class="search-bar" style="margin-top:2px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="solSearch" placeholder="Rechercher une texture…" oninput="filterSolTable()"/>
+          <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadSols()">↺ Actualiser</button>
+          <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="openNewSol()">+ Nouvelle texture</button>
+        </div>
+        <div class="form-card" style="margin-top:2px">
+          <div class="table-wrap" id="solTable"></div>
         </div>
       </div>
 
@@ -507,9 +511,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- ═══════════════════════════════════════════ -->
-<!-- MODAL ÉDITO (création + édition)           -->
-<!-- ═══════════════════════════════════════════ -->
+<!-- MODAL ÉDITO -->
 <div class="modal-bg" id="editoModal">
   <div class="modal modal-lg">
     <div class="modal-head">
@@ -517,82 +519,29 @@ tr:hover td{background:rgba(184,152,106,.03)}
       <button class="modal-close" onclick="closeEditoModal()">✕</button>
     </div>
     <div class="modal-body">
-
-      <!-- Identité -->
       <div class="modal-section">
         <div class="modal-section-title">Identité de l'édito</div>
         <div class="form-grid" style="margin-bottom:10px">
-          <div class="field">
-            <label>Numéro d'édition *</label>
-            <input type="number" id="eiNumero" placeholder="ex. 7"/>
-          </div>
-          <div class="field">
-            <label>Slug URL *</label>
-            <input type="text" id="eiSlug" placeholder="ex. lc2-le-corbusier"/>
-          </div>
-          <div class="field">
-            <label>Date de publication</label>
-            <input type="date" id="eiDate"/>
-          </div>
-          <div class="field">
-            <label>Statut</label>
-            <select id="eiStatut">
-              <option value="brouillon">Brouillon</option>
-              <option value="publie">Publié</option>
-            </select>
+          <div class="field"><label>Numéro d'édition *</label><input type="number" id="eiNumero" placeholder="ex. 7"/></div>
+          <div class="field"><label>Slug URL *</label><input type="text" id="eiSlug" placeholder="ex. lc2-le-corbusier"/></div>
+          <div class="field"><label>Date de publication</label><input type="date" id="eiDate"/></div>
+          <div class="field"><label>Statut</label>
+            <select id="eiStatut"><option value="brouillon">Brouillon</option><option value="publie">Publié</option></select>
           </div>
         </div>
       </div>
-
-      <!-- Le meuble -->
       <div class="modal-section">
         <div class="modal-section-title">Le meuble</div>
         <div class="form-grid" style="margin-bottom:10px">
-          <div class="field">
-            <label>Nom du meuble *</label>
-            <input type="text" id="eiNomMeuble" placeholder="ex. LC2"/>
+          <div class="field"><label>Nom du meuble *</label><input type="text" id="eiNomMeuble" placeholder="ex. LC2"/></div>
+          <div class="field"><label>Marque / Éditeur *</label><input type="text" id="eiMarque" placeholder="ex. Cassina"/></div>
+          <div class="field"><label>Designer(s)</label><input type="text" id="eiDesigners" placeholder="ex. Le Corbusier · Charlotte Perriand"/></div>
+          <div class="field"><label>Année de création</label><input type="number" id="eiAnnee" placeholder="ex. 1928"/></div>
+          <div class="field"><label>Catégorie</label>
+            <select id="eiCategorie"><option value="">Choisir…</option><option>Assise</option><option>Canapé</option><option>Table</option><option>Luminaire</option><option>Rangement</option><option>Lit</option><option>Autre</option></select>
           </div>
-          <div class="field">
-            <label>Marque / Éditeur *</label>
-            <input type="text" id="eiMarque" placeholder="ex. Cassina"/>
-          </div>
-          <div class="field">
-            <label>Designer(s)</label>
-            <input type="text" id="eiDesigners" placeholder="ex. Le Corbusier · Charlotte Perriand"/>
-          </div>
-          <div class="field">
-            <label>Année de création</label>
-            <input type="number" id="eiAnnee" placeholder="ex. 1928"/>
-          </div>
-          <div class="field">
-            <label>Catégorie</label>
-            <select id="eiCategorie">
-              <option value="">Choisir…</option>
-              <option>Assise</option>
-              <option>Canapé</option>
-              <option>Table</option>
-              <option>Luminaire</option>
-              <option>Rangement</option>
-              <option>Lit</option>
-              <option>Autre</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Mouvement design</label>
-            <select id="eiMouvement">
-              <option value="">Choisir…</option>
-              <option>Bauhaus</option>
-              <option>Modernisme</option>
-              <option>Brutalisme</option>
-              <option>Memphis</option>
-              <option>Scandinave</option>
-              <option>Art Déco</option>
-              <option>Minimalisme</option>
-              <option>Pop Art</option>
-              <option>Postmodernisme</option>
-              <option>Fonctionnalisme</option>
-              <option>Autre</option>
-            </select>
+          <div class="field"><label>Mouvement design</label>
+            <select id="eiMouvement"><option value="">Choisir…</option><option>Bauhaus</option><option>Modernisme</option><option>Brutalisme</option><option>Memphis</option><option>Scandinave</option><option>Art Déco</option><option>Minimalisme</option><option>Pop Art</option><option>Postmodernisme</option><option>Fonctionnalisme</option><option>Autre</option></select>
           </div>
         </div>
         <div class="form-grid-3">
@@ -600,13 +549,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div class="field"><label>Hauteur (cm)</label><input type="number" id="eiHaut" placeholder="ex. 67"/></div>
           <div class="field"><label>Profondeur (cm)</label><input type="number" id="eiProf" placeholder="ex. 70"/></div>
         </div>
-        <div class="field" style="margin-top:10px">
-          <label>Prix indicatif (€)</label>
-          <input type="number" id="eiPrix" placeholder="ex. 4500"/>
-        </div>
+        <div class="field" style="margin-top:10px"><label>Prix indicatif (€)</label><input type="number" id="eiPrix" placeholder="ex. 4500"/></div>
       </div>
-
-      <!-- Contenu éditorial -->
       <div class="modal-section">
         <div class="modal-section-title">Contenu éditorial</div>
         <div class="field" style="margin-bottom:10px">
@@ -629,80 +573,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div class="char-count" id="ccMouvement">0 caractères</div>
         </div>
       </div>
-
-      <!-- ═══ NEWSLETTER · Titre & Chapô ═══ -->
-      <div class="modal-section">
-        <div class="modal-section-title">Titre éditorial & chapô</div>
-        <div class="field" style="margin-bottom:10px">
-          <label>Titre complet (peut contenir &lt;em&gt; et &lt;br&gt;)</label>
-          <textarea id="eiTitre" rows="3" placeholder="Le <em>LC2</em><br>ou la grille<br>du confort." style="font-family:var(--serif);font-size:17px;line-height:1.3"></textarea>
-          <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:4px">
-            &lt;em&gt;mot&lt;/em&gt; = mot en italique or · &lt;br&gt; = retour à la ligne
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:14px">
-          <label>Chapô — paragraphe d'introduction (lede)</label>
-          <textarea id="eiChapeau" class="long" placeholder="Conçu en 1928 par Le Corbusier, Pierre Jeanneret et Charlotte Perriand…" oninput="updateCharCount(this,'ccChapeau')"></textarea>
-          <div class="char-count" id="ccChapeau">0 caractères</div>
-        </div>
-        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--sans)">Titres des trois chapitres</div>
-        <div class="form-grid">
-          <div class="field"><label>Titre chapitre 1 (l'objet)</label><input type="text" id="eiChap1Titre" placeholder="ex. Le coussin sur tube"/></div>
-          <div class="field"><label>Titre chapitre 2 (designer)</label><input type="text" id="eiChap2Titre" placeholder="ex. Trois cerveaux, une grille"/></div>
-        </div>
-        <div class="field" style="margin-top:8px"><label>Titre chapitre 3 (postérité)</label><input type="text" id="eiChap3Titre" placeholder="ex. L'icône qui ne plie pas"/></div>
-      </div>
-
-      <!-- ═══ NEWSLETTER · Photos ═══ -->
-      <div class="modal-section">
-        <div class="modal-section-title">Photos newsletter</div>
-        <div class="form-grid">
-          <div>
-            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--sans)">Couverture (lifestyle)</div>
-            <div class="drop-zone" style="padding:18px 14px">
-              <input type="file" id="fileEditoHero" accept=".jpg,.jpeg,.png,.webp" onchange="uploadEditoImage(this,'hero')"/>
-              <div class="drop-ico" style="font-size:18px">⊞</div>
-              <div class="drop-name" style="font-size:13px">Photo lifestyle</div>
-              <div class="drop-sub">JPG, PNG · ratio 4:3 conseillé</div>
-              <div class="drop-done" id="doneEditoHero"></div>
-            </div>
-            <input type="text" id="eiHeroUrl" class="url-input" placeholder="ou URL directe…"/>
-            <input type="text" id="eiHeroCredit" placeholder="Crédit photo (ex. Cassina Archives)" style="width:100%;padding:8px 12px;border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:12px;margin-top:6px;outline:none;color:var(--ink)"/>
-          </div>
-          <div>
-            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--sans)">Vue anatomique (avec épingles)</div>
-            <div class="drop-zone" style="padding:18px 14px">
-              <input type="file" id="fileEditoAnatomie" accept=".jpg,.jpeg,.png,.webp" onchange="uploadEditoImage(this,'anatomie')"/>
-              <div class="drop-ico" style="font-size:18px">⊕</div>
-              <div class="drop-name" style="font-size:13px">Photo anatomique</div>
-              <div class="drop-sub">Photo nette · fond clair</div>
-              <div class="drop-done" id="doneEditoAnatomie"></div>
-            </div>
-            <input type="text" id="eiAnatomieUrl" class="url-input" placeholder="ou URL directe…"/>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ NEWSLETTER · Anatomie 5 épingles ═══ -->
-      <div class="modal-section">
-        <div class="modal-section-title">Anatomie · 5 épingles cliquables</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--sans);margin-bottom:10px;line-height:1.5">
-          Chaque épingle pointe un détail anatomique sur la photo ci-dessus.<br>
-          Position en % : <strong>0,0</strong> = haut-gauche · <strong>100,100</strong> = bas-droite.
-        </div>
-        <div id="anatomiePins"><!-- généré par buildAnatomieRows() --></div>
-      </div>
-
-      <!-- ═══ NEWSLETTER · Timeline 7 stations ═══ -->
-      <div class="modal-section">
-        <div class="modal-section-title">Timeline · 7 stations</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--sans);margin-bottom:10px;line-height:1.5">
-          Sept moments clés. Le point lumineux les parcourra en boucle sur la page éditoriale.
-        </div>
-        <div id="timelineStations"><!-- généré par buildTimelineRows() --></div>
-      </div>
-
-      <!-- Modèle 3D -->
       <div class="modal-section">
         <div class="modal-section-title">Modèle 3D</div>
         <div class="field" style="margin-bottom:10px">
@@ -718,7 +588,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:4px" id="eiGlbLinked"></div>
         </div>
       </div>
-
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeEditoModal()">Annuler</button>
@@ -728,6 +597,115 @@ tr:hover td{background:rgba(184,152,106,.03)}
       <button class="btn-primary" id="btnSaveEdito" onclick="saveEdito('publie')">
         <div class="spin" id="spinEditoPublie"></div>
         <span id="editoSaveLbl">Publier</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL SOL — formulaire + preview 3D temps réel                  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="solModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3 id="solModalTitle">Nouvelle texture de sol</h3>
+      <button class="modal-close" onclick="closeSolModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Identité -->
+      <div class="modal-section">
+        <div class="modal-section-title">Identité</div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field"><label>Nom *</label><input type="text" id="sName" placeholder="ex. Chêne clair"/></div>
+          <div class="field"><label>Slug (URL)</label><input type="text" id="sSlug" placeholder="ex. chene-clair (auto-généré)"/></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Ordre d'affichage</label><input type="number" id="sOrder" value="0"/></div>
+          <div class="field"><label>Couleur de fond (fallback / brouillard)</label><input type="color" id="sBgColor" value="#EEEBE3" style="height:40px;padding:4px"/></div>
+        </div>
+        <div class="sol-checkbox-row" onclick="document.getElementById('sActive').click()">
+          <input type="checkbox" id="sActive" checked onclick="event.stopPropagation()"/>
+          <label for="sActive">Active <span class="sol-checkbox-hint">— visible dans le studio AR</span></label>
+        </div>
+        <div class="sol-checkbox-row" onclick="document.getElementById('sDefault').click()">
+          <input type="checkbox" id="sDefault" onclick="event.stopPropagation()"/>
+          <label for="sDefault">Texture par défaut <span class="sol-checkbox-hint">— appliquée à l'ouverture du studio</span></label>
+        </div>
+      </div>
+
+      <!-- Image upload -->
+      <div class="modal-section">
+        <div class="modal-section-title">Image de la texture</div>
+        <div class="modal-file-current">
+          <div class="modal-file-info">
+            <div class="modal-file-label">Fichier actuel</div>
+            <div class="modal-file-name" id="sFileCurrent">Aucun</div>
+          </div>
+        </div>
+        <div class="drop-zone" id="solDropZone" style="padding:18px">
+          <input type="file" id="sFile" accept=".jpg,.jpeg,.png,.webp" onchange="uploadSolTexture(this)"/>
+          <div class="drop-ico" style="font-size:18px;margin-bottom:6px">▭</div>
+          <div style="font-size:12px;color:var(--ink);font-family:var(--sans);margin-bottom:4px">Glisser une image carrée carrelable</div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--sans)">JPG, PNG, WebP · idéal 1024×1024 ou 2048×2048</div>
+          <div id="sFileLbl" style="font-size:11px;color:var(--accent);margin-top:6px;font-family:var(--sans)">ou cliquez pour parcourir</div>
+          <div class="drop-progress" id="sFileProg"><div class="drop-bar" id="sFileBar"></div></div>
+        </div>
+        <div class="field" style="margin-top:8px">
+          <label>ou URL directe</label>
+          <input type="text" id="sImageUrl" placeholder="https://…" oninput="schedulePreview()"/>
+        </div>
+      </div>
+
+      <!-- Paramètres + preview en parallèle -->
+      <div class="modal-section">
+        <div class="modal-section-title">Échelle & matériau</div>
+        <div class="sol-form-grid">
+          <div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Répétitions horizontales (X)</label>
+              <div class="sol-slider-row">
+                <input type="range" id="sRepeatX" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/>
+                <input type="number" id="sRepeatXNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Répétitions verticales (Y)</label>
+              <div class="sol-slider-row">
+                <input type="range" id="sRepeatY" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/>
+                <input type="number" id="sRepeatYNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Rugosité (0 brillant → 1 mat)</label>
+              <div class="sol-slider-row">
+                <input type="range" id="sRoughness" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange()"/>
+                <input type="number" id="sRoughnessNum" class="sol-slider-num" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange('num')"/>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.5;font-family:var(--sans);background:var(--bg);padding:10px 12px;border:1px solid var(--border);margin-top:6px">
+              <strong style="color:var(--accent);font-weight:500;letter-spacing:.06em">Aide à l'échelle :</strong><br/>
+              Le sol fait <strong>4&nbsp;m × 4&nbsp;m</strong> dans la prévisualisation.<br/>
+              La chaise grise mesure <strong>45&nbsp;cm × 85&nbsp;cm × 45&nbsp;cm</strong> (taille réelle d'une chaise).<br/>
+              Si une lame de parquet ou un carreau a l'air trop gros / trop petit par rapport à la chaise, ajustez les répétitions.
+            </div>
+          </div>
+          <div>
+            <div class="sol-preview-wrap">
+              <canvas id="solPreviewCanvas"></canvas>
+              <div class="sol-preview-hint">Aperçu temps réel · 4m × 4m</div>
+              <div class="sol-preview-empty" id="solPreviewEmpty">Importez une image pour voir l'aperçu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeSolModal()">Annuler</button>
+      <button class="btn-primary" id="btnSolSave" onclick="saveSol()">
+        <div class="spin" id="spinSol"></div>
+        <span id="solSaveLbl">Enregistrer</span>
       </button>
     </div>
   </div>
@@ -871,6 +849,7 @@ const sb = createClient(SUPA_URL, SUPA_KEY);
 /* ══ STATE ══ */
 let allProducts   = [];
 let allEditorials = [];
+let allSols       = [];
 let deleteId      = null;
 let deleteType    = 'product';
 let editId        = null;
@@ -885,8 +864,6 @@ let eTexUrl = null, eGlbUrlCo = null, eUsdzUrlCo = null;
 let glbUrl  = null, usdzUrl   = null;
 let meshyGlbUrl  = null, meshyUsdzUrl = null, meshyImgUrl = null, meshyTaskId = null;
 let currentEditoId = null;
-let editoHeroUrl     = null;   // newsletter hero
-let editoAnatomieUrl = null;   // newsletter anatomie
 
 /* ══ LOCK ══ */
 function unlock() {
@@ -898,6 +875,7 @@ function unlock() {
     if (mk) document.getElementById('meshyKey').value = mk;
     loadProducts();
     loadEditorials();
+    loadSols();
   } else {
     const el = document.getElementById('lockErr');
     el.textContent = 'Mot de passe incorrect.';
@@ -909,6 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lp) lp.addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
   setupDropZone('zoneGlb','fileGlb');
   setupDropZone('zoneUsdz','fileUsdz');
+  setupDropZone('solDropZone','sFile');
 });
 function logout() {
   document.getElementById('lock').style.display = 'flex';
@@ -922,11 +901,13 @@ const panelTitles = {
   upload:   'Ajouter au <em style="font-style:italic;color:var(--accent)">catalogue</em>',
   meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
   catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
-  icones:   'Vos <em style="font-style:italic;color:var(--accent)">Icônes</em>'
+  icones:   'Vos <em style="font-style:italic;color:var(--accent)">Icônes</em>',
+  sols:     'Vos <em style="font-style:italic;color:var(--accent)">Sols</em>'
 };
 const panelActions = {
-  icones: `<button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>`,
-  default:`<button class="topbar-btn ghost" onclick="showPanel('catalogue')">Catalogue</button><button class="topbar-btn" onclick="showPanel('upload')">+ Ajouter</button>`
+  icones: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>',
+  sols:   '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewSol()">+ Nouvelle texture</button>',
+  default:'<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="showPanel(\'upload\')">+ Ajouter</button>'
 };
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -936,7 +917,7 @@ function showPanel(name) {
   document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
   document.getElementById('topbarActions').innerHTML = panelActions[name] || panelActions.default;
   document.querySelector('.content').scrollTop = 0;
-  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes'};
+  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols'};
   document.querySelectorAll('.nav-btn').forEach(b => {
     if (b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
   });
@@ -972,25 +953,23 @@ function renderTable(products, id) {
   let h = '<table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>GLB</th><th>USDZ</th><th>Actions</th></tr></thead><tbody>';
   products.forEach(p => {
     const nm = (p.name||'').replace(/'/g,"\\'");
-    h += `<tr>
-      <td><div class="td-brand">${p.enseigne_name||'—'}</div><div class="td-name">${p.name||'—'}</div></td>
-      <td>${p.category||'—'}</td>
-      <td>${p.price?p.price+'€':'—'}</td>
-      <td><span class="td-badge ${p.model_glb_url?'ok':''}">${p.model_glb_url?'✓ GLB':'✗'}</span></td>
-      <td><span class="td-badge ${p.model_usdz_url?'ok':''}">${p.model_usdz_url?'✓ USDZ':'—'}</span></td>
-      <td><div class="row-actions">
-        <button class="row-btn" onclick="openEdit('${p.id}')">✏ Éditer</button>
-        <button class="row-btn" onclick="showQR('${p.id}','${nm}')">QR</button>
-        <button class="row-btn" onclick="window.open('${BASE_URL}?id=${p.id}','_blank')">AR</button>
-        <button class="row-btn del" onclick="askDelete('${p.id}','${nm}','product')">✕</button>
-      </div></td>
-    </tr>`;
+    h += '<tr>'
+      + '<td><div class="td-brand">'+(p.enseigne_name||'—')+'</div><div class="td-name">'+(p.name||'—')+'</div></td>'
+      + '<td>'+(p.category||'—')+'</td>'
+      + '<td>'+(p.price?p.price+'€':'—')+'</td>'
+      + '<td><span class="td-badge '+(p.model_glb_url?'ok':'')+'">'+(p.model_glb_url?'✓ GLB':'✗')+'</span></td>'
+      + '<td><span class="td-badge '+(p.model_usdz_url?'ok':'')+'">'+(p.model_usdz_url?'✓ USDZ':'—')+'</span></td>'
+      + '<td><div class="row-actions">'
+      +   '<button class="row-btn" onclick="openEdit(\''+p.id+'\')">✏ Éditer</button>'
+      +   '<button class="row-btn" onclick="showQR(\''+p.id+'\',\''+nm+'\')">QR</button>'
+      +   '<button class="row-btn" onclick="window.open(\''+BASE_URL+'?id='+p.id+'\',\'_blank\')">AR</button>'
+      +   '<button class="row-btn del" onclick="askDelete(\''+p.id+'\',\''+nm+'\',\'product\')">✕</button>'
+      + '</div></td>'
+    + '</tr>';
   });
   h += '</tbody></table>';
   el.innerHTML = h;
 }
-
-/* ══ POPULATE PRODUCT SELECT (édito modal) ══ */
 function populateProductSelect() {
   const sel = document.getElementById('eiProductId');
   if (!sel) return;
@@ -1000,7 +979,7 @@ function populateProductSelect() {
     const opt = document.createElement('option');
     opt.value = p.id;
     opt.dataset.glb = p.model_glb_url || '';
-    opt.textContent = `${p.enseigne_name ? p.enseigne_name+' · ' : ''}${p.name}${p.model_glb_url?' ✓':' (sans GLB)'}`;
+    opt.textContent = (p.enseigne_name ? p.enseigne_name+' · ' : '') + p.name + (p.model_glb_url?' ✓':' (sans GLB)');
     sel.appendChild(opt);
   });
   if (current) sel.value = current;
@@ -1008,14 +987,14 @@ function populateProductSelect() {
 function onProductLink() {
   const sel = document.getElementById('eiProductId');
   const opt = sel.options[sel.selectedIndex];
-  const glb = opt?.dataset?.glb || '';
+  const glb = opt && opt.dataset && opt.dataset.glb || '';
   const infoEl = document.getElementById('eiGlbLinked');
   if (glb) {
     infoEl.textContent = '✓ GLB lié : ' + glb.split('/').pop();
     infoEl.style.color = 'var(--green)';
     document.getElementById('eiGlbUrl').value = '';
   } else {
-    infoEl.textContent = opt?.value ? '⚠ Ce produit n\'a pas de GLB' : '';
+    infoEl.textContent = opt && opt.value ? '⚠ Ce produit n\'a pas de GLB' : '';
     infoEl.style.color = 'var(--red)';
   }
 }
@@ -1048,173 +1027,33 @@ function renderEditoTable(editorials) {
     el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun édito — créez votre premier ✦</div>';
     return;
   }
-  let h = `<table><thead><tr>
-    <th>N°</th><th>Meuble</th><th>Marque / Designer</th>
-    <th>Catégorie</th><th>Mouvement</th><th>GLB</th><th>Statut</th><th>Actions</th>
-  </tr></thead><tbody>`;
+  let h = '<table><thead><tr>'
+    + '<th>N°</th><th>Meuble</th><th>Marque / Designer</th>'
+    + '<th>Catégorie</th><th>Mouvement</th><th>GLB</th><th>Statut</th><th>Actions</th>'
+    + '</tr></thead><tbody>';
   editorials.forEach(e => {
     const nm = (e.nom_meuble||'').replace(/'/g,"\\'");
     const isPub = e.statut === 'publie';
-    h += `<tr>
-      <td style="font-family:var(--serif);font-size:20px;font-weight:300;color:rgba(184,152,106,.6)">${e.numero||'—'}</td>
-      <td>
-        <div class="td-brand">${e.marque||'—'}</div>
-        <div class="td-name">${e.nom_meuble||'—'}${e.annee?' <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">· '+e.annee+'</span>':''}</div>
-      </td>
-      <td style="font-size:12px;color:var(--muted)">${e.designers||'—'}</td>
-      <td>${e.categorie||'—'}</td>
-      <td>${e.mouvement||'—'}</td>
-      <td><span class="td-badge ${e.model_glb_url||e.product_id?'ok':''}">${e.model_glb_url?'✓ GLB':e.product_id?'✓ Lié':'✗'}</span></td>
-      <td>
-        <span class="td-badge ${isPub?'publie':''}">${isPub?'● Publié':'○ Brouillon'}</span>
-      </td>
-      <td><div class="row-actions">
-        <button class="row-btn" onclick="openEditEdito('${e.id}')">✏ Éditer</button>
-        <button class="row-btn" onclick="window.open('/edito.html?slug=' + (e.slug||e.id), '_blank')">Voir</button>
-        <button class="row-btn del" onclick="askDelete('${e.id}','${nm}','edito')">✕</button>
-      </div></td>
-    </tr>`;
+    h += '<tr>'
+      + '<td style="font-family:var(--serif);font-size:20px;font-weight:300;color:rgba(184,152,106,.6)">'+(e.numero||'—')+'</td>'
+      + '<td>'
+        + '<div class="td-brand">'+(e.marque||'—')+'</div>'
+        + '<div class="td-name">'+(e.nom_meuble||'—')+(e.annee?' <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">· '+e.annee+'</span>':'')+'</div>'
+      + '</td>'
+      + '<td style="font-size:12px;color:var(--muted)">'+(e.designers||'—')+'</td>'
+      + '<td>'+(e.categorie||'—')+'</td>'
+      + '<td>'+(e.mouvement||'—')+'</td>'
+      + '<td><span class="td-badge '+(e.model_glb_url||e.product_id?'ok':'')+'">'+(e.model_glb_url?'✓ GLB':e.product_id?'✓ Lié':'✗')+'</span></td>'
+      + '<td><span class="td-badge '+(isPub?'publie':'')+'">'+(isPub?'● Publié':'○ Brouillon')+'</span></td>'
+      + '<td><div class="row-actions">'
+      +   '<button class="row-btn" onclick="openEditEdito(\''+e.id+'\')">✏ Éditer</button>'
+      +   '<button class="row-btn" onclick="window.open(\'/edito?slug=\' + (\''+(e.slug||e.id)+'\'), \'_blank\')">Voir</button>'
+      +   '<button class="row-btn del" onclick="askDelete(\''+e.id+'\',\''+nm+'\',\'edito\')">✕</button>'
+      + '</div></td>'
+    + '</tr>';
   });
   h += '</tbody></table>';
   el.innerHTML = h;
-}
-
-/* ══ NEWSLETTER · Build dynamic rows (anatomie + timeline) ══ */
-function buildAnatomieRows() {
-  const html = [1,2,3,4,5].map(n => `
-    <div class="anatomie-row">
-      <div class="anatomie-num">${String(n).padStart(2,'0')}</div>
-      <div class="anatomie-fields">
-        <div class="field">
-          <label>Titre du détail</label>
-          <input type="text" id="pin${n}Titre" placeholder="ex. Le tube chromé"/>
-        </div>
-        <div class="field">
-          <label>Description</label>
-          <textarea id="pin${n}Texte" rows="2" placeholder="ex. Acier nickelé poli, courbure obtenue à froid…"></textarea>
-        </div>
-        <div class="form-grid">
-          <div class="field" style="margin:0">
-            <label>Position X (%)</label>
-            <input type="number" id="pin${n}X" min="0" max="100" placeholder="50"/>
-          </div>
-          <div class="field" style="margin:0">
-            <label>Position Y (%)</label>
-            <input type="number" id="pin${n}Y" min="0" max="100" placeholder="50"/>
-          </div>
-        </div>
-      </div>
-    </div>
-  `).join('');
-  const target = document.getElementById('anatomiePins');
-  if (target) target.innerHTML = html;
-}
-
-function buildTimelineRows() {
-  const defaults = ['I · Rencontre','II · Atelier','III · Salon','IV · Pause','V · Renaissance','VI · Musée','VII · Présent'];
-  const html = [1,2,3,4,5,6,7].map(n => `
-    <div class="timeline-row">
-      <div class="timeline-num">${String(n).padStart(2,'0')}</div>
-      <div class="timeline-fields">
-        <div class="form-grid">
-          <div class="field" style="margin:0"><label>Année</label><input type="text" id="ts${n}Annee" placeholder="ex. 1928"/></div>
-          <div class="field" style="margin:0"><label>Stamp éditorial</label><input type="text" id="ts${n}Stamp" placeholder="${defaults[n-1]}"/></div>
-        </div>
-        <div class="field"><label>Événement</label><input type="text" id="ts${n}Evenement" placeholder="ex. Salon d'Automne · présentation publique"/></div>
-        <div class="field"><label>Lieu (optionnel)</label><input type="text" id="ts${n}Lieu" placeholder="ex. Paris · Grand Palais"/></div>
-      </div>
-    </div>
-  `).join('');
-  const target = document.getElementById('timelineStations');
-  if (target) target.innerHTML = html;
-}
-
-function collectAnatomiePins() {
-  const pins = [];
-  for (let n = 1; n <= 5; n++) {
-    const titre = (document.getElementById(`pin${n}Titre`)?.value || '').trim();
-    const texte = (document.getElementById(`pin${n}Texte`)?.value || '').trim();
-    const x = parseFloat(document.getElementById(`pin${n}X`)?.value);
-    const y = parseFloat(document.getElementById(`pin${n}Y`)?.value);
-    if (titre || texte) {
-      pins.push({
-        titre, texte,
-        x: isNaN(x) ? 50 : Math.max(0, Math.min(100, x)),
-        y: isNaN(y) ? 50 : Math.max(0, Math.min(100, y))
-      });
-    }
-  }
-  return pins;
-}
-
-function collectTimelineStations() {
-  const stations = [];
-  for (let n = 1; n <= 7; n++) {
-    const annee = (document.getElementById(`ts${n}Annee`)?.value || '').trim();
-    const stamp = (document.getElementById(`ts${n}Stamp`)?.value || '').trim();
-    const evenement = (document.getElementById(`ts${n}Evenement`)?.value || '').trim();
-    const lieu = (document.getElementById(`ts${n}Lieu`)?.value || '').trim();
-    if (annee || stamp || evenement) {
-      stations.push({annee, stamp, evenement, lieu});
-    }
-  }
-  return stations;
-}
-
-function populateAnatomiePins(pins) {
-  if (!Array.isArray(pins)) return;
-  pins.forEach((p, i) => {
-    const n = i + 1;
-    if (n > 5) return;
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
-    set(`pin${n}Titre`, p.titre);
-    set(`pin${n}Texte`, p.texte);
-    set(`pin${n}X`, p.x);
-    set(`pin${n}Y`, p.y);
-  });
-}
-
-function populateTimelineStations(stations) {
-  if (!Array.isArray(stations)) return;
-  stations.forEach((s, i) => {
-    const n = i + 1;
-    if (n > 7) return;
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
-    set(`ts${n}Annee`, s.annee);
-    set(`ts${n}Stamp`, s.stamp);
-    set(`ts${n}Evenement`, s.evenement);
-    set(`ts${n}Lieu`, s.lieu);
-  });
-}
-
-async function uploadEditoImage(input, type) {
-  const file = input.files[0];
-  if (!file) return;
-  const doneId = type === 'hero' ? 'doneEditoHero' : 'doneEditoAnatomie';
-  const doneEl = document.getElementById(doneId);
-  if (doneEl) {
-    doneEl.style.display = 'block';
-    doneEl.textContent = '⏳ Upload en cours…';
-    doneEl.style.color = 'var(--muted)';
-  }
-  const ext = file.name.split('.').pop();
-  const path = `editos/${type}_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error} = await sb.storage.from(BUCKET).upload(path, file, {upsert: true});
-  if (error) {
-    if (doneEl) {
-      doneEl.textContent = '✗ Erreur : ' + error.message;
-      doneEl.style.color = 'var(--red)';
-    }
-    return;
-  }
-  const {data: pub} = sb.storage.from(BUCKET).getPublicUrl(path);
-  const url = pub.publicUrl;
-  if (type === 'hero') editoHeroUrl = url;
-  else editoAnatomieUrl = url;
-  if (doneEl) {
-    doneEl.textContent = '✓ ' + file.name;
-    doneEl.style.color = 'var(--green)';
-  }
 }
 
 /* ══ ÉDITO MODAL ══ */
@@ -1222,12 +1061,9 @@ function openNewEdito() {
   currentEditoId = null;
   document.getElementById('editoModalTitle').textContent = 'Nouvel édito';
   document.getElementById('editoSaveLbl').textContent    = 'Publier';
-  // Reset all fields
   ['eiNumero','eiSlug','eiNomMeuble','eiMarque','eiDesigners','eiAnnee',
    'eiPrix','eiLarg','eiHaut','eiProf','eiCitation',
-   'eiHistoire','eiDesigner','eiTexteMouvement','eiGlbUrl',
-   'eiTitre','eiChapeau','eiHeroUrl','eiHeroCredit','eiAnatomieUrl',
-   'eiChap1Titre','eiChap2Titre','eiChap3Titre'].forEach(id => {
+   'eiHistoire','eiDesigner','eiTexteMouvement','eiGlbUrl'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1237,26 +1073,15 @@ function openNewEdito() {
   document.getElementById('eiProductId').value  = '';
   document.getElementById('eiGlbLinked').textContent = '';
   document.getElementById('eiDate').value = new Date().toISOString().split('T')[0];
-  ['ccHistoire','ccDesigner','ccMouvement','ccChapeau'].forEach(id => {
+  ['ccHistoire','ccDesigner','ccMouvement'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '0 caractères';
   });
-  ['doneEditoHero','doneEditoAnatomie'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  editoHeroUrl = null;
-  editoAnatomieUrl = null;
-  // Auto-numero
   const maxNum = allEditorials.reduce((m, e) => Math.max(m, e.numero||0), 0);
   document.getElementById('eiNumero').value = maxNum + 1;
   populateProductSelect();
-  // Build dynamic rows
-  buildAnatomieRows();
-  buildTimelineRows();
   document.getElementById('editoModal').classList.add('show');
 }
-
 function openEditEdito(id) {
   const e = allEditorials.find(x => x.id === id);
   if (!e) return;
@@ -1270,9 +1095,9 @@ function openEditEdito(id) {
   document.getElementById('eiDesigners').value    = e.designers || '';
   document.getElementById('eiAnnee').value        = e.annee || '';
   document.getElementById('eiPrix').value         = e.prix || '';
-  document.getElementById('eiLarg').value         = e.dimensions?.l || '';
-  document.getElementById('eiHaut').value         = e.dimensions?.h || '';
-  document.getElementById('eiProf').value         = e.dimensions?.p || '';
+  document.getElementById('eiLarg').value         = e.dimensions && e.dimensions.l || '';
+  document.getElementById('eiHaut').value         = e.dimensions && e.dimensions.h || '';
+  document.getElementById('eiProf').value         = e.dimensions && e.dimensions.p || '';
   document.getElementById('eiCategorie').value    = e.categorie || '';
   document.getElementById('eiMouvement').value    = e.mouvement || '';
   document.getElementById('eiStatut').value       = e.statut || 'brouillon';
@@ -1282,27 +1107,11 @@ function openEditEdito(id) {
   document.getElementById('eiTexteMouvement').value = e.texte_mouvement || '';
   document.getElementById('eiGlbUrl').value       = e.model_glb_url || '';
   document.getElementById('eiDate').value         = e.date_publication || '';
-  // Newsletter additions
-  document.getElementById('eiTitre').value        = e.titre || '';
-  document.getElementById('eiChapeau').value      = e.chapeau || '';
-  document.getElementById('eiHeroUrl').value      = e.hero_image_url || '';
-  document.getElementById('eiHeroCredit').value   = e.hero_credit || '';
-  document.getElementById('eiAnatomieUrl').value  = e.anatomie_image_url || '';
-  document.getElementById('eiChap1Titre').value   = e.chap1_titre || '';
-  document.getElementById('eiChap2Titre').value   = e.chap2_titre || '';
-  document.getElementById('eiChap3Titre').value   = e.chap3_titre || '';
-  // Char counts
-  ['eiHistoire','eiDesigner','eiTexteMouvement','eiChapeau'].forEach((fId, i) => {
-    const ccId = ['ccHistoire','ccDesigner','ccMouvement','ccChapeau'][i];
+  ['eiHistoire','eiDesigner','eiTexteMouvement'].forEach((fId, i) => {
+    const ccId = ['ccHistoire','ccDesigner','ccMouvement'][i];
     const val = document.getElementById(fId).value;
     document.getElementById(ccId).textContent = val.length + ' caractères';
   });
-  ['doneEditoHero','doneEditoAnatomie'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  editoHeroUrl = null;
-  editoAnatomieUrl = null;
   populateProductSelect();
   if (e.product_id) {
     document.getElementById('eiProductId').value = e.product_id;
@@ -1310,44 +1119,28 @@ function openEditEdito(id) {
   } else {
     document.getElementById('eiGlbLinked').textContent = '';
   }
-  // Build & populate dynamic rows
-  buildAnatomieRows();
-  buildTimelineRows();
-  setTimeout(() => {
-    populateAnatomiePins(e.anatomie_pins || []);
-    populateTimelineStations(e.timeline_stations || []);
-  }, 0);
   document.getElementById('editoModal').classList.add('show');
 }
-
 function closeEditoModal() {
   document.getElementById('editoModal').classList.remove('show');
   currentEditoId = null;
 }
-
 async function saveEdito(forcedStatut) {
   const nom = document.getElementById('eiNomMeuble').value.trim();
   const marque = document.getElementById('eiMarque').value.trim();
   if (!nom || !marque) { toast('Nom du meuble et Marque requis', 'err'); return; }
-
   const statut = forcedStatut || document.getElementById('eiStatut').value;
   const spinId = statut === 'publie' ? 'spinEditoPublie' : 'spinEditoBrouillon';
   setSpin(spinId, true);
-
   const larg = parseFloat(document.getElementById('eiLarg').value) || null;
   const haut = parseFloat(document.getElementById('eiHaut').value) || null;
   const prof = parseFloat(document.getElementById('eiProf').value) || null;
-
   const productId = document.getElementById('eiProductId').value || null;
-  let glbUrl = document.getElementById('eiGlbUrl').value.trim() || null;
-  if (!glbUrl && productId) {
+  let glbUrlEd = document.getElementById('eiGlbUrl').value.trim() || null;
+  if (!glbUrlEd && productId) {
     const linked = allProducts.find(p => p.id === productId);
-    if (linked) glbUrl = linked.model_glb_url || null;
+    if (linked) glbUrlEd = linked.model_glb_url || null;
   }
-
-  const heroUrl     = editoHeroUrl     || document.getElementById('eiHeroUrl').value.trim()     || null;
-  const anatomieUrl = editoAnatomieUrl || document.getElementById('eiAnatomieUrl').value.trim() || null;
-
   const payload = {
     numero:          parseInt(document.getElementById('eiNumero').value) || null,
     slug:            document.getElementById('eiSlug').value.trim() || null,
@@ -1363,23 +1156,11 @@ async function saveEdito(forcedStatut) {
     texte_designer:  document.getElementById('eiDesigner').value.trim() || null,
     texte_mouvement: document.getElementById('eiTexteMouvement').value.trim() || null,
     product_id:      productId,
-    model_glb_url:   glbUrl,
+    model_glb_url:   glbUrlEd,
     statut:          statut,
     date_publication:document.getElementById('eiDate').value || null,
-    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null,
-    // ── Newsletter ──
-    titre:              document.getElementById('eiTitre').value.trim() || null,
-    chapeau:            document.getElementById('eiChapeau').value.trim() || null,
-    hero_image_url:     heroUrl,
-    hero_credit:        document.getElementById('eiHeroCredit').value.trim() || null,
-    anatomie_image_url: anatomieUrl,
-    anatomie_pins:      collectAnatomiePins(),
-    timeline_stations:  collectTimelineStations(),
-    chap1_titre:        document.getElementById('eiChap1Titre').value.trim() || null,
-    chap2_titre:        document.getElementById('eiChap2Titre').value.trim() || null,
-    chap3_titre:        document.getElementById('eiChap3Titre').value.trim() || null
+    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null
   };
-
   let error;
   if (currentEditoId) {
     ({error} = await sb.from('editorials').update(payload).eq('id', currentEditoId));
@@ -1387,21 +1168,19 @@ async function saveEdito(forcedStatut) {
     ({error} = await sb.from('editorials').insert([payload]));
   }
   setSpin(spinId, false);
-  if (error) { toast('Erreur : ' + error.message, 'err'); return; }
-
+  if (error) { toast('Erreur : '+error.message, 'err'); return; }
   const verb = currentEditoId ? 'mis à jour' : 'créé';
-  toast(`✓ Édito "${nom}" ${verb} (${statut === 'publie' ? 'publié' : 'brouillon'})`, 'ok');
+  toast('✓ Édito "'+nom+'" '+verb+' ('+(statut === 'publie' ? 'publié' : 'brouillon')+')', 'ok');
   closeEditoModal();
   loadEditorials();
 }
 
-/* ══ CHAR COUNT ══ */
 function updateCharCount(textarea, countId) {
   const el = document.getElementById(countId);
   if (el) el.textContent = textarea.value.length + ' caractères';
 }
 
-/* ══ FILE UPLOAD ══ */
+/* ══ FILE UPLOAD (products) ══ */
 async function uploadFile(input, type) {
   const file = input.files[0]; if(!file) return;
   const lblId  = type==='glb'?'lblGlb':'lblUsdz';
@@ -1412,7 +1191,7 @@ async function uploadFile(input, type) {
   document.getElementById(barId).style.width='20%';
   document.getElementById(lblId).textContent='⏳ Upload en cours…';
   const ext = file.name.split('.').pop();
-  const path= `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const path= Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
   const {error} = await sb.storage.from(BUCKET).upload(path, file, {upsert:true});
   document.getElementById(barId).style.width='100%';
   if (error) { document.getElementById(lblId).textContent='✗ Erreur'; return; }
@@ -1493,7 +1272,7 @@ async function uploadColorTexture(input, prefix) {
   reader.readAsDataURL(file);
   document.getElementById(nameId).textContent='⏳ Upload…';
   const ext=file.name.split('.').pop();
-  const path=`textures/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const path='textures/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(error){document.getElementById(nameId).textContent='✗ Erreur';return;}
   const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
@@ -1505,7 +1284,7 @@ async function uploadColorFile(input, prefix, type) {
   const lblId=(prefix==='u'?'u':'e')+(type==='glb'?'GlbLbl':'UsdzLbl');
   document.getElementById(lblId).textContent='⏳ Upload…';
   const ext=file.name.split('.').pop();
-  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
   const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
@@ -1546,12 +1325,12 @@ function renderColorsList(panel){
   const id=panel==='upload'?'uploadColorsList':'editColorsList';
   const el=document.getElementById(id); if(!el) return;
   if(!arr.length){el.innerHTML='<div class="color-empty">Aucun coloris ajouté</div>';return;}
-  el.innerHTML=arr.map((c,i)=>`<div class="color-row">
-    <div class="color-swatch" style="${c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex}"></div>
-    <div class="color-info"><div class="color-name">${c.name}${c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':''}</div>
-    <div class="color-status">${[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')}</div></div>
-    <button class="color-del" onclick="removeColor('${panel}',${i})">✕</button>
-  </div>`).join('');
+  el.innerHTML=arr.map((c,i)=>'<div class="color-row">'
+    +'<div class="color-swatch" style="'+(c.texture?'background-image:url('+c.texture+');background-size:cover':'background:'+c.hex)+'"></div>'
+    +'<div class="color-info"><div class="color-name">'+c.name+(c.mat?' <span style="font-size:10px;color:var(--muted)">· '+c.mat+'</span>':'')+'</div>'
+    +'<div class="color-status">'+[c.texture?'✓ Texture':'⚠ Sans texture',c.glb?'✓ GLB':'⚠ Sans GLB',c.usdz?'✓ USDZ':''].filter(Boolean).join(' · ')+'</div></div>'
+    +'<button class="color-del" onclick="removeColor(\''+panel+'\','+i+')">✕</button>'
+  +'</div>').join('');
 }
 
 /* ══ PHOTOS ══ */
@@ -1561,7 +1340,7 @@ async function handlePhotoUpload(files, panel){
   for(const file of Array.from(files)){
     if(arr.length>=6){toast('Maximum 6 photos','err');break;}
     const ext=file.name.split('.').pop();
-    const path=`photos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const path='photos/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
     toast('Upload photo…');
     const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
     if(error){toast('Erreur upload photo','err');continue;}
@@ -1579,8 +1358,8 @@ function renderPhotosGrid(panel){
   const id=panel==='upload'?'uploadPhotosGrid':'editPhotosGrid';
   const el=document.getElementById(id); if(!el) return;
   const inputId=panel==='upload'?'uploadPhotoInput':'editPhotoInput';
-  let h=arr.map((p,i)=>`<div class="photo-card"><img src="${p.url}" alt="${p.name}" loading="lazy"/>${i===0?'<div class="photo-cover">Principale</div>':''}<button class="photo-del" onclick="removePhoto('${panel}',${i})">✕</button></div>`).join('');
-  if(arr.length<6) h+=`<div class="photo-add" onclick="document.getElementById('${inputId}').click()"><input type="file" id="${inputId}" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,'${panel}')"/><div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter<br>photos</div></div>`;
+  let h=arr.map((p,i)=>'<div class="photo-card"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy"/>'+(i===0?'<div class="photo-cover">Principale</div>':'')+'<button class="photo-del" onclick="removePhoto(\''+panel+'\','+i+')">✕</button></div>').join('');
+  if(arr.length<6) h+='<div class="photo-add" onclick="document.getElementById(\''+inputId+'\').click()"><input type="file" id="'+inputId+'" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="handlePhotoUpload(this.files,\''+panel+'\')"/><div class="photo-add-ico">+</div><div class="photo-add-txt">Ajouter<br>photos</div></div>';
   el.innerHTML=h;
 }
 
@@ -1604,21 +1383,26 @@ function downloadQR(){
 }
 
 /* ══ DELETE ══ */
-function askDelete(id, nom, type='product'){
+function askDelete(id, nom, type){
+  type = type || 'product';
   deleteId=id; deleteType=type;
-  document.getElementById('confirmTxt').textContent=`Supprimer "${nom}" ? Cette action est irréversible.`;
+  document.getElementById('confirmTxt').textContent='Supprimer "'+nom+'" ? Cette action est irréversible.';
   document.getElementById('confirmModal').classList.add('show');
 }
 function closeConfirm(){document.getElementById('confirmModal').classList.remove('show');deleteId=null;}
 async function confirmDelete(){
   if(!deleteId) return;
-  const table = deleteType === 'edito' ? 'editorials' : 'products';
+  let table = 'products';
+  if (deleteType === 'edito') table = 'editorials';
+  else if (deleteType === 'sol') table = 'floor_textures';
   const {error}=await sb.from(table).delete().eq('id',deleteId);
   closeConfirm();
   if(error){toast('Erreur : '+error.message,'err');}
   else{
     toast('Supprimé','ok');
-    if(deleteType==='edito') loadEditorials(); else loadProducts();
+    if(deleteType==='edito') loadEditorials();
+    else if(deleteType==='sol') loadSols();
+    else loadProducts();
   }
 }
 
@@ -1633,9 +1417,9 @@ function openEdit(id){
   document.getElementById('eMarque').value=p.enseigne_name||'';
   document.getElementById('eCat').value=p.category||'';
   document.getElementById('ePrix').value=p.price||'';
-  document.getElementById('eLarg').value=p.dimensions?.l||'';
-  document.getElementById('eHaut').value=p.dimensions?.h||'';
-  document.getElementById('eProf').value=p.dimensions?.p||'';
+  document.getElementById('eLarg').value=(p.dimensions&&p.dimensions.l)||'';
+  document.getElementById('eHaut').value=(p.dimensions&&p.dimensions.h)||'';
+  document.getElementById('eProf').value=(p.dimensions&&p.dimensions.p)||'';
   const glbEl=document.getElementById('eGlbCurrent');
   glbEl.textContent=p.model_glb_url?p.model_glb_url.split('/').pop():'Aucun';
   glbEl.className='modal-file-name'+(p.model_glb_url?'':' none');
@@ -1669,7 +1453,7 @@ async function uploadEditFile(input, type){
   document.getElementById(barId).style.width='20%';
   document.getElementById(lblId).textContent='⏳ Upload…';
   const ext=file.name.split('.').pop();
-  const path=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   document.getElementById(barId).style.width='100%';
   if(error){document.getElementById(lblId).textContent='✗ Erreur';return;}
@@ -1716,7 +1500,7 @@ function handleMeshyImage(file){
 }
 async function uploadMeshyImage(file){
   const ext=file.name.split('.').pop();
-  const path=`meshy/${Date.now()}.${ext}`;
+  const path='meshy/'+Date.now()+'.'+ext;
   const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(error) return;
   const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
@@ -1741,7 +1525,7 @@ async function generateMeshy(){
   if(haut) body.resize_height=haut/100;
   if(document.getElementById('mPrompt').value.trim()) body.prompt=document.getElementById('mPrompt').value.trim();
   try{
-    const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d`,{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const resp=await fetch(MESHY_EP+'/openapi/v1/image-to-3d',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();
     if(!data.result) throw new Error(data.message||'Erreur Meshy');
     meshyTaskId=data.result;
@@ -1753,15 +1537,15 @@ async function pollMeshy(key,nom,marque){
   let progress=10;
   const interval=setInterval(async()=>{
     try{
-      const resp=await fetch(`${MESHY_EP}/openapi/v1/image-to-3d/${meshyTaskId}`,{headers:{'Authorization':'Bearer '+key}});
+      const resp=await fetch(MESHY_EP+'/openapi/v1/image-to-3d/'+meshyTaskId,{headers:{'Authorization':'Bearer '+key}});
       const data=await resp.json();
       progress=data.progress||progress;
       document.getElementById('meshyBar').style.width=progress+'%';
-      document.getElementById('meshyStatusTxt').textContent=`Génération : ${progress}%`;
+      document.getElementById('meshyStatusTxt').textContent='Génération : '+progress+'%';
       if(data.status==='SUCCEEDED'){
         clearInterval(interval);
-        meshyGlbUrl=data.model_urls?.glb||null;
-        meshyUsdzUrl=data.model_urls?.usdz||null;
+        meshyGlbUrl=(data.model_urls&&data.model_urls.glb)||null;
+        meshyUsdzUrl=(data.model_urls&&data.model_urls.usdz)||null;
         document.getElementById('meshyStatusTxt').textContent='✓ Modèle généré ! Sauvegarde…';
         document.getElementById('meshyBar').style.width='100%';
         await saveMeshyProduct(nom,marque);
@@ -1793,11 +1577,384 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* ══ UTILS ══ */
 function setSpin(id,show){const el=document.getElementById(id);if(!el)return;el.style.display=show?'block':'none';}
 let toastT;
-function toast(msg,type=''){
+function toast(msg,type){
+  type = type || '';
   const el=document.getElementById('toast');
   el.textContent=msg; el.className='toast show'+(type?' '+type:'');
   clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000);
 }
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* ══ SOLS / FLOOR TEXTURES ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════ */
+
+let currentSolId = null;
+let solPreview = null;       // {scene,camera,renderer,floor,floorMat,texture,box,raf}
+let _previewT = null;        // debounce timer
+
+async function loadSols() {
+  const {data, error} = await sb.from('floor_textures').select('*').order('sort_order',{ascending:true});
+  if (error) {
+    toast('Erreur chargement sols : '+error.message, 'err');
+    allSols = [];
+  } else {
+    allSols = data || [];
+  }
+  const active  = allSols.filter(s => s.is_active).length;
+  const def     = allSols.filter(s => s.is_default).length;
+  document.getElementById('stSolTotal').textContent  = allSols.length;
+  document.getElementById('stSolActive').textContent = active;
+  document.getElementById('stSolDefault').textContent= def;
+  document.getElementById('navBadgeSols').textContent= allSols.length;
+  renderSolTable(allSols);
+}
+
+function filterSolTable() {
+  const q = document.getElementById('solSearch').value.toLowerCase();
+  renderSolTable(allSols.filter(s =>
+    (s.name||'').toLowerCase().includes(q) ||
+    (s.slug||'').toLowerCase().includes(q)
+  ));
+}
+
+function renderSolTable(sols) {
+  const el = document.getElementById('solTable');
+  if (!sols.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucune texture — créez votre première ▭</div>';
+    return;
+  }
+  let h = '<table><thead><tr>'
+    + '<th>Aperçu</th><th>Nom</th><th>Répétitions</th><th>Rugosité</th><th>Statut</th><th>Actions</th>'
+    + '</tr></thead><tbody>';
+  sols.forEach(s => {
+    const nm = (s.name||'').replace(/'/g,"\\'");
+    const thumb = s.image_url
+      ? '<div class="sol-thumb-cell"><img src="'+s.image_url+'" alt=""/></div>'
+      : '<div class="sol-thumb-cell empty"></div>';
+    const isDef = !!s.is_default;
+    const isAct = !!s.is_active;
+    h += '<tr>'
+      + '<td>'+thumb+'</td>'
+      + '<td>'
+        + '<div class="td-name">'+(s.name||'—')+(isDef?'<span class="sol-default-mark">★ Défaut</span>':'')+'</div>'
+        + '<div class="td-brand" style="margin-top:2px;color:var(--muted);text-transform:none;letter-spacing:0;font-family:monospace;font-size:10px">'+(s.slug||s.id.slice(0,8))+'</div>'
+      + '</td>'
+      + '<td style="font-family:monospace;font-size:12px">'+(s.repeat_x||4)+' × '+(s.repeat_y||4)+'</td>'
+      + '<td style="font-family:monospace;font-size:12px">'+Number(s.roughness??0.85).toFixed(2)+'</td>'
+      + '<td><span class="td-badge '+(isAct?'ok':'')+'">'+(isAct?'● Active':'○ Inactive')+'</span></td>'
+      + '<td><div class="row-actions">'
+      +   '<button class="row-btn" onclick="openEditSol(\''+s.id+'\')">✏ Éditer</button>'
+      +   (isDef ? '' : '<button class="row-btn" onclick="setDefaultSol(\''+s.id+'\')">★ Défaut</button>')
+      +   '<button class="row-btn del" onclick="askDelete(\''+s.id+'\',\''+nm+'\',\'sol\')">✕</button>'
+      + '</div></td>'
+    + '</tr>';
+  });
+  h += '</tbody></table>';
+  el.innerHTML = h;
+}
+
+function openNewSol() {
+  currentSolId = null;
+  document.getElementById('solModalTitle').textContent = 'Nouvelle texture de sol';
+  document.getElementById('solSaveLbl').textContent = 'Créer';
+  ['sName','sSlug','sImageUrl'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sOrder').value = (allSols.length || 0);
+  document.getElementById('sBgColor').value = '#EEEBE3';
+  document.getElementById('sActive').checked  = true;
+  document.getElementById('sDefault').checked = !allSols.some(s => s.is_default);
+  setSliderPair('sRepeatX', 4);
+  setSliderPair('sRepeatY', 4);
+  setSliderPair('sRoughness', 0.85);
+  document.getElementById('sFileCurrent').textContent = 'Aucun';
+  document.getElementById('sFileCurrent').className = 'modal-file-name none';
+  document.getElementById('sFile').value = '';
+  document.getElementById('sFileLbl').textContent = 'ou cliquez pour parcourir';
+  document.getElementById('sFileProg').style.display = 'none';
+  document.getElementById('sFileBar').style.width = '0';
+  document.getElementById('solModal').classList.add('show');
+  initSolPreview();
+  schedulePreview();
+}
+
+function openEditSol(id) {
+  const s = allSols.find(x => x.id === id);
+  if (!s) return;
+  currentSolId = id;
+  document.getElementById('solModalTitle').textContent = 'Modifier — ' + (s.name || '');
+  document.getElementById('solSaveLbl').textContent = 'Enregistrer';
+  document.getElementById('sName').value     = s.name || '';
+  document.getElementById('sSlug').value     = s.slug || '';
+  document.getElementById('sImageUrl').value = s.image_url || '';
+  document.getElementById('sOrder').value    = s.sort_order ?? 0;
+  document.getElementById('sBgColor').value  = s.bg_color || '#EEEBE3';
+  document.getElementById('sActive').checked  = s.is_active !== false;
+  document.getElementById('sDefault').checked = !!s.is_default;
+  setSliderPair('sRepeatX', s.repeat_x ?? 4);
+  setSliderPair('sRepeatY', s.repeat_y ?? 4);
+  setSliderPair('sRoughness', s.roughness ?? 0.85);
+  const cur = document.getElementById('sFileCurrent');
+  cur.textContent = s.image_url ? s.image_url.split('/').pop() : 'Aucun';
+  cur.className = 'modal-file-name' + (s.image_url ? '' : ' none');
+  document.getElementById('sFile').value = '';
+  document.getElementById('sFileLbl').textContent = 'ou cliquez pour parcourir';
+  document.getElementById('sFileProg').style.display = 'none';
+  document.getElementById('solModal').classList.add('show');
+  initSolPreview();
+  schedulePreview();
+}
+
+function closeSolModal() {
+  document.getElementById('solModal').classList.remove('show');
+  currentSolId = null;
+  disposeSolPreview();
+}
+
+function setSliderPair(baseId, val) {
+  const r = document.getElementById(baseId);
+  const n = document.getElementById(baseId+'Num');
+  if (r) r.value = val;
+  if (n) n.value = val;
+}
+
+function onParamChange(source) {
+  const ids = ['sRepeatX','sRepeatY','sRoughness'];
+  ids.forEach(base => {
+    const r = document.getElementById(base);
+    const n = document.getElementById(base+'Num');
+    if (!r || !n) return;
+    if (source === 'num') r.value = n.value;
+    else                  n.value = r.value;
+  });
+  updateSolPreview();
+}
+
+function schedulePreview() {
+  clearTimeout(_previewT);
+  _previewT = setTimeout(() => updateSolPreview(), 80);
+}
+
+async function uploadSolTexture(input) {
+  const file = input.files[0]; if (!file) return;
+  const lbl = document.getElementById('sFileLbl');
+  const prog = document.getElementById('sFileProg');
+  const bar = document.getElementById('sFileBar');
+  prog.style.display = 'block';
+  bar.style.width = '20%';
+  lbl.textContent = '⏳ Upload…';
+  const ext = file.name.split('.').pop();
+  const path = 'floor-textures/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+  const {error} = await sb.storage.from(BUCKET).upload(path, file, {upsert:true});
+  bar.style.width = '100%';
+  if (error) { lbl.textContent = '✗ ' + error.message; return; }
+  const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+  document.getElementById('sImageUrl').value = pub.publicUrl;
+  document.getElementById('sFileCurrent').textContent = file.name;
+  document.getElementById('sFileCurrent').className = 'modal-file-name';
+  lbl.textContent = '✓ ' + file.name;
+  // Suggère un slug si vide
+  const nameField = document.getElementById('sName');
+  const slugField = document.getElementById('sSlug');
+  if (!slugField.value && nameField.value) {
+    slugField.value = nameField.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+  schedulePreview();
+}
+
+async function saveSol() {
+  const name = document.getElementById('sName').value.trim();
+  if (!name) { toast('Nom requis', 'err'); return; }
+  const imageUrl = document.getElementById('sImageUrl').value.trim();
+  if (!imageUrl) { toast('Image de texture requise', 'err'); return; }
+  setSpin('spinSol', true);
+  let slug = document.getElementById('sSlug').value.trim();
+  if (!slug) {
+    slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+  const wantDefault = document.getElementById('sDefault').checked;
+  const payload = {
+    name,
+    slug: slug || null,
+    image_url: imageUrl,
+    repeat_x: parseFloat(document.getElementById('sRepeatX').value) || 4,
+    repeat_y: parseFloat(document.getElementById('sRepeatY').value) || 4,
+    roughness: parseFloat(document.getElementById('sRoughness').value) || 0.85,
+    bg_color: document.getElementById('sBgColor').value || '#EEEBE3',
+    sort_order: parseInt(document.getElementById('sOrder').value) || 0,
+    is_active: document.getElementById('sActive').checked,
+    is_default: wantDefault
+  };
+  // Si default coché → on désactive d'abord les autres pour respecter l'index unique
+  if (wantDefault) {
+    let q = sb.from('floor_textures').update({is_default:false}).eq('is_default',true);
+    if (currentSolId) q = q.neq('id', currentSolId);
+    const {error: e1} = await q;
+    if (e1) { setSpin('spinSol', false); toast('Erreur reset défaut : '+e1.message, 'err'); return; }
+  }
+  let error;
+  if (currentSolId) {
+    ({error} = await sb.from('floor_textures').update(payload).eq('id', currentSolId));
+  } else {
+    ({error} = await sb.from('floor_textures').insert([payload]));
+  }
+  setSpin('spinSol', false);
+  if (error) { toast('Erreur : '+error.message, 'err'); return; }
+  toast('✓ Texture "'+name+'" '+(currentSolId?'mise à jour':'créée'), 'ok');
+  closeSolModal();
+  loadSols();
+}
+
+async function setDefaultSol(id) {
+  // Désactive tous les autres défauts puis active celui-ci
+  const {error: e1} = await sb.from('floor_textures').update({is_default:false}).eq('is_default',true).neq('id', id);
+  if (e1) { toast('Erreur : '+e1.message, 'err'); return; }
+  const {error: e2} = await sb.from('floor_textures').update({is_default:true, is_active:true}).eq('id', id);
+  if (e2) { toast('Erreur : '+e2.message, 'err'); return; }
+  toast('✓ Texture définie par défaut', 'ok');
+  loadSols();
+}
+
+/* ── Three.js preview live ────────────────────────────────────────── */
+async function initSolPreview() {
+  if (solPreview) { return; } // déjà créé
+  try {
+    const THREE = await import('three');
+    const canvas = document.getElementById('solPreviewCanvas');
+    const wrap = canvas.parentElement;
+    const w = wrap.clientWidth || 360;
+    const h = wrap.clientHeight || 270;
+
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(w, h, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1C1B18);
+
+    const camera = new THREE.PerspectiveCamera(38, w/h, 0.1, 50);
+    camera.position.set(2.4, 2.6, 3.2);
+    camera.lookAt(0, 0.4, 0);
+
+    // Lumières
+    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.4);
+    dir.position.set(3, 5, 2);
+    scene.add(dir);
+    const hemi = new THREE.HemisphereLight(0xfff5e8, 0x2a2520, 0.5);
+    scene.add(hemi);
+
+    // Sol 4m × 4m
+    const floorGeo = new THREE.PlaneGeometry(4, 4);
+    const floorMat = new THREE.MeshStandardMaterial({color:0xE4DFD6, roughness:0.85, metalness:0});
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+
+    // Repère 1m discret
+    const grid = new THREE.GridHelper(4, 4, 0xB8986A, 0x3a3530);
+    grid.material.opacity = 0.18;
+    grid.material.transparent = true;
+    grid.position.y = 0.001;
+    scene.add(grid);
+
+    // Chaise de référence (45×85×45 cm) au centre
+    const chairGeo = new THREE.BoxGeometry(0.45, 0.85, 0.45);
+    const chairMat = new THREE.MeshStandardMaterial({color:0x8a8880, roughness:0.6, metalness:0.05});
+    const chair = new THREE.Mesh(chairGeo, chairMat);
+    chair.position.set(0, 0.425, 0);
+    scene.add(chair);
+
+    // Petite ombre sous la chaise
+    const shadowGeo = new THREE.PlaneGeometry(0.7, 0.7);
+    const shadowMat = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.18});
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.rotation.x = -Math.PI/2;
+    shadow.position.y = 0.002;
+    scene.add(shadow);
+
+    solPreview = {THREE, scene, camera, renderer, floor, floorMat, chair, grid, shadow, texture:null, w, h, raf:null};
+
+    function animate() {
+      if (!solPreview) return;
+      solPreview.raf = requestAnimationFrame(animate);
+      // Rotation lente pour évaluer le matériau
+      solPreview.chair.rotation.y += 0.005;
+      solPreview.renderer.render(solPreview.scene, solPreview.camera);
+    }
+    animate();
+    updateSolPreview();
+  } catch (e) {
+    console.error('Three.js preview init failed', e);
+    toast('Aperçu 3D indisponible : '+e.message, 'err');
+  }
+}
+
+async function updateSolPreview() {
+  if (!solPreview) return;
+  const {THREE, floorMat} = solPreview;
+  const url = document.getElementById('sImageUrl').value.trim();
+  const repX = parseFloat(document.getElementById('sRepeatX').value) || 4;
+  const repY = parseFloat(document.getElementById('sRepeatY').value) || 4;
+  const rough = parseFloat(document.getElementById('sRoughness').value);
+  const bgCol = document.getElementById('sBgColor').value || '#EEEBE3';
+  const emptyEl = document.getElementById('solPreviewEmpty');
+
+  floorMat.roughness = isNaN(rough) ? 0.85 : rough;
+
+  if (!url) {
+    if (solPreview.texture) { solPreview.texture.dispose(); solPreview.texture = null; }
+    floorMat.map = null;
+    floorMat.color.set(bgCol);
+    floorMat.needsUpdate = true;
+    if (emptyEl) emptyEl.style.display = 'flex';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  // Recharge la texture seulement si l'URL a changé
+  if (!solPreview.texture || solPreview.texture._url !== url) {
+    if (solPreview.texture) { solPreview.texture.dispose(); }
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.load(url, (tex) => {
+      tex._url = url;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = solPreview.renderer.capabilities.getMaxAnisotropy();
+      tex.repeat.set(repX, repY);
+      solPreview.texture = tex;
+      floorMat.map = tex;
+      floorMat.color.set(0xffffff);
+      floorMat.needsUpdate = true;
+    }, null, (err) => {
+      console.warn('Texture load failed', err);
+      floorMat.map = null;
+      floorMat.color.set(bgCol);
+      floorMat.needsUpdate = true;
+      if (emptyEl) { emptyEl.textContent = '✗ Image introuvable'; emptyEl.style.display = 'flex'; }
+    });
+  } else {
+    solPreview.texture.repeat.set(repX, repY);
+    solPreview.texture.needsUpdate = true;
+    floorMat.needsUpdate = true;
+  }
+}
+
+function disposeSolPreview() {
+  if (!solPreview) return;
+  if (solPreview.raf) cancelAnimationFrame(solPreview.raf);
+  if (solPreview.texture) solPreview.texture.dispose();
+  solPreview.floorMat.dispose();
+  solPreview.chair.material.dispose();
+  solPreview.chair.geometry.dispose();
+  solPreview.floor.geometry.dispose();
+  solPreview.renderer.dispose();
+  solPreview = null;
+}
+
 </script>
 </body>
 </html>
