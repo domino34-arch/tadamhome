@@ -596,6 +596,11 @@ const FALLBACK_FLOOR = {
   name: 'Carreaux blancs',
   category: 'carrelage',
   image_url: null,
+  normal_url: null,
+  roughness_url: null,
+  ao_url: null,
+  normal_scale: 1.0,
+  ao_intensity: 1.0,
   repeat_x: 1, repeat_y: 1,
   roughness: 0.50,        /* léger satiné carreau émaillé */
   bg_color: '#F5F4F0',    /* blanc cassé chaud */
@@ -604,6 +609,9 @@ const FALLBACK_FLOOR = {
 
 /* FLOOR mesh — MeshStandardMaterial pour répondre correctement à la lumière */
 const floorGeo = new THREE.PlaneGeometry(14, 14);
+/* aoMap nécessite un second canal UV (uv1 depuis Three.js r152). On copie
+   les UV principaux : pour un plan unique, c'est exactement la même map. */
+floorGeo.setAttribute('uv1', floorGeo.attributes.uv);
 const floorMat = new THREE.MeshStandardMaterial({
   color: 0xF5F4F0,       /* blanc cassé chaud par défaut */
   roughness: 0.50,
@@ -628,16 +636,24 @@ const _floorTexCache = {};
 const _texLoader = new THREE.TextureLoader();
 _texLoader.crossOrigin = 'anonymous';
 
-function loadTexFromUrl(url) {
-  if (_floorTexCache[url]) return Promise.resolve(_floorTexCache[url]);
+/* Charge une texture pour le sol. `options.dataMap` à true pour les cartes
+   non-couleur (normal, roughness, AO, height) — celles-ci ne doivent PAS
+   être interprétées en sRGB sinon le rendu est incorrect (la GPU applique
+   une courbe gamma à des valeurs qui sont déjà linéaires).
+   Le cache est différencié par type pour éviter qu'une texture albedo
+   et une texture data utilisent la même instance. */
+function loadTexFromUrl(url, options) {
+  options = options || {};
+  const cacheKey = url + (options.dataMap ? '|data' : '|color');
+  if (_floorTexCache[cacheKey]) return Promise.resolve(_floorTexCache[cacheKey]);
   return new Promise((resolve) => {
     _texLoader.load(
       url,
       (tex) => {
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.colorSpace = options.dataMap ? THREE.NoColorSpace : THREE.SRGBColorSpace;
         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        _floorTexCache[url] = tex;
+        _floorTexCache[cacheKey] = tex;
         resolve(tex);
       },
       null,
@@ -659,6 +675,11 @@ async function loadFloorTextures() {
       name: d.name,
       category: d.category || 'autre',
       image_url: d.image_url,
+      normal_url: d.normal_url || null,
+      roughness_url: d.roughness_url || null,
+      ao_url: d.ao_url || null,
+      normal_scale: Number(d.normal_scale ?? 1.0),
+      ao_intensity: Number(d.ao_intensity ?? 1.0),
       repeat_x: Number(d.repeat_x) || 4,
       repeat_y: Number(d.repeat_y) || 4,
       roughness: Number(d.roughness ?? 0.85),
@@ -687,25 +708,67 @@ async function applyFloor(id) {
   }
   currentFloorId = preset.id;
 
-  if (preset.image_url) {
-    const tex = await loadTexFromUrl(preset.image_url);
-    if (tex) {
-      tex.repeat.set(preset.repeat_x, preset.repeat_y);
-      tex.needsUpdate = true;
-      floorMat.map = tex;
-      floorMat.color.set(0xffffff);
-      grid.visible = false;
-    } else {
-      floorMat.map = null;
-      floorMat.color.set(preset.bg_color);
-      grid.visible = true;
-    }
+  /* Chargement parallèle des 4 cartes : albedo (color) + normal/roughness/AO
+     (data, sans correction sRGB). On attend toutes les promesses en même
+     temps via Promise.all → la latence totale = la plus lente des 4 (vs
+     chargement séquentiel = somme des 4). */
+  const [albedoTex, normalTex, roughTex, aoTex] = await Promise.all([
+    preset.image_url     ? loadTexFromUrl(preset.image_url)                      : Promise.resolve(null),
+    preset.normal_url    ? loadTexFromUrl(preset.normal_url,    {dataMap: true}) : Promise.resolve(null),
+    preset.roughness_url ? loadTexFromUrl(preset.roughness_url, {dataMap: true}) : Promise.resolve(null),
+    preset.ao_url        ? loadTexFromUrl(preset.ao_url,        {dataMap: true}) : Promise.resolve(null)
+  ]);
+
+  /* ALBEDO — détermine si on est en "mode texture" ou "mode couleur unie" */
+  if (albedoTex) {
+    albedoTex.repeat.set(preset.repeat_x, preset.repeat_y);
+    albedoTex.needsUpdate = true;
+    floorMat.map = albedoTex;
+    floorMat.color.set(0xffffff);
+    grid.visible = false;
   } else {
     floorMat.map = null;
     floorMat.color.set(preset.bg_color);
+    /* La grille (joints des carreaux) n'apparait que sur les sols sans
+       albedo (= "Carreaux blancs" ou fallback) */
     grid.visible = true;
   }
-  floorMat.roughness = preset.roughness;
+
+  /* NORMAL MAP — relief simulé sans coût géométrique */
+  if (normalTex) {
+    normalTex.repeat.set(preset.repeat_x, preset.repeat_y);
+    normalTex.needsUpdate = true;
+    floorMat.normalMap = normalTex;
+    const ns = preset.normal_scale ?? 1.0;
+    floorMat.normalScale.set(ns, ns);
+  } else {
+    floorMat.normalMap = null;
+  }
+
+  /* ROUGHNESS MAP — variations de brillance dans la texture (joints mats vs
+     surface satinée). Si présente, le slider roughness devient un multiplicateur
+     global ; si absente, c'est lui seul qui pilote la rugosité. */
+  if (roughTex) {
+    roughTex.repeat.set(preset.repeat_x, preset.repeat_y);
+    roughTex.needsUpdate = true;
+    floorMat.roughnessMap = roughTex;
+    floorMat.roughness = 1.0;
+  } else {
+    floorMat.roughnessMap = null;
+    floorMat.roughness = preset.roughness;
+  }
+
+  /* AO MAP — ombres précalculées dans les creux (joints, chanfreins).
+     Nécessite uv1 sur la géométrie (déjà setup au-dessus). */
+  if (aoTex) {
+    aoTex.repeat.set(preset.repeat_x, preset.repeat_y);
+    aoTex.needsUpdate = true;
+    floorMat.aoMap = aoTex;
+    floorMat.aoMapIntensity = preset.ao_intensity ?? 1.0;
+  } else {
+    floorMat.aoMap = null;
+  }
+
   floorMat.needsUpdate = true;
 
   const bg = new THREE.Color(preset.bg_color);
@@ -2379,6 +2442,8 @@ function ensureSphereRig() {
   _spheScene.add(rim);
 
   const geo = new THREE.SphereGeometry(0.78, 64, 48);
+  /* uv1 pour l'aoMap, comme pour le sol */
+  geo.setAttribute('uv1', geo.attributes.uv);
   _spheMat = new THREE.MeshStandardMaterial({
     color: 0xffffff, roughness: 0.5, metalness: 0
   });
@@ -2386,40 +2451,69 @@ function ensureSphereRig() {
   _spheScene.add(_spheMesh);
 }
 
+/* Charge une texture pour la preview sphère, indépendamment du cache du sol
+   (la preview a besoin d'un repeat 1.6x différent du repeat du sol). */
+function _loadSphereTex(url, isData) {
+  return new Promise((resolve) => {
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.load(
+      url,
+      (t) => {
+        t.colorSpace = isData ? THREE.NoColorSpace : THREE.SRGBColorSpace;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(1.6, 1.6);
+        resolve(t);
+      },
+      null,
+      () => resolve(null)
+    );
+  });
+}
+
 async function generateSpherePreview(preset) {
   if (_spherePreviewCache[preset.id]) return _spherePreviewCache[preset.id];
   ensureSphereRig();
 
-  /* Texture séparée du sol applicable — on la veut affichée à un repeat
-     fixe optimisé pour la sphère (~1.5×) indépendamment du repeat configuré
-     pour le rendu plancher. */
-  let tex = null;
-  if (preset.image_url) {
-    tex = await new Promise((resolve) => {
-      const loader = new THREE.TextureLoader();
-      loader.crossOrigin = 'anonymous';
-      loader.load(
-        preset.image_url,
-        (t) => {
-          t.colorSpace = THREE.SRGBColorSpace;
-          t.wrapS = t.wrapT = THREE.RepeatWrapping;
-          resolve(t);
-        },
-        null,
-        () => resolve(null)
-      );
-    });
-  }
+  /* Chargement parallèle des 4 cartes pour la preview (mêmes URLs que le
+     sol mais instances de texture séparées car repeat différent) */
+  const [albedoTex, normalTex, roughTex, aoTex] = await Promise.all([
+    preset.image_url     ? _loadSphereTex(preset.image_url,     false) : Promise.resolve(null),
+    preset.normal_url    ? _loadSphereTex(preset.normal_url,    true)  : Promise.resolve(null),
+    preset.roughness_url ? _loadSphereTex(preset.roughness_url, true)  : Promise.resolve(null),
+    preset.ao_url        ? _loadSphereTex(preset.ao_url,        true)  : Promise.resolve(null)
+  ]);
 
-  if (_spheMat.map) { _spheMat.map.dispose(); _spheMat.map = null; }
-  if (tex) {
-    tex.repeat.set(1.6, 1.6);
-    _spheMat.map = tex;
+  /* Reset / dispose des anciennes maps avant de réassigner */
+  ['map','normalMap','roughnessMap','aoMap'].forEach(k => {
+    if (_spheMat[k]) { _spheMat[k].dispose(); _spheMat[k] = null; }
+  });
+
+  if (albedoTex) {
+    _spheMat.map = albedoTex;
     _spheMat.color.set(0xffffff);
   } else {
     _spheMat.color.set(preset.bg_color || '#F5F4F0');
   }
-  _spheMat.roughness = preset.roughness ?? 0.85;
+
+  if (normalTex) {
+    _spheMat.normalMap = normalTex;
+    const ns = preset.normal_scale ?? 1.0;
+    _spheMat.normalScale.set(ns, ns);
+  }
+
+  if (roughTex) {
+    _spheMat.roughnessMap = roughTex;
+    _spheMat.roughness = 1.0;
+  } else {
+    _spheMat.roughness = preset.roughness ?? 0.85;
+  }
+
+  if (aoTex) {
+    _spheMat.aoMap = aoTex;
+    _spheMat.aoMapIntensity = preset.ao_intensity ?? 1.0;
+  }
+
   _spheMat.needsUpdate = true;
 
   _spheRenderer.render(_spheScene, _spheCamera);
