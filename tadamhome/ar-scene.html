@@ -517,16 +517,19 @@ window.setView = function(mode) {
    l'ensemble en gardant la balance entre les sources.
    ======================================================================== */
 const LIGHT_BASE = {
-  ambient: 0.42,
-  sun:     1.55,
-  hemi:    0.50,
-  exposureBase: 0.92
+  ambient: 0.55,        /* base bump : moins de noir profond sur les faces non éclairées */
+  sun:     1.45,        /* key light — légèrement réduit puisqu'on a un fill maintenant */
+  fill:    0.65,        /* NEW : fill light côté opposé, sans ombre, adoucit les zones sombres */
+  hemi:    0.85,        /* hémisphère : simule le rebond ciel/plafond ; bumpé pour studio feel */
+  exposureBase: 1.00    /* exposition neutre — plus de plage pour les détails dans les noirs */
 };
 let LIGHT_MULT = 1.0;
 
 const ambientLight = new THREE.AmbientLight(0xffffff, LIGHT_BASE.ambient);
 scene.add(ambientLight);
 
+/* KEY LIGHT — soleil chaud, depuis le haut-droite-avant.
+   Casteur d'ombre principal (le seul). */
 const sun = new THREE.DirectionalLight(0xfffbf0, LIGHT_BASE.sun);
 sun.position.set(5, 10, 6);
 sun.castShadow = true;
@@ -538,10 +541,18 @@ sun.shadow.camera.right = 8;
 sun.shadow.camera.top = 8;
 sun.shadow.camera.bottom = -8;
 sun.shadow.bias = -0.001;
-/* Adoucissement des ombres pour un rendu plus réaliste */
-sun.shadow.radius = 4;
+/* Ombres plus diffuses pour atténuer la dureté studio */
+sun.shadow.radius = 6;
 sun.shadow.normalBias = 0.02;
 scene.add(sun);
+
+/* FILL LIGHT — neutre légèrement froid, depuis le haut-gauche-avant,
+   à intensité réduite. Pas d'ombre projetée (sinon doubles ombres = lecture confuse).
+   C'est ce qui empêche les flancs des meubles de virer au noir. */
+const fill = new THREE.DirectionalLight(0xeef2f7, LIGHT_BASE.fill);
+fill.position.set(-6, 7, 4);
+fill.castShadow = false;
+scene.add(fill);
 
 const hemiLight = new THREE.HemisphereLight(0xfaf5eb, 0xcfc5b4, LIGHT_BASE.hemi);
 scene.add(hemiLight);
@@ -549,6 +560,7 @@ scene.add(hemiLight);
 function applyBrightness() {
   ambientLight.intensity = LIGHT_BASE.ambient * LIGHT_MULT;
   sun.intensity          = LIGHT_BASE.sun     * LIGHT_MULT;
+  fill.intensity         = LIGHT_BASE.fill    * LIGHT_MULT;
   hemiLight.intensity    = LIGHT_BASE.hemi    * LIGHT_MULT;
   /* L'exposition s'ajuste plus doucement (la perception est non-linéaire) :
      courbe douce qui évite que ce soit trop sombre à 40% ou trop cramé à 160%. */
