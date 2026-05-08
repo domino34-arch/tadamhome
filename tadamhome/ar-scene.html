@@ -16,21 +16,20 @@
 }
 html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidden}
 
-/* TOPBAR - logo réduit + écarts plus serrés pour libérer la place du X */
+/* TOPBAR */
 .topbar{height:50px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 8px;flex-shrink:0;padding-top:env(safe-area-inset-top,0);gap:4px}
 .topbar-left{display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;overflow:hidden}
 .topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .t-logo{height:14px;object-fit:contain;flex-shrink:0}
 .t-sep{width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0}
 .t-label{font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Boutons icône-seule sur mobile */
 .t-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:32px;height:32px;padding:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--white);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative}
 .t-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 .t-btn-lbl{display:none}
 .t-btn:hover{background:rgba(184,152,106,.2);border-color:var(--accent);color:var(--accent)}
-.t-btn.ar{background:rgba(39,112,74,.25);border-color:rgba(39,112,74,.5);color:#6dcf95}
-.t-btn.ar:hover{background:rgba(39,112,74,.4)}
-.t-badge{background:var(--green);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(--sans);display:none;flex-shrink:0;position:absolute;top:-3px;right:-3px}
+.t-btn.ar{background:rgba(184,152,106,.18);border-color:var(--accent);color:var(--accent)}
+.t-btn.ar:hover{background:rgba(184,152,106,.32);color:var(--accent)}
+.t-badge{background:var(--accent);color:var(--ink);font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;font-family:var(--sans);display:none;flex-shrink:0;position:absolute;top:-3px;right:-3px}
 .t-badge.on{display:inline}
 .t-icon-btn{width:32px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--white);transition:all .2s;flex-shrink:0}
 .t-icon-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
@@ -53,15 +52,26 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .status{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.78);backdrop-filter:blur(8px);padding:6px 14px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);white-space:nowrap;border:1px solid rgba(255,255,255,.1);pointer-events:none;max-width:90%;overflow:hidden;text-overflow:ellipsis}
 .status.accent{color:var(--accent);border-color:rgba(184,152,106,.3)}
 
-/* SELECTED NAME TAG — also carries per-axis distance info during drag
-   AND rotation angle during rotate. Stays at the bottom of the studio
-   so it never blocks the model. */
+/* SELECTED NAME TAG */
 .sel-tag{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(28,27,24,.85);backdrop-filter:blur(8px);padding:5px 14px;font-size:11px;color:var(--white);letter-spacing:.05em;opacity:0;transition:opacity .2s;pointer-events:none;border-left:2px solid var(--accent);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .sel-tag.on{opacity:1}
 .sel-tag .sep{color:rgba(255,255,255,.35);margin:0 7px;font-size:10px}
 .sel-tag .axis{color:var(--accent);font-weight:500;margin-right:4px;font-size:10px}
 
-/* ACTION FABs (delete + duplicate) */
+/* MINI BRIGHTNESS — floating, always visible top-left of canvas */
+.bright-mini{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;background:rgba(28,27,24,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:7px 11px;border:1px solid rgba(255,255,255,.08);z-index:5;-webkit-user-select:none;user-select:none;border-radius:2px}
+.bright-mini-ic{width:13px;height:13px;color:rgba(255,255,255,.78);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.bright-mini-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.bright-mini-ic.lg{color:rgba(255,255,255,.95);width:14px;height:14px}
+.bright-mini-slider{-webkit-appearance:none;appearance:none;width:88px;height:2px;background:rgba(255,255,255,.22);outline:none;cursor:pointer;margin:0;padding:0;border-radius:0}
+.bright-mini-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.bright-mini-slider:active::-webkit-slider-thumb{transform:scale(1.15)}
+.bright-mini-slider::-moz-range-thumb{width:12px;height:12px;background:var(--accent);border-radius:50%;cursor:pointer;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+@media (min-width:540px){
+  .bright-mini-slider{width:120px}
+}
+
+/* ACTION FABs */
 .del-fab{position:absolute;bottom:16px;right:114px;width:42px;height:42px;background:rgba(192,57,43,.92);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 2px 10px rgba(192,57,43,.35);border-radius:2px}
 .del-fab.on{opacity:1;pointer-events:all}
 .del-fab svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
@@ -70,20 +80,18 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .dup-fab.on{opacity:1;pointer-events:all}
 .dup-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* RIGHT-EDGE MANIPULATION COLUMN — vertical strip of object controls.
-   Tap = single step, press-and-hold = continuous. */
+/* RIGHT-EDGE MANIPULATION COLUMN */
 .elev-fab{position:absolute;right:14px;width:42px;height:42px;background:rgba(28,27,24,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;pointer-events:none;transition:opacity .25s, background .15s;box-shadow:0 2px 10px rgba(0,0,0,.18);border-radius:2px;-webkit-user-select:none;user-select:none}
 .elev-fab.on{opacity:1;pointer-events:all}
 .elev-fab:active,.elev-fab.holding{background:var(--accent)}
 .elev-fab svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .elev-up   {bottom:64px}
 .elev-down {bottom:16px}
-/* Rotation buttons sit above the elevation pair, with a small visual gap. */
 .rot-cw    {bottom:166px}
 .rot-ccw   {bottom:116px}
 .rot-cw,.rot-ccw{background:rgba(45,42,36,.85)}
 
-/* ZOOM SLIDER — discrete vertical control on the right edge for one-handed zoom. */
+/* ZOOM SLIDER */
 .zoom-slider{position:absolute;right:14px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(250,250,248,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 6px;border-radius:4px;opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:4;-webkit-user-select:none;user-select:none}
 .zoom-slider.on{opacity:1;pointer-events:all}
 .zoom-btn{width:22px;height:22px;background:transparent;border:none;color:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
@@ -133,6 +141,17 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .cov-title em{font-style:italic;color:var(--accent)}
 .cov-x{background:none;border:1px solid var(--border);width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center}
 .cov-body{flex:1;overflow-y:auto;padding:12px;background:var(--bg)}
+
+/* CATEGORY FILTER inside catalogue — onglets soulignement or, style catalogue.html */
+.cat-filter{display:flex;gap:0;overflow-x:auto;padding:0 0 0 0;margin:-2px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);position:relative}
+.cat-filter::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;position:relative;display:inline-flex;align-items:center;gap:6px;padding:10px 14px 11px;border:none;background:transparent;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .2s;font-weight:400;margin-bottom:-1px}
+.cat-pill:hover{color:var(--ink)}
+.cat-pill.on{color:var(--ink);font-weight:500}
+.cat-pill.on::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;background:var(--accent)}
+.cat-pill .cat-count{font-size:9px;color:var(--muted);font-weight:300;letter-spacing:.02em;opacity:.7}
+.cat-pill.on .cat-count{color:var(--accent);opacity:1}
+
 .cov-search{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:9px 12px;margin-bottom:10px}
 .cov-search svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:1.5;flex-shrink:0}
 .cov-search input{border:none;outline:none;background:transparent;font-family:var(--sans);font-size:13px;color:var(--ink);flex:1;font-weight:300}
@@ -144,8 +163,17 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .cov-name{font-family:var(--serif);font-size:15px;color:var(--ink)}
 .cov-btn{padding:8px;background:var(--ink);color:var(--white);border:none;font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;width:100%}
 .cov-btn:hover,.cov-btn.added{background:var(--accent)}
+/* Variantes (coloris) */
+.cov-var-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px;font-family:var(--sans)}
+.cov-vars{display:flex;flex-wrap:wrap;gap:5px;margin-top:1px}
+.cov-var{position:relative;width:22px;height:22px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;flex-shrink:0;padding:0;transition:all .15s;background-size:cover;background-position:center}
+.cov-var:hover{transform:scale(1.12);border-color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2}
+.cov-var::after{content:"+";position:absolute;top:-5px;right:-5px;width:13px;height:13px;background:var(--accent);color:#fff;border-radius:50%;font-size:11px;font-weight:600;line-height:13px;text-align:center;opacity:0;transition:opacity .15s;border:1.5px solid var(--white);font-family:var(--sans)}
+.cov-var:hover::after{opacity:1}
+.cov-var.adding{transform:scale(.92);border-color:var(--accent)}
+.cov-var.adding::after{opacity:1;background:var(--green);content:"✓"}
 
-/* SCENES MODAL — reuses .cov-head / .cov-title / .cov-x */
+/* SCENES MODAL */
 #scnOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
 #scnOv.open{display:flex}
 .sov-body{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
@@ -172,9 +200,22 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
 .sov-item-btn.del:hover{color:#C0392B;border-color:#C0392B}
 .sov-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;background:var(--white);border:1px dashed var(--border);text-transform:uppercase}
 
-/* MANIPULATION LABELS — only for height (H) during perspective drag.
-   Distance info is now merged into .sel-tag and rotation angle is also
-   merged into .sel-tag for consistency. */
+/* AMBIANCE MODAL — Sol + Lumière */
+#ambOv{position:fixed;inset:0;z-index:100;background:rgba(28,27,24,.55);backdrop-filter:blur(6px);display:none;flex-direction:column}
+#ambOv.open{display:flex}
+.amb-body{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
+.amb-block{background:var(--white);border:1px solid var(--border);padding:14px}
+.floor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.floor-swatch{position:relative;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:0;border:none;background:none;font-family:var(--sans);text-align:left}
+.floor-thumb{width:100%;aspect-ratio:1;border:2px solid var(--border);overflow:hidden;background:#EDEAE2;transition:border-color .15s, transform .15s;position:relative}
+.floor-thumb canvas{display:block;width:100%;height:100%}
+.floor-swatch:hover .floor-thumb{border-color:var(--ink)}
+.floor-swatch.on .floor-thumb{border-color:var(--accent);box-shadow:0 0 0 2px rgba(184,152,106,.25)}
+.floor-swatch.on .floor-thumb::after{content:"\2713";position:absolute;top:4px;right:4px;width:18px;height:18px;background:var(--accent);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.floor-name{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;font-weight:400}
+.floor-swatch.on .floor-name{color:var(--ink);font-weight:500}
+
+/* MANIPULATION LABELS */
 .manip-label{
   position:absolute;top:0;left:0;
   background:rgba(28,27,24,.82);backdrop-filter:blur(6px);
@@ -214,6 +255,11 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
       <div class="t-label">Studio AR</div>
     </div>
     <div class="topbar-right">
+      <!-- Ambiance: sol + luminosité -->
+      <button class="t-btn" onclick="openAmbiance()" title="Ambiance">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>
+        <span class="t-btn-lbl">Ambiance</span>
+      </button>
       <button class="t-btn" onclick="openScenes()" title="Mes scenes">
         <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
         <span class="t-btn-lbl">Scenes</span>
@@ -236,38 +282,40 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   <!-- STUDIO -->
   <div class="studio">
     <canvas id="c"></canvas>
+    <!-- Mini-contrôle de luminosité, toujours visible -->
+    <div class="bright-mini" id="brightMini" title="Luminosité de la scène">
+      <div class="bright-mini-ic" title="Sombre">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>
+      </div>
+      <input type="range" class="bright-mini-slider" id="brightMiniSlider" min="40" max="160" step="5" value="100" aria-label="Luminosité"/>
+      <div class="bright-mini-ic lg" title="Lumineux">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+      </div>
+    </div>
     <div class="status" id="st">Ajoutez des meubles pour commencer</div>
     <div class="sel-tag" id="selTag"></div>
-    <!-- DUPLICATE FAB -->
     <button class="dup-fab" id="dupFab" onclick="doDuplicate()" title="Dupliquer">
       <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="1.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     </button>
-    <!-- ELEVATION FABs -->
     <button class="elev-fab elev-up" id="elevUp" title="Lever +5cm">
       <svg viewBox="0 0 24 24"><polyline points="6 14 12 8 18 14"/><line x1="12" y1="8" x2="12" y2="20"/><line x1="6" y1="4" x2="18" y2="4"/></svg>
     </button>
     <button class="elev-fab elev-down" id="elevDown" title="Baisser -5cm">
       <svg viewBox="0 0 24 24"><polyline points="6 10 12 16 18 10"/><line x1="12" y1="16" x2="12" y2="4"/><line x1="6" y1="20" x2="18" y2="20"/></svg>
     </button>
-    <!-- ROTATION FABs -->
     <button class="elev-fab rot-ccw" id="rotCcw" title="Pivoter -15°">
       <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>
     </button>
     <button class="elev-fab rot-cw" id="rotCw" title="Pivoter +15°">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg>
     </button>
-    <!-- Manipulation label: H during perspective drag.
-         Distance info AND rotation angle are merged into .sel-tag at the bottom. -->
     <div class="manip-label" id="hLabel"></div>
-    <!-- DELETE FAB -->
     <button class="del-fab" id="delFab" onclick="doDelete()" title="Supprimer">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
     </button>
-    <!-- UNDO FAB -->
     <button class="undo-fab" id="undoFab" onclick="doUndo()" title="Annuler">
       <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
     </button>
-    <!-- ZOOM SLIDER -->
     <div class="zoom-slider" id="zoomSlider">
       <button class="zoom-btn" id="zoomIn" title="Zoom +">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -315,6 +363,8 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
     <button class="cov-x" onclick="closeCat()">x</button>
   </div>
   <div class="cov-body">
+    <!-- Filtre catégories -->
+    <div class="cat-filter" id="catFilter"></div>
     <div class="cov-search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="csrch" placeholder="Rechercher..." oninput="filterCat()"/>
@@ -345,6 +395,20 @@ html,body{height:100%;background:var(--bg);font-family:var(--sans);overflow:hidd
   </div>
 </div>
 
+<!-- AMBIANCE (sol + luminosité) -->
+<div id="ambOv">
+  <div class="cov-head">
+    <div class="cov-title"><em>Ambiance</em> de la scène</div>
+    <button class="cov-x" onclick="closeAmbiance()">x</button>
+  </div>
+  <div class="amb-body">
+    <div class="sov-section-title">Sol</div>
+    <div class="amb-block">
+      <div class="floor-grid" id="floorGrid"></div>
+    </div>
+  </div>
+</div>
+
 <div id="ldr"><div class="spin"></div><div class="spin-txt" id="ltxt">Chargement...</div></div>
 <div id="tst"></div>
 
@@ -372,7 +436,9 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+/* OPTIMISATION ÉCLAIRAGE — exposition réduite (1.1 → 0.92) pour éviter
+   les zones surexposées, surtout sur les matériaux clairs. */
+renderer.toneMappingExposure = 0.92;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xEEEBE3);
@@ -382,10 +448,9 @@ scene.fog = new THREE.FogExp2(0xEEEBE3, 0.04);
 const perspCam = new THREE.PerspectiveCamera(48, 1, 0.01, 80);
 perspCam.position.set(3, 2.2, 3);
 
-/* ORTHOGRAPHIC camera (used for Plan + Axo) */
+/* ORTHOGRAPHIC camera */
 const orthoCam = new THREE.OrthographicCamera(-5, 5, 5, -5, -50, 100);
 
-/* Active camera reference */
 let activeCam = perspCam;
 
 /* CAMERA STATE */
@@ -437,9 +502,27 @@ window.setView = function(mode) {
   toast(labels[mode], 'ok');
 };
 
-/* LIGHTS */
-scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-const sun = new THREE.DirectionalLight(0xfffbf0, 2.2);
+/* ========================================================================
+   LIGHTING — système avec multiplicateur de luminosité
+   Valeurs de base ré-équilibrées (ancienne version trop exposée) :
+     ambient 1.0  → 0.42   (lumière diffuse globale)
+     sun     2.2  → 1.55   (directionnelle, ombres)
+     hemi    0.7  → 0.50   (gradient ciel/sol)
+   Le multiplicateur LIGHT_MULT (0.4 → 1.6) permet à l'utilisateur d'ajuster
+   l'ensemble en gardant la balance entre les sources.
+   ======================================================================== */
+const LIGHT_BASE = {
+  ambient: 0.42,
+  sun:     1.55,
+  hemi:    0.50,
+  exposureBase: 0.92
+};
+let LIGHT_MULT = 1.0;
+
+const ambientLight = new THREE.AmbientLight(0xffffff, LIGHT_BASE.ambient);
+scene.add(ambientLight);
+
+const sun = new THREE.DirectionalLight(0xfffbf0, LIGHT_BASE.sun);
 sun.position.set(5, 10, 6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -450,14 +533,52 @@ sun.shadow.camera.right = 8;
 sun.shadow.camera.top = 8;
 sun.shadow.camera.bottom = -8;
 sun.shadow.bias = -0.001;
+/* Adoucissement des ombres pour un rendu plus réaliste */
+sun.shadow.radius = 4;
+sun.shadow.normalBias = 0.02;
 scene.add(sun);
-scene.add(new THREE.HemisphereLight(0xfaf5eb, 0xcfc5b4, 0.7));
 
-/* FLOOR */
-const floorMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(14, 14),
-  new THREE.MeshLambertMaterial({ color:0xE4DFD6 })
-);
+const hemiLight = new THREE.HemisphereLight(0xfaf5eb, 0xcfc5b4, LIGHT_BASE.hemi);
+scene.add(hemiLight);
+
+function applyBrightness() {
+  ambientLight.intensity = LIGHT_BASE.ambient * LIGHT_MULT;
+  sun.intensity          = LIGHT_BASE.sun     * LIGHT_MULT;
+  hemiLight.intensity    = LIGHT_BASE.hemi    * LIGHT_MULT;
+  /* L'exposition s'ajuste plus doucement (la perception est non-linéaire) :
+     courbe douce qui évite que ce soit trop sombre à 40% ou trop cramé à 160%. */
+  const expoFactor = 0.6 + 0.4 * LIGHT_MULT;
+  renderer.toneMappingExposure = LIGHT_BASE.exposureBase * expoFactor;
+}
+applyBrightness();
+
+/* ========================================================================
+   FLOOR TEXTURES — chargées depuis la table Supabase `floor_textures`.
+   L'admin gère l'upload, le scaling (repeat_x/y), la rugosité et le
+   choix par défaut depuis admin.html. Si la table est vide, on retombe
+   sur un sol beige neutre uni.
+   ======================================================================== */
+let FLOOR_PRESETS = [];     // peuplé par loadFloorTextures()
+let currentFloorId = null;
+
+const FALLBACK_FLOOR = {
+  id: '_fallback',
+  name: 'Sol par défaut',
+  image_url: null,
+  repeat_x: 1, repeat_y: 1,
+  roughness: 0.92,
+  bg_color: '#EEEBE3',
+  is_default: true
+};
+
+/* FLOOR mesh — MeshStandardMaterial pour répondre correctement à la lumière */
+const floorGeo = new THREE.PlaneGeometry(14, 14);
+const floorMat = new THREE.MeshStandardMaterial({
+  color: 0xE4DFD6,
+  roughness: 0.85,
+  metalness: 0.0
+});
+const floorMesh = new THREE.Mesh(floorGeo, floorMat);
 floorMesh.rotation.x = -Math.PI / 2;
 floorMesh.receiveShadow = true;
 floorMesh.name = 'floor';
@@ -469,19 +590,101 @@ grid.material.transparent = true;
 grid.name = 'grid';
 scene.add(grid);
 
+/* Cache de textures THREE chargées depuis URL */
+const _floorTexCache = {};
+const _texLoader = new THREE.TextureLoader();
+_texLoader.crossOrigin = 'anonymous';
+
+function loadTexFromUrl(url) {
+  if (_floorTexCache[url]) return Promise.resolve(_floorTexCache[url]);
+  return new Promise((resolve) => {
+    _texLoader.load(
+      url,
+      (tex) => {
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        _floorTexCache[url] = tex;
+        resolve(tex);
+      },
+      null,
+      (err) => { console.warn('[floor texture] load failed', url, err); resolve(null); }
+    );
+  });
+}
+
+async function loadFloorTextures() {
+  try {
+    const { data, error } = await sb
+      .from('floor_textures')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    FLOOR_PRESETS = (data || []).map(d => ({
+      id: d.id,
+      name: d.name,
+      image_url: d.image_url,
+      repeat_x: Number(d.repeat_x) || 4,
+      repeat_y: Number(d.repeat_y) || 4,
+      roughness: Number(d.roughness ?? 0.85),
+      bg_color: d.bg_color || '#EEEBE3',
+      is_default: !!d.is_default
+    }));
+  } catch (e) {
+    console.warn('[loadFloorTextures] failed', e);
+    FLOOR_PRESETS = [];
+  }
+  return FLOOR_PRESETS;
+}
+
+async function applyFloor(id) {
+  let preset;
+  if (id === '_fallback' || !FLOOR_PRESETS.length) {
+    preset = FALLBACK_FLOOR;
+  } else {
+    preset = FLOOR_PRESETS.find(p => p.id === id)
+          || FLOOR_PRESETS.find(p => p.is_default)
+          || FLOOR_PRESETS[0]
+          || FALLBACK_FLOOR;
+  }
+  currentFloorId = preset.id;
+
+  if (preset.image_url) {
+    const tex = await loadTexFromUrl(preset.image_url);
+    if (tex) {
+      tex.repeat.set(preset.repeat_x, preset.repeat_y);
+      tex.needsUpdate = true;
+      floorMat.map = tex;
+      floorMat.color.set(0xffffff);
+      grid.visible = false;
+    } else {
+      floorMat.map = null;
+      floorMat.color.set(preset.bg_color);
+      grid.visible = true;
+    }
+  } else {
+    floorMat.map = null;
+    floorMat.color.set(preset.bg_color);
+    grid.visible = true;
+  }
+  floorMat.roughness = preset.roughness;
+  floorMat.needsUpdate = true;
+
+  const bg = new THREE.Color(preset.bg_color);
+  scene.background = bg;
+  scene.fog.color = bg;
+
+  if (preset.id !== '_fallback') {
+    try { localStorage.setItem('tadam_floor', preset.id); } catch(_){}
+  }
+}
+
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+
 /* ========================================================================
    MANIPULATION HELPERS — "Natural Minimal"
-   Visual repères + audio/haptic feedback for precise but free movement.
-   Per-axis distance info + rotation angle are folded into the .sel-tag
-   (model name tag) at the bottom of the studio so the model stays fully
-   visible during manipulation.
-
-   Axis convention (consistent across views):
-     X = world X gap        (always shown when 2+ objects)
-     Y = world Z gap        (always shown when 2+ objects)
-     Z = world Y gap = height (only shown in axo + perspective views)
-   In plan view only X and Y are shown (no height info).
    ======================================================================== */
 const HELPER = (() => {
   const root = new THREE.Group();
@@ -489,19 +692,10 @@ const HELPER = (() => {
   root.visible = false;
   scene.add(root);
 
-  const axisMatX = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const axisMatY = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const axisMatZ = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false
-  });
-  const dashMat  = new THREE.LineDashedMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.55,
-    dashSize: 0.04, gapSize: 0.04, depthTest: false
-  });
+  const axisMatX = new THREE.LineBasicMaterial({ color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false });
+  const axisMatY = new THREE.LineBasicMaterial({ color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false });
+  const axisMatZ = new THREE.LineBasicMaterial({ color: 0xF0EDE5, transparent: true, opacity: 0.30, depthTest: false });
+  const dashMat  = new THREE.LineDashedMaterial({ color: 0xF0EDE5, transparent: true, opacity: 0.55, dashSize: 0.04, gapSize: 0.04, depthTest: false });
 
   function makeLine(mat) {
     const g = new THREE.BufferGeometry();
@@ -517,7 +711,6 @@ const HELPER = (() => {
   const dropY = makeLine(dashMat);
   root.add(xAxis, yAxis, zAxis, dropY);
 
-  /* Rotation ring */
   const ringGroup = new THREE.Group();
   ringGroup.visible = false;
   ringGroup.renderOrder = 998;
@@ -534,18 +727,12 @@ const HELPER = (() => {
   }
   const ringGeo = new THREE.BufferGeometry();
   ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
-  const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.55, depthTest: false
-  }));
+  const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({ color: 0xB8986A, transparent: true, opacity: 0.55, depthTest: false }));
   ringLine.renderOrder = 998;
   ringGroup.add(ringLine);
 
-  const tickMat = new THREE.LineBasicMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.65, depthTest: false
-  });
-  const tickMatMajor = new THREE.LineBasicMaterial({
-    color: 0xF0EDE5, transparent: true, opacity: 0.85, depthTest: false
-  });
+  const tickMat      = new THREE.LineBasicMaterial({ color: 0xB8986A, transparent: true, opacity: 0.65, depthTest: false });
+  const tickMatMajor = new THREE.LineBasicMaterial({ color: 0xF0EDE5, transparent: true, opacity: 0.85, depthTest: false });
   for (let deg = 0; deg < 360; deg += 15) {
     const a = deg * Math.PI / 180;
     const major = (deg % 90) === 0;
@@ -561,21 +748,14 @@ const HELPER = (() => {
     ringGroup.add(t);
   }
 
-  /* HTML labels — only H during perspective drag stays as a floating label.
-     Distance and rotation info live in the selTag (bottom) so they never
-     block the model. */
   const hLabel = document.getElementById('hLabel');
   const selTag = document.getElementById('selTag');
-  /* Smoothed display values — avoids flicker on jitter */
   let hDisplay = 0, hTarget = 0;
   let aDisplay = 0, aTarget = 0;
-  /* Per-axis distance tweens (cm). Smoothed so digits never strobe.
-     dxDisp = world X gap, dyDisp = world Y gap (height), dzDisp = world Z gap. */
   let dxDisp = 0, dxTgt = 0;
   let dyDisp = 0, dyTgt = 0;
   let dzDisp = 0, dzTgt = 0;
 
-  /* Format helper: cm → "30 cm" or "1.23 m" */
   function fmtCm(cm) {
     cm = Math.round(cm);
     if (cm >= 100) return (cm / 100).toFixed(2) + ' m';
@@ -585,13 +765,9 @@ const HELPER = (() => {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* Distance line (3D dashed line on the floor) */
   const distGeo = new THREE.BufferGeometry();
   distGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-  const distMat = new THREE.LineDashedMaterial({
-    color: 0xB8986A, transparent: true, opacity: 0.7,
-    dashSize: 0.05, gapSize: 0.04, depthTest: false
-  });
+  const distMat = new THREE.LineDashedMaterial({ color: 0xB8986A, transparent: true, opacity: 0.7, dashSize: 0.05, gapSize: 0.04, depthTest: false });
   const distLine = new THREE.Line(distGeo, distMat);
   distLine.frustumCulled = false;
   distLine.renderOrder = 999;
@@ -601,13 +777,11 @@ const HELPER = (() => {
   let mode = 'none';
   let target = null;
 
-  /* Per-frame label tweening (ticks via animation loop) */
   function tweenLabels() {
     if (Math.abs(hTarget - hDisplay) > 0.05) hDisplay += (hTarget - hDisplay) * 0.35;
     else hDisplay = hTarget;
     if (Math.abs(aTarget - aDisplay) > 0.1) aDisplay += (aTarget - aDisplay) * 0.35;
     else aDisplay = aTarget;
-    /* Per-axis distance smoothing (cm) */
     if (Math.abs(dxTgt - dxDisp) > 0.05) dxDisp += (dxTgt - dxDisp) * 0.35; else dxDisp = dxTgt;
     if (Math.abs(dyTgt - dyDisp) > 0.05) dyDisp += (dyTgt - dyDisp) * 0.35; else dyDisp = dyTgt;
     if (Math.abs(dzTgt - dzDisp) > 0.05) dzDisp += (dzTgt - dzDisp) * 0.35; else dzDisp = dzTgt;
@@ -616,13 +790,6 @@ const HELPER = (() => {
       hLabel.textContent = 'H ' + Math.round(hDisplay) + ' cm';
     }
 
-    /* Merged tag content:
-       - During drag: name + per-axis distance to nearest object.
-         X = world X gap, Y = world Z gap (both horizontal, same as plan
-         view). Z = height gap, only shown in axo + perspective.
-       - During rotate: name + signed angle (so the rotation info lives
-         in the same place as the distance info — single source of truth).
-    */
     if (mode === 'drag' && target) {
       let html = escHtml(target.name);
       if (placed.length > 1) {
@@ -643,7 +810,6 @@ const HELPER = (() => {
     }
   }
 
-  /* Box-to-box edge distance (zero if overlapping) */
   function boxEdgeDistance(a, b) {
     const dx = Math.max(0, Math.max(a.min.x - b.max.x, b.min.x - a.max.x));
     const dy = Math.max(0, Math.max(a.min.y - b.max.y, b.min.y - a.max.y));
@@ -659,8 +825,6 @@ const HELPER = (() => {
     return out;
   }
 
-  /* Find nearest other placed object — returns boxB so update() can
-     compute per-axis gaps. */
   const _otherCenter = new THREE.Vector3();
   const _selfCenter  = new THREE.Vector3();
   const _ptA = new THREE.Vector3();
@@ -688,10 +852,7 @@ const HELPER = (() => {
     const v = v3.clone().project(activeCam);
     const w = canvas.parentElement.clientWidth;
     const h = canvas.parentElement.clientHeight;
-    return {
-      x: (v.x * 0.5 + 0.5) * w,
-      y: (-v.y * 0.5 + 0.5) * h
-    };
+    return { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h };
   }
 
   const _bx = new THREE.Box3();
@@ -714,10 +875,8 @@ const HELPER = (() => {
 
   function update() {
     if (!target || !root.visible) return;
-
     const info = objCenter(target);
     const ext  = axisExtent(info.box);
-
     root.position.copy(info.bottom);
 
     const xp = xAxis.geometry.attributes.position;
@@ -751,9 +910,6 @@ const HELPER = (() => {
     const ringR = Math.max(0.4, Math.hypot(sz.x, sz.z) * 0.55);
     ringGroup.scale.setScalar(ringR);
 
-    /* H label — perspective view drag only. Height is also encoded as the
-       "Z" axis in the merged selTag for axo/perspective, but the floating
-       H label gives a quick read while lifting. */
     if (mode === 'drag' && viewMode === 'persp') {
       hTarget = info.bottom.y * 100;
       const wp = info.bottom.clone(); wp.y += 0.04;
@@ -764,8 +920,6 @@ const HELPER = (() => {
       hLabel.classList.remove('on');
     }
 
-    /* Per-axis distance to nearest object — feeds the merged tag.
-       The 3D dashed line on the floor stays visible as a spatial anchor. */
     if (mode === 'drag' && placed.length > 1) {
       const nn = nearestNeighbour(info.box);
       if (nn) {
@@ -800,11 +954,9 @@ const HELPER = (() => {
     mode = m;
     root.visible = true;
     ringGroup.visible = (m === 'rotate');
-
     if (m === 'drag') {
       hTarget = (objCenter(obj).bottom.y) * 100;
       hDisplay = hTarget;
-      /* Reset axis distance tweens so the first frame retargets cleanly */
       dxDisp = dxTgt = 0;
       dyDisp = dyTgt = 0;
       dzDisp = dzTgt = 0;
@@ -813,14 +965,11 @@ const HELPER = (() => {
       aDisplay = aTarget;
       hLabel.classList.remove('on');
       distLine.visible = false;
-      /* Rotation info will appear in selTag on next tweenLabels tick */
     }
     update();
   }
 
-  function setRotationLabel(rad) {
-    aTarget = rad * 180 / Math.PI;
-  }
+  function setRotationLabel(rad) { aTarget = rad * 180 / Math.PI; }
 
   let lockState = null;
   function setAxisLock(axis) {
@@ -828,44 +977,32 @@ const HELPER = (() => {
     lockState = axis;
     axisMatX.color.set(0xF0EDE5); axisMatX.opacity = 0.30;
     axisMatZ.color.set(0xF0EDE5); axisMatZ.opacity = 0.30;
-    if (axis === 'x') {
-      axisMatX.color.set(0xB8986A);
-      axisMatX.opacity = 0.85;
-    } else if (axis === 'z') {
-      axisMatZ.color.set(0xB8986A);
-      axisMatZ.opacity = 0.85;
-    }
+    if (axis === 'x') { axisMatX.color.set(0xB8986A); axisMatX.opacity = 0.85; }
+    else if (axis === 'z') { axisMatZ.color.set(0xB8986A); axisMatZ.opacity = 0.85; }
   }
 
   function hide() {
     mode = 'none';
     hLabel.classList.remove('on');
     distLine.visible = false;
-    /* Restore selTag to just the model name when manipulation ends.
-       (If selection itself is being cleared, selTag fades out via the
-       `.on` class toggle in selectObj — content doesn't matter then.) */
     if (selected) selTag.textContent = selected.name;
     setAxisLock(null);
     const start = performance.now();
     const dur = 400;
     const initial = {
-      x: axisMatX.opacity,
-      y: axisMatY.opacity,
-      z: axisMatZ.opacity,
-      d: dashMat.opacity,
-      r: ringLine.material.opacity,
-      tk: tickMat.opacity,
-      tj: tickMatMajor.opacity
+      x: axisMatX.opacity, y: axisMatY.opacity, z: axisMatZ.opacity,
+      d: dashMat.opacity, r: ringLine.material.opacity,
+      tk: tickMat.opacity, tj: tickMatMajor.opacity
     };
     function step() {
       const t = Math.min(1, (performance.now() - start) / dur);
       const k = 1 - t;
-      axisMatX.opacity     = initial.x  * k;
-      axisMatY.opacity     = initial.y  * k;
-      axisMatZ.opacity     = initial.z  * k;
-      dashMat.opacity      = initial.d  * k;
+      axisMatX.opacity = initial.x * k;
+      axisMatY.opacity = initial.y * k;
+      axisMatZ.opacity = initial.z * k;
+      dashMat.opacity  = initial.d * k;
       ringLine.material.opacity = initial.r * k;
-      tickMat.opacity      = initial.tk * k;
+      tickMat.opacity  = initial.tk * k;
       tickMatMajor.opacity = initial.tj * k;
       if (t < 1 && mode === 'none') {
         requestAnimationFrame(step);
@@ -886,9 +1023,8 @@ const HELPER = (() => {
   return { show, hide, update, setRotationLabel, setAxisLock };
 })();
 
-/* ========================================================================
-   FEEDBACK — "Thock" sound + haptic at translation/rotation thresholds.
-   ======================================================================== */
+
+/* FEEDBACK — thock + haptic at thresholds */
 const FEEDBACK = (() => {
   let ctx = null;
   let lastTickAt = 0;
@@ -929,9 +1065,7 @@ const FEEDBACK = (() => {
     osc.stop(now + 0.025);
   }
 
-  function haptic() {
-    try { if (navigator.vibrate) navigator.vibrate(18); } catch(_){}
-  }
+  function haptic() { try { if (navigator.vibrate) navigator.vibrate(18); } catch(_){} }
 
   function tickSilent() {
     const now = performance.now();
@@ -954,10 +1088,7 @@ const FEEDBACK = (() => {
     if (!lastPos) { startTranslate(pos); return; }
     transAccum += Math.hypot(pos.x - lastPos.x, pos.z - lastPos.z);
     lastPos.copy(pos);
-    while (transAccum >= TRANS_THRESHOLD) {
-      transAccum -= TRANS_THRESHOLD;
-      tickSilent();
-    }
+    while (transAccum >= TRANS_THRESHOLD) { transAccum -= TRANS_THRESHOLD; tickSilent(); }
   }
   function endTranslate() { lastPos = null; transAccum = 0; }
 
@@ -971,10 +1102,7 @@ const FEEDBACK = (() => {
     while (d < -Math.PI) d += Math.PI * 2;
     rotAccum += Math.abs(d);
     lastRot = rad;
-    while (rotAccum >= ROT_THRESHOLD) {
-      rotAccum -= ROT_THRESHOLD;
-      tickFull();
-    }
+    while (rotAccum >= ROT_THRESHOLD) { rotAccum -= ROT_THRESHOLD; tickFull(); }
   }
   function endRotate() { lastRot = null; rotAccum = 0; }
 
@@ -997,12 +1125,9 @@ const FEEDBACK = (() => {
   const SPEED_M_S = 0.30;
   const Y_MIN = 0;
   const Y_MAX = 3.0;
-
   const upBtn   = document.getElementById('elevUp');
   const downBtn = document.getElementById('elevDown');
-
   function clampY(y) { return Math.max(Y_MIN, Math.min(Y_MAX, y)); }
-
   function nudge(deltaM) {
     if (!selected) return;
     const before = selected.mesh.position.y;
@@ -1011,7 +1136,6 @@ const FEEDBACK = (() => {
     selected.mesh.position.y = after;
     HELPER.show(selected, 'drag');
   }
-
   let holdRAF = null;
   let holdLastT = 0;
   let holdDir = 0;
@@ -1035,14 +1159,9 @@ const FEEDBACK = (() => {
   }
   function endHold(btn) {
     btn.classList.remove('holding');
-    if (holdRAF) {
-      clearTimeout(holdRAF);
-      cancelAnimationFrame(holdRAF);
-      holdRAF = null;
-    }
+    if (holdRAF) { clearTimeout(holdRAF); cancelAnimationFrame(holdRAF); holdRAF = null; }
     HELPER.show(selected, 'drag');
   }
-
   function bind(btn, dir) {
     btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
     btn.addEventListener('pointerup',   ()  => endHold(btn));
@@ -1057,10 +1176,8 @@ const FEEDBACK = (() => {
 (function rotationControls() {
   const STEP_RAD    = 15 * Math.PI / 180;
   const SPEED_RAD_S = 90 * Math.PI / 180;
-
   const ccwBtn = document.getElementById('rotCcw');
   const cwBtn  = document.getElementById('rotCw');
-
   function nudge(deltaRad) {
     if (!selected) return;
     selected.mesh.rotation.y += deltaRad;
@@ -1068,7 +1185,6 @@ const FEEDBACK = (() => {
     HELPER.setRotationLabel(selected.mesh.rotation.y);
     FEEDBACK.updateRotate(selected.mesh.rotation.y);
   }
-
   let holdRAF = null, holdLastT = 0, holdDir = 0;
   function holdLoop() {
     const now = performance.now();
@@ -1091,14 +1207,9 @@ const FEEDBACK = (() => {
   }
   function endHold(btn) {
     btn.classList.remove('holding');
-    if (holdRAF) {
-      clearTimeout(holdRAF);
-      cancelAnimationFrame(holdRAF);
-      holdRAF = null;
-    }
+    if (holdRAF) { clearTimeout(holdRAF); cancelAnimationFrame(holdRAF); holdRAF = null; }
     FEEDBACK.endRotate();
   }
-
   function bind(btn, dir) {
     btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(dir, btn); btn.setPointerCapture(e.pointerId); });
     btn.addEventListener('pointerup',   ()  => endHold(btn));
@@ -1116,7 +1227,6 @@ const FEEDBACK = (() => {
   const thumb = document.getElementById('zoomThumb');
   const inBtn = document.getElementById('zoomIn');
   const outBtn= document.getElementById('zoomOut');
-
   function bounds() {
     const max = (viewMode === 'persp') ? 12 : 20;
     return { min: 1, max };
@@ -1130,18 +1240,15 @@ const FEEDBACK = (() => {
     const b = bounds();
     return b.min * Math.pow(b.max / b.min, t);
   }
-
   function syncThumbToCam() {
     const t = distToT(camDist);
     thumb.style.top = (t * 100) + '%';
   }
-
   function setDistFromT(t) {
     camDist = tToDist(Math.max(0, Math.min(1, t)));
     applyCamera();
     syncThumbToCam();
   }
-
   let dragging = false;
   function trackEventToT(clientY) {
     const r = track.getBoundingClientRect();
@@ -1158,18 +1265,12 @@ const FEEDBACK = (() => {
     if (!dragging) return;
     setDistFromT(trackEventToT(e.clientY));
   });
-  function stopDrag() {
-    dragging = false;
-    thumb.classList.remove('dragging');
-  }
+  function stopDrag() { dragging = false; thumb.classList.remove('dragging'); }
   track.addEventListener('pointerup', stopDrag);
   track.addEventListener('pointercancel', stopDrag);
-
   const STEP = 0.04;
   let holdRAF = null;
-  function stepBy(deltaT) {
-    setDistFromT(distToT(camDist) + deltaT);
-  }
+  function stepBy(deltaT) { setDistFromT(distToT(camDist) + deltaT); }
   function bindBtn(btn, sign) {
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -1187,7 +1288,6 @@ const FEEDBACK = (() => {
   }
   bindBtn(inBtn,  -1);
   bindBtn(outBtn, +1);
-
   let lastSyncedT = -1;
   (function syncLoop() {
     requestAnimationFrame(syncLoop);
@@ -1199,7 +1299,6 @@ const FEEDBACK = (() => {
       }
     }
   })();
-
   syncThumbToCam();
 })();
 
@@ -1231,6 +1330,8 @@ let placed     = [];
 let snapList   = [];
 let selected   = null;
 let pending    = null;
+/* Filtre catégorie courante dans le catalogue */
+let currentCatFilter = 'all';
 
 /* TOUCH STATE */
 let t0 = null;
@@ -1255,14 +1356,8 @@ function applyAxisLock(desired) {
   const total = Math.hypot(dx, dz);
   if (total < AXIS_LOCK_MIN_M) return null;
   const ax = Math.abs(dx), az = Math.abs(dz);
-  if (ax > az && (az / ax) < AXIS_LOCK_TAN) {
-    desired.z = dragStart.z;
-    return 'x';
-  }
-  if (az > ax && (ax / az) < AXIS_LOCK_TAN) {
-    desired.x = dragStart.x;
-    return 'z';
-  }
+  if (ax > az && (az / ax) < AXIS_LOCK_TAN) { desired.z = dragStart.z; return 'x'; }
+  if (az > ax && (ax / az) < AXIS_LOCK_TAN) { desired.x = dragStart.x; return 'z'; }
   return null;
 }
 
@@ -1282,6 +1377,7 @@ function pickPlaced(nx, ny, requireSelected) {
   }
   return best;
 }
+
 
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
@@ -1317,19 +1413,11 @@ canvas.addEventListener('touchmove', (e) => {
       const pt = new THREE.Vector3();
       if (raycaster.ray.intersectPlane(groundPlane, pt)) {
         if (!dragOffsetSet) {
-          dragOffset.set(
-            selected.mesh.position.x - pt.x,
-            0,
-            selected.mesh.position.z - pt.z
-          );
+          dragOffset.set(selected.mesh.position.x - pt.x, 0, selected.mesh.position.z - pt.z);
           dragStart.copy(selected.mesh.position);
           dragOffsetSet = true;
         }
-        const desired = new THREE.Vector3(
-          pt.x + dragOffset.x,
-          selected.mesh.position.y,
-          pt.z + dragOffset.z
-        );
+        const desired = new THREE.Vector3(pt.x + dragOffset.x, selected.mesh.position.y, pt.z + dragOffset.z);
         currentAxisLock = applyAxisLock(desired);
         selected.mesh.position.x = desired.x;
         selected.mesh.position.z = desired.z;
@@ -1344,9 +1432,6 @@ canvas.addEventListener('touchmove', (e) => {
       if (viewMode !== 'plan') {
         camTheta = orbitStart.theta - (e.touches[0].clientX - orbitStart.x) * 0.007;
       }
-      /* Vertical orbit (camElev) is enabled in BOTH perspective and axo
-         views, so the user can tilt the axo camera up/down. Plan view
-         stays locked top-down. */
       if (viewMode !== 'plan') {
         camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
           orbitStart.elev + (e.touches[0].clientY - orbitStart.y) * 0.006));
@@ -1447,7 +1532,6 @@ canvas.addEventListener('mousedown', (e) => {
     }
     return;
   }
-
   mDown = true; mDragging = false;
   mPan = e.shiftKey || e.button === 1;
   if (mPan) {
@@ -1491,19 +1575,11 @@ window.addEventListener('mousemove', (e) => {
     const pt = new THREE.Vector3();
     if (raycaster.ray.intersectPlane(groundPlane, pt)) {
       if (!dragOffsetSet) {
-        dragOffset.set(
-          selected.mesh.position.x - pt.x,
-          0,
-          selected.mesh.position.z - pt.z
-        );
+        dragOffset.set(selected.mesh.position.x - pt.x, 0, selected.mesh.position.z - pt.z);
         dragStart.copy(selected.mesh.position);
         dragOffsetSet = true;
       }
-      const desired = new THREE.Vector3(
-        pt.x + dragOffset.x,
-        selected.mesh.position.y,
-        pt.z + dragOffset.z
-      );
+      const desired = new THREE.Vector3(pt.x + dragOffset.x, selected.mesh.position.y, pt.z + dragOffset.z);
       currentAxisLock = applyAxisLock(desired);
       selected.mesh.position.x = desired.x;
       selected.mesh.position.z = desired.z;
@@ -1515,8 +1591,6 @@ window.addEventListener('mousemove', (e) => {
     if (viewMode !== 'plan') {
       camTheta = mOrbitStart.theta - (e.clientX - mOrbitStart.x) * 0.007;
     }
-    /* Vertical orbit also enabled in axo (not just perspective).
-       Plan view stays locked top-down. */
     if (viewMode !== 'plan') {
       camElev = Math.max(0.05, Math.min(Math.PI / 2 - 0.05,
         mOrbitStart.elev + (e.clientY - mOrbitStart.y) * 0.006));
@@ -1575,6 +1649,7 @@ function handleTap(t) {
   selectObj(null);
 }
 
+
 /* PLACE */
 function doPlace(pt) {
   const m = pending.mesh.clone(true);
@@ -1595,12 +1670,8 @@ function doPlace(pt) {
 
   const sid = Date.now() + Math.floor(Math.random() * 1000);
   const p = {
-    mesh: m,
-    id: pending.id,
-    name: pending.name,
-    icon: pending.icon,
-    imgUrl: pending.imgUrl,
-    sceneId: sid
+    mesh: m, id: pending.id, name: pending.name,
+    icon: pending.icon, imgUrl: pending.imgUrl, sceneId: sid
   };
   placed.push(p);
   snapList.push(p);
@@ -1653,8 +1724,18 @@ window.doDelete = function() {
   snapList = snapList.filter(o => o.sceneId !== removedId);
   const stillPlaced = placed.some(o => o.id === removedSrcId);
   if (!stillPlaced) {
+    /* Plus aucune instance de ce produit dans la scène : on retire la
+       vignette du tray, sauf s'il y a un placement en attente du même produit. */
+    const isPending = pending && pending.id === removedSrcId;
     const tel = document.querySelector('.tray-item[data-id="' + removedSrcId + '"]');
-    if (tel) { tel.removeAttribute('data-sid'); tel.classList.remove('placed'); }
+    if (tel) {
+      if (isPending) {
+        tel.removeAttribute('data-sid');
+        tel.classList.remove('placed');
+      } else {
+        tel.remove();
+      }
+    }
   }
   selected = null;
   document.getElementById('delFab').classList.remove('on');
@@ -1691,16 +1772,8 @@ window.doDuplicate = function() {
   m.rotation.copy(src.mesh.rotation);
   m.scale.copy(src.mesh.scale);
   scene.add(m);
-
   const sid = Date.now() + Math.floor(Math.random() * 1000);
-  const p = {
-    mesh: m,
-    id: src.id,
-    name: src.name,
-    icon: src.icon,
-    imgUrl: src.imgUrl,
-    sceneId: sid
-  };
+  const p = { mesh: m, id: src.id, name: src.name, icon: src.icon, imgUrl: src.imgUrl, sceneId: sid };
   placed.push(p);
   snapList.push(p);
   selectObj(p);
@@ -1734,8 +1807,16 @@ window.doUndo = function() {
   }
   const stillPlaced = placed.some(o => o.id === last.id);
   if (!stillPlaced) {
+    const isPending = pending && pending.id === last.id;
     const tel = document.querySelector('.tray-item[data-id="' + last.id + '"]');
-    if (tel) { tel.removeAttribute('data-sid'); tel.classList.remove('placed'); }
+    if (tel) {
+      if (isPending) {
+        tel.removeAttribute('data-sid');
+        tel.classList.remove('placed');
+      } else {
+        tel.remove();
+      }
+    }
   }
   if (!snapList.length) document.getElementById('undoFab').classList.remove('on');
   updateBadge();
@@ -1750,15 +1831,12 @@ async function loadModel(item) {
       gltfLoader.load(item.glb, ok, null, fail);
     });
     const mesh = gltf.scene;
-
     const box = new THREE.Box3().setFromObject(mesh);
     const mh  = box.max.y - box.min.y;
     const th  = item.h ? (item.h / 100) : realH(item.category);
     if (mh > 0.001) mesh.scale.setScalar(th / mh);
-
     const box2 = new THREE.Box3().setFromObject(mesh);
     mesh.position.y -= box2.min.y;
-
     mesh.traverse((c) => {
       if (!c.isMesh) return;
       c.castShadow = c.receiveShadow = true;
@@ -1774,7 +1852,6 @@ async function loadModel(item) {
         mat.needsUpdate = true;
       });
     });
-
     pending = { mesh, id:item.id, name:item.name, icon:item.icon || '\u25C7', imgUrl:item.imgUrl || null };
     spin(false);
     setStatus('Touchez le sol pour placer ' + item.name, true);
@@ -1784,14 +1861,7 @@ async function loadModel(item) {
   }
 }
 
-/* ========================================
-   EXPORT AR — iOS (USDZ) + Android (GLB → Supabase Storage → Scene Viewer)
-   ========================================
-   Sur Android, Scene Viewer ne peut pas lire les blob: URLs locales.
-   On uploade donc le GLB exporté dans un bucket Supabase public ("ar-scenes")
-   pour obtenir une URL HTTPS que Scene Viewer accepte, puis on lance un
-   intent URL Android qui ouvre ARCore Scene Viewer directement. */
-
+/* EXPORT AR */
 function downloadGLB(blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1807,17 +1877,13 @@ function downloadGLB(blob) {
 
 window.doExportAR = async function() {
   if (!placed.length) { toast('Ajoutez des meubles d\'abord', 'err'); return; }
-
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
   const isAndroid = /Android/.test(navigator.userAgent);
-
   spin(true, 'Generation AR (' + placed.length + ' modeles)...');
-
   const grp = new THREE.Group();
   grp.name = 'TadamHomeScene';
   const clonedMats = [];
-
   try {
     placed.forEach((obj, idx) => {
       const cl = obj.mesh.clone(true);
@@ -1825,14 +1891,10 @@ window.doExportAR = async function() {
       cl.rotation.copy(obj.mesh.rotation);
       cl.scale.copy(obj.mesh.scale);
       cl.name = 'object_' + idx + '_' + sanitize(obj.name);
-
       let meshIdx = 0;
       cl.traverse((c) => {
-        if (c.name) {
-          c.name = 'o' + idx + '_' + sanitize(c.name);
-        } else {
-          c.name = 'o' + idx + '_n' + meshIdx;
-        }
+        if (c.name) c.name = 'o' + idx + '_' + sanitize(c.name);
+        else c.name = 'o' + idx + '_n' + meshIdx;
         if (!c.isMesh) return;
         meshIdx++;
         if (!c.geometry || !c.material) {
@@ -1840,11 +1902,7 @@ window.doExportAR = async function() {
           return;
         }
         if (Array.isArray(c.material)) {
-          c.material = c.material.map((m) => {
-            const cm = m.clone();
-            clonedMats.push(cm);
-            return cm;
-          });
+          c.material = c.material.map((m) => { const cm = m.clone(); clonedMats.push(cm); return cm; });
         } else {
           c.material = c.material.clone();
           clonedMats.push(c.material);
@@ -1852,17 +1910,13 @@ window.doExportAR = async function() {
       });
       grp.add(cl);
     });
-
     grp.updateMatrixWorld(true);
 
     if (isIOS) {
-      // iOS : Export USDZ → AR Quick Look
       const buf = await usdzEx.parse(grp, { maxTextureSize: 1024 });
       spin(false);
-
       const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
       const url  = URL.createObjectURL(blob);
-
       const a = document.createElement('a');
       a.setAttribute('rel', 'ar');
       a.href = url;
@@ -1877,11 +1931,7 @@ window.doExportAR = async function() {
         URL.revokeObjectURL(url);
       }, 8000);
       toast('Ouverture AR Quick Look...', 'ok');
-
     } else if (isAndroid) {
-      // Android : Export GLB → Upload Supabase Storage → Scene Viewer Intent.
-      // Scene Viewer requiert une URL HTTPS publique : on uploade dans le
-      // bucket public "ar-scenes" puis on lance l'intent ARCore.
       const exporter = new GLTFExporter();
       exporter.parse(
         grp,
@@ -1889,39 +1939,20 @@ window.doExportAR = async function() {
           try {
             const blob = new Blob([result], { type: 'model/gltf-binary' });
             const fileName = 'ar-scene-' + Date.now() + '-' + Math.floor(Math.random() * 1000) + '.glb';
-
             spin(true, 'Téléversement vers AR...');
-
-            // 1. Upload vers Supabase Storage (bucket public "ar-scenes")
             const { error: upErr } = await sb.storage
               .from('ar-scenes')
-              .upload(fileName, blob, {
-                contentType: 'model/gltf-binary',
-                cacheControl: '3600',
-                upsert: false
-              });
+              .upload(fileName, blob, { contentType: 'model/gltf-binary', cacheControl: '3600', upsert: false });
             if (upErr) throw new Error('Upload échoué : ' + upErr.message);
-
-            // 2. Récupère l'URL publique HTTPS
-            const { data: pub } = sb.storage
-              .from('ar-scenes')
-              .getPublicUrl(fileName);
+            const { data: pub } = sb.storage.from('ar-scenes').getPublicUrl(fileName);
             if (!pub || !pub.publicUrl) throw new Error('URL publique introuvable');
-
             const glbUrl = pub.publicUrl;
-          
-
             spin(false);
-
-            // 3. Affiche un overlay avec un bouton AR à toucher
-            //    Indispensable car le user gesture initial est perdu après l'await upload
-            //    Le clic utilisateur sur le lien <a> préserve un user gesture frais
             const sceneViewerUrl =
               'https://arvr.google.com/scene-viewer/1.0' +
               '?file=' + encodeURIComponent(glbUrl) +
               '&mode=ar_preferred' +
               '&title=' + encodeURIComponent('Scene TadamHome');
-
             const arOverlay = document.createElement('div');
             arOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(28,27,24,.94);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;animation:fadeIn .3s ease';
             arOverlay.innerHTML =
@@ -1933,7 +1964,6 @@ window.doExportAR = async function() {
               '</a>' +
               '<button id="ar-cancel-btn" style="background:none;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.7);padding:10px 24px;font-family:Outfit,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer">Annuler</button>';
             document.body.appendChild(arOverlay);
-
             arOverlay.querySelector('#ar-cancel-btn').onclick = () => arOverlay.remove();
             arOverlay.querySelector('#ar-launch-btn').onclick = () => {
               setTimeout(() => arOverlay.remove(), 1000);
@@ -1951,9 +1981,7 @@ window.doExportAR = async function() {
         },
         { binary: true, maxTextureSize: 1024, forcePowerOfTwoTextures: false, embedImages: true, truncateDrawRange: true }
       );
-
     } else {
-      // Desktop / autre : téléchargement GLB
       const exporter = new GLTFExporter();
       exporter.parse(
         grp,
@@ -1971,7 +1999,6 @@ window.doExportAR = async function() {
         { binary: true, maxTextureSize: 1024, forcePowerOfTwoTextures: false, embedImages: true, truncateDrawRange: true }
       );
     }
-
   } catch(err) {
     spin(false);
     console.error('[AR Export] failed:', err);
@@ -1995,33 +2022,138 @@ window.doPhoto = function() {
   toast('Photo enregistree', 'ok');
 };
 
-/* CATALOGUE */
+
+/* ========================================================================
+   CATALOGUE — chargement + filtre par catégorie + recherche
+   ======================================================================== */
+
+/* Catégories par défaut + leurs labels d'affichage. L'ordre détermine
+   l'ordre dans la barre de filtres. */
+const CAT_LABELS = {
+  'all':         'Tout',
+  'sofa':        'Canapés',
+  'canape':      'Canapés',
+  'fauteuil':    'Fauteuils',
+  'chaise':      'Chaises',
+  'table':       'Tables',
+  'table basse': 'Tables basses',
+  'bureau':      'Bureaux',
+  'lit':         'Lits',
+  'luminaire':   'Luminaires',
+  'rangement':   'Rangements',
+  'autre':       'Autres'
+};
+
+/* Normalisation d'une catégorie produit. On regroupe sofa+canapé,
+   table+table basse, etc., pour éviter la duplication des onglets. */
+function normCat(c) {
+  if (!c) return 'autre';
+  const k = String(c).trim().toLowerCase();
+  if (k === 'sofa' || k === 'canape' || k === 'canapé' || k === 'canapés') return 'canape';
+  if (k === 'fauteuil' || k === 'fauteuils' || k === 'armchair') return 'fauteuil';
+  if (k === 'chaise'   || k === 'chaises'   || k === 'chair')    return 'chaise';
+  if (k === 'table basse' || k === 'tables basses' || k === 'coffee table') return 'table';
+  if (k === 'table' || k === 'tables') return 'table';
+  if (k === 'bureau' || k === 'desk')  return 'bureau';
+  if (k === 'lit' || k === 'lits' || k === 'bed') return 'lit';
+  if (k === 'luminaire' || k === 'luminaires' || k === 'light' || k === 'lamp' || k === 'lampe') return 'luminaire';
+  if (k === 'rangement' || k === 'rangements' || k === 'storage') return 'rangement';
+  return 'autre';
+}
+
 async function loadCatalogue() {
   const res = await sb.from('products').select('*').order('created_at', { ascending:false });
   products = (res.data || []).filter(p => p.model_glb_url);
-  renderGrid(products);
+  renderCatFilter();
+  renderGrid(applyCatAndSearchFilter());
 }
-window.filterCat = function() {
-  const q = document.getElementById('csrch').value.toLowerCase();
-  renderGrid(products.filter(p =>
-    (p.name||'').toLowerCase().includes(q) || (p.enseigne_name||'').toLowerCase().includes(q)
-  ));
+
+/* Construit la barre de filtres en se basant sur les catégories réellement
+   présentes dans les produits. Affiche un compteur entre parenthèses. */
+function renderCatFilter() {
+  const counts = { all: products.length };
+  for (const p of products) {
+    const k = normCat(p.category);
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  /* Ordre logique : Tout, Canapés, Fauteuils, Chaises, Tables, Bureaux, Lits, Luminaires, Rangements, Autres */
+  const order = ['all','canape','fauteuil','chaise','table','bureau','lit','luminaire','rangement','autre'];
+  const filterEl = document.getElementById('catFilter');
+  filterEl.innerHTML = order
+    .filter(k => k === 'all' || counts[k])
+    .map(k => {
+      const n = counts[k] || 0;
+      const lbl = (k === 'all') ? 'Tout' : (CAT_LABELS[k] || k);
+      const on  = (currentCatFilter === k) ? ' on' : '';
+      return '<button class="cat-pill' + on + '" data-cat="' + k + '" onclick="setCatFilter(\'' + k + '\')">'
+           + '<span>' + lbl + '</span>'
+           + '<span class="cat-count">' + n + '</span>'
+           + '</button>';
+    }).join('');
+}
+
+window.setCatFilter = function(k) {
+  currentCatFilter = k;
+  document.querySelectorAll('.cat-pill').forEach(b => {
+    b.classList.toggle('on', b.dataset.cat === k);
+  });
+  renderGrid(applyCatAndSearchFilter());
 };
+
+function applyCatAndSearchFilter() {
+  const q = (document.getElementById('csrch').value || '').toLowerCase().trim();
+  return products.filter(p => {
+    if (currentCatFilter !== 'all' && normCat(p.category) !== currentCatFilter) return false;
+    if (!q) return true;
+    return ((p.name||'').toLowerCase().includes(q) || (p.enseigne_name||'').toLowerCase().includes(q));
+  });
+}
+
+/* Conservé pour compatibilité avec l'oninput de l'input de recherche */
+window.filterCat = function() {
+  renderGrid(applyCatAndSearchFilter());
+};
+
 function renderGrid(list) {
   const g = document.getElementById('cgrid');
-  if (!list.length) { g.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucun modele</div>'; return; }
+  if (!list.length) {
+    g.innerHTML = '<div style="grid-column:1/-1;padding:32px 24px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase">Aucun modèle dans cette catégorie</div>';
+    return;
+  }
   g.innerHTML = list.map((p) => {
     const imgHtml = (p.images && p.images[0])
       ? '<img src="' + p.images[0] + '" style="width:100%;height:100%;object-fit:cover"/>'
       : catIco(p.category);
+    /* On ne montre que les variantes utilisables (coloris avec un GLB propre,
+       ou avec une texture qui peut s'appliquer au GLB principal). */
+    const variants = Array.isArray(p.colors)
+      ? p.colors.filter(c => c && (c.glb || c.texture || c.hex))
+      : [];
+    let varsHtml = '';
+    if (variants.length) {
+      const dots = variants.map((c, i) => {
+        const safeName = (c.name || '').replace(/"/g, '&quot;');
+        const subtitle = c.mat ? c.name + ' · ' + c.mat : c.name;
+        const subSafe = (subtitle || '').replace(/"/g, '&quot;');
+        const style = c.texture
+          ? 'background-image:url(\'' + c.texture + '\')'
+          : 'background:' + (c.hex || '#999');
+        const disabled = c.glb ? '' : ' data-noglb="1"';
+        return '<button class="cov-var" style="'+style+'" title="'+subSafe+'" data-pid="'+p.id+'" data-vi="'+i+'"'+disabled+' onclick="addFromVariant(\''+p.id+'\','+i+',this)"></button>';
+      }).join('');
+      varsHtml = '<div class="cov-var-lbl">Coloris ('+variants.length+')</div>'
+               + '<div class="cov-vars">' + dots + '</div>';
+    }
     return '<div class="cov-card">'
       + '<div class="cov-img">' + imgHtml + '</div>'
       + '<div class="cov-brand">' + (p.enseigne_name||'') + '</div>'
       + '<div class="cov-name">' + (p.name||'') + '</div>'
       + '<button class="cov-btn" onclick="addFromCat(\'' + p.id + '\')">+ Ajouter</button>'
+      + varsHtml
       + '</div>';
   }).join('');
 }
+
 window.addFromCat = async function(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
@@ -2036,6 +2168,33 @@ window.addFromCat = async function(id) {
     imgUrl: trayImg
   });
   addTrayItem({ id:p.id, name:p.name, icon:catIco(p.category), imgUrl:trayImg });
+};
+
+/* Ajouter une variante (coloris) — utilise le GLB de la variante si présent,
+   sinon retombe sur le GLB principal. La vignette du tray prend la texture
+   du coloris (mieux pour distinguer plusieurs variantes du même produit). */
+window.addFromVariant = async function(productId, colorIndex, btnEl) {
+  const p = products.find(x => x.id === productId);
+  if (!p || !Array.isArray(p.colors) || !p.colors[colorIndex]) return;
+  const c = p.colors[colorIndex];
+  const glb = c.glb || p.model_glb_url;
+  if (!glb) { toast('Ce coloris n\'a pas de modèle 3D', 'err'); return; }
+  if (btnEl) btnEl.classList.add('adding');
+  closeCat();
+  /* ID composite pour que chaque variante soit une vignette distincte du tray */
+  const variantId  = p.id + ':' + colorIndex;
+  const variantName= p.name + ' · ' + (c.name || 'variante');
+  const trayImg    = c.texture || (p.images && p.images[0]) || null;
+  await loadModel({
+    id: variantId, name: variantName,
+    glb: glb,
+    category: p.category,
+    h: p.dimensions && p.dimensions.h ? p.dimensions.h : null,
+    icon: catIco(p.category),
+    imgUrl: trayImg
+  });
+  addTrayItem({ id: variantId, name: variantName, icon: catIco(p.category), imgUrl: trayImg });
+  if (btnEl) setTimeout(() => btnEl.classList.remove('adding'), 350);
 };
 window.openCat  = function() { document.getElementById('catOv').classList.add('open'); };
 window.closeCat = function() { document.getElementById('catOv').classList.remove('open'); };
@@ -2096,7 +2255,72 @@ function spin(show, txt) {
   if (txt) document.getElementById('ltxt').textContent = txt;
 }
 
-/* SCENES — save / load / delete */
+/* ========================================================================
+   AMBIANCE — modal Sol + Luminosité
+   ======================================================================== */
+window.openAmbiance = function() {
+  renderFloorGrid();
+  syncBrightnessSlider();
+  document.getElementById('ambOv').classList.add('open');
+};
+window.closeAmbiance = function() {
+  document.getElementById('ambOv').classList.remove('open');
+};
+
+function renderFloorGrid() {
+  const g = document.getElementById('floorGrid');
+  if (!FLOOR_PRESETS.length) {
+    g.innerHTML = '<div style="grid-column:1/-1;padding:24px 16px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans)">Aucune texture disponible.<br/>Ajoutez-en depuis l\'admin.</div>';
+    return;
+  }
+  g.innerHTML = FLOOR_PRESETS.map(p => {
+    const on = (p.id === currentFloorId) ? ' on' : '';
+    const safeId = String(p.id).replace(/'/g, "\\'");
+    /* Vignette : image uploadée si dispo, sinon couleur de fond */
+    const thumb = p.image_url
+      ? '<img src="' + p.image_url + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>'
+      : '<div style="width:100%;height:100%;background:' + (p.bg_color||'#EEEBE3') + '"></div>';
+    return '<button class="floor-swatch' + on + '" data-floor="' + p.id + '" onclick="setFloor(\'' + safeId + '\')" title="' + p.name + '">'
+      + '<div class="floor-thumb">' + thumb + '</div>'
+      + '<div class="floor-name">' + p.name + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+window.setFloor = function(id) {
+  applyFloor(id);
+  document.querySelectorAll('.floor-swatch').forEach(b => {
+    b.classList.toggle('on', b.dataset.floor === id);
+  });
+  const preset = FLOOR_PRESETS.find(p => p.id === id);
+  toast('Sol : ' + (preset ? preset.name : 'Mis à jour'), 'ok');
+};
+
+function syncBrightnessSlider() {
+  const val = Math.round(LIGHT_MULT * 100);
+  const mini = document.getElementById('brightMiniSlider');
+  if (mini) mini.value = val;
+}
+
+/* Source unique de mise à jour de luminosité — appelée par le slider mini */
+function setBrightnessPct(pct, persist) {
+  pct = Math.max(40, Math.min(160, parseInt(pct, 10) || 100));
+  LIGHT_MULT = pct / 100;
+  applyBrightness();
+  syncBrightnessSlider();
+  if (persist !== false) {
+    try { localStorage.setItem('tadam_brightness', String(LIGHT_MULT)); } catch(_){}
+  }
+}
+
+document.getElementById('brightMiniSlider').addEventListener('input', (e) => {
+  setBrightnessPct(e.target.value);
+});
+
+
+/* ========================================================================
+   SCENES — save / load / delete
+   ======================================================================== */
 const SCENES_KEY = 'tadam_saved_scenes';
 
 function listScenes() {
@@ -2150,22 +2374,40 @@ window.saveScene = function() {
     name = 'Scene ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1)
          + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
-
   const thumb = captureThumbnail(280, 180);
-
   const scn = {
     id: 'scene_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
     name,
     savedAt: Date.now(),
     thumb,
+    /* On enregistre aussi le sol et la luminosité pour reproduire l'ambiance */
+    floorId: currentFloorId,
+    lightMult: LIGHT_MULT,
     items: placed.map((p) => {
-      const prod = products.find(x => x.id === p.id);
+      /* ID composite "productId:variantIndex" pour les variantes — on
+         décompose pour retrouver le produit et le coloris. */
+      const parts = String(p.id).split(':');
+      const baseId = parts[0];
+      const variantIdx = parts.length > 1 ? parseInt(parts[1], 10) : null;
+      const prod = products.find(x => x.id === baseId);
+      let glb = null, cat = null, hCm = null;
+      if (prod) {
+        cat = prod.category;
+        hCm = prod.dimensions && prod.dimensions.h ? prod.dimensions.h : null;
+        if (variantIdx !== null && Array.isArray(prod.colors) && prod.colors[variantIdx]) {
+          glb = prod.colors[variantIdx].glb || prod.model_glb_url;
+        } else {
+          glb = prod.model_glb_url;
+        }
+      }
       return {
-        productId: p.id,
+        productId: p.id,            // ID composite, utilisé pour la déduplication tray
+        baseProductId: baseId,
+        variantIndex: variantIdx,
         name: p.name,
-        glbUrl:   prod ? prod.model_glb_url : null,
-        category: prod ? prod.category : null,
-        heightCm: prod && prod.dimensions && prod.dimensions.h ? prod.dimensions.h : null,
+        glbUrl: glb,
+        category: cat,
+        heightCm: hCm,
         imgUrl: p.imgUrl || (prod && prod.images && prod.images[0]) || null,
         position: { x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z },
         rotationY: p.mesh.rotation.y || 0,
@@ -2173,14 +2415,12 @@ window.saveScene = function() {
       };
     })
   };
-
   const restorable = scn.items.filter(it => it.glbUrl);
   if (!restorable.length) {
     toast('Aucun modele restaurable (catalogue introuvable)', 'err');
     return;
   }
   scn.items = restorable;
-
   const arr = listScenes();
   arr.unshift(scn);
   if (persistScenes(arr)) {
@@ -2204,17 +2444,34 @@ window.loadSavedScene = async function(id) {
   if (!scn) { toast('Scene introuvable', 'err'); return; }
   closeScenes();
   spin(true, 'Chargement de la scene...');
-
   if (!products.length) {
     try { await loadCatalogue(); } catch(_) {}
   }
-
   clearScene();
-
+  /* Restaure l'ambiance avant d'ajouter les meubles */
+  if (!FLOOR_PRESETS.length) {
+    try { await loadFloorTextures(); } catch(_) {}
+  }
+  if (scn.floorId) await applyFloor(scn.floorId);
+  if (typeof scn.lightMult === 'number') {
+    LIGHT_MULT = Math.max(0.4, Math.min(1.6, scn.lightMult));
+    applyBrightness();
+    syncBrightnessSlider();
+  }
   for (const it of scn.items) {
     if (!it.glbUrl) {
-      const p = products.find(x => x.id === it.productId);
-      if (p) it.glbUrl = p.model_glb_url;
+      const baseId = it.baseProductId || String(it.productId).split(':')[0];
+      const p = products.find(x => x.id === baseId);
+      if (p) {
+        const vi = (typeof it.variantIndex === 'number')
+          ? it.variantIndex
+          : (String(it.productId).includes(':') ? parseInt(String(it.productId).split(':')[1], 10) : null);
+        if (vi !== null && Array.isArray(p.colors) && p.colors[vi]) {
+          it.glbUrl = p.colors[vi].glb || p.model_glb_url;
+        } else {
+          it.glbUrl = p.model_glb_url;
+        }
+      }
     }
     if (!it.glbUrl) { console.warn('Skipping unrestorable item', it.name); continue; }
     try {
@@ -2223,7 +2480,6 @@ window.loadSavedScene = async function(id) {
       console.warn('Failed to restore item', it.name, e);
     }
   }
-
   spin(false);
   toast('Scene "' + scn.name + '" chargee', 'ok');
   setStatus(placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' charge' + (placed.length > 1 ? 's' : ''));
@@ -2234,15 +2490,12 @@ async function restoreSavedItem(it) {
     gltfLoader.load(it.glbUrl, ok, null, fail);
   });
   const mesh = gltf.scene;
-
   const box = new THREE.Box3().setFromObject(mesh);
   const mh  = box.max.y - box.min.y;
   const th  = it.heightCm ? (it.heightCm / 100) : realH(it.category);
   if (mh > 0.001) mesh.scale.setScalar(th / mh);
-
   const box2 = new THREE.Box3().setFromObject(mesh);
   mesh.position.y -= box2.min.y;
-
   mesh.traverse((c) => {
     if (!c.isMesh) return;
     c.castShadow = c.receiveShadow = true;
@@ -2258,17 +2511,9 @@ async function restoreSavedItem(it) {
       mat.needsUpdate = true;
     });
   });
-
-  pending = {
-    mesh,
-    id: it.productId,
-    name: it.name,
-    icon: catIco(it.category),
-    imgUrl: it.imgUrl || null
-  };
+  pending = { mesh, id: it.productId, name: it.name, icon: catIco(it.category), imgUrl: it.imgUrl || null };
   pending.mesh.rotation.y = it.rotationY || 0;
   doPlace({ x: it.position.x, z: it.position.z });
-
   addTrayItem({ id: it.productId, name: it.name, icon: catIco(it.category), imgUrl: it.imgUrl });
 }
 
@@ -2304,7 +2549,6 @@ function renderScenesModal() {
   const list = document.getElementById('scnList');
   document.getElementById('scnCount').textContent = arr.length;
   document.getElementById('scnSaveBtn').disabled = (placed.length === 0);
-
   if (!arr.length) {
     list.innerHTML = '<div class="sov-empty">Aucune scene sauvegardee</div>';
     return;
@@ -2315,9 +2559,7 @@ function renderScenesModal() {
     const dateStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
     const cnt = s.items.length;
     const safeName = String(s.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const thumbHtml = s.thumb
-      ? '<img src="' + s.thumb + '" alt=""/>'
-      : '\u25C7';
+    const thumbHtml = s.thumb ? '<img src="' + s.thumb + '" alt=""/>' : '\u25C7';
     return '<div class="sov-item">'
       + '<div class="sov-item-thumb">' + thumbHtml + '</div>'
       + '<div class="sov-item-info">'
@@ -2336,20 +2578,51 @@ function renderScenesModal() {
   }).join('');
 }
 
-/* INIT */
+/* ========================================================================
+   INIT — restaure l'ambiance + charge le catalogue + auto-place si demandé
+   ======================================================================== */
+
+/* Luminosité d'abord (n'a pas besoin du réseau) */
+try {
+  const savedBright = parseFloat(localStorage.getItem('tadam_brightness'));
+  if (!isNaN(savedBright)) {
+    LIGHT_MULT = Math.max(0.4, Math.min(1.6, savedBright));
+    applyBrightness();
+  }
+  syncBrightnessSlider();
+} catch(_) {}
+
+/* Sol par défaut tant que la liste n'est pas chargée — évite un sol blanc */
+applyFloor('_fallback');
+
+/* Puis on charge la liste des sols depuis Supabase, et on applique le bon */
+loadFloorTextures().then(() => {
+  let chosenId = null;
+  try {
+    const savedFloor = localStorage.getItem('tadam_floor');
+    if (savedFloor && FLOOR_PRESETS.some(p => p.id === savedFloor)) {
+      chosenId = savedFloor;
+    }
+  } catch(_) {}
+  if (!chosenId) {
+    const def = FLOOR_PRESETS.find(p => p.is_default);
+    if (def) chosenId = def.id;
+    else if (FLOOR_PRESETS.length) chosenId = FLOOR_PRESETS[0].id;
+  }
+  if (chosenId) applyFloor(chosenId);
+}).catch(() => {});
+
 loadCatalogue();
 document.getElementById('zoomSlider').classList.add('on');
+
 const q = JSON.parse(localStorage.getItem('tadam_ar_scene') || '[]');
 if (q.length) {
   localStorage.removeItem('tadam_ar_scene');
-
   (async function autoPlaceModels() {
     spin(true, 'Chargement de la scène...');
-
     for (let i = 0; i < q.length; i++) {
       const item = q[i];
       if (!item.glb) continue;
-
       try {
         await loadModel({
           id: item.id,
@@ -2359,21 +2632,17 @@ if (q.length) {
           h: item.dimensions && typeof item.dimensions === 'object' && item.dimensions.h ? item.dimensions.h : null,
           icon: catIco(item.category)
         });
-
         const angle = (i / Math.max(q.length, 1)) * Math.PI * 2;
         const radius = q.length > 1 ? 1.5 : 0;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
-
         doPlace({ x, y: 0, z });
-
         addTrayItem({ id: item.id, name: item.name, icon: catIco(item.category) });
       } catch(e) {
         console.error('Erreur placement auto:', e);
         toast('Erreur: ' + item.name, 'err');
       }
     }
-
     spin(false);
     if (placed.length > 0) {
       toast('Scène chargée: ' + placed.length + ' meuble' + (placed.length > 1 ? 's' : '') + ' placé' + (placed.length > 1 ? 's' : ''));
