@@ -750,6 +750,7 @@
       auto-rotate-delay="5000"
       rotation-per-second="20deg"
       exposure="1.1"
+      tone-mapping="commerce"
       shadow-intensity="1"
       shadow-softness="0.8"
       environment-image="neutral"
@@ -1003,6 +1004,62 @@
     };
     viewer.addEventListener('touchstart', skip, { once: true, passive: true });
     viewer.addEventListener('mousedown', skip, { once: true });
+  }
+
+  /* ── MATERIAL POLISH ──────────────────────────────────────────────────
+     Les GLB issus de sources tierces (Polantis, Sketchfab, fournisseurs)
+     présentent souvent des artefacts visibles sur les surfaces métalliques
+     très polies : taches noires, dirty-spots, compression JPEG dans des
+     zones aplaties de la texture albedo ou metalness/roughness map.
+
+     Le mécanisme : sur un métal avec roughness < 0.15 (poli miroir), les
+     reflets sont ultra-nets et chaque pixel sombre de la texture devient
+     un point noir parfaitement défini. En remontant le plancher de
+     roughness à ~0.20, les reflets deviennent légèrement diffus et les
+     artefacts se fondent dans le matériau environnant.
+
+     Sur les modèles propres : changement quasi imperceptible (un métal
+     bien texturé a déjà roughness >= 0.20 typiquement).
+     Sur les modèles "sales" : les taches s'estompent significativement.
+
+     C'est un workaround côté rendu — le fix idéal reste de re-exporter
+     les GLB problématiques avec des textures non-compressées. */
+  const POLISH = {
+    minRoughnessForMetals:    0.20,  /* plancher pour matériaux métalliques */
+    minRoughnessForDielectrics: 0.10, /* plus tolérant pour les non-métaux */
+    metalThreshold:           0.6    /* metalness > 0.6 = considéré métal */
+  };
+  function polishMaterials(mv) {
+    if (!mv || !mv.model) return;
+    let touched = 0, total = 0;
+    try {
+      const materials = mv.model.materials || [];
+      for (const mat of materials) {
+        const pbr = mat.pbrMetallicRoughness;
+        if (!pbr) continue;
+        total++;
+        const metalness = (typeof pbr.metallicFactor === 'number') ? pbr.metallicFactor : 1;
+        const roughness = (typeof pbr.roughnessFactor === 'number') ? pbr.roughnessFactor : 1;
+        const isMetal = metalness >= POLISH.metalThreshold;
+        const floor = isMetal ? POLISH.minRoughnessForMetals : POLISH.minRoughnessForDielectrics;
+        if (roughness < floor) {
+          pbr.setRoughnessFactor(floor);
+          touched++;
+        }
+      }
+      if (touched > 0) {
+        console.info(`[scan] Material polish : ${touched}/${total} matériaux adoucis (artefacts texture mitigation)`);
+      }
+    } catch (e) {
+      console.warn('[scan] polishMaterials failed:', e);
+    }
+  }
+  function setupMaterialPolish() {
+    const mv = document.getElementById('mv');
+    if (!mv) return;
+    /* L'event 'load' tire à chaque changement de src — donc aussi sur les
+       changements de finition via les swatches couleur. */
+    mv.addEventListener('load', () => polishMaterials(mv));
   }
 
   /* ── RENDER ── */
@@ -1474,6 +1531,7 @@
     setupFavoritesHeader();
     setupStickyCta();
     setupGestureHint();
+    setupMaterialPolish();
 
     const params = new URLSearchParams(location.search);
     const productId = params.get('id');
