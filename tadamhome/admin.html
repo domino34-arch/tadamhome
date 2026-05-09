@@ -252,7 +252,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
 /* ══ TEXTURE STUDIO ══ */
 /* ── Full-bleed studio layout ── */
-#panelTexture{margin:-24px;display:flex;flex-direction:column;height:calc(100% + 48px)}
+#panelTexture{margin:-24px;display:none;flex-direction:column;height:calc(100% + 48px)}
+#panelTexture.active{display:flex}  /* .active ajouté par showPanel() */
 #tsStudio{display:none;flex:1;flex-direction:column;overflow:hidden}
 .ts-layout{display:flex;gap:0;flex:1;min-height:0}
 .ts-viewer{flex:1;position:relative;background:#141414;overflow:hidden;min-width:0}
