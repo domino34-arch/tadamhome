@@ -2569,7 +2569,7 @@ function tsGatherInfo(){
     p: parseFloat(document.getElementById('tsP')?.value)||null,
   };
 }
-function tsCloseConfirm(){ document.getElementById('tsConfirmModal').classList.remove('open'); }
+function tsCloseConfirm(){ const m=document.getElementById('tsConfirmModal'); m.classList.remove('open'); m.style.display='none'; }
 let _tsConfirmAction=null;
 
 function tsShowConfirm(action){
@@ -2591,7 +2591,7 @@ function tsShowConfirm(action){
     <div class="ts-confirm-row"><span class="ts-confirm-row-label">Marque</span><span class="ts-confirm-row-val">${info.marque||'<em style="color:var(--muted)">Non renseignée</em>'}</span></div>
     <div class="ts-confirm-row"><span class="ts-confirm-row-label">Dimensions</span><span class="ts-confirm-row-val">${dimStr||'<em style="color:var(--muted)">Non renseignées</em>'}</span></div>
     ${!info.nom?'<div style="margin-top:8px;padding:8px;background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.2);font-size:10px;color:#c0392b;font-family:var(--sans)">⚠ Le nom est vide — pensez à le renseigner.</div>':''}`;
-  document.getElementById('tsConfirmModal').classList.add('open');
+  const _m=document.getElementById('tsConfirmModal'); _m.style.display='flex'; _m.classList.add('open');
 }
 
 async function tsConfirmSend(){
@@ -3649,7 +3649,7 @@ window.tsGetUSDZBlob = async function() {
 </script>
 
   <!-- Modale confirmation export — hors de tout contexte de rendu -->
-  <div class="ts-confirm-backdrop" id="tsConfirmModal">
+  <div class="ts-confirm-backdrop" id="tsConfirmModal" style="display:none">
     <div class="ts-confirm-box">
       <div class="ts-confirm-head">
         <div>
