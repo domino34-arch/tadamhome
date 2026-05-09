@@ -266,19 +266,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-drop:hover .ts-drop-icon,.ts-drop.drag-over .ts-drop-icon{border-color:var(--accent)}
 .ts-drop h3{font-family:var(--serif);font-size:17px;font-weight:300;color:#555}
 .ts-drop p{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#3a3a3a;font-family:var(--sans)}
-.ts-dim-overlay{position:absolute;top:12px;right:12px;background:rgba(10,10,10,.82);border:1px solid rgba(255,255,255,.1);padding:10px 12px;z-index:10;min-width:150px;display:none;backdrop-filter:blur(6px)}
-.ts-dim-overlay.show{display:block}
-.ts-dim-title{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:var(--sans);margin-bottom:7px}
-.ts-dim-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-.ts-dim-row:last-child{margin-bottom:0}
-.ts-dim-axis{font-size:9px;color:rgba(255,255,255,.35);font-family:var(--sans);min-width:10px}
-.ts-dim-val{font-size:13px;color:var(--white);font-family:monospace;flex:1}
-.ts-dim-unit{font-size:9px;color:rgba(255,255,255,.35);font-family:var(--sans)}
-.ts-dim-status{font-size:9px;font-family:monospace;min-width:36px;text-align:right}
-.ts-dim-status.ok{color:#7ec8a0}
-.ts-dim-status.diff{color:#e8a87c}
-.ts-dim-hint{font-size:8px;color:rgba(255,255,255,.3);font-family:var(--sans);margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:5px}
-.ts-view-btn.dim-active{background:rgba(184,152,106,.3);color:var(--white)}
+
 .ts-viewer-ui{position:absolute;bottom:0;left:0;right:0;padding:20px 16px 14px;background:linear-gradient(to top,rgba(10,10,10,.85) 0%,transparent 100%);display:flex;align-items:center;gap:8px;z-index:10}
 .ts-view-btns{display:flex;gap:1px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px}
 .ts-view-btn{padding:5px 10px;background:transparent;border:none;color:rgba(255,255,255,.4);font-size:8px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);transition:all .18s;display:flex;align-items:center;gap:4px;white-space:nowrap}
@@ -353,16 +341,19 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-result strong{color:var(--green);font-weight:500}
 
 /* ══ CATEGORY PICKER ══ */
-.ts-cat-picker{padding:20px 0}
-.ts-cat-picker-title{font-family:var(--serif);font-size:26px;font-weight:300;margin-bottom:4px}
-.ts-cat-picker-sub{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;font-family:var(--sans)}
+/* Category picker — overlay centré sur le viewer */
+#tsCatPicker{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,10,.92);backdrop-filter:blur(2px);transition:opacity .25s}
+#tsCatPicker.closing{opacity:0;pointer-events:none}
+.ts-cat-picker{width:480px;max-width:90%}
+.ts-cat-picker-title{font-family:var(--serif);font-size:22px;font-weight:300;color:rgba(255,255,255,.9);margin-bottom:2px}
+.ts-cat-picker-sub{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px;font-family:var(--sans)}
 .ts-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
-.ts-cat-card{background:var(--white);border:1px solid var(--border);padding:22px 20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px}
-.ts-cat-card:hover{border-color:var(--accent);background:rgba(184,152,106,.04)}
-.ts-cat-card-ico{font-size:26px;line-height:1}
-.ts-cat-card-name{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--ink)}
+.ts-cat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);padding:16px 18px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:6px}
+.ts-cat-card:hover{border-color:var(--accent);background:rgba(184,152,106,.12)}
+.ts-cat-card-ico{font-size:22px;line-height:1}
+.ts-cat-card-name{font-family:var(--serif);font-size:17px;font-weight:300;color:rgba(255,255,255,.85)}
 .ts-cat-card-parts{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
-.ts-cat-chip{font-size:9px;letter-spacing:.06em;border:1px solid var(--border);padding:2px 7px;color:var(--muted);font-family:var(--sans);background:var(--bg)}
+.ts-cat-chip{font-size:8px;letter-spacing:.06em;border:1px solid rgba(255,255,255,.15);padding:2px 6px;color:rgba(255,255,255,.35);font-family:var(--sans)}
 
 /* ══ STUDIO INFO BAR ══ */
 .ts-info-bar{display:flex;gap:6px;align-items:center;background:var(--white);border-bottom:1px solid var(--border);padding:7px 14px;flex-wrap:wrap;flex-shrink:0}
@@ -743,69 +734,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
       <div class="panel" id="panelTexture">
 
         <!-- ── ÉCRAN 1 : Sélection de catégorie ── -->
-        <div id="tsCatPicker">
-          <div class="ts-cat-picker">
-            <div class="ts-cat-picker-title">Studio <em style="font-style:italic;color:var(--accent)">Texture</em></div>
-            <div class="ts-cat-picker-sub">Choisir une catégorie de meuble</div>
-            <div class="ts-cat-grid">
-
-              <div class="ts-cat-card" onclick="tsSelectCategory('chaise')">
-                <div class="ts-cat-card-ico">🪑</div>
-                <div class="ts-cat-card-name">Chaise / Canapé / Fauteuil</div>
-                <div class="ts-cat-card-parts">
-                  <span class="ts-cat-chip">piétement</span>
-                  <span class="ts-cat-chip">assise</span>
-                  <span class="ts-cat-chip">dossier</span>
-                  <span class="ts-cat-chip">accoudoir</span>
-                </div>
-              </div>
-
-              <div class="ts-cat-card" onclick="tsSelectCategory('table')">
-                <div class="ts-cat-card-ico">🪵</div>
-                <div class="ts-cat-card-name">Table / Table basse</div>
-                <div class="ts-cat-card-parts">
-                  <span class="ts-cat-chip">piétement</span>
-                  <span class="ts-cat-chip">plateau</span>
-                </div>
-              </div>
-
-              <div class="ts-cat-card" onclick="tsSelectCategory('rangement')">
-                <div class="ts-cat-card-ico">🗄</div>
-                <div class="ts-cat-card-name">Rangement / Bureau</div>
-                <div class="ts-cat-card-parts">
-                  <span class="ts-cat-chip">corps</span>
-                  <span class="ts-cat-chip">portes</span>
-                  <span class="ts-cat-chip">tiroirs</span>
-                  <span class="ts-cat-chip">piétement</span>
-                </div>
-              </div>
-
-              <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_pied')">
-                <div class="ts-cat-card-ico">💡</div>
-                <div class="ts-cat-card-name">Luminaire sur pied</div>
-                <div class="ts-cat-card-parts">
-                  <span class="ts-cat-chip">piétement</span>
-                  <span class="ts-cat-chip">corps</span>
-                  <span class="ts-cat-chip">tête</span>
-                </div>
-              </div>
-
-              <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_suspendu')" style="grid-column:span 2">
-                <div class="ts-cat-card-ico">🔮</div>
-                <div class="ts-cat-card-name">Luminaire suspendu</div>
-                <div class="ts-cat-card-parts">
-                  <span class="ts-cat-chip">fixation</span>
-                  <span class="ts-cat-chip">corps</span>
-                  <span class="ts-cat-chip">abat-jour</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- ── ÉCRAN 2 : Studio ── -->
-        <div id="tsStudio" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+        <!-- Studio + picker overlay : le viewer est toujours visible -->
+        <div id="tsStudio" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
 
           <!-- Barre infos meuble -->
           <div class="ts-info-bar">
@@ -839,15 +769,52 @@ tr:hover td{background:rgba(184,152,106,.03)}
                 <h3>Déposer un fichier OBJ</h3>
                 <p>Glisser-déposer ou cliquer</p>
               </div>
-              <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
-              <!-- Overlay dimensions réelles -->
-              <div class="ts-dim-overlay" id="tsDimOverlay">
-                <div class="ts-dim-title">Dimensions modèle</div>
-                <div class="ts-dim-row"><span class="ts-dim-axis">L</span><span class="ts-dim-val" id="tsDimL">—</span><span class="ts-dim-unit">cm</span><span class="ts-dim-status" id="tsDimStatusL"></span></div>
-                <div class="ts-dim-row"><span class="ts-dim-axis">H</span><span class="ts-dim-val" id="tsDimH">—</span><span class="ts-dim-unit">cm</span><span class="ts-dim-status" id="tsDimStatusH"></span></div>
-                <div class="ts-dim-row"><span class="ts-dim-axis">P</span><span class="ts-dim-val" id="tsDimP">—</span><span class="ts-dim-unit">cm</span><span class="ts-dim-status" id="tsDimStatusP"></span></div>
-                <div class="ts-dim-hint" id="tsDimHint" style="display:none">vs cibles renseignées ↑</div>
+              <!-- Picker catégorie en overlay sur le viewer -->
+              <div id="tsCatPicker">
+                <div class="ts-cat-picker">
+                  <div class="ts-cat-picker-title">Studio <em style="font-style:italic;color:var(--accent)">Texture</em></div>
+                  <div class="ts-cat-picker-sub">Choisir une catégorie de meuble</div>
+                  <div class="ts-cat-grid">
+                    <div class="ts-cat-card" onclick="tsSelectCategory('chaise')">
+                      <div class="ts-cat-card-ico">🪑</div>
+                      <div class="ts-cat-card-name">Chaise / Canapé / Fauteuil</div>
+                      <div class="ts-cat-card-parts">
+                        <span class="ts-cat-chip">piétement</span><span class="ts-cat-chip">assise</span><span class="ts-cat-chip">dossier</span><span class="ts-cat-chip">accoudoir</span>
+                      </div>
+                    </div>
+                    <div class="ts-cat-card" onclick="tsSelectCategory('table')">
+                      <div class="ts-cat-card-ico">🪵</div>
+                      <div class="ts-cat-card-name">Table / Table basse</div>
+                      <div class="ts-cat-card-parts">
+                        <span class="ts-cat-chip">piétement</span><span class="ts-cat-chip">plateau</span>
+                      </div>
+                    </div>
+                    <div class="ts-cat-card" onclick="tsSelectCategory('rangement')">
+                      <div class="ts-cat-card-ico">🗄</div>
+                      <div class="ts-cat-card-name">Rangement / Bureau</div>
+                      <div class="ts-cat-card-parts">
+                        <span class="ts-cat-chip">corps</span><span class="ts-cat-chip">portes</span><span class="ts-cat-chip">tiroirs</span>
+                      </div>
+                    </div>
+                    <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_pied')">
+                      <div class="ts-cat-card-ico">💡</div>
+                      <div class="ts-cat-card-name">Luminaire sur pied</div>
+                      <div class="ts-cat-card-parts">
+                        <span class="ts-cat-chip">piétement</span><span class="ts-cat-chip">corps</span><span class="ts-cat-chip">tête</span>
+                      </div>
+                    </div>
+                    <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_suspendu')" style="grid-column:span 2">
+                      <div class="ts-cat-card-ico">🔮</div>
+                      <div class="ts-cat-card-name">Luminaire suspendu</div>
+                      <div class="ts-cat-card-parts">
+                        <span class="ts-cat-chip">fixation</span><span class="ts-cat-chip">corps</span><span class="ts-cat-chip">abat-jour</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
+
               <!-- Viewer UI : vues + actions -->
               <div class="ts-viewer-ui">
                 <div class="ts-view-btns" id="tsViewBtns">
@@ -876,14 +843,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
                   </button>
                 </div>
                 <div class="ts-view-sep"></div>
-                <button class="ts-view-btn" id="tsBtnCotes" onclick="tsToggleDimOverlay(this)" title="Afficher / masquer les cotes réelles du modèle">
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
-                    <line x1="1" y1="2" x2="1" y2="12"/><line x1="13" y1="2" x2="13" y2="12"/>
-                    <line x1="1" y1="7" x2="13" y2="7"/>
-                    <line x1="1" y1="2" x2="4" y2="2"/><line x1="1" y1="12" x2="4" y2="12"/>
-                    <line x1="10" y1="2" x2="13" y2="2"/><line x1="10" y1="12" x2="13" y2="12"/>
-                  </svg>Cotes
-                </button>
+
                 <button class="ts-view-del" onclick="tsReload()" title="Repartir à zéro">
                   <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" width="12" height="12">
                     <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
@@ -957,29 +917,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </button>
             <div style="flex:1"></div>
             <button class="btn-secondary" id="tsBtnReload" onclick="tsReload()" style="display:none;padding:10px 16px;font-size:10px">↺ Nouveau modèle</button>
-          </div>
-          <!-- Modal de confirmation -->
-          <div class="ts-confirm-backdrop" id="tsConfirmModal">
-            <div class="ts-confirm-box">
-              <div class="ts-confirm-head">
-                <div>
-                  <h3>Confirmer l'envoi</h3>
-                  <p id="tsConfirmSubtitle">Vérifiez les informations avant envoi</p>
-                </div>
-                <button class="ts-confirm-close" onclick="tsCloseConfirm()">✕</button>
-              </div>
-              <div class="ts-confirm-body">
-                <div id="tsConfirmRows"></div>
-                <div class="ts-confirm-notice">Ces informations seront enregistrées dans le catalogue et pourront être modifiées depuis l'éditeur produit.</div>
-              </div>
-              <div class="ts-confirm-foot">
-                <button class="btn-secondary" onclick="tsCloseConfirm()">← Revenir modifier</button>
-                <button class="btn-primary" id="tsConfirmGo" onclick="tsConfirmSend()">
-                  <div class="spin" id="tsSpinConfirm" style="display:none;width:12px;height:12px"></div>
-                  <span id="tsConfirmGoLabel">Confirmer</span>
-                </button>
-              </div>
-            </div>
           </div>
           <div class="ts-result" id="tsResult"></div>
         </div>
@@ -2161,8 +2098,10 @@ function tsStripAccents(s){ return s.toLowerCase().normalize('NFD').replace(/[\u
 /* ── 1. Sélection de catégorie ─────────────────────────────── */
 function tsSelectCategory(cat){
   window.tsCurrentCat = cat;
-  document.getElementById('tsCatPicker').style.display = 'none';
-  document.getElementById('tsStudio').style.display    = 'block';
+  /* Fermer le picker avec animation */
+  const picker=document.getElementById('tsCatPicker');
+  picker.classList.add('closing');
+  setTimeout(()=>{picker.style.display='none';},260);
   const cfg = TS_CATS[cat];
   document.getElementById('tsCatLabel').textContent = cfg ? cfg.icon+' '+cfg.label : cat;
   /* Peupler dropdown type de meuble */
@@ -2179,8 +2118,10 @@ function tsSelectCategory(cat){
 }
 
 function tsBackToCategories(){
-  document.getElementById('tsCatPicker').style.display = 'block';
-  document.getElementById('tsStudio').style.display    = 'none';
+  /* Ré-ouvrir le picker overlay */
+  const picker2=document.getElementById('tsCatPicker');
+  picker2.classList.remove('closing');
+  picker2.style.display='flex';
 }
 
 /* ── 2. Tableau PBR ────────────────────────────────────────── */
@@ -2583,61 +2524,13 @@ async function tsSegmentAuto(){
 }
 
 /* ── 5. Dimensions → échelle 3D ──────────────────────────── */
-function tsToggleDimOverlay(btn){
-  const ov=document.getElementById('tsDimOverlay');
-  const show=!ov.classList.contains('show');
-  ov.classList.toggle('show',show);
-  btn.classList.toggle('dim-active',show);
-  window.tsToggleBBoxHelper&&window.tsToggleBBoxHelper(show);
-  if(show) tsUpdateDimDisplay();
-}
-
-function tsUpdateDimDisplay(){
-  const dims=window.tsGetModelDimsCm&&window.tsGetModelDimsCm();
-  if(!dims) return;
-  const tL=parseFloat(document.getElementById('tsL').value)||null;
-  const tH=parseFloat(document.getElementById('tsH').value)||null;
-  const tP=parseFloat(document.getElementById('tsP').value)||null;
-  const hasTgt=tL||tH||tP;
-
-  const setRow=(id,statusId,actual,target)=>{
-    const el=document.getElementById('ts'+id);
-    const st=document.getElementById('ts'+statusId);
-    if(el) el.textContent=actual;
-    if(st){
-      if(target){
-        const diff=actual-target;
-        const ok=Math.abs(diff)<0.6;
-        st.textContent=ok?'✓':(diff>0?'+':'')+diff.toFixed(1);
-        st.className='ts-dim-status '+(ok?'ok':'diff');
-      } else {
-        st.textContent=''; st.className='ts-dim-status';
-      }
-    }
-  };
-
-  setRow('DimL','DimStatusL',dims.l,tL);
-  setRow('DimH','DimStatusH',dims.h,tH);
-  setRow('DimP','DimStatusP',dims.p,tP);
-
-  const hint=document.getElementById('tsDimHint');
-  if(hint) hint.style.display=hasTgt?'block':'none';
-}
-
 function tsApplyDimensions(){
   const l=parseFloat(document.getElementById('tsL').value)||0;
   const h=parseFloat(document.getElementById('tsH').value)||0;
   const p=parseFloat(document.getElementById('tsP').value)||0;
   if(!l&&!h&&!p){toast('Entrer au moins une dimension','err');return;}
   window.tsApplyScale&&window.tsApplyScale(l/100,h/100,p/100);
-  /* Afficher et mettre à jour les cotes après recalibrage */
-  const ov=document.getElementById('tsDimOverlay');
-  const btn=document.getElementById('tsBtnCotes');
-  ov.classList.add('show');
-  if(btn) btn.classList.add('dim-active');
-  window.tsToggleBBoxHelper&&window.tsToggleBBoxHelper(true);
-  setTimeout(tsUpdateDimDisplay,50);
-  toast(`Échelle appliquée — vérifiez les cotes à droite`,'ok');
+  toast(`Échelle appliquée : ${l||'?'} × ${h||'?'} × ${p||'?'} cm`,'ok');
 }
 
 /* ── 6. Reset modèle ─────────────────────────────────────── */
@@ -3714,7 +3607,6 @@ window.tsApplyScale = function(l, h, p) {
 };
 
 window.tsRemoveModel = function() {
-  if(boxHelper){scene.remove(boxHelper);boxHelper=null;}
   if(model){scene.remove(model);model=null;}
 };
 
@@ -3727,18 +3619,6 @@ window.tsGetModelDimsCm = function(){
   return {l:r(s.x), h:r(s.y), p:r(s.z)};
 };
 
-/* ── Bounding box dorée toggleable ───────────────────────── */
-let boxHelper=null;
-window.tsToggleBBoxHelper = function(show){
-  if(show){
-    if(!model) return;
-    if(!boxHelper) boxHelper=new THREE.BoxHelper(model,0xB8965A);
-    else boxHelper.update();
-    scene.add(boxHelper);
-  } else {
-    if(boxHelper){scene.remove(boxHelper);}
-  }
-};
 
 /* ── Export GLB ────────────────────────────────────────────── */
 window.tsGetGLBBlob = function() {
@@ -3768,5 +3648,28 @@ window.tsGetUSDZBlob = async function() {
 };
 </script>
 
+  <!-- Modale confirmation export — hors de tout contexte de rendu -->
+  <div class="ts-confirm-backdrop" id="tsConfirmModal">
+    <div class="ts-confirm-box">
+      <div class="ts-confirm-head">
+        <div>
+          <h3>Confirmer l'envoi</h3>
+          <p id="tsConfirmSubtitle">Vérifiez les informations avant envoi</p>
+        </div>
+        <button class="ts-confirm-close" onclick="tsCloseConfirm()">✕</button>
+      </div>
+      <div class="ts-confirm-body">
+        <div id="tsConfirmRows"></div>
+        <div class="ts-confirm-notice">Ces informations seront enregistrées dans le catalogue et pourront être modifiées depuis l'éditeur produit.</div>
+      </div>
+      <div class="ts-confirm-foot">
+        <button class="btn-secondary" onclick="tsCloseConfirm()">← Revenir modifier</button>
+        <button class="btn-primary" id="tsConfirmGo" onclick="tsConfirmSend()">
+          <div class="spin" id="tsSpinConfirm" style="display:none;width:12px;height:12px"></div>
+          <span id="tsConfirmGoLabel">Confirmer</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
