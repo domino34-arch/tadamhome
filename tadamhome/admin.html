@@ -323,6 +323,97 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-result a{color:var(--accent);text-decoration:none}
 .ts-result a:hover{text-decoration:underline}
 .ts-result strong{color:var(--green);font-weight:500}
+
+/* ══ CATEGORY PICKER ══ */
+.ts-cat-picker{padding:20px 0}
+.ts-cat-picker-title{font-family:var(--serif);font-size:26px;font-weight:300;margin-bottom:4px}
+.ts-cat-picker-sub{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;font-family:var(--sans)}
+.ts-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.ts-cat-card{background:var(--white);border:1px solid var(--border);padding:22px 20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px}
+.ts-cat-card:hover{border-color:var(--accent);background:rgba(184,152,106,.04)}
+.ts-cat-card-ico{font-size:26px;line-height:1}
+.ts-cat-card-name{font-family:var(--serif);font-size:20px;font-weight:300;color:var(--ink)}
+.ts-cat-card-parts{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.ts-cat-chip{font-size:9px;letter-spacing:.06em;border:1px solid var(--border);padding:2px 7px;color:var(--muted);font-family:var(--sans);background:var(--bg)}
+
+/* ══ STUDIO INFO BAR ══ */
+.ts-info-bar{display:flex;gap:6px;align-items:center;background:var(--white);border:1px solid var(--border);padding:10px 14px;margin-bottom:2px;flex-wrap:wrap}
+.ts-info-bar input{border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:12px;color:var(--ink);outline:none;padding:7px 10px;transition:border-color .2s}
+.ts-info-bar input:focus{border-color:var(--accent)}
+.ts-ib-name{flex:1;min-width:120px}
+.ts-ib-brand{width:110px}
+.ts-ib-dim{width:58px;text-align:center}
+.ts-ib-sep{font-size:11px;color:var(--muted);font-family:var(--sans)}
+.ts-ib-unit{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
+.ts-ib-apply{padding:7px 14px;background:var(--accent);color:white;border:none;font-family:var(--sans);font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap}
+.ts-ib-apply:hover{background:var(--acc3)}
+.ts-cat-back-btn{padding:7px 12px;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--sans);font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ts-cat-back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ts-cat-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-family:var(--sans);white-space:nowrap}
+
+/* ══ PBR SPREADSHEET TABLE ══ */
+.ts-table-wrap{flex:1;overflow-y:auto;overflow-x:auto}
+.ts-table-wrap::-webkit-scrollbar{width:3px;height:3px}
+.ts-table-wrap::-webkit-scrollbar-thumb{background:var(--border)}
+.ts-pbr-tbl{width:100%;border-collapse:collapse}
+.ts-pbr-tbl th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 4px;background:var(--bg);border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;font-family:var(--sans);font-weight:400;position:sticky;top:0;z-index:1}
+.ts-pbr-tbl th:first-child{text-align:left;padding-left:12px;min-width:90px}
+.ts-pbr-tbl td{border-bottom:1px solid var(--border);padding:5px 4px;vertical-align:middle;text-align:center}
+.ts-pbr-tbl td:first-child{font-family:var(--serif);font-size:14px;color:var(--ink);text-transform:capitalize;padding-left:12px;text-align:left;white-space:nowrap;font-weight:400}
+.ts-pbr-tbl tr:last-child td{border-bottom:none}
+.ts-pbr-tbl tr:hover td{background:rgba(184,152,106,.03)}
+.ts-tbl-dot{width:7px;height:7px;border:1px solid var(--border);display:inline-block;vertical-align:middle;margin-right:5px;flex-shrink:0}
+.ts-tbl-dot.live{background:var(--accent);border-color:var(--accent)}
+/* PBR Cell */
+.ts-pcell{position:relative;width:50px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px dashed var(--border);background:var(--white);cursor:pointer;overflow:hidden;transition:border-color .2s;vertical-align:middle}
+.ts-pcell:hover{border-color:var(--accent)}
+.ts-pcell.loaded{border-style:solid;border-color:var(--accent)}
+.ts-pcell input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}
+.ts-pcell-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ts-pcell-ico{font-size:12px;color:var(--muted);z-index:1}
+.ts-pcell-del{position:absolute;top:1px;right:1px;width:14px;height:14px;background:rgba(192,57,43,.9);border:none;color:white;font-size:8px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:3;line-height:1}
+.ts-pcell.loaded .ts-pcell-del{display:flex}
+/* ── Intensity overlay (hover sur cellule PBR) ── */
+.ts-pcell-int{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.72);padding:2px 4px;display:flex;align-items:center;gap:2px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2}
+.ts-pcell:hover .ts-pcell-int,.ts-pcell:focus-within .ts-pcell-int{opacity:1;pointer-events:all}
+.ts-int-sl{flex:1;-webkit-appearance:none;appearance:none;height:1px;background:rgba(255,255,255,.25);outline:none;cursor:pointer;min-width:0}
+.ts-int-sl::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
+.ts-int-sl::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
+.ts-int-val{font-size:7px;color:rgba(255,255,255,.9);font-family:monospace;min-width:22px;text-align:right;white-space:nowrap}
+/* ── Sliders roughness/metalness dans la ligne de base ── */
+.ts-base-sl{display:flex;align-items:center;gap:3px}
+.ts-base-sl label{font-size:8px;color:var(--muted);font-family:var(--sans);white-space:nowrap}
+.ts-base-sl input[type=range]{width:44px;-webkit-appearance:none;appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer}
+.ts-base-sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
+.ts-base-sl input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
+.ts-base-sl span{font-size:8px;color:var(--ink);font-family:monospace;min-width:24px}
+/* Mesh tags row */
+.ts-mesh-row td{padding:4px 4px}
+.ts-mesh-row td:first-child{font-size:10px;color:var(--muted);font-family:var(--sans);font-style:italic;font-family:var(--sans)}
+.ts-mesh-chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.ts-mchip{font-size:9px;padding:2px 6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.ts-mchip:hover{border-color:var(--accent);color:var(--ink)}
+.ts-mchip.active{background:var(--accent);border-color:var(--accent);color:white}
+/* Color + UV row */
+.ts-extra-row td{padding:5px 4px;background:rgba(184,152,106,.03)}
+.ts-color-pick{width:30px;height:24px;border:1px solid var(--border);cursor:pointer;padding:1px;background:var(--bg);vertical-align:middle}
+.ts-uv-mini{display:flex;align-items:center;gap:3px;justify-content:center}
+.ts-uv-mini label{font-size:8px;color:var(--muted);font-family:var(--sans)}
+.ts-uv-mini input[type=range]{width:50px;-webkit-appearance:none;appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer}
+.ts-uv-mini input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
+.ts-uv-mini input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
+.ts-uv-mini span{font-size:9px;color:var(--ink);font-family:monospace;min-width:22px}
+
+/* ══ Controls sidebar (bottom part) ══ */
+.ts-ctrl-foot{flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border)}
+.ts-seg-btn{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);font-family:var(--sans);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.ts-seg-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ts-seg-btn:disabled{opacity:.4;cursor:default}
+
+/* ══ Footer export bar ══ */
+.ts-footer-v2{display:flex;align-items:center;gap:6px;padding:10px 0 4px;flex-wrap:wrap}
+
+/* ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════ */
 
 @media(max-width:768px){
@@ -603,58 +694,162 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
       <!-- ══ STUDIO TEXTURE ══ -->
       <div class="panel" id="panelTexture">
-        <div class="ts-layout">
-          <!-- Viewer 3D -->
-          <div class="ts-viewer" id="tsViewerWrap">
-            <div class="ts-drop" id="tsDrop">
-              <input type="file" accept=".obj" id="tsObjInput">
-              <div class="ts-drop-icon">
-                <svg width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="#B8986A" stroke-width="1.2">
-                  <path d="M14 4L4 9.5v9L14 24l10-5.5v-9L14 4z"/>
-                  <path d="M14 4v20M4 9.5l10 5.5 10-5.5"/>
-                </svg>
+
+        <!-- ── ÉCRAN 1 : Sélection de catégorie ── -->
+        <div id="tsCatPicker">
+          <div class="ts-cat-picker">
+            <div class="ts-cat-picker-title">Studio <em style="font-style:italic;color:var(--accent)">Texture</em></div>
+            <div class="ts-cat-picker-sub">Choisir une catégorie de meuble</div>
+            <div class="ts-cat-grid">
+
+              <div class="ts-cat-card" onclick="tsSelectCategory('chaise')">
+                <div class="ts-cat-card-ico">🪑</div>
+                <div class="ts-cat-card-name">Chaise / Canapé / Fauteuil</div>
+                <div class="ts-cat-card-parts">
+                  <span class="ts-cat-chip">piétement</span>
+                  <span class="ts-cat-chip">assise</span>
+                  <span class="ts-cat-chip">dossier</span>
+                  <span class="ts-cat-chip">accoudoir</span>
+                </div>
               </div>
-              <h3>Déposer un fichier OBJ</h3>
-              <p>Glisser-déposer ou cliquer</p>
-            </div>
-            <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
-          </div>
-          <!-- Controls -->
-          <div class="ts-controls">
-            <div class="ts-controls-head">
-              <h4>Application PBR</h4>
-              <p>Studio Texture · TadamHome</p>
-            </div>
-            <div class="ts-cat-tabs" id="tsCatTabs">
-              <div class="ts-cat-tab active" data-cat="chaise">Chaise /<br>Canapé</div>
-              <div class="ts-cat-tab" data-cat="table">Table /<br>Table basse</div>
-              <div class="ts-cat-tab" data-cat="luminaire">Luminaire</div>
-            </div>
-            <div class="ts-parts" id="tsParts">
-              <div class="ts-empty-state" id="tsEmptyState">
-                <h5>Charger un modèle OBJ</h5>
-                <p>Glissez votre fichier dans<br>le viewer à gauche.</p>
+
+              <div class="ts-cat-card" onclick="tsSelectCategory('table')">
+                <div class="ts-cat-card-ico">🪵</div>
+                <div class="ts-cat-card-name">Table / Table basse</div>
+                <div class="ts-cat-card-parts">
+                  <span class="ts-cat-chip">piétement</span>
+                  <span class="ts-cat-chip">plateau</span>
+                </div>
               </div>
-              <div id="tsPartsContainer"></div>
+
+              <div class="ts-cat-card" onclick="tsSelectCategory('rangement')">
+                <div class="ts-cat-card-ico">🗄</div>
+                <div class="ts-cat-card-name">Rangement / Bureau</div>
+                <div class="ts-cat-card-parts">
+                  <span class="ts-cat-chip">corps</span>
+                  <span class="ts-cat-chip">portes</span>
+                  <span class="ts-cat-chip">tiroirs</span>
+                  <span class="ts-cat-chip">piétement</span>
+                </div>
+              </div>
+
+              <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_pied')">
+                <div class="ts-cat-card-ico">💡</div>
+                <div class="ts-cat-card-name">Luminaire sur pied</div>
+                <div class="ts-cat-card-parts">
+                  <span class="ts-cat-chip">piétement</span>
+                  <span class="ts-cat-chip">corps</span>
+                  <span class="ts-cat-chip">tête</span>
+                </div>
+              </div>
+
+              <div class="ts-cat-card" onclick="tsSelectCategory('luminaire_suspendu')" style="grid-column:span 2">
+                <div class="ts-cat-card-ico">🔮</div>
+                <div class="ts-cat-card-name">Luminaire suspendu</div>
+                <div class="ts-cat-card-parts">
+                  <span class="ts-cat-chip">fixation</span>
+                  <span class="ts-cat-chip">corps</span>
+                  <span class="ts-cat-chip">abat-jour</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
-        <!-- Footer -->
-        <div class="ts-footer">
-          <button class="btn-primary" id="tsBtnGlb" onclick="tsExportGLB()" disabled style="padding:10px 20px;font-size:10px">
-            <div class="spin" id="tsSpinGlb"></div>Export GLB
-          </button>
-          <button class="btn-secondary" id="tsBtnSupa" onclick="tsUploadSupabase()" disabled style="padding:10px 16px;font-size:10px">
-            ⬆ Envoyer au catalogue
-          </button>
-          <div style="flex:1"></div>
-          <button class="btn-secondary" id="tsBtnReload" onclick="tsReload()" style="display:none;padding:10px 16px;font-size:10px">↺ Nouveau modèle</button>
+
+        <!-- ── ÉCRAN 2 : Studio ── -->
+        <div id="tsStudio" style="display:none">
+
+          <!-- Barre infos meuble -->
+          <div class="ts-info-bar">
+            <button class="ts-cat-back-btn" onclick="tsBackToCategories()">← Catégorie</button>
+            <span class="ts-cat-label" id="tsCatLabel">—</span>
+            <div class="ts-ib-sep" style="flex:0 0 1px;height:24px;background:var(--border)"></div>
+            <input type="text" class="ts-ib-name" id="tsNom" placeholder="Nom du meuble"/>
+            <input type="text" class="ts-ib-brand" id="tsMarque" placeholder="Marque"/>
+            <div class="ts-ib-sep">L</div>
+            <input type="number" class="ts-ib-dim" id="tsL" placeholder="cm"/>
+            <div class="ts-ib-sep">× H</div>
+            <input type="number" class="ts-ib-dim" id="tsH" placeholder="cm"/>
+            <div class="ts-ib-sep">× P</div>
+            <input type="number" class="ts-ib-dim" id="tsP" placeholder="cm"/>
+            <span class="ts-ib-unit">cm</span>
+            <button class="ts-ib-apply" onclick="tsApplyDimensions()">→ Échelle</button>
+          </div>
+
+          <!-- Layout : viewer + tableau PBR -->
+          <div class="ts-layout">
+            <!-- Viewer 3D -->
+            <div class="ts-viewer" id="tsViewerWrap">
+              <div class="ts-drop" id="tsDrop">
+                <input type="file" accept=".obj" id="tsObjInput">
+                <div class="ts-drop-icon">
+                  <svg width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="#B8986A" stroke-width="1.2">
+                    <path d="M14 4L4 9.5v9L14 24l10-5.5v-9L14 4z"/>
+                    <path d="M14 4v20M4 9.5l10 5.5 10-5.5"/>
+                  </svg>
+                </div>
+                <h3>Déposer un fichier OBJ</h3>
+                <p>Glisser-déposer ou cliquer</p>
+              </div>
+              <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
+            </div>
+
+            <!-- Colonne droite : Tableau PBR -->
+            <div class="ts-controls">
+              <div class="ts-controls-head" style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <h4>Textures PBR</h4>
+                  <p id="tsCtrlSub">Charger un modèle OBJ</p>
+                </div>
+                <button class="ts-seg-btn" id="tsSegBtn" onclick="tsSegmentAuto()" disabled style="width:auto;padding:6px 10px;font-size:8px">⬡ Auto-segmenter</button>
+              </div>
+
+              <!-- Tableau scrollable -->
+              <div class="ts-table-wrap">
+                <div id="tsTableEmpty" style="padding:32px 16px;text-align:center;color:var(--muted)">
+                  <div style="font-family:var(--serif);font-size:15px;font-weight:300;margin-bottom:6px;color:var(--ink)">En attente d'un modèle</div>
+                  <p style="font-size:11px;line-height:1.7;font-family:var(--sans)">Glissez votre fichier OBJ<br>dans le viewer à gauche.</p>
+                </div>
+                <table class="ts-pbr-tbl" id="tsPbrTable" style="display:none">
+                  <thead>
+                    <tr>
+                      <th>Partie</th>
+                      <th title="Couleur de base">🎨 Albedo</th>
+                      <th title="Normal map">〰 Normal</th>
+                      <th title="Rugosité">◫ Rough</th>
+                      <th title="Métal">⬟ Métal</th>
+                      <th title="Ambient Occlusion">◉ AO</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tsPbrTbody"></tbody>
+                </table>
+              </div>
+
+              <!-- Pied : segmentation -->
+              <div class="ts-ctrl-foot">
+                <div id="tsSegInfo" style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-bottom:6px;display:none"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer export -->
+          <div class="ts-footer-v2">
+            <button class="btn-primary" id="tsBtnGlb" onclick="tsExportGLB()" disabled style="padding:10px 18px;font-size:10px">
+              <div class="spin" id="tsSpinGlb"></div>Export GLB
+            </button>
+            <button class="btn-primary" id="tsBtnUsdz" onclick="tsExportUSDZ()" disabled style="padding:10px 18px;font-size:10px;background:var(--muted)">
+              <div class="spin" id="tsSpinUsdz"></div>Export USDZ
+            </button>
+            <button class="btn-secondary" id="tsBtnSupa" onclick="tsUploadSupabase()" disabled style="padding:10px 16px;font-size:10px">
+              ⬆ Envoyer au catalogue
+            </button>
+            <div style="flex:1"></div>
+            <button class="btn-secondary" id="tsBtnReload" onclick="tsReload()" style="display:none;padding:10px 16px;font-size:10px">↺ Nouveau modèle</button>
+          </div>
+          <div class="ts-result" id="tsResult"></div>
         </div>
-        <div class="ts-result" id="tsResult"></div>
-        <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:8px;line-height:1.6">
-          <strong style="color:var(--accent)">Workflow :</strong>
-          Charger OBJ → Sélectionner les meshes → Appliquer textures PBR → Exporter GLB ou envoyer directement au catalogue.
-        </div>
+
       </div>
 
     </div><!-- /content -->
@@ -1054,24 +1249,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tsObjInput').addEventListener('change', e => {
     if (e.target.files[0]) window.tsLoad && window.tsLoad(e.target.files[0]);
   });
-  document.querySelectorAll('.ts-cat-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.ts-cat-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      window.tsCurrentCat = tab.dataset.cat;
-      tsRebuildParts();
-    });
-  });
+  /* Viewer drag-and-drop (init après tsSelectCategory) */
   const vw = document.getElementById('tsViewerWrap');
-  vw.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('tsDrop').classList.add('drag-over'); });
-  vw.addEventListener('dragleave', () => document.getElementById('tsDrop').classList.remove('drag-over'));
-  vw.addEventListener('drop', e => {
-    e.preventDefault(); document.getElementById('tsDrop').classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    f && f.name.toLowerCase().endsWith('.obj')
-      ? (window.tsLoad && window.tsLoad(f))
-      : toast('Format non supporté — fichier .OBJ requis', 'err');
-  });
+  if (vw) {
+    vw.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('tsDrop').classList.add('drag-over'); });
+    vw.addEventListener('dragleave', () => document.getElementById('tsDrop').classList.remove('drag-over'));
+    vw.addEventListener('drop', e => {
+      e.preventDefault(); document.getElementById('tsDrop').classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      f && f.name.toLowerCase().endsWith('.obj')
+        ? (window.tsLoad && window.tsLoad(f))
+        : toast('Format non supporté — fichier .OBJ requis', 'err');
+    });
+  }
 });
 function logout() {
   document.getElementById('lock').style.display = 'flex';
@@ -1759,123 +1949,226 @@ function toast(msg,type){
 /* ══ TEXTURE STUDIO — UI ════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════════════════════════ */
 
-const TS_CATS = {
-  chaise:   {parts:['piétement','assise','dossier','accoudoir']},
-  table:    {parts:['piétement','plateau']},
-  luminaire:{parts:['piétement','tête']}
-};
+/* ══ TEXTURE STUDIO CONFIG ══ */
 const TS_PBR = [
-  {key:'albedo',    label:'Couleur',  icon:'🎨'},
-  {key:'normal',    label:'Normal',   icon:'〰'},
-  {key:'roughness', label:'Rugosité', icon:'◫'},
-  {key:'metalness', label:'Métal',    icon:'⬟'},
-  {key:'ao',        label:'AO',       icon:'◉'}
+  {key:'albedo',    label:'Albedo',   icon:'🎨', hint:'Couleur de base'},
+  {key:'normal',    label:'Normal',   icon:'〰',  hint:'Relief de surface'},
+  {key:'roughness', label:'Rough',    icon:'◫',  hint:'Rugosité'},
+  {key:'metalness', label:'Métal',    icon:'⬟',  hint:'Réflectivité'},
+  {key:'ao',        label:'AO',       icon:'◉',  hint:'Ambient Occlusion'}
 ];
-const TS_KW = {
-  'piétement':['pietement','pied','pieds','leg','legs','base','support','frame'],
-  'assise':   ['assise','seat','cushion','coussin','sit'],
-  'dossier':  ['dossier','back','backrest','dos'],
-  'accoudoir':['accoudoir','arm','armrest','bras'],
-  'plateau':  ['plateau','top','dessus','tabletop','table_top'],
-  'tête':     ['tete','head','shade','abat','lamp','globe']
+
+/* Intensity config par map type (slider min/max/step/default) */
+const TS_INT_CONFIG = {
+  albedo:    null,
+  normal:    { min:0, max:2,   step:0.05, def:1.00, label:'Normal'   },
+  roughness: { min:0, max:1,   step:0.05, def:0.75, label:'Rugosité' },
+  metalness: { min:0, max:1,   step:0.05, def:0.00, label:'Métal'    },
+  ao:        { min:0, max:2,   step:0.10, def:1.00, label:'AO'       }
 };
 
-window.tsCurrentCat = 'chaise';
-window.tsPartAssign  = {};   // partName → Set<meshName>
-window.tsPartMat     = {};   // partName → {color, maps:{}}
-window.tsPartRepeat  = {};   // partName → {x, y}
-window.tsTexCache    = {};   // `${part}_${key}` → objectURL
+const TS_CATS = {
+  chaise: {
+    label:'Chaise / Canapé / Fauteuil', icon:'🪑',
+    parts:['piétement','assise','dossier','accoudoir'],
+    kw:{
+      'piétement':['pietement','pied','pieds','leg','legs','base','support','frame','patte'],
+      'assise':   ['assise','seat','cushion','coussin','sit','bottom','pad'],
+      'dossier':  ['dossier','back','backrest','dos'],
+      'accoudoir':['accoudoir','arm','armrest','bras']
+    }
+  },
+  table: {
+    label:'Table / Table basse', icon:'🪵',
+    parts:['piétement','plateau'],
+    kw:{
+      'piétement':['pietement','pied','pieds','leg','legs','base','support','frame','trestle'],
+      'plateau':  ['plateau','top','dessus','tabletop','table_top','surface','slab']
+    }
+  },
+  rangement: {
+    label:'Rangement / Bureau', icon:'🗄',
+    parts:['corps','portes','tiroirs','piétement'],
+    kw:{
+      'corps':    ['corps','body','shell','caisse','box','cabinet','meuble','panel'],
+      'portes':   ['porte','door','panneau','flap'],
+      'tiroirs':  ['tiroir','drawer','shelf','tablette'],
+      'piétement':['pietement','pied','pieds','leg','base']
+    }
+  },
+  luminaire_pied: {
+    label:'Luminaire sur pied', icon:'💡',
+    parts:['piétement','corps','tête'],
+    kw:{
+      'piétement':['pietement','pied','base','socle','foot','stand'],
+      'corps':    ['corps','tige','bras','arm','body','stem','pipe'],
+      'tête':     ['tete','head','shade','abat','lamp','globe','ampoule','hat']
+    }
+  },
+  luminaire_suspendu: {
+    label:'Luminaire suspendu', icon:'🔮',
+    parts:['fixation','corps','abat-jour'],
+    kw:{
+      'fixation':   ['fixation','rosace','canopy','ceiling','plafond','mount'],
+      'corps':      ['corps','tige','cable','fil','body','stem','rod'],
+      'abat-jour':  ['abatjour','shade','globe','lamp','diffuser','bowl']
+    }
+  }
+};
+
+window.tsCurrentCat  = null;
+window.tsPartAssign  = {};
+window.tsPartMat     = {};
+window.tsPartRepeat  = {};
+window.tsTexCache    = {};
 
 function tsStripAccents(s){ return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 
-function tsAutoAssign(){
-  Object.values(TS_CATS).forEach(c => c.parts.forEach(p => { window.tsPartAssign[p] = new Set(); }));
-  const meshMap = window.tsMeshMap || {};
-  Object.keys(meshMap).forEach(name => {
-    const l = tsStripAccents(name);
-    Object.entries(TS_KW).forEach(([part, kws]) => {
-      if (kws.some(kw => l.includes(kw))) window.tsPartAssign[part]?.add(name);
-    });
-  });
+/* ── 1. Sélection de catégorie ─────────────────────────────── */
+function tsSelectCategory(cat){
+  window.tsCurrentCat = cat;
+  document.getElementById('tsCatPicker').style.display = 'none';
+  document.getElementById('tsStudio').style.display    = 'block';
+  const cfg = TS_CATS[cat];
+  document.getElementById('tsCatLabel').textContent = cfg ? cfg.icon+' '+cfg.label : cat;
+  document.getElementById('tsCtrlSub').textContent = 'Charger un modèle OBJ';
+  /* Init Three.js si pas encore fait */
+  if (window.tsInitThree && !window.tsThreeReady) window.tsInitThree();
+  /* Si modèle déjà chargé, reconstruire le tableau */
+  if (Object.keys(window.tsMeshMap||{}).length) {
+    document.getElementById('tsSegBtn').disabled = false;
+    tsRenderPBRTable();
+  }
 }
 
-function tsRebuildParts(){
-  const container = document.getElementById('tsPartsContainer');
-  const empty     = document.getElementById('tsEmptyState');
-  container.innerHTML = '';
+function tsBackToCategories(){
+  document.getElementById('tsCatPicker').style.display = 'block';
+  document.getElementById('tsStudio').style.display    = 'none';
+}
+
+/* ── 2. Tableau PBR ────────────────────────────────────────── */
+function tsRenderPBRTable(){
+  const cat  = TS_CATS[window.tsCurrentCat];
+  if (!cat) return;
+  const parts = cat.parts;
   const meshMap = window.tsMeshMap || {};
-  if (!Object.keys(meshMap).length){ empty.style.display='block'; return; }
-  empty.style.display = 'none';
-  const {parts} = TS_CATS[window.tsCurrentCat] || {parts:[]};
-  parts.forEach((part, i) => {
+  const meshNames = Object.keys(meshMap);
+
+  document.getElementById('tsTableEmpty').style.display = 'none';
+  const tbl = document.getElementById('tsPbrTable');
+  tbl.style.display = 'table';
+  const tbody = document.getElementById('tsPbrTbody');
+  tbody.innerHTML = '';
+
+  parts.forEach(part => {
     if (!window.tsPartAssign[part]) window.tsPartAssign[part] = new Set();
     if (!window.tsPartMat[part])    window.tsPartMat[part]    = {color:'#ffffff', maps:{}};
     if (!window.tsPartRepeat[part]) window.tsPartRepeat[part] = {x:1, y:1};
-    const card = document.createElement('div');
-    card.className = 'ts-part-card' + (i===0 ? ' open' : '');
-    const hasTex = Object.keys(window.tsPartMat[part].maps).length > 0;
-    const toggle = document.createElement('div');
-    toggle.className = 'ts-part-toggle';
-    toggle.innerHTML = `<div class="ts-part-tl"><div class="ts-dot${hasTex?' live':''}" id="tsDot-${CSS.escape(part)}"></div><h5>${part}</h5></div><span class="ts-arrow">▶</span>`;
-    toggle.addEventListener('click', () => card.classList.toggle('open'));
-    const body = document.createElement('div');
-    body.className = 'ts-part-body';
-    const meshNames = Object.keys(meshMap);
-    const tagsHtml = meshNames.length
-      ? meshNames.map(m=>`<span class="ts-mesh-tag${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')
-      : '<span class="ts-mesh-empty">Aucun mesh disponible</span>';
-    const slotsHtml = TS_PBR.map(map => {
-      const loaded  = !!window.tsPartMat[part].maps[map.key];
-      const preview = window.tsTexCache[part+'_'+map.key];
-      return `<div class="ts-pbr-slot${loaded?' loaded':''}" id="tsPbr-${CSS.escape(part)}-${map.key}" title="${map.label}">
-        <input type="file" accept="image/*" data-part="${part}" data-map="${map.key}" onchange="tsHandleTexture(event)">
-        ${preview?`<img class="th" src="${preview}">`:''}
-        <span class="si">${map.icon}</span>
-        <span class="sl">${map.label}</span>
-        ${loaded?'<span class="sc">✓</span>':''}
-      </div>`;
-    }).join('');
+
+    const mat = window.tsPartMat[part];
     const rep = window.tsPartRepeat[part];
-    body.innerHTML = `
-      <span class="ts-sl">Meshes associés</span>
-      <div class="ts-mesh-tags">${tagsHtml}</div>
-      <span class="ts-sl">Textures PBR</span>
-      <div class="ts-pbr-grid">${slotsHtml}</div>
-      <div class="ts-color-row">
-        <label>Couleur de base</label>
-        <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)">Réinitialiser</button>
-        <input type="color" value="${window.tsPartMat[part].color}" data-part="${part}" onchange="tsHandleColor(event)">
-      </div>
-      <span class="ts-sl" style="margin-top:10px">Répétition UV</span>
-      <div class="ts-rep-row">
-        <div class="ts-rep-col">
-          <label>U <span id="tsRu-${CSS.escape(part)}">${rep.x}×</span></label>
+    const hasTex = Object.keys(mat.maps).length > 0;
+
+    /* Row 1 : Part name + PBR cells */
+    const trMain = document.createElement('tr');
+    trMain.innerHTML = `<td><span class="ts-tbl-dot${hasTex?' live':''}" id="tsD-${CSS.escape(part)}"></span>${part}</td>`
+      + TS_PBR.map(map => {
+          const loaded  = !!mat.maps[map.key];
+          const preview = window.tsTexCache[part+'_'+map.key];
+          const ic      = TS_INT_CONFIG[map.key];
+          const curIv   = (window.tsPartMat[part].intensity||{})[map.key] ?? (ic?.def ?? 1);
+          const fmtPct  = v => ic ? (ic.max<=1 ? Math.round(v*100)+'%' : (v*100).toFixed(0)+'%') : '';
+          const intOverlay = (loaded && ic) ? `
+              <div class="ts-pcell-int">
+                <input type="range" class="ts-int-sl" min="${ic.min}" max="${ic.max}" step="${ic.step}"
+                       value="${curIv}" data-part="${part}" data-map="${map.key}"
+                       oninput="tsHandleIntensity(event)" onclick="event.stopPropagation()">
+                <span class="ts-int-val" id="tsIV-${CSS.escape(part)}-${map.key}">${fmtPct(curIv)}</span>
+              </div>` : '';
+          return `<td>
+            <div class="ts-pcell${loaded?' loaded':''}" id="tsPC-${CSS.escape(part)}-${map.key}" title="${map.label}·${map.hint}">
+              <input type="file" accept="image/*" data-part="${part}" data-map="${map.key}" onchange="tsHandleTexture(event)">
+              ${preview ? `<img class="ts-pcell-thumb" src="${preview}">` : ''}
+              ${!loaded ? `<span class="ts-pcell-ico">${map.icon}</span>` : ''}
+              ${intOverlay}
+              <button class="ts-pcell-del" data-part="${part}" data-map="${map.key}" onclick="tsClearCell(event)">✕</button>
+            </div>
+          </td>`;
+        }).join('');
+    tbody.appendChild(trMain);
+
+    /* Row 2 : Mesh chips */
+    const trMesh = document.createElement('tr');
+    trMesh.className = 'ts-mesh-row';
+    const chipsHtml = meshNames.length
+      ? `<div class="ts-mesh-chips">${meshNames.map(m=>`<span class="ts-mchip${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')}</div>`
+      : `<span style="font-size:10px;color:#bbb;font-family:var(--sans);font-style:italic">aucun mesh</span>`;
+    trMesh.innerHTML = `<td style="font-size:10px;color:var(--muted);font-family:var(--sans);font-style:italic">meshes</td>
+      <td colspan="5">${chipsHtml}</td>`;
+    tbody.appendChild(trMesh);
+
+    /* Row 3 : Couleur + UV repeat */
+    const trExtra = document.createElement('tr');
+    trExtra.className = 'ts-extra-row';
+    const _biv = window.tsPartMat[part].intensity||{};
+    const _br = _biv.roughness ?? 0.75, _bm = _biv.metalness ?? 0.0;
+    trExtra.innerHTML = `<td style="font-size:9px;color:var(--muted);font-family:var(--sans)">props / UV</td>
+      <td style="text-align:left;padding-left:6px">
+        <input type="color" class="ts-color-pick" value="${mat.color}" data-part="${part}" onchange="tsHandleColor(event)" title="Couleur de base">
+        <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" style="margin-left:4px" title="Réinitialiser la partie">↺</button>
+      </td>
+      <td title="Rugosité (multiplicateur si roughness map chargée)">
+        <div class="ts-base-sl">
+          <label>◫ Rough</label>
+          <input type="range" min="0" max="1" step="0.05" value="${_br}" data-part="${part}" data-map="roughness" oninput="tsHandleIntensity(event)">
+          <span id="tsIV-${CSS.escape(part)}-roughness">${Math.round(_br*100)}%</span>
+        </div>
+      </td>
+      <td title="Métal (multiplicateur si metalness map chargée)">
+        <div class="ts-base-sl">
+          <label>⧟ Métal</label>
+          <input type="range" min="0" max="1" step="0.05" value="${_bm}" data-part="${part}" data-map="metalness" oninput="tsHandleIntensity(event)">
+          <span id="tsIV-${CSS.escape(part)}-metalness">${Math.round(_bm*100)}%</span>
+        </div>
+      </td>
+      <td colspan="2">
+        <div class="ts-uv-mini">
+          <label>U</label>
           <input type="range" min="0.1" max="20" step="0.1" value="${rep.x}" data-part="${part}" data-axis="x" oninput="tsHandleRepeat(event)">
-        </div>
-        <div class="ts-rep-col">
-          <label>V <span id="tsRv-${CSS.escape(part)}">${rep.y}×</span></label>
+          <span id="tsUV-x-${CSS.escape(part)}">${rep.x.toFixed(1)}×</span>
+          <label style="margin-left:4px">V</label>
           <input type="range" min="0.1" max="20" step="0.1" value="${rep.y}" data-part="${part}" data-axis="y" oninput="tsHandleRepeat(event)">
+          <span id="tsUV-y-${CSS.escape(part)}">${rep.y.toFixed(1)}×</span>
         </div>
-      </div>`;
-    card.appendChild(toggle);
-    card.appendChild(body);
-    container.appendChild(card);
-    body.querySelectorAll('.ts-mesh-tag').forEach(tag => {
-      tag.addEventListener('click', () => {
-        const m=tag.dataset.mesh, p=tag.dataset.part;
+      </td>`;
+    tbody.appendChild(trExtra);
+
+    /* Separator */
+    const trSep = document.createElement('tr');
+    trSep.innerHTML = `<td colspan="6" style="height:2px;background:var(--border);padding:0"></td>`;
+    tbody.appendChild(trSep);
+
+    /* Bind mesh chips */
+    trMesh.querySelectorAll('.ts-mchip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const m = chip.dataset.mesh, p = chip.dataset.part;
         if (window.tsPartAssign[p].has(m)) {
-          window.tsPartAssign[p].delete(m); tag.classList.remove('active');
+          window.tsPartAssign[p].delete(m); chip.classList.remove('active');
           window.tsResetMesh && window.tsResetMesh(m);
         } else {
-          window.tsPartAssign[p].add(m); tag.classList.add('active');
+          window.tsPartAssign[p].add(m); chip.classList.add('active');
           window.tsApplyMaterial && window.tsApplyMaterial(p);
         }
       });
     });
+
     if (window.tsPartAssign[part].size) window.tsApplyMaterial && window.tsApplyMaterial(part);
   });
+
+  document.getElementById('tsCtrlSub').textContent = cat.parts.length + ' parties · ' + meshNames.length + ' meshes';
 }
 
+/* ── 3. Texture upload / clear ────────────────────────────── */
 function tsHandleTexture(e){
   const file=e.target.files[0]; if(!file) return;
   const part=e.target.dataset.part, mapKey=e.target.dataset.map;
@@ -1883,34 +2176,85 @@ function tsHandleTexture(e){
   window.tsLoadTexture && window.tsLoadTexture(part, mapKey, objUrl, file.name, () => {
     if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
     window.tsTexCache[part+'_'+mapKey]=objUrl;
-    const slot=document.getElementById(`tsPbr-${CSS.escape(part)}-${mapKey}`);
-    if(slot){
-      slot.classList.add('loaded');
-      if(!slot.querySelector('.th')){const img=document.createElement('img');img.className='th';img.src=objUrl;slot.insertBefore(img,slot.firstChild);}
-      if(!slot.querySelector('.sc')){const chk=document.createElement('span');chk.className='sc';chk.textContent='✓';slot.appendChild(chk);}
+    const cell=document.getElementById(`tsPC-${CSS.escape(part)}-${mapKey}`);
+    if(cell){
+      cell.classList.add('loaded');
+      let thumb=cell.querySelector('.ts-pcell-thumb');
+      if(!thumb){thumb=document.createElement('img');thumb.className='ts-pcell-thumb';cell.insertBefore(thumb,cell.firstChild);}
+      thumb.src=objUrl;
+      const ico=cell.querySelector('.ts-pcell-ico');
+      if(ico) ico.remove();
     }
-    const dot=document.getElementById(`tsDot-${CSS.escape(part)}`);
+    const dot=document.getElementById(`tsD-${CSS.escape(part)}`);
     if(dot) dot.classList.add('live');
+    /* Injecter overlay d'intensité si pas encore présent */
+    const ic2 = TS_INT_CONFIG[mapKey];
+    if(ic2 && cell && !cell.querySelector('.ts-pcell-int')){
+      const curIv2 = (window.tsPartMat[part].intensity||{})[mapKey] ?? ic2.def;
+      const fmt2   = v => ic2.max<=1 ? Math.round(v*100)+'%' : (v*100).toFixed(0)+'%';
+      const ov=document.createElement('div'); ov.className='ts-pcell-int';
+      ov.innerHTML=`<input type="range" class="ts-int-sl" min="${ic2.min}" max="${ic2.max}" step="${ic2.step}"
+        value="${curIv2}" data-part="${part}" data-map="${mapKey}"
+        oninput="tsHandleIntensity(event)" onclick="event.stopPropagation()">
+        <span class="ts-int-val" id="tsIV-${CSS.escape(part)}-${mapKey}">${fmt2(curIv2)}</span>`;
+      const del=cell.querySelector('.ts-pcell-del');
+      cell.insertBefore(ov, del||null);
+    }
     window.tsApplyMaterial && window.tsApplyMaterial(part);
-    toast(`Texture "${mapKey}" → "${part}" ✓`,'ok');
+    toast(`"${mapKey}" → "${part}" ✓`,'ok');
   });
 }
+
+function tsClearCell(e){
+  e.stopPropagation();
+  const part=e.target.dataset.part, mapKey=e.target.dataset.map;
+  if(!window.tsPartMat[part]) return;
+  delete window.tsPartMat[part].maps[mapKey];
+  delete window.tsTexCache[part+'_'+mapKey];
+  const cell=document.getElementById(`tsPC-${CSS.escape(part)}-${mapKey}`);
+  if(cell){
+    cell.classList.remove('loaded');
+    const t=cell.querySelector('.ts-pcell-thumb'); if(t) t.remove();
+    if(!cell.querySelector('.ts-pcell-ico')){
+      const ico=document.createElement('span'); ico.className='ts-pcell-ico';
+      const map=TS_PBR.find(m=>m.key===mapKey);
+      ico.textContent=map?map.icon:'?'; cell.insertBefore(ico,cell.querySelector('button'));
+    }
+  }
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
+  toast(`"${mapKey}" effacé`,'ok');
+}
+
 function tsHandleColor(e){
   const part=e.target.dataset.part;
-  if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
+  if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
   window.tsPartMat[part].color=e.target.value;
   window.tsApplyMaterial && window.tsApplyMaterial(part);
 }
+function tsHandleIntensity(e){
+  e.stopPropagation();
+  const part=e.target.dataset.part, mapKey=e.target.dataset.map;
+  const val=parseFloat(e.target.value);
+  if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
+  if(!window.tsPartMat[part].intensity) window.tsPartMat[part].intensity={};
+  window.tsPartMat[part].intensity[mapKey]=val;
+  const ic=TS_INT_CONFIG[mapKey];
+  const fmt=ic?(ic.max<=1?Math.round(val*100)+'%':(val*100).toFixed(0)+'%'):val;
+  /* Mettre à jour tous les labels qui partagent cet id (cell + extra row peuvent coïncider) */
+  document.querySelectorAll(`[id="tsIV-${CSS.escape(part)}-${mapKey}"]`).forEach(el=>el.textContent=fmt);
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
+}
+
 function tsHandleRepeat(e){
   const part=e.target.dataset.part, axis=e.target.dataset.axis;
   const val=parseFloat(e.target.value);
   if(!window.tsPartRepeat[part]) window.tsPartRepeat[part]={x:1,y:1};
   window.tsPartRepeat[part][axis]=val;
-  const lblId=axis==='x'?`tsRu-${CSS.escape(part)}`:`tsRv-${CSS.escape(part)}`;
-  const lbl=document.getElementById(lblId);
+  const lbl=document.getElementById(`tsUV-${axis}-${CSS.escape(part)}`);
   if(lbl) lbl.textContent=val.toFixed(1)+'×';
   window.tsUpdateRepeat && window.tsUpdateRepeat(part);
 }
+
 function tsResetPart(e){
   e.stopPropagation();
   const part=e.target.dataset.part;
@@ -1918,9 +2262,46 @@ function tsResetPart(e){
   window.tsPartRepeat[part]={x:1,y:1};
   Object.keys(window.tsTexCache).filter(k=>k.startsWith(part+'_')).forEach(k=>delete window.tsTexCache[k]);
   window.tsPartAssign[part]?.forEach(name=>window.tsResetMesh && window.tsResetMesh(name));
-  tsRebuildParts();
+  tsRenderPBRTable();
   toast(`"${part}" réinitialisé`,'ok');
 }
+
+/* ── 4. Auto-segmentation par catégorie ──────────────────── */
+async function tsSegmentAuto(){
+  if(!window.tsSegmentMesh){toast('Three.js non initialisé','err');return;}
+  const cat=TS_CATS[window.tsCurrentCat]; if(!cat) return;
+  const btn=document.getElementById('tsSegBtn');
+  btn.textContent='⏳ Analyse…'; btn.disabled=true;
+  try{
+    const result = await window.tsSegmentMesh(window.tsCurrentCat);
+    /* Appliquer les résultats de classification */
+    Object.entries(result).forEach(([part, meshNames]) => {
+      if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
+      meshNames.forEach(n=>window.tsPartAssign[part].add(n));
+    });
+    const totalAssigned = Object.values(result).reduce((s,v)=>s+v.length,0);
+    const infoEl=document.getElementById('tsSegInfo');
+    infoEl.style.display='block';
+    infoEl.innerHTML=`<strong style="color:var(--green)">✓ ${totalAssigned} composante(s) assignée(s)</strong> automatiquement`;
+    tsRenderPBRTable();
+    /* Appliquer les matériaux */
+    Object.keys(result).forEach(part=>{if(window.tsPartAssign[part]?.size)window.tsApplyMaterial&&window.tsApplyMaterial(part);});
+    toast('Segmentation auto terminée ✓','ok');
+  }catch(err){toast('Segmentation : '+err.message,'err');}
+  btn.textContent='⬡ Auto-segmenter'; btn.disabled=false;
+}
+
+/* ── 5. Dimensions → échelle 3D ──────────────────────────── */
+function tsApplyDimensions(){
+  const l=parseFloat(document.getElementById('tsL').value)||0;
+  const h=parseFloat(document.getElementById('tsH').value)||0;
+  const p=parseFloat(document.getElementById('tsP').value)||0;
+  if(!l&&!h&&!p){toast('Entrer au moins une dimension','err');return;}
+  window.tsApplyScale && window.tsApplyScale(l/100, h/100, p/100);
+  toast(`Dimensions appliquées : ${l||'?'}×${h||'?'}×${p||'?'} cm`,'ok');
+}
+
+/* ── 6. Reset modèle ─────────────────────────────────────── */
 function tsReload(){
   if(window.tsRemoveModel) window.tsRemoveModel();
   window.tsMeshMap={};
@@ -1928,33 +2309,56 @@ function tsReload(){
   document.getElementById('tsDrop').classList.remove('hidden');
   document.getElementById('tsBadge').classList.remove('show');
   document.getElementById('tsBtnGlb').disabled=true;
+  document.getElementById('tsBtnUsdz').disabled=true;
   document.getElementById('tsBtnSupa').disabled=true;
   document.getElementById('tsBtnReload').style.display='none';
-  document.getElementById('tsPartsContainer').innerHTML='';
-  document.getElementById('tsEmptyState').style.display='block';
+  document.getElementById('tsSegBtn').disabled=true;
+  document.getElementById('tsTableEmpty').style.display='block';
+  document.getElementById('tsPbrTable').style.display='none';
+  document.getElementById('tsPbrTbody').innerHTML='';
   document.getElementById('tsResult').classList.remove('show');
+  document.getElementById('tsSegInfo').style.display='none';
+  document.getElementById('tsCtrlSub').textContent='Charger un modèle OBJ';
 }
+
+/* ── 7. Exports ──────────────────────────────────────────── */
 async function tsExportGLB(){
   if(!window.tsGetGLBBlob){toast('Modèle non chargé','err');return;}
   setSpin('tsSpinGlb',true);
   try{
     const blob=await window.tsGetGLBBlob();
+    const name=(document.getElementById('tsNom').value||'modele').replace(/\s+/g,'_');
     const url=URL.createObjectURL(blob);
-    Object.assign(document.createElement('a'),{href:url,download:'modele_tadamhome.glb'}).click();
+    Object.assign(document.createElement('a'),{href:url,download:`${name}.glb`}).click();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
     toast('GLB exporté ✓','ok');
-  }catch(e){toast('Erreur export : '+e.message,'err');}
+  }catch(e){toast('Erreur GLB : '+e.message,'err');}
   setSpin('tsSpinGlb',false);
 }
+
+async function tsExportUSDZ(){
+  if(!window.tsGetUSDZBlob){toast('Modèle non chargé','err');return;}
+  setSpin('tsSpinUsdz',true);
+  try{
+    const blob=await window.tsGetUSDZBlob();
+    const name=(document.getElementById('tsNom').value||'modele').replace(/\s+/g,'_');
+    const url=URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:`${name}.usdz`}).click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('USDZ exporté ✓','ok');
+  }catch(e){toast('Erreur USDZ : '+e.message,'err');}
+  setSpin('tsSpinUsdz',false);
+}
+
 async function tsUploadSupabase(){
   if(!window.tsGetGLBBlob){toast('Modèle non chargé','err');return;}
-  const btnSupa=document.getElementById('tsBtnSupa');
-  btnSupa.disabled=true; btnSupa.textContent='⏳ Upload…';
+  const btn=document.getElementById('tsBtnSupa');
+  btn.disabled=true; btn.textContent='⏳ Upload…';
   try{
     const blob=await window.tsGetGLBBlob();
     const ts=Date.now();
-    const badge=document.getElementById('tsBadgeName').textContent.replace('.obj','').replace(/\s+/g,'_')||'model';
-    const glbPath=`studio/${ts}_${badge}.glb`;
+    const name=(document.getElementById('tsNom').value||document.getElementById('tsBadgeName').textContent||'model').replace('.obj','').replace(/\s+/g,'_');
+    const glbPath=`studio/${ts}_${name}.glb`;
     const {error}=await sb.storage.from(BUCKET).upload(glbPath,blob,{contentType:'model/gltf-binary',upsert:true});
     if(error) throw error;
     const {data:urlData}=sb.storage.from(BUCKET).getPublicUrl(glbPath);
@@ -1966,8 +2370,9 @@ async function tsUploadSupabase(){
       <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="tsAssignToProduct('${publicUrl}')">→ Assigner à un produit du catalogue</span>`;
     toast('Modèle uploadé sur Supabase ✓','ok');
   }catch(e){toast('Erreur Supabase : '+(e.message||'').slice(0,50),'err');}
-  btnSupa.disabled=false; btnSupa.textContent='⬆ Envoyer au catalogue';
+  btn.disabled=false; btn.textContent='⬆ Envoyer au catalogue';
 }
+
 async function tsAssignToProduct(glbUrl){
   const names=allProducts.map((p,i)=>`${i+1}. ${p.enseigne_name||''} ${p.name}`).join('\n');
   const input=prompt('Assigner ce GLB à quel produit ?\n\n'+names+'\n\nEntrez le numéro :');
@@ -2256,6 +2661,7 @@ import * as THREE      from 'three';
 import { OBJLoader }   from 'three/addons/loaders/OBJLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
+import { USDZExporter }  from 'three/addons/exporters/USDZExporter.js';
 
 let scene, camera, renderer, controls, model;
 const meshMap = {};
@@ -2263,6 +2669,7 @@ const texLoader = new THREE.TextureLoader();
 window.tsMeshMap    = meshMap;
 window.tsThreeReady = false;
 
+/* ── Init Three.js ─────────────────────────────────────────── */
 window.tsInitThree = function() {
   if (window.tsThreeReady) return;
   window.tsThreeReady = true;
@@ -2282,7 +2689,7 @@ window.tsInitThree = function() {
   const key = new THREE.DirectionalLight(0xfff8ee, 2.0);
   key.position.set(5,8,5); key.castShadow=true; key.shadow.mapSize.setScalar(2048); key.shadow.bias=-.001;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xe8f0ff, .6); fill.position.set(-4,3,-4); scene.add(fill);
+  scene.add(new THREE.DirectionalLight(0xe8f0ff,.6).position.set(-4,3,-4) && new THREE.DirectionalLight(0xe8f0ff,.6));
   scene.add(new THREE.HemisphereLight(0xfff5e0,0x222222,.7));
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(20,20), new THREE.ShadowMaterial({opacity:.2}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
@@ -2294,6 +2701,7 @@ window.tsInitThree = function() {
   (function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);})();
 };
 
+/* ── Load OBJ ──────────────────────────────────────────────── */
 window.tsLoad = function(file) {
   const url = URL.createObjectURL(file);
   new OBJLoader().load(url, (obj) => {
@@ -2318,53 +2726,324 @@ window.tsLoad = function(file) {
     document.getElementById('tsBadge').classList.add('show');
     document.getElementById('tsBadgeName').textContent = file.name;
     document.getElementById('tsBtnGlb').disabled  = false;
+    document.getElementById('tsBtnUsdz').disabled = false;
     document.getElementById('tsBtnSupa').disabled = false;
     document.getElementById('tsBtnReload').style.display = 'block';
+    document.getElementById('tsSegBtn').disabled = false;
     window.tsPartAssign = {};
-    tsAutoAssign(); tsRebuildParts();
+    /* Auto-assign par mots-clés si catégorie sélectionnée */
+    if (window.tsCurrentCat) tsKeywordAssign();
+    tsRenderPBRTable();
     URL.revokeObjectURL(url);
   }, undefined, () => { window.toast && window.toast('Erreur chargement OBJ','err'); });
 };
 
+/* Assignation par mots-clés (noms de meshes) */
+function tsKeywordAssign(){
+  const cat = window.TS_CATS_REF || window.TS_CATS;
+  if (!cat || !window.tsCurrentCat) return;
+  const cfg = cat[window.tsCurrentCat];
+  if (!cfg || !cfg.kw) return;
+  function strip(s){ return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+  Object.keys(meshMap).forEach(name => {
+    const l = strip(name);
+    Object.entries(cfg.kw).forEach(([part, kws]) => {
+      if (!window.tsPartAssign[part]) window.tsPartAssign[part] = new Set();
+      if (kws.some(kw => l.includes(kw))) window.tsPartAssign[part].add(name);
+    });
+  });
+}
+
+/* ── Auto-segmentation par composantes connexes ───────────── */
+window.tsSegmentMesh = async function(catKey) {
+  const allSubMeshes = [];
+  /* 1. Collect all meshes from model */
+  const rawMeshes = [];
+  model && model.traverse(child => { if (child.isMesh) rawMeshes.push(child); });
+  if (!rawMeshes.length) throw new Error('Aucun mesh dans le modèle');
+
+  /* 2. Pour chaque mesh, trouver les composantes connexes */
+  rawMeshes.forEach(mesh => {
+    const comps = findConnectedComponents(mesh);
+    comps.forEach(c => allSubMeshes.push(c));
+  });
+
+  /* 3. Classifier selon la catégorie */
+  const classified = classifyComponents(allSubMeshes, catKey);
+
+  /* 4. Créer des sub-meshes nommés dans meshMap + scene */
+  /* D'abord retirer l'ancien model */
+  if (model) scene.remove(model);
+  Object.keys(meshMap).forEach(k => delete meshMap[k]);
+
+  const group = new THREE.Group();
+  let globalIdx = 0;
+
+  Object.entries(classified).forEach(([part, comps]) => {
+    comps.forEach((comp, i) => {
+      const name = comps.length > 1 ? `${part}_${i+1}` : part;
+      const mat = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+      const mesh = new THREE.Mesh(comp.geo, mat);
+      mesh.name = name;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      meshMap[name] = mesh;
+      group.add(mesh);
+      globalIdx++;
+    });
+    if (!window.tsPartAssign[part]) window.tsPartAssign[part] = new Set();
+    comps.forEach((_, i) => {
+      const name = comps.length > 1 ? `${part}_${i+1}` : part;
+      window.tsPartAssign[part].add(name);
+    });
+  });
+
+  /* Centrer et normaliser */
+  const bb = new THREE.Box3().setFromObject(group);
+  const ctr = bb.getCenter(new THREE.Vector3());
+  const siz = bb.getSize(new THREE.Vector3());
+  group.position.sub(ctr); group.position.y += siz.y/2;
+  group.scale.setScalar(2/Math.max(siz.x,siz.y,siz.z));
+  scene.add(group);
+  model = group;
+
+  /* Résumé */
+  const result = {};
+  Object.entries(classified).forEach(([part, comps]) => {
+    result[part] = comps.map((_, i) => comps.length > 1 ? `${part}_${i+1}` : part);
+  });
+  return result;
+};
+
+/* ── Connected Component Analysis ──────────────────────────── */
+function findConnectedComponents(mesh) {
+  const geo = mesh.geometry;
+  const pos = geo.attributes.position;
+  const idx = geo.index ? geo.index.array : null;
+  const nTri = idx ? idx.length/3 : pos.count/3;
+
+  /* Position hash pour fusionner les vertices dupliqués */
+  const EPS = 1e-3;
+  const key = i => `${Math.round(pos.getX(i)/EPS)},${Math.round(pos.getY(i)/EPS)},${Math.round(pos.getZ(i)/EPS)}`;
+  const canon = new Array(pos.count);
+  const seen = new Map();
+  for (let i=0; i<pos.count; i++) {
+    const k=key(i); if(!seen.has(k)) seen.set(k,i); canon[i]=seen.get(k);
+  }
+
+  /* Vertex → triangles */
+  const v2t = new Map();
+  for (let t=0; t<nTri; t++) {
+    for (let v=0; v<3; v++) {
+      const vi = idx ? idx[t*3+v] : t*3+v;
+      const c  = canon[vi];
+      if (!v2t.has(c)) v2t.set(c,[]);
+      v2t.get(c).push(t);
+    }
+  }
+
+  /* BFS par triangle */
+  const comp = new Int32Array(nTri).fill(-1);
+  let nc = 0;
+  for (let s=0; s<nTri; s++) {
+    if (comp[s]!==-1) continue;
+    const q=[s]; comp[s]=nc;
+    while(q.length){
+      const t=q.pop();
+      for (let v=0; v<3; v++){
+        const vi=idx?idx[t*3+v]:t*3+v; const c=canon[vi];
+        for (const nt of (v2t.get(c)||[])){if(comp[nt]===-1){comp[nt]=nc;q.push(nt);}}
+      }
+    }
+    nc++;
+  }
+
+  /* Construire une géométrie par composante */
+  const components = [];
+  for (let c=0; c<nc; c++) {
+    const tris = [];
+    for (let t=0; t<nTri; t++) if(comp[t]===c) tris.push(t);
+    if (!tris.length) continue;
+
+    const newPos=[], newNrm=[], newUV=[];
+    const hasNrm=!!geo.attributes.normal, hasUV=!!geo.attributes.uv;
+
+    for (const t of tris) {
+      for (let v=0; v<3; v++) {
+        const vi=idx?idx[t*3+v]:t*3+v;
+        newPos.push(pos.getX(vi),pos.getY(vi),pos.getZ(vi));
+        if(hasNrm){const n=geo.attributes.normal;newNrm.push(n.getX(vi),n.getY(vi),n.getZ(vi));}
+        if(hasUV) {const u=geo.attributes.uv;  newUV.push(u.getX(vi),u.getY(vi));}
+      }
+    }
+
+    const ng = new THREE.BufferGeometry();
+    ng.setAttribute('position', new THREE.Float32BufferAttribute(newPos,3));
+    if(hasNrm) ng.setAttribute('normal', new THREE.Float32BufferAttribute(newNrm,3));
+    else ng.computeVertexNormals();
+    if(hasUV)  ng.setAttribute('uv', new THREE.Float32BufferAttribute(newUV,2));
+    ng.computeBoundingBox();
+
+    const bb = ng.boundingBox;
+    const centroid = bb.getCenter(new THREE.Vector3());
+    const size     = bb.getSize(new THREE.Vector3());
+
+    /* Appliquer la transform world du mesh source */
+    ng.applyMatrix4(mesh.matrixWorld);
+
+    components.push({ geo:ng, centroid, size, bb, faceCount:tris.length,
+      volume: size.x*size.y*size.z });
+  }
+  return components;
+}
+
+/* ── Classification géométrique par catégorie ──────────────── */
+function classifyComponents(comps, catKey) {
+  if (!comps.length) return {};
+
+  /* Y relatif [0..1] */
+  const minY = Math.min(...comps.map(c=>c.bb.min.y));
+  const maxY = Math.max(...comps.map(c=>c.bb.max.y));
+  const range = maxY-minY || 1;
+  const relY  = c => (c.centroid.y - minY)/range;
+  /* Flatness : ratio surface horizontale vs hauteur */
+  const flatness = c => (c.size.x*c.size.z) / (c.size.y+.001);
+
+  if (catKey === 'table') {
+    /* Plateau = plus haut ET le plus plat; reste = piétement */
+    const scored = comps.map(c=>({c, s: relY(c)*0.6 + Math.min(flatness(c)/50,1)*0.4}));
+    scored.sort((a,b)=>b.s-a.s);
+    const nP = Math.max(1, Math.round(comps.length*0.15));
+    return { plateau: scored.slice(0,nP).map(x=>x.c),
+             piétement: scored.slice(nP).map(x=>x.c) };
+  }
+
+  if (catKey === 'chaise') {
+    const sorted = [...comps].sort((a,b)=>a.centroid.y-b.centroid.y);
+    const n=sorted.length;
+    const res={piétement:[],assise:[],dossier:[],accoudoir:[]};
+    sorted.forEach(c=>{
+      const ry=relY(c), fl=flatness(c);
+      const isFlat=fl>20, isWide=c.size.x>c.size.z*1.5||c.size.z>c.size.x*1.5;
+      if(ry<0.28) res.piétement.push(c);
+      else if(ry>0.70 && !isFlat) res.dossier.push(c);
+      else if(isFlat && ry>0.2 && ry<0.65) res.assise.push(c);
+      else if(isWide && ry>0.3) res.accoudoir.push(c);
+      else if(ry<0.5) res.piétement.push(c);
+      else res.dossier.push(c);
+    });
+    return res;
+  }
+
+  if (catKey === 'rangement') {
+    const sorted=[...comps].sort((a,b)=>b.volume-a.volume);
+    const res={corps:[sorted[0]],portes:[],tiroirs:[],piétement:[]};
+    sorted.slice(1).forEach(c=>{
+      const ry=relY(c);
+      const isThin=c.size.z<Math.max(c.size.x,c.size.y)*0.12;
+      const isFlat=c.size.y<Math.max(c.size.x,c.size.z)*0.12;
+      if(ry<0.15) res.piétement.push(c);
+      else if(isThin) res.portes.push(c);
+      else if(isFlat) res.tiroirs.push(c);
+      else res.corps.push(c);
+    });
+    return res;
+  }
+
+  if (catKey === 'luminaire_pied') {
+    const sorted=[...comps].sort((a,b)=>a.centroid.y-b.centroid.y);
+    const n=sorted.length;
+    const res={piétement:[],corps:[],tête:[]};
+    sorted.forEach(c=>{
+      const ry=relY(c);
+      if(ry<0.2) res.piétement.push(c);
+      else if(ry>0.75) res.tête.push(c);
+      else res.corps.push(c);
+    });
+    return res;
+  }
+
+  if (catKey === 'luminaire_suspendu') {
+    const sorted=[...comps].sort((a,b)=>b.centroid.y-a.centroid.y);
+    const res={fixation:[],corps:[],'abat-jour':[]};
+    sorted.forEach(c=>{
+      const ry=relY(c);
+      if(ry>0.80) res.fixation.push(c);
+      else if(ry<0.20) res['abat-jour'].push(c);
+      else res.corps.push(c);
+    });
+    return res;
+  }
+
+  /* Fallback : tout dans le premier slot */
+  const cat=window.TS_CATS?window.TS_CATS[catKey]:null;
+  const firstPart=(cat&&cat.parts[0])||'corps';
+  return {[firstPart]: comps};
+}
+
+/* ── Load texture ──────────────────────────────────────────── */
 window.tsLoadTexture = function(part, mapKey, objUrl, fileName, onDone) {
   texLoader.load(objUrl, tex => {
     if (mapKey==='albedo') tex.colorSpace=THREE.SRGBColorSpace;
     tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-    const rep = window.tsPartRepeat[part]||{x:1,y:1};
-    tex.repeat.set(rep.x, rep.y);
+    const rep=window.tsPartRepeat[part]||{x:1,y:1};
+    tex.repeat.set(rep.x,rep.y);
     if (!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
-    window.tsPartMat[part].maps[mapKey] = tex;
-    onDone && onDone();
+    window.tsPartMat[part].maps[mapKey]=tex;
+    onDone&&onDone();
   });
 };
 
+/* ── Apply material ────────────────────────────────────────── */
 window.tsApplyMaterial = function(part) {
-  const assign = window.tsPartAssign[part];
-  if (!assign?.size) return;
-  const d = window.tsPartMat[part]||{};
-  const m = d.maps||{};
-  const mat = new THREE.MeshStandardMaterial({
-    color:        new THREE.Color(d.color||'#ffffff'),
-    map:          m.albedo    || null,
-    normalMap:    m.normal    || null,
-    roughnessMap: m.roughness || null, roughness: m.roughness?1:.75,
-    metalnessMap: m.metalness || null, metalness: m.metalness?1:0,
-    aoMap:        m.ao        || null
+  const assign=window.tsPartAssign[part]; if(!assign?.size) return;
+  const d=window.tsPartMat[part]||{};
+  const m=d.maps||{};
+  const iv=d.intensity||{};
+  /* Valeurs d'intensité : servent aussi de multiplicateurs quand la map est présente */
+  const roughness   = iv.roughness !== undefined ? iv.roughness : 0.75;
+  const metalness   = iv.metalness !== undefined ? iv.metalness : 0.00;
+  const aoIntensity = iv.ao        !== undefined ? iv.ao        : 1.00;
+  const normalScale = iv.normal    !== undefined ? iv.normal    : 1.00;
+  const mat=new THREE.MeshStandardMaterial({
+    color:          new THREE.Color(d.color||'#ffffff'),
+    map:            m.albedo    || null,
+    normalMap:      m.normal    || null,
+    roughnessMap:   m.roughness || null,
+    roughness,
+    metalnessMap:   m.metalness || null,
+    metalness,
+    aoMap:          m.ao        || null,
+    aoMapIntensity: aoIntensity,
   });
-  assign.forEach(name => { if(meshMap[name]) meshMap[name].material=mat; });
+  if (m.normal && mat.normalMap) mat.normalScale.set(normalScale, normalScale);
+  assign.forEach(name=>{ if(meshMap[name]) meshMap[name].material=mat; });
 };
 
 window.tsResetMesh = function(name) {
-  if (meshMap[name]) meshMap[name].material = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+  if(meshMap[name]) meshMap[name].material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
 };
 
 window.tsUpdateRepeat = function(part) {
-  const rep = window.tsPartRepeat[part]||{x:1,y:1};
+  const rep=window.tsPartRepeat[part]||{x:1,y:1};
   Object.values(window.tsPartMat[part]?.maps||{}).forEach(tex=>{tex.repeat.set(rep.x,rep.y);tex.needsUpdate=true;});
+};
+
+/* ── Apply real dimensions (cm → m) ───────────────────────── */
+window.tsApplyScale = function(l, h, p) {
+  if (!model) return;
+  const box = new THREE.Box3().setFromObject(model);
+  const cur = box.getSize(new THREE.Vector3());
+  /* Priorité : hauteur pour conserver les proportions */
+  const target = h||l||p;
+  if (!target) return;
+  const current = h ? cur.y : (l ? cur.x : cur.z);
+  const factor = target / (current||1);
+  model.scale.multiplyScalar(factor);
 };
 
 window.tsRemoveModel = function() { if(model){scene.remove(model);model=null;} };
 
+/* ── Export GLB ────────────────────────────────────────────── */
 window.tsGetGLBBlob = function() {
   return new Promise((resolve,reject) => {
     if (!model){reject(new Error('Aucun modèle chargé'));return;}
@@ -2372,6 +3051,14 @@ window.tsGetGLBBlob = function() {
       resolve(new Blob([result],{type:'model/gltf-binary'}));
     }, err=>reject(err), {binary:true});
   });
+};
+
+/* ── Export USDZ ───────────────────────────────────────────── */
+window.tsGetUSDZBlob = async function() {
+  if (!model) throw new Error('Aucun modèle chargé');
+  const exporter = new USDZExporter();
+  const arraybuffer = await exporter.parseAsync(model);
+  return new Blob([arraybuffer], {type:'model/vnd.usdz+zip'});
 };
 </script>
 
