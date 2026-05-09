@@ -357,8 +357,9 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
 /* ══ STUDIO INFO BAR ══ */
 .ts-info-bar{display:flex;gap:6px;align-items:center;background:var(--white);border-bottom:1px solid var(--border);padding:7px 14px;flex-wrap:wrap;flex-shrink:0}
-.ts-info-bar input{border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:12px;color:var(--ink);outline:none;padding:7px 10px;transition:border-color .2s}
-.ts-info-bar input:focus{border-color:var(--accent)}
+.ts-info-bar input,.ts-ib-type{border:1px solid var(--border);background:var(--bg);font-family:var(--sans);font-size:12px;color:var(--ink);outline:none;padding:7px 10px;transition:border-color .2s}
+.ts-info-bar input:focus,.ts-ib-type:focus{border-color:var(--accent)}
+.ts-ib-type{cursor:pointer;padding-right:24px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;width:140px}
 .ts-ib-name{flex:1;min-width:120px}
 .ts-ib-brand{width:110px}
 .ts-ib-dim{width:58px;text-align:center}
@@ -743,6 +744,9 @@ tr:hover td{background:rgba(184,152,106,.03)}
             <span class="ts-cat-label" id="tsCatLabel">—</span>
             <div class="ts-ib-sep" style="flex:0 0 1px;height:24px;background:var(--border)"></div>
             <input type="text" class="ts-ib-name" id="tsNom" placeholder="Nom du meuble"/>
+            <select class="ts-ib-type" id="tsFurnitureType" title="Sous-catégorie">
+              <option value="">Type…</option>
+            </select>
             <input type="text" class="ts-ib-brand" id="tsMarque" placeholder="Marque"/>
             <div class="ts-ib-sep">L</div>
             <input type="number" class="ts-ib-dim" id="tsL" placeholder="cm"/>
