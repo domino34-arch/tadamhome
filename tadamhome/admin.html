@@ -7,7 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js"}}
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+}}
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -194,7 +197,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{border-left-color:var(--green)}
 .toast.err{border-left-color:var(--red)}
-
 /* ── ICÔNES SPECIFIQUES ── */
 .edito-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:2px}
 .edito-card-preview{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);margin-bottom:2px;cursor:pointer;transition:border-color .2s}
@@ -210,14 +212,12 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .product-link-select:focus{border-color:var(--accent)}
 .char-count{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:right;margin-top:3px}
 .field textarea.long{min-height:120px}
-
 /* ── SOLS / TEXTURES ── */
 .sol-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:2px}
 .sol-thumb-cell{width:64px;height:48px;border:1px solid var(--border);background:var(--bg);overflow:hidden;display:block}
 .sol-thumb-cell img{width:100%;height:100%;object-fit:cover;display:block}
 .sol-thumb-cell.empty{background:repeating-conic-gradient(#E4DFD6 0 25%, #EDEAE2 0 50%) 0 0/16px 16px}
 .sol-default-mark{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid rgba(184,152,106,.4);color:var(--accent);font-family:var(--sans);margin-left:6px}
-/* Modal "Sol" — preview live */
 .sol-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .sol-slider-row{display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center}
 .sol-slider-row input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--border);outline:none;margin:0}
@@ -233,8 +233,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .sol-checkbox-row input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
 .sol-checkbox-row label{font-family:var(--sans);font-size:12px;color:var(--ink);cursor:pointer;flex:1}
 .sol-checkbox-row .sol-checkbox-hint{font-size:10px;color:var(--muted)}
-
-/* PBR slots — un par carte (Albedo/Normal/Roughness/AO) */
 .pbr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .pbr-slot{padding:10px 12px;background:var(--bg);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 .pbr-slot.has-file{border-color:var(--accent)}
@@ -252,6 +250,81 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .pbr-detect-toast.show{display:block}
 .pbr-detect-toast strong{color:var(--accent);font-weight:500}
 
+/* ══ TEXTURE STUDIO ══ */
+.ts-layout{display:flex;gap:2px;height:560px;margin-bottom:2px}
+.ts-viewer{flex:1;position:relative;background:#141414;overflow:hidden;min-width:0}
+.ts-viewer canvas{display:block;width:100%!important;height:100%!important}
+.ts-drop{position:absolute;inset:20px;border:1px dashed #3a3a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;z-index:5;transition:border-color .25s}
+.ts-drop.hidden{display:none}
+.ts-drop.drag-over{border-color:var(--accent)}
+.ts-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.ts-drop-icon{width:56px;height:56px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;transition:border-color .25s}
+.ts-drop:hover .ts-drop-icon,.ts-drop.drag-over .ts-drop-icon{border-color:var(--accent)}
+.ts-drop h3{font-family:var(--serif);font-size:17px;font-weight:300;color:#555}
+.ts-drop p{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#3a3a3a;font-family:var(--sans)}
+.ts-badge{position:absolute;top:12px;left:12px;background:rgba(20,20,20,.85);border:1px solid #2a2a2a;padding:5px 12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#666;display:none;font-family:var(--sans)}
+.ts-badge.show{display:block}
+.ts-badge span{color:var(--accent)}
+.ts-controls{width:340px;background:var(--white);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.ts-controls-head{padding:13px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ts-controls-head h4{font-family:var(--serif);font-size:17px;font-weight:300}
+.ts-controls-head p{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-top:2px;font-family:var(--sans)}
+.ts-cat-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.ts-cat-tab{flex:1;padding:9px 4px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;text-align:center;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;user-select:none;line-height:1.5;font-family:var(--sans)}
+.ts-cat-tab:hover{color:var(--ink)}
+.ts-cat-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.ts-parts{flex:1;overflow-y:auto}
+.ts-parts::-webkit-scrollbar{width:3px}
+.ts-parts::-webkit-scrollbar-thumb{background:var(--border)}
+.ts-empty-state{padding:28px 16px;text-align:center;color:var(--muted)}
+.ts-empty-state h5{font-family:var(--serif);font-size:16px;font-weight:300;margin-bottom:6px;color:var(--ink)}
+.ts-empty-state p{font-size:11px;line-height:1.7;font-family:var(--sans)}
+.ts-part-card{border-bottom:1px solid var(--border)}
+.ts-part-toggle{padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s;user-select:none}
+.ts-part-toggle:hover{background:var(--bg)}
+.ts-part-tl{display:flex;align-items:center;gap:10px}
+.ts-dot{width:8px;height:8px;border:1px solid var(--border);flex-shrink:0}
+.ts-dot.live{background:var(--accent);border-color:var(--accent)}
+.ts-part-toggle h5{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink);text-transform:capitalize}
+.ts-arrow{color:var(--accent);font-size:9px;transition:transform .2s}
+.ts-part-card.open .ts-arrow{transform:rotate(90deg)}
+.ts-part-body{display:none;padding:12px 16px 14px;background:var(--bg);border-top:1px solid var(--border)}
+.ts-part-card.open .ts-part-body{display:block}
+.ts-sl{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;display:block;font-family:var(--sans)}
+.ts-mesh-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;min-height:24px}
+.ts-mesh-tag{padding:3px 8px;border:1px solid var(--border);background:var(--white);font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;font-family:var(--sans)}
+.ts-mesh-tag:hover{border-color:var(--accent);color:var(--ink)}
+.ts-mesh-tag.active{background:var(--accent);border-color:var(--accent);color:white}
+.ts-mesh-empty{font-size:10px;color:#bbb;font-style:italic;font-family:var(--sans)}
+.ts-pbr-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px}
+.ts-pbr-slot{position:relative;aspect-ratio:1;border:1px dashed var(--border);background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;overflow:hidden;transition:border-color .2s}
+.ts-pbr-slot:hover{border-color:var(--accent)}
+.ts-pbr-slot.loaded{border-style:solid;border-color:var(--accent)}
+.ts-pbr-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.ts-pbr-slot .th{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.6}
+.ts-pbr-slot .si{font-size:14px;z-index:1}
+.ts-pbr-slot .sl{font-size:7px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);z-index:1;font-family:var(--sans)}
+.ts-pbr-slot.loaded .sl{color:var(--accent)}
+.ts-pbr-slot .sc{position:absolute;top:2px;right:2px;font-size:7px;color:var(--accent);z-index:2}
+.ts-color-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ts-color-row label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:1;font-family:var(--sans)}
+.ts-color-row input[type=color]{width:34px;height:24px;border:1px solid var(--border);padding:2px;cursor:pointer;background:var(--white)}
+.ts-rep-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.ts-rep-col label{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:4px;font-family:var(--sans)}
+.ts-rep-col label span{color:var(--ink);font-weight:500}
+.ts-rep-col input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer}
+.ts-rep-col input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;background:var(--accent);cursor:pointer}
+.ts-rep-col input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--accent);border:none;cursor:pointer}
+.ts-btn-reset{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:var(--sans)}
+.ts-btn-reset:hover{color:var(--ink)}
+.ts-footer{display:flex;align-items:center;gap:8px;padding:12px 0 4px}
+.ts-result{padding:8px 12px;background:var(--white);border:1px solid var(--border);font-size:10px;color:var(--muted);word-break:break-all;margin-top:2px;display:none;font-family:var(--sans);line-height:1.6}
+.ts-result.show{display:block}
+.ts-result a{color:var(--accent);text-decoration:none}
+.ts-result a:hover{text-decoration:underline}
+.ts-result strong{color:var(--green);font-weight:500}
+/* ════════════════════════════════════════════════════════════════ */
+
 @media(max-width:768px){
   .sidebar{width:180px}
   .stats-grid{grid-template-columns:1fr 1fr}
@@ -261,6 +334,9 @@ tr:hover td{background:rgba(184,152,106,.03)}
   .sol-stats{grid-template-columns:1fr 1fr}
   .sol-form-grid{grid-template-columns:1fr}
   .pbr-grid{grid-template-columns:1fr}
+  .ts-layout{flex-direction:column;height:auto}
+  .ts-viewer{height:320px}
+  .ts-controls{width:100%}
 }
 </style>
 </head>
@@ -290,6 +366,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
     <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
     <button class="nav-btn" onclick="showPanel('icones')"><span class="ico">✦</span>Icônes<span class="sidebar-badge" id="navBadgeIcones">0</span></button>
     <button class="nav-btn" onclick="showPanel('sols')"><span class="ico">▭</span>Sols<span class="sidebar-badge" id="navBadgeSols">0</span></button>
+    <button class="nav-btn" onclick="showPanel('texture')"><span class="ico">◫</span>Studio Texture</button>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">Liens</div>
     <button class="nav-btn" onclick="window.open('catalogue.html','_blank')"><span class="ico">←</span>Retour au site</button>
@@ -503,9 +580,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════ -->
-      <!-- SOLS / TEXTURES                         -->
-      <!-- ═══════════════════════════════════════ -->
+      <!-- SOLS -->
       <div class="panel" id="panelSols">
         <div class="section-head" style="margin-bottom:2px">
           <div class="section-title">Vos <em>Sols</em></div>
@@ -523,6 +598,62 @@ tr:hover td{background:rgba(184,152,106,.03)}
         </div>
         <div class="form-card" style="margin-top:2px">
           <div class="table-wrap" id="solTable"></div>
+        </div>
+      </div>
+
+      <!-- ══ STUDIO TEXTURE ══ -->
+      <div class="panel" id="panelTexture">
+        <div class="ts-layout">
+          <!-- Viewer 3D -->
+          <div class="ts-viewer" id="tsViewerWrap">
+            <div class="ts-drop" id="tsDrop">
+              <input type="file" accept=".obj" id="tsObjInput">
+              <div class="ts-drop-icon">
+                <svg width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="#B8986A" stroke-width="1.2">
+                  <path d="M14 4L4 9.5v9L14 24l10-5.5v-9L14 4z"/>
+                  <path d="M14 4v20M4 9.5l10 5.5 10-5.5"/>
+                </svg>
+              </div>
+              <h3>Déposer un fichier OBJ</h3>
+              <p>Glisser-déposer ou cliquer</p>
+            </div>
+            <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
+          </div>
+          <!-- Controls -->
+          <div class="ts-controls">
+            <div class="ts-controls-head">
+              <h4>Application PBR</h4>
+              <p>Studio Texture · TadamHome</p>
+            </div>
+            <div class="ts-cat-tabs" id="tsCatTabs">
+              <div class="ts-cat-tab active" data-cat="chaise">Chaise /<br>Canapé</div>
+              <div class="ts-cat-tab" data-cat="table">Table /<br>Table basse</div>
+              <div class="ts-cat-tab" data-cat="luminaire">Luminaire</div>
+            </div>
+            <div class="ts-parts" id="tsParts">
+              <div class="ts-empty-state" id="tsEmptyState">
+                <h5>Charger un modèle OBJ</h5>
+                <p>Glissez votre fichier dans<br>le viewer à gauche.</p>
+              </div>
+              <div id="tsPartsContainer"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div class="ts-footer">
+          <button class="btn-primary" id="tsBtnGlb" onclick="tsExportGLB()" disabled style="padding:10px 20px;font-size:10px">
+            <div class="spin" id="tsSpinGlb"></div>Export GLB
+          </button>
+          <button class="btn-secondary" id="tsBtnSupa" onclick="tsUploadSupabase()" disabled style="padding:10px 16px;font-size:10px">
+            ⬆ Envoyer au catalogue
+          </button>
+          <div style="flex:1"></div>
+          <button class="btn-secondary" id="tsBtnReload" onclick="tsReload()" style="display:none;padding:10px 16px;font-size:10px">↺ Nouveau modèle</button>
+        </div>
+        <div class="ts-result" id="tsResult"></div>
+        <div style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:8px;line-height:1.6">
+          <strong style="color:var(--accent)">Workflow :</strong>
+          Charger OBJ → Sélectionner les meshes → Appliquer textures PBR → Exporter GLB ou envoyer directement au catalogue.
         </div>
       </div>
 
@@ -621,9 +752,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- MODAL SOL — formulaire + preview 3D temps réel                  -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL SOL -->
 <div class="modal-bg" id="solModal">
   <div class="modal modal-lg">
     <div class="modal-head">
@@ -631,8 +760,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
       <button class="modal-close" onclick="closeSolModal()">✕</button>
     </div>
     <div class="modal-body">
-
-      <!-- Identité -->
       <div class="modal-section">
         <div class="modal-section-title">Identité</div>
         <div class="form-grid" style="margin-bottom:10px">
@@ -667,8 +794,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <label for="sDefault">Texture par défaut <span class="sol-checkbox-hint">— appliquée à l'ouverture du studio</span></label>
         </div>
       </div>
-
-      <!-- Cartes PBR -->
       <div class="modal-section">
         <div class="modal-section-title">Cartes PBR</div>
         <div class="drop-zone" id="solDropZone" style="padding:18px">
@@ -680,91 +805,52 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <div class="drop-progress" id="sFileProg"><div class="drop-bar" id="sFileBar"></div></div>
         </div>
         <div class="pbr-detect-toast" id="pbrDetectToast"></div>
-
         <div class="pbr-grid">
           <div class="pbr-slot required" id="slotAlbedo" data-slot="albedo">
-            <div class="pbr-slot-head">
-              <div class="pbr-slot-label">Albedo (couleur)</div>
-              <button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('albedo')">Effacer</button>
-            </div>
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Albedo (couleur)</div><button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('albedo')">Effacer</button></div>
             <div class="pbr-slot-name" id="nameAlbedo">—</div>
             <input type="text" id="sImageUrl" class="pbr-slot-url" placeholder="URL de l'image albedo" oninput="schedulePreview();refreshPbrSlot('albedo')"/>
           </div>
           <div class="pbr-slot" id="slotNormal" data-slot="normal">
-            <div class="pbr-slot-head">
-              <div class="pbr-slot-label">Normal map</div>
-              <button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('normal')">Effacer</button>
-            </div>
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Normal map</div><button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('normal')">Effacer</button></div>
             <div class="pbr-slot-name" id="nameNormal">—</div>
             <input type="text" id="sNormalUrl" class="pbr-slot-url" placeholder="URL de la normal map" oninput="schedulePreview();refreshPbrSlot('normal')"/>
           </div>
           <div class="pbr-slot" id="slotRoughness" data-slot="roughness">
-            <div class="pbr-slot-head">
-              <div class="pbr-slot-label">Roughness map</div>
-              <button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('roughness')">Effacer</button>
-            </div>
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Roughness map</div><button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('roughness')">Effacer</button></div>
             <div class="pbr-slot-name" id="nameRoughness">—</div>
             <input type="text" id="sRoughnessUrl" class="pbr-slot-url" placeholder="URL de la roughness map" oninput="schedulePreview();refreshPbrSlot('roughness')"/>
           </div>
           <div class="pbr-slot" id="slotAo" data-slot="ao">
-            <div class="pbr-slot-head">
-              <div class="pbr-slot-label">AO map</div>
-              <button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('ao')">Effacer</button>
-            </div>
+            <div class="pbr-slot-head"><div class="pbr-slot-label">AO map</div><button type="button" class="pbr-slot-clear" onclick="clearPbrSlot('ao')">Effacer</button></div>
             <div class="pbr-slot-name" id="nameAo">—</div>
             <input type="text" id="sAoUrl" class="pbr-slot-url" placeholder="URL de l'ambient occlusion" oninput="schedulePreview();refreshPbrSlot('ao')"/>
           </div>
         </div>
       </div>
-
-      <!-- Paramètres + preview en parallèle -->
       <div class="modal-section">
         <div class="modal-section-title">Échelle & matériau</div>
         <div class="sol-form-grid">
           <div>
             <div class="field" style="margin-bottom:10px">
               <label>Répétitions horizontales (X)</label>
-              <div class="sol-slider-row">
-                <input type="range" id="sRepeatX" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/>
-                <input type="number" id="sRepeatXNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/>
-              </div>
+              <div class="sol-slider-row"><input type="range" id="sRepeatX" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/><input type="number" id="sRepeatXNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/></div>
             </div>
             <div class="field" style="margin-bottom:10px">
               <label>Répétitions verticales (Y)</label>
-              <div class="sol-slider-row">
-                <input type="range" id="sRepeatY" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/>
-                <input type="number" id="sRepeatYNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/>
-              </div>
+              <div class="sol-slider-row"><input type="range" id="sRepeatY" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange()"/><input type="number" id="sRepeatYNum" class="sol-slider-num" min="0.5" max="20" step="0.5" value="4" oninput="onParamChange('num')"/></div>
             </div>
             <div class="field" style="margin-bottom:10px">
-              <label>Rugosité (0 brillant → 1 mat)</label>
-              <div class="sol-slider-row">
-                <input type="range" id="sRoughness" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange()"/>
-                <input type="number" id="sRoughnessNum" class="sol-slider-num" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange('num')"/>
-              </div>
-              <div style="font-size:9px;color:var(--muted);margin-top:4px;font-family:var(--sans);font-style:italic">Si une roughness map est fournie, ce slider devient un multiplicateur global</div>
+              <label>Rugosité</label>
+              <div class="sol-slider-row"><input type="range" id="sRoughness" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange()"/><input type="number" id="sRoughnessNum" class="sol-slider-num" min="0" max="1" step="0.05" value="0.85" oninput="onParamChange('num')"/></div>
             </div>
             <div class="field" style="margin-bottom:10px">
               <label>Intensité Normal map</label>
-              <div class="sol-slider-row">
-                <input type="range" id="sNormalScale" min="0" max="2" step="0.1" value="1" oninput="onParamChange()"/>
-                <input type="number" id="sNormalScaleNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onParamChange('num')"/>
-              </div>
-              <div style="font-size:9px;color:var(--muted);margin-top:4px;font-family:var(--sans);font-style:italic">0 = pas de relief, 1 = naturel, 2 = exagéré</div>
+              <div class="sol-slider-row"><input type="range" id="sNormalScale" min="0" max="2" step="0.1" value="1" oninput="onParamChange()"/><input type="number" id="sNormalScaleNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onParamChange('num')"/></div>
             </div>
             <div class="field" style="margin-bottom:10px">
               <label>Intensité AO map</label>
-              <div class="sol-slider-row">
-                <input type="range" id="sAoIntensity" min="0" max="2" step="0.1" value="1" oninput="onParamChange()"/>
-                <input type="number" id="sAoIntensityNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onParamChange('num')"/>
-              </div>
-              <div style="font-size:9px;color:var(--muted);margin-top:4px;font-family:var(--sans);font-style:italic">0 = pas d'ombres, 1 = naturel, 2 = ombres marquées</div>
-            </div>
-            <div style="font-size:10px;color:var(--muted);line-height:1.5;font-family:var(--sans);background:var(--bg);padding:10px 12px;border:1px solid var(--border);margin-top:6px">
-              <strong style="color:var(--accent);font-weight:500;letter-spacing:.06em">Aide à l'échelle :</strong><br/>
-              Le sol fait <strong>4&nbsp;m × 4&nbsp;m</strong> dans la prévisualisation.<br/>
-              La chaise grise mesure <strong>45&nbsp;cm × 85&nbsp;cm × 45&nbsp;cm</strong> (taille réelle d'une chaise).<br/>
-              Si une lame de parquet ou un carreau a l'air trop gros / trop petit par rapport à la chaise, ajustez les répétitions.
+              <div class="sol-slider-row"><input type="range" id="sAoIntensity" min="0" max="2" step="0.1" value="1" oninput="onParamChange()"/><input type="number" id="sAoIntensityNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onParamChange('num')"/></div>
             </div>
           </div>
           <div>
@@ -776,7 +862,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
           </div>
         </div>
       </div>
-
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeSolModal()">Annuler</button>
@@ -965,6 +1050,28 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDropZone('zoneGlb','fileGlb');
   setupDropZone('zoneUsdz','fileUsdz');
   setupDropZone('solDropZone','sFile');
+  /* ── Texture Studio events ── */
+  document.getElementById('tsObjInput').addEventListener('change', e => {
+    if (e.target.files[0]) window.tsLoad && window.tsLoad(e.target.files[0]);
+  });
+  document.querySelectorAll('.ts-cat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.ts-cat-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      window.tsCurrentCat = tab.dataset.cat;
+      tsRebuildParts();
+    });
+  });
+  const vw = document.getElementById('tsViewerWrap');
+  vw.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('tsDrop').classList.add('drag-over'); });
+  vw.addEventListener('dragleave', () => document.getElementById('tsDrop').classList.remove('drag-over'));
+  vw.addEventListener('drop', e => {
+    e.preventDefault(); document.getElementById('tsDrop').classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    f && f.name.toLowerCase().endsWith('.obj')
+      ? (window.tsLoad && window.tsLoad(f))
+      : toast('Format non supporté — fichier .OBJ requis', 'err');
+  });
 });
 function logout() {
   document.getElementById('lock').style.display = 'flex';
@@ -979,12 +1086,14 @@ const panelTitles = {
   meshy:    'Générer avec <em style="font-style:italic;color:var(--accent)">l\'IA Meshy</em>',
   catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
   icones:   'Vos <em style="font-style:italic;color:var(--accent)">Icônes</em>',
-  sols:     'Vos <em style="font-style:italic;color:var(--accent)">Sols</em>'
+  sols:     'Vos <em style="font-style:italic;color:var(--accent)">Sols</em>',
+  texture:  'Studio <em style="font-style:italic;color:var(--accent)">Texture</em>'
 };
 const panelActions = {
-  icones: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>',
-  sols:   '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewSol()">+ Nouvelle texture</button>',
-  default:'<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="showPanel(\'upload\')">+ Ajouter</button>'
+  icones:  '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>',
+  sols:    '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewSol()">+ Nouvelle texture</button>',
+  texture: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button>',
+  default: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="showPanel(\'upload\')">+ Ajouter</button>'
 };
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -994,10 +1103,14 @@ function showPanel(name) {
   document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
   document.getElementById('topbarActions').innerHTML = panelActions[name] || panelActions.default;
   document.querySelector('.content').scrollTop = 0;
-  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols'};
+  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols',texture:'texture'};
   document.querySelectorAll('.nav-btn').forEach(b => {
     if (b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
   });
+  /* Init Three.js au premier accès au Studio Texture */
+  if (name === 'texture' && window.tsInitThree && !window.tsThreeReady) {
+    window.tsInitThree();
+  }
 }
 
 /* ══ PRODUCTS ══ */
@@ -1104,19 +1217,13 @@ function renderEditoTable(editorials) {
     el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucun édito — créez votre premier ✦</div>';
     return;
   }
-  let h = '<table><thead><tr>'
-    + '<th>N°</th><th>Meuble</th><th>Marque / Designer</th>'
-    + '<th>Catégorie</th><th>Mouvement</th><th>GLB</th><th>Statut</th><th>Actions</th>'
-    + '</tr></thead><tbody>';
+  let h = '<table><thead><tr><th>N°</th><th>Meuble</th><th>Marque / Designer</th><th>Catégorie</th><th>Mouvement</th><th>GLB</th><th>Statut</th><th>Actions</th></tr></thead><tbody>';
   editorials.forEach(e => {
     const nm = (e.nom_meuble||'').replace(/'/g,"\\'");
     const isPub = e.statut === 'publie';
     h += '<tr>'
       + '<td style="font-family:var(--serif);font-size:20px;font-weight:300;color:rgba(184,152,106,.6)">'+(e.numero||'—')+'</td>'
-      + '<td>'
-        + '<div class="td-brand">'+(e.marque||'—')+'</div>'
-        + '<div class="td-name">'+(e.nom_meuble||'—')+(e.annee?' <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">· '+e.annee+'</span>':'')+'</div>'
-      + '</td>'
+      + '<td><div class="td-brand">'+(e.marque||'—')+'</div><div class="td-name">'+(e.nom_meuble||'—')+(e.annee?' <span style="font-size:11px;color:var(--muted);font-family:var(--sans)">· '+e.annee+'</span>':'')+'</div></td>'
       + '<td style="font-size:12px;color:var(--muted)">'+(e.designers||'—')+'</td>'
       + '<td>'+(e.categorie||'—')+'</td>'
       + '<td>'+(e.mouvement||'—')+'</td>'
@@ -1219,45 +1326,36 @@ async function saveEdito(forcedStatut) {
     if (linked) glbUrlEd = linked.model_glb_url || null;
   }
   const payload = {
-    numero:          parseInt(document.getElementById('eiNumero').value) || null,
-    slug:            document.getElementById('eiSlug').value.trim() || null,
-    nom_meuble:      nom,
-    marque:          marque,
-    designers:       document.getElementById('eiDesigners').value.trim() || null,
-    annee:           parseInt(document.getElementById('eiAnnee').value) || null,
-    categorie:       document.getElementById('eiCategorie').value || null,
-    mouvement:       document.getElementById('eiMouvement').value || null,
-    prix:            parseFloat(document.getElementById('eiPrix').value) || null,
-    citation:        document.getElementById('eiCitation').value.trim() || null,
-    texte_histoire:  document.getElementById('eiHistoire').value.trim() || null,
-    texte_designer:  document.getElementById('eiDesigner').value.trim() || null,
+    numero: parseInt(document.getElementById('eiNumero').value) || null,
+    slug: document.getElementById('eiSlug').value.trim() || null,
+    nom_meuble: nom, marque: marque,
+    designers: document.getElementById('eiDesigners').value.trim() || null,
+    annee: parseInt(document.getElementById('eiAnnee').value) || null,
+    categorie: document.getElementById('eiCategorie').value || null,
+    mouvement: document.getElementById('eiMouvement').value || null,
+    prix: parseFloat(document.getElementById('eiPrix').value) || null,
+    citation: document.getElementById('eiCitation').value.trim() || null,
+    texte_histoire: document.getElementById('eiHistoire').value.trim() || null,
+    texte_designer: document.getElementById('eiDesigner').value.trim() || null,
     texte_mouvement: document.getElementById('eiTexteMouvement').value.trim() || null,
-    product_id:      productId,
-    model_glb_url:   glbUrlEd,
-    statut:          statut,
-    date_publication:document.getElementById('eiDate').value || null,
-    dimensions:      (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null
+    product_id: productId, model_glb_url: glbUrlEd, statut: statut,
+    date_publication: document.getElementById('eiDate').value || null,
+    dimensions: (larg||haut||prof) ? {l:larg, h:haut, p:prof} : null
   };
   let error;
-  if (currentEditoId) {
-    ({error} = await sb.from('editorials').update(payload).eq('id', currentEditoId));
-  } else {
-    ({error} = await sb.from('editorials').insert([payload]));
-  }
+  if (currentEditoId) { ({error} = await sb.from('editorials').update(payload).eq('id', currentEditoId)); }
+  else { ({error} = await sb.from('editorials').insert([payload])); }
   setSpin(spinId, false);
   if (error) { toast('Erreur : '+error.message, 'err'); return; }
-  const verb = currentEditoId ? 'mis à jour' : 'créé';
-  toast('✓ Édito "'+nom+'" '+verb+' ('+(statut === 'publie' ? 'publié' : 'brouillon')+')', 'ok');
-  closeEditoModal();
-  loadEditorials();
+  toast('✓ Édito "'+nom+'" '+(currentEditoId?'mis à jour':'créé')+' ('+(statut==='publie'?'publié':'brouillon')+')', 'ok');
+  closeEditoModal(); loadEditorials();
 }
-
 function updateCharCount(textarea, countId) {
   const el = document.getElementById(countId);
   if (el) el.textContent = textarea.value.length + ' caractères';
 }
 
-/* ══ FILE UPLOAD (products) ══ */
+/* ══ FILE UPLOAD ══ */
 async function uploadFile(input, type) {
   const file = input.files[0]; if(!file) return;
   const lblId  = type==='glb'?'lblGlb':'lblUsdz';
@@ -1314,8 +1412,7 @@ async function addProduct() {
   if (error) { showMsg('Erreur : '+error.message,'err'); return; }
   showMsg('✓ '+nom+' ajouté !','ok');
   toast('✓ Produit ajouté au catalogue', 'ok');
-  resetUploadForm();
-  loadProducts();
+  resetUploadForm(); loadProducts();
 }
 function resetUploadForm() {
   ['fNom','fMarque','fPrix','fLarg','fHaut','fProf','fGlbUrl','fUsdzUrl'].forEach(id=>{
@@ -1509,8 +1606,7 @@ function openEdit(id){
   ['eDoneGlb','eDoneUsdz'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   document.getElementById('eGlbUrl').value='';
   document.getElementById('eUsdzUrl').value='';
-  renderColorsList('edit');
-  renderPhotosGrid('edit');
+  renderColorsList('edit'); renderPhotosGrid('edit');
   document.getElementById('editModal').classList.add('show');
 }
 function closeEdit(){
@@ -1522,10 +1618,8 @@ function closeEdit(){
 async function uploadEditFile(input, type){
   const file=input.files[0]; if(!file) return;
   const isGlb=type==='glb';
-  const lblId=isGlb?'eLblGlb':'eLblUsdz';
-  const progId=isGlb?'eProgGlb':'eProgUsdz';
-  const barId=isGlb?'eBarGlb':'eBarUsdz';
-  const doneId=isGlb?'eDoneGlb':'eDoneUsdz';
+  const lblId=isGlb?'eLblGlb':'eLblUsdz'; const progId=isGlb?'eProgGlb':'eProgUsdz';
+  const barId=isGlb?'eBarGlb':'eBarUsdz'; const doneId=isGlb?'eDoneGlb':'eDoneUsdz';
   document.getElementById(progId).style.display='block';
   document.getElementById(barId).style.width='20%';
   document.getElementById(lblId).textContent='⏳ Upload…';
@@ -1662,21 +1756,243 @@ function toast(msg,type){
 }
 
 /* ══════════════════════════════════════════════════════════════════ */
-/* ══ SOLS / FLOOR TEXTURES ══════════════════════════════════════════ */
+/* ══ TEXTURE STUDIO — UI ════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════ */
+
+const TS_CATS = {
+  chaise:   {parts:['piétement','assise','dossier','accoudoir']},
+  table:    {parts:['piétement','plateau']},
+  luminaire:{parts:['piétement','tête']}
+};
+const TS_PBR = [
+  {key:'albedo',    label:'Couleur',  icon:'🎨'},
+  {key:'normal',    label:'Normal',   icon:'〰'},
+  {key:'roughness', label:'Rugosité', icon:'◫'},
+  {key:'metalness', label:'Métal',    icon:'⬟'},
+  {key:'ao',        label:'AO',       icon:'◉'}
+];
+const TS_KW = {
+  'piétement':['pietement','pied','pieds','leg','legs','base','support','frame'],
+  'assise':   ['assise','seat','cushion','coussin','sit'],
+  'dossier':  ['dossier','back','backrest','dos'],
+  'accoudoir':['accoudoir','arm','armrest','bras'],
+  'plateau':  ['plateau','top','dessus','tabletop','table_top'],
+  'tête':     ['tete','head','shade','abat','lamp','globe']
+};
+
+window.tsCurrentCat = 'chaise';
+window.tsPartAssign  = {};   // partName → Set<meshName>
+window.tsPartMat     = {};   // partName → {color, maps:{}}
+window.tsPartRepeat  = {};   // partName → {x, y}
+window.tsTexCache    = {};   // `${part}_${key}` → objectURL
+
+function tsStripAccents(s){ return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function tsAutoAssign(){
+  Object.values(TS_CATS).forEach(c => c.parts.forEach(p => { window.tsPartAssign[p] = new Set(); }));
+  const meshMap = window.tsMeshMap || {};
+  Object.keys(meshMap).forEach(name => {
+    const l = tsStripAccents(name);
+    Object.entries(TS_KW).forEach(([part, kws]) => {
+      if (kws.some(kw => l.includes(kw))) window.tsPartAssign[part]?.add(name);
+    });
+  });
+}
+
+function tsRebuildParts(){
+  const container = document.getElementById('tsPartsContainer');
+  const empty     = document.getElementById('tsEmptyState');
+  container.innerHTML = '';
+  const meshMap = window.tsMeshMap || {};
+  if (!Object.keys(meshMap).length){ empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  const {parts} = TS_CATS[window.tsCurrentCat] || {parts:[]};
+  parts.forEach((part, i) => {
+    if (!window.tsPartAssign[part]) window.tsPartAssign[part] = new Set();
+    if (!window.tsPartMat[part])    window.tsPartMat[part]    = {color:'#ffffff', maps:{}};
+    if (!window.tsPartRepeat[part]) window.tsPartRepeat[part] = {x:1, y:1};
+    const card = document.createElement('div');
+    card.className = 'ts-part-card' + (i===0 ? ' open' : '');
+    const hasTex = Object.keys(window.tsPartMat[part].maps).length > 0;
+    const toggle = document.createElement('div');
+    toggle.className = 'ts-part-toggle';
+    toggle.innerHTML = `<div class="ts-part-tl"><div class="ts-dot${hasTex?' live':''}" id="tsDot-${CSS.escape(part)}"></div><h5>${part}</h5></div><span class="ts-arrow">▶</span>`;
+    toggle.addEventListener('click', () => card.classList.toggle('open'));
+    const body = document.createElement('div');
+    body.className = 'ts-part-body';
+    const meshNames = Object.keys(meshMap);
+    const tagsHtml = meshNames.length
+      ? meshNames.map(m=>`<span class="ts-mesh-tag${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')
+      : '<span class="ts-mesh-empty">Aucun mesh disponible</span>';
+    const slotsHtml = TS_PBR.map(map => {
+      const loaded  = !!window.tsPartMat[part].maps[map.key];
+      const preview = window.tsTexCache[part+'_'+map.key];
+      return `<div class="ts-pbr-slot${loaded?' loaded':''}" id="tsPbr-${CSS.escape(part)}-${map.key}" title="${map.label}">
+        <input type="file" accept="image/*" data-part="${part}" data-map="${map.key}" onchange="tsHandleTexture(event)">
+        ${preview?`<img class="th" src="${preview}">`:''}
+        <span class="si">${map.icon}</span>
+        <span class="sl">${map.label}</span>
+        ${loaded?'<span class="sc">✓</span>':''}
+      </div>`;
+    }).join('');
+    const rep = window.tsPartRepeat[part];
+    body.innerHTML = `
+      <span class="ts-sl">Meshes associés</span>
+      <div class="ts-mesh-tags">${tagsHtml}</div>
+      <span class="ts-sl">Textures PBR</span>
+      <div class="ts-pbr-grid">${slotsHtml}</div>
+      <div class="ts-color-row">
+        <label>Couleur de base</label>
+        <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)">Réinitialiser</button>
+        <input type="color" value="${window.tsPartMat[part].color}" data-part="${part}" onchange="tsHandleColor(event)">
+      </div>
+      <span class="ts-sl" style="margin-top:10px">Répétition UV</span>
+      <div class="ts-rep-row">
+        <div class="ts-rep-col">
+          <label>U <span id="tsRu-${CSS.escape(part)}">${rep.x}×</span></label>
+          <input type="range" min="0.1" max="20" step="0.1" value="${rep.x}" data-part="${part}" data-axis="x" oninput="tsHandleRepeat(event)">
+        </div>
+        <div class="ts-rep-col">
+          <label>V <span id="tsRv-${CSS.escape(part)}">${rep.y}×</span></label>
+          <input type="range" min="0.1" max="20" step="0.1" value="${rep.y}" data-part="${part}" data-axis="y" oninput="tsHandleRepeat(event)">
+        </div>
+      </div>`;
+    card.appendChild(toggle);
+    card.appendChild(body);
+    container.appendChild(card);
+    body.querySelectorAll('.ts-mesh-tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const m=tag.dataset.mesh, p=tag.dataset.part;
+        if (window.tsPartAssign[p].has(m)) {
+          window.tsPartAssign[p].delete(m); tag.classList.remove('active');
+          window.tsResetMesh && window.tsResetMesh(m);
+        } else {
+          window.tsPartAssign[p].add(m); tag.classList.add('active');
+          window.tsApplyMaterial && window.tsApplyMaterial(p);
+        }
+      });
+    });
+    if (window.tsPartAssign[part].size) window.tsApplyMaterial && window.tsApplyMaterial(part);
+  });
+}
+
+function tsHandleTexture(e){
+  const file=e.target.files[0]; if(!file) return;
+  const part=e.target.dataset.part, mapKey=e.target.dataset.map;
+  const objUrl=URL.createObjectURL(file);
+  window.tsLoadTexture && window.tsLoadTexture(part, mapKey, objUrl, file.name, () => {
+    if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
+    window.tsTexCache[part+'_'+mapKey]=objUrl;
+    const slot=document.getElementById(`tsPbr-${CSS.escape(part)}-${mapKey}`);
+    if(slot){
+      slot.classList.add('loaded');
+      if(!slot.querySelector('.th')){const img=document.createElement('img');img.className='th';img.src=objUrl;slot.insertBefore(img,slot.firstChild);}
+      if(!slot.querySelector('.sc')){const chk=document.createElement('span');chk.className='sc';chk.textContent='✓';slot.appendChild(chk);}
+    }
+    const dot=document.getElementById(`tsDot-${CSS.escape(part)}`);
+    if(dot) dot.classList.add('live');
+    window.tsApplyMaterial && window.tsApplyMaterial(part);
+    toast(`Texture "${mapKey}" → "${part}" ✓`,'ok');
+  });
+}
+function tsHandleColor(e){
+  const part=e.target.dataset.part;
+  if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
+  window.tsPartMat[part].color=e.target.value;
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
+}
+function tsHandleRepeat(e){
+  const part=e.target.dataset.part, axis=e.target.dataset.axis;
+  const val=parseFloat(e.target.value);
+  if(!window.tsPartRepeat[part]) window.tsPartRepeat[part]={x:1,y:1};
+  window.tsPartRepeat[part][axis]=val;
+  const lblId=axis==='x'?`tsRu-${CSS.escape(part)}`:`tsRv-${CSS.escape(part)}`;
+  const lbl=document.getElementById(lblId);
+  if(lbl) lbl.textContent=val.toFixed(1)+'×';
+  window.tsUpdateRepeat && window.tsUpdateRepeat(part);
+}
+function tsResetPart(e){
+  e.stopPropagation();
+  const part=e.target.dataset.part;
+  window.tsPartMat[part]={color:'#ffffff',maps:{}};
+  window.tsPartRepeat[part]={x:1,y:1};
+  Object.keys(window.tsTexCache).filter(k=>k.startsWith(part+'_')).forEach(k=>delete window.tsTexCache[k]);
+  window.tsPartAssign[part]?.forEach(name=>window.tsResetMesh && window.tsResetMesh(name));
+  tsRebuildParts();
+  toast(`"${part}" réinitialisé`,'ok');
+}
+function tsReload(){
+  if(window.tsRemoveModel) window.tsRemoveModel();
+  window.tsMeshMap={};
+  Object.keys(window.tsPartAssign).forEach(k=>delete window.tsPartAssign[k]);
+  document.getElementById('tsDrop').classList.remove('hidden');
+  document.getElementById('tsBadge').classList.remove('show');
+  document.getElementById('tsBtnGlb').disabled=true;
+  document.getElementById('tsBtnSupa').disabled=true;
+  document.getElementById('tsBtnReload').style.display='none';
+  document.getElementById('tsPartsContainer').innerHTML='';
+  document.getElementById('tsEmptyState').style.display='block';
+  document.getElementById('tsResult').classList.remove('show');
+}
+async function tsExportGLB(){
+  if(!window.tsGetGLBBlob){toast('Modèle non chargé','err');return;}
+  setSpin('tsSpinGlb',true);
+  try{
+    const blob=await window.tsGetGLBBlob();
+    const url=URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:'modele_tadamhome.glb'}).click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('GLB exporté ✓','ok');
+  }catch(e){toast('Erreur export : '+e.message,'err');}
+  setSpin('tsSpinGlb',false);
+}
+async function tsUploadSupabase(){
+  if(!window.tsGetGLBBlob){toast('Modèle non chargé','err');return;}
+  const btnSupa=document.getElementById('tsBtnSupa');
+  btnSupa.disabled=true; btnSupa.textContent='⏳ Upload…';
+  try{
+    const blob=await window.tsGetGLBBlob();
+    const ts=Date.now();
+    const badge=document.getElementById('tsBadgeName').textContent.replace('.obj','').replace(/\s+/g,'_')||'model';
+    const glbPath=`studio/${ts}_${badge}.glb`;
+    const {error}=await sb.storage.from(BUCKET).upload(glbPath,blob,{contentType:'model/gltf-binary',upsert:true});
+    if(error) throw error;
+    const {data:urlData}=sb.storage.from(BUCKET).getPublicUrl(glbPath);
+    const publicUrl=urlData.publicUrl;
+    const resultEl=document.getElementById('tsResult');
+    resultEl.classList.add('show');
+    resultEl.innerHTML=`<strong>✓ Upload réussi !</strong><br>
+      GLB : <a href="${publicUrl}" target="_blank">${glbPath.split('/').pop()}</a><br>
+      <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="tsAssignToProduct('${publicUrl}')">→ Assigner à un produit du catalogue</span>`;
+    toast('Modèle uploadé sur Supabase ✓','ok');
+  }catch(e){toast('Erreur Supabase : '+(e.message||'').slice(0,50),'err');}
+  btnSupa.disabled=false; btnSupa.textContent='⬆ Envoyer au catalogue';
+}
+async function tsAssignToProduct(glbUrl){
+  const names=allProducts.map((p,i)=>`${i+1}. ${p.enseigne_name||''} ${p.name}`).join('\n');
+  const input=prompt('Assigner ce GLB à quel produit ?\n\n'+names+'\n\nEntrez le numéro :');
+  if(!input) return;
+  const idx=parseInt(input)-1;
+  const product=allProducts[idx];
+  if(!product){toast('Numéro invalide','err');return;}
+  const {error}=await sb.from('products').update({model_glb_url:glbUrl}).eq('id',product.id);
+  if(error){toast('Erreur : '+error.message,'err');return;}
+  toast(`✓ GLB assigné à "${product.name}" !`,'ok');
+  loadProducts();
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* ══ SOLS ═══════════════════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════════════════════════ */
 
 let currentSolId = null;
-let solPreview = null;       // {scene,camera,renderer,floor,floorMat,texture,box,raf}
-let _previewT = null;        // debounce timer
+let solPreview = null;
+let _previewT = null;
 
 async function loadSols() {
   const {data, error} = await sb.from('floor_textures').select('*').order('sort_order',{ascending:true});
-  if (error) {
-    toast('Erreur chargement sols : '+error.message, 'err');
-    allSols = [];
-  } else {
-    allSols = data || [];
-  }
+  if (error) { toast('Erreur chargement sols : '+error.message, 'err'); allSols=[]; }
+  else allSols = data || [];
   const active  = allSols.filter(s => s.is_active).length;
   const def     = allSols.filter(s => s.is_default).length;
   document.getElementById('stSolTotal').textContent  = allSols.length;
@@ -1685,547 +2001,379 @@ async function loadSols() {
   document.getElementById('navBadgeSols').textContent= allSols.length;
   renderSolTable(allSols);
 }
-
 function filterSolTable() {
   const q = document.getElementById('solSearch').value.toLowerCase();
   renderSolTable(allSols.filter(s =>
-    (s.name||'').toLowerCase().includes(q) ||
-    (s.slug||'').toLowerCase().includes(q)
-  ));
+    (s.name||'').toLowerCase().includes(q) || (s.slug||'').toLowerCase().includes(q)));
 }
-
 function renderSolTable(sols) {
   const el = document.getElementById('solTable');
-  if (!sols.length) {
-    el.innerHTML = '<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucune texture — créez votre première ▭</div>';
-    return;
-  }
-  const CAT_LABELS = {parquet:'Parquet',carrelage:'Carrelage',marbre:'Marbre',beton:'Béton ciré',pierre:'Pierre',moquette:'Moquette',autre:'Autre'};
-  let h = '<table><thead><tr>'
-    + '<th>Aperçu</th><th>Nom</th><th>Catégorie</th><th>Répétitions</th><th>Rugosité</th><th>Statut</th><th>Actions</th>'
-    + '</tr></thead><tbody>';
-  sols.forEach(s => {
-    const nm = (s.name||'').replace(/'/g,"\\'");
-    const thumb = s.image_url
-      ? '<div class="sol-thumb-cell"><img src="'+s.image_url+'" alt=""/></div>'
-      : '<div class="sol-thumb-cell empty"></div>';
-    const isDef = !!s.is_default;
-    const isAct = !!s.is_active;
-    const catLbl = s.category ? (CAT_LABELS[s.category] || s.category) : '—';
-    h += '<tr>'
-      + '<td>'+thumb+'</td>'
-      + '<td>'
-        + '<div class="td-name">'+(s.name||'—')+(isDef?'<span class="sol-default-mark">★ Défaut</span>':'')+'</div>'
-        + '<div class="td-brand" style="margin-top:2px;color:var(--muted);text-transform:none;letter-spacing:0;font-family:monospace;font-size:10px">'+(s.slug||s.id.slice(0,8))+'</div>'
-      + '</td>'
-      + '<td>'+catLbl+'</td>'
-      + '<td style="font-family:monospace;font-size:12px">'+(s.repeat_x||4)+' × '+(s.repeat_y||4)+'</td>'
-      + '<td style="font-family:monospace;font-size:12px">'+Number(s.roughness??0.85).toFixed(2)+'</td>'
-      + '<td><span class="td-badge '+(isAct?'ok':'')+'">'+(isAct?'● Active':'○ Inactive')+'</span></td>'
-      + '<td><div class="row-actions">'
-      +   '<button class="row-btn" onclick="openEditSol(\''+s.id+'\')">✏ Éditer</button>'
-      +   (isDef ? '' : '<button class="row-btn" onclick="setDefaultSol(\''+s.id+'\')">★ Défaut</button>')
-      +   '<button class="row-btn del" onclick="askDelete(\''+s.id+'\',\''+nm+'\',\'sol\')">✕</button>'
-      + '</div></td>'
-    + '</tr>';
+  if (!sols.length) { el.innerHTML='<div style="padding:40px;text-align:center;font-size:13px;color:var(--muted);font-family:var(--sans)">Aucune texture — créez votre première ▭</div>'; return; }
+  const CAT_LABELS={parquet:'Parquet',carrelage:'Carrelage',marbre:'Marbre',beton:'Béton ciré',pierre:'Pierre',moquette:'Moquette',autre:'Autre'};
+  let h='<table><thead><tr><th>Aperçu</th><th>Nom</th><th>Catégorie</th><th>Répétitions</th><th>Rugosité</th><th>Statut</th><th>Actions</th></tr></thead><tbody>';
+  sols.forEach(s=>{
+    const nm=(s.name||'').replace(/'/g,"\\'");
+    const thumb=s.image_url?'<div class="sol-thumb-cell"><img src="'+s.image_url+'" alt=""/></div>':'<div class="sol-thumb-cell empty"></div>';
+    const isDef=!!s.is_default,isAct=!!s.is_active;
+    const catLbl=s.category?(CAT_LABELS[s.category]||s.category):'—';
+    h+='<tr>'+'<td>'+thumb+'</td>'
+      +'<td><div class="td-name">'+(s.name||'—')+(isDef?'<span class="sol-default-mark">★ Défaut</span>':'')+'</div><div class="td-brand" style="margin-top:2px;color:var(--muted);text-transform:none;letter-spacing:0;font-family:monospace;font-size:10px">'+(s.slug||s.id.slice(0,8))+'</div></td>'
+      +'<td>'+catLbl+'</td>'+'<td style="font-family:monospace;font-size:12px">'+(s.repeat_x||4)+' × '+(s.repeat_y||4)+'</td>'
+      +'<td style="font-family:monospace;font-size:12px">'+Number(s.roughness??0.85).toFixed(2)+'</td>'
+      +'<td><span class="td-badge '+(isAct?'ok':'')+'">'+(isAct?'● Active':'○ Inactive')+'</span></td>'
+      +'<td><div class="row-actions">'
+      +'<button class="row-btn" onclick="openEditSol(\''+s.id+'\')">✏ Éditer</button>'
+      +(isDef?'':'<button class="row-btn" onclick="setDefaultSol(\''+s.id+'\')">★ Défaut</button>')
+      +'<button class="row-btn del" onclick="askDelete(\''+s.id+'\',\''+nm+'\',\'sol\')">✕</button>'
+      +'</div></td>'+'</tr>';
   });
-  h += '</tbody></table>';
-  el.innerHTML = h;
+  h+='</tbody></table>'; el.innerHTML=h;
 }
-
 function openNewSol() {
-  currentSolId = null;
-  document.getElementById('solModalTitle').textContent = 'Nouvelle texture de sol';
-  document.getElementById('solSaveLbl').textContent = 'Créer';
-  ['sName','sSlug','sImageUrl','sNormalUrl','sRoughnessUrl','sAoUrl'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('sCategory').value = '';
-  document.getElementById('sOrder').value = (allSols.length || 0);
-  document.getElementById('sBgColor').value = '#EEEBE3';
-  document.getElementById('sActive').checked  = true;
-  document.getElementById('sDefault').checked = !allSols.some(s => s.is_default);
-  setSliderPair('sRepeatX', 4);
-  setSliderPair('sRepeatY', 4);
-  setSliderPair('sRoughness', 0.85);
-  setSliderPair('sNormalScale', 1.0);
-  setSliderPair('sAoIntensity', 1.0);
-  ['albedo','normal','roughness','ao'].forEach(k => refreshPbrSlot(k));
+  currentSolId=null;
+  document.getElementById('solModalTitle').textContent='Nouvelle texture de sol';
+  document.getElementById('solSaveLbl').textContent='Créer';
+  ['sName','sSlug','sImageUrl','sNormalUrl','sRoughnessUrl','sAoUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sCategory').value=''; document.getElementById('sOrder').value=allSols.length||0;
+  document.getElementById('sBgColor').value='#EEEBE3'; document.getElementById('sActive').checked=true;
+  document.getElementById('sDefault').checked=!allSols.some(s=>s.is_default);
+  setSliderPair('sRepeatX',4); setSliderPair('sRepeatY',4); setSliderPair('sRoughness',0.85);
+  setSliderPair('sNormalScale',1.0); setSliderPair('sAoIntensity',1.0);
+  ['albedo','normal','roughness','ao'].forEach(k=>refreshPbrSlot(k));
   document.getElementById('pbrDetectToast').classList.remove('show');
-  document.getElementById('sFile').value = '';
-  document.getElementById('sFileLbl').textContent = 'ou cliquez pour parcourir';
-  document.getElementById('sFileProg').style.display = 'none';
-  document.getElementById('sFileBar').style.width = '0';
+  document.getElementById('sFile').value=''; document.getElementById('sFileLbl').textContent='ou cliquez pour parcourir';
+  document.getElementById('sFileProg').style.display='none'; document.getElementById('sFileBar').style.width='0';
   document.getElementById('solModal').classList.add('show');
-  initSolPreview();
-  schedulePreview();
+  initSolPreview(); schedulePreview();
 }
-
 function openEditSol(id) {
-  const s = allSols.find(x => x.id === id);
-  if (!s) return;
-  currentSolId = id;
-  document.getElementById('solModalTitle').textContent = 'Modifier — ' + (s.name || '');
-  document.getElementById('solSaveLbl').textContent = 'Enregistrer';
-  document.getElementById('sName').value         = s.name || '';
-  document.getElementById('sSlug').value         = s.slug || '';
-  document.getElementById('sCategory').value     = s.category || '';
-  document.getElementById('sImageUrl').value     = s.image_url || '';
-  document.getElementById('sNormalUrl').value    = s.normal_url || '';
-  document.getElementById('sRoughnessUrl').value = s.roughness_url || '';
-  document.getElementById('sAoUrl').value        = s.ao_url || '';
-  document.getElementById('sOrder').value        = s.sort_order ?? 0;
-  document.getElementById('sBgColor').value      = s.bg_color || '#EEEBE3';
-  document.getElementById('sActive').checked     = s.is_active !== false;
-  document.getElementById('sDefault').checked    = !!s.is_default;
-  setSliderPair('sRepeatX', s.repeat_x ?? 4);
-  setSliderPair('sRepeatY', s.repeat_y ?? 4);
-  setSliderPair('sRoughness', s.roughness ?? 0.85);
-  setSliderPair('sNormalScale', s.normal_scale ?? 1.0);
-  setSliderPair('sAoIntensity', s.ao_intensity ?? 1.0);
-  ['albedo','normal','roughness','ao'].forEach(k => refreshPbrSlot(k));
+  const s=allSols.find(x=>x.id===id); if(!s) return;
+  currentSolId=id;
+  document.getElementById('solModalTitle').textContent='Modifier — '+(s.name||'');
+  document.getElementById('solSaveLbl').textContent='Enregistrer';
+  document.getElementById('sName').value=s.name||''; document.getElementById('sSlug').value=s.slug||'';
+  document.getElementById('sCategory').value=s.category||''; document.getElementById('sImageUrl').value=s.image_url||'';
+  document.getElementById('sNormalUrl').value=s.normal_url||''; document.getElementById('sRoughnessUrl').value=s.roughness_url||'';
+  document.getElementById('sAoUrl').value=s.ao_url||''; document.getElementById('sOrder').value=s.sort_order??0;
+  document.getElementById('sBgColor').value=s.bg_color||'#EEEBE3'; document.getElementById('sActive').checked=s.is_active!==false;
+  document.getElementById('sDefault').checked=!!s.is_default;
+  setSliderPair('sRepeatX',s.repeat_x??4); setSliderPair('sRepeatY',s.repeat_y??4);
+  setSliderPair('sRoughness',s.roughness??0.85); setSliderPair('sNormalScale',s.normal_scale??1.0);
+  setSliderPair('sAoIntensity',s.ao_intensity??1.0);
+  ['albedo','normal','roughness','ao'].forEach(k=>refreshPbrSlot(k));
   document.getElementById('pbrDetectToast').classList.remove('show');
-  document.getElementById('sFile').value = '';
-  document.getElementById('sFileLbl').textContent = 'ou cliquez pour parcourir';
-  document.getElementById('sFileProg').style.display = 'none';
+  document.getElementById('sFile').value=''; document.getElementById('sFileLbl').textContent='ou cliquez pour parcourir';
+  document.getElementById('sFileProg').style.display='none';
   document.getElementById('solModal').classList.add('show');
-  initSolPreview();
-  schedulePreview();
+  initSolPreview(); schedulePreview();
 }
-
-function closeSolModal() {
-  document.getElementById('solModal').classList.remove('show');
-  currentSolId = null;
-  disposeSolPreview();
-}
-
-function setSliderPair(baseId, val) {
-  const r = document.getElementById(baseId);
-  const n = document.getElementById(baseId+'Num');
-  if (r) r.value = val;
-  if (n) n.value = val;
-}
-
-function onParamChange(source) {
-  const ids = ['sRepeatX','sRepeatY','sRoughness','sNormalScale','sAoIntensity'];
-  ids.forEach(base => {
-    const r = document.getElementById(base);
-    const n = document.getElementById(base+'Num');
-    if (!r || !n) return;
-    if (source === 'num') r.value = n.value;
-    else                  n.value = r.value;
-  });
+function closeSolModal(){document.getElementById('solModal').classList.remove('show');currentSolId=null;disposeSolPreview();}
+function setSliderPair(baseId,val){const r=document.getElementById(baseId);const n=document.getElementById(baseId+'Num');if(r)r.value=val;if(n)n.value=val;}
+function onParamChange(source){
+  const ids=['sRepeatX','sRepeatY','sRoughness','sNormalScale','sAoIntensity'];
+  ids.forEach(base=>{const r=document.getElementById(base);const n=document.getElementById(base+'Num');if(!r||!n)return;if(source==='num')r.value=n.value;else n.value=r.value;});
   updateSolPreview();
 }
-
-function schedulePreview() {
-  clearTimeout(_previewT);
-  _previewT = setTimeout(() => updateSolPreview(), 80);
-}
-
-/* Mappings PBR : slot ID → champ DOM (URL) + nom affiché */
-const PBR_SLOTS = {
+function schedulePreview(){clearTimeout(_previewT);_previewT=setTimeout(()=>updateSolPreview(),80);}
+const PBR_SLOTS={
   albedo:    {urlInput:'sImageUrl',     nameEl:'nameAlbedo',    slotEl:'slotAlbedo'},
   normal:    {urlInput:'sNormalUrl',    nameEl:'nameNormal',    slotEl:'slotNormal'},
   roughness: {urlInput:'sRoughnessUrl', nameEl:'nameRoughness', slotEl:'slotRoughness'},
   ao:        {urlInput:'sAoUrl',        nameEl:'nameAo',        slotEl:'slotAo'}
 };
-
-/* Classifie un fichier PBR par son nom. Retourne 'albedo' | 'normal'
-   | 'roughness' | 'ao'. Stratégie : on tokenise sur séparateurs courants
-   et on regarde les derniers tokens (suffixes) — c'est là que vivent les
-   conventions de nommage des libraires PBR (Quixel, Poly Haven, etc.). */
-function classifyPbrFile(filename) {
-  const lower = filename.toLowerCase().replace(/\.[^.]+$/, '');
-  /* Multi-mots avant tokenisation : "ambient occlusion", "base color"… */
-  if (/ambient[\s_-]*occlusion/.test(lower) || /\bocclusion\b/.test(lower)) return 'ao';
-  if (/base[\s_-]*color/.test(lower) || /base[\s_-]*colour/.test(lower))    return 'albedo';
-  const tokens = lower.split(/[\s_\-.]+/).filter(Boolean);
-  /* Tokens connus, du plus spécifique au plus générique */
-  const NORMAL    = new Set(['normal','normalgl','normaldx','nrm','norm','nmap']);
-  const ROUGHNESS = new Set(['roughness','rough','rgh']);
-  const AO        = new Set(['ao','occlusion','ambientocclusion']);
-  const ALBEDO    = new Set(['albedo','color','colour','diffuse','basecolor','alb','diff','col']);
-  /* On scanne en partant de la fin : les suffixes sont la signature fiable */
-  for (let i = tokens.length - 1; i >= Math.max(0, tokens.length - 3); i--) {
-    const t = tokens[i];
-    if (NORMAL.has(t))    return 'normal';
-    if (ROUGHNESS.has(t)) return 'roughness';
-    if (AO.has(t))        return 'ao';
-    if (ALBEDO.has(t))    return 'albedo';
+function classifyPbrFile(filename){
+  const lower=filename.toLowerCase().replace(/\.[^.]+$/,'');
+  if(/ambient[\s_-]*occlusion/.test(lower)||/\bocclusion\b/.test(lower)) return 'ao';
+  if(/base[\s_-]*color/.test(lower)||/base[\s_-]*colour/.test(lower)) return 'albedo';
+  const tokens=lower.split(/[\s_\-.]+/).filter(Boolean);
+  const NORMAL=new Set(['normal','normalgl','normaldx','nrm','norm','nmap']);
+  const ROUGHNESS=new Set(['roughness','rough','rgh']);
+  const AO=new Set(['ao','occlusion','ambientocclusion']);
+  const ALBEDO=new Set(['albedo','color','colour','diffuse','basecolor','alb','diff','col']);
+  for(let i=tokens.length-1;i>=Math.max(0,tokens.length-3);i--){
+    const t=tokens[i];
+    if(NORMAL.has(t)) return 'normal'; if(ROUGHNESS.has(t)) return 'roughness';
+    if(AO.has(t)) return 'ao'; if(ALBEDO.has(t)) return 'albedo';
   }
-  /* Conventions à 1 lettre (pipelines hérités) */
-  const last = tokens[tokens.length - 1];
-  if (last === 'n') return 'normal';
-  if (last === 'r') return 'roughness';
-  if (last === 'a') return 'ao';
-  if (last === 'd') return 'albedo';
-  /* Par défaut, on suppose albedo (c'est obligatoire) */
+  const last=tokens[tokens.length-1];
+  if(last==='n') return 'normal'; if(last==='r') return 'roughness';
+  if(last==='a') return 'ao'; if(last==='d') return 'albedo';
   return 'albedo';
 }
-
-/* Gère un drop ou une sélection multi-fichiers : classifie chaque fichier,
-   les uploade en parallèle, et remplit les bons slots. Affiche un toast
-   récapitulatif du mapping détecté. */
-async function onPbrFiles(fileList) {
-  const files = Array.from(fileList || []);
-  if (!files.length) return;
-  const lbl  = document.getElementById('sFileLbl');
-  const prog = document.getElementById('sFileProg');
-  const bar  = document.getElementById('sFileBar');
-  const toast = document.getElementById('pbrDetectToast');
-  prog.style.display = 'block';
-  bar.style.width = '5%';
-  lbl.textContent = '⏳ Upload de ' + files.length + ' fichier(s)…';
-
-  /* Étape 1 : classification (synchrone, rapide) */
-  const assignments = files.map(f => ({file: f, kind: classifyPbrFile(f.name)}));
-  /* En cas de doublon (deux fichiers classés "albedo" par exemple), seul
-     le dernier l'emporte — on prévient l'utilisateur. */
-  const seen = {};
-  const conflicts = [];
-  for (const a of assignments) {
-    if (seen[a.kind]) conflicts.push(a.kind);
-    seen[a.kind] = a.file.name;
-  }
-
-  /* Étape 2 : uploads en parallèle vers Supabase Storage */
-  const uploads = assignments.map(async (a) => {
-    const ext = a.file.name.split('.').pop();
-    const path = 'floor-textures/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-    const {error} = await sb.storage.from(BUCKET).upload(path, a.file, {upsert: true});
-    if (error) return {kind: a.kind, name: a.file.name, error: error.message};
-    const {data: pub} = sb.storage.from(BUCKET).getPublicUrl(path);
-    return {kind: a.kind, name: a.file.name, url: pub.publicUrl};
+async function onPbrFiles(fileList){
+  const files=Array.from(fileList||[]); if(!files.length) return;
+  const lbl=document.getElementById('sFileLbl');
+  const prog=document.getElementById('sFileProg'); const bar=document.getElementById('sFileBar');
+  const toastEl=document.getElementById('pbrDetectToast');
+  prog.style.display='block'; bar.style.width='5%';
+  lbl.textContent='⏳ Upload de '+files.length+' fichier(s)…';
+  const assignments=files.map(f=>({file:f,kind:classifyPbrFile(f.name)}));
+  const seen={},conflicts=[];
+  for(const a of assignments){if(seen[a.kind])conflicts.push(a.kind);seen[a.kind]=a.file.name;}
+  const uploads=assignments.map(async(a)=>{
+    const ext=a.file.name.split('.').pop();
+    const path='floor-textures/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
+    const {error}=await sb.storage.from(BUCKET).upload(path,a.file,{upsert:true});
+    if(error) return{kind:a.kind,name:a.file.name,error:error.message};
+    const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+    return{kind:a.kind,name:a.file.name,url:pub.publicUrl};
   });
-  let done = 0;
-  const results = [];
-  for (const p of uploads) {
-    const r = await p;
-    results.push(r);
-    done++;
-    bar.style.width = (5 + (95 * done / files.length)) + '%';
+  let done=0; const results=[];
+  for(const p of uploads){const r=await p;results.push(r);done++;bar.style.width=(5+(95*done/files.length))+'%';}
+  const summary=[];
+  for(const r of results){
+    if(r.error){summary.push('✗ '+r.name+' → erreur');continue;}
+    const slot=PBR_SLOTS[r.kind]; if(!slot) continue;
+    document.getElementById(slot.urlInput).value=r.url;
+    refreshPbrSlot(r.kind,r.name);
+    summary.push('✓ <strong>'+r.name+'</strong> → '+r.kind);
   }
-
-  /* Étape 3 : remplit les slots avec les URLs uploadées */
-  const summary = [];
-  for (const r of results) {
-    if (r.error) { summary.push('✗ ' + r.name + ' → erreur'); continue; }
-    const slot = PBR_SLOTS[r.kind];
-    if (!slot) continue;
-    document.getElementById(slot.urlInput).value = r.url;
-    refreshPbrSlot(r.kind, r.name);
-    summary.push('✓ <strong>' + r.name + '</strong> → ' + r.kind);
+  if(conflicts.length) summary.push('<em>Doublons : '+[...new Set(conflicts)].join(', ')+'</em>');
+  toastEl.innerHTML=summary.join('<br/>'); toastEl.classList.add('show');
+  lbl.textContent='✓ '+done+' fichier(s) uploadé(s)';
+  const nameField=document.getElementById('sName');
+  if(!nameField.value&&files[0]){
+    let suggested=files[0].name.replace(/\.[^.]+$/,'');
+    const tokens=suggested.split(/[\s_\-.]+/);
+    const lastTok=(tokens[tokens.length-1]||'').toLowerCase();
+    if(['albedo','color','colour','diffuse','basecolor','normal','roughness','ao','occlusion','d','n','r','a'].includes(lastTok)){tokens.pop();suggested=tokens.join(' ');}
+    nameField.value=suggested;
   }
-  if (conflicts.length) {
-    summary.push('<em>Doublons écrasés : ' + [...new Set(conflicts)].join(', ') + '</em>');
-  }
-  toast.innerHTML = summary.join('<br/>');
-  toast.classList.add('show');
-  lbl.textContent = '✓ ' + done + ' fichier(s) uploadé(s)';
-
-  /* Si le nom n'est pas encore renseigné, on en suggère un à partir du
-     premier fichier (en strippant le suffixe PBR) */
-  const nameField = document.getElementById('sName');
-  if (!nameField.value && files[0]) {
-    let suggested = files[0].name.replace(/\.[^.]+$/, '');
-    /* On retire le dernier token s'il fait partie des conventions PBR */
-    const tokens = suggested.split(/[\s_\-.]+/);
-    const lastTok = (tokens[tokens.length - 1] || '').toLowerCase();
-    if (['albedo','color','colour','diffuse','basecolor','normal','roughness','ao','occlusion','d','n','r','a'].includes(lastTok)) {
-      tokens.pop();
-      suggested = tokens.join(' ');
-    }
-    nameField.value = suggested;
-  }
-  const slugField = document.getElementById('sSlug');
-  if (!slugField.value && nameField.value) {
-    slugField.value = nameField.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  }
+  const slugField=document.getElementById('sSlug');
+  if(!slugField.value&&nameField.value){slugField.value=nameField.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
   schedulePreview();
 }
-
-/* Met à jour l'affichage d'un slot (nom du fichier + état "has-file").
-   Si filename est passé, on le préfère (vient de l'upload). Sinon on
-   affiche juste le nom dérivé de l'URL. */
-function refreshPbrSlot(kind, filename) {
-  const slot = PBR_SLOTS[kind];
-  if (!slot) return;
-  const url = document.getElementById(slot.urlInput).value.trim();
-  const nameEl = document.getElementById(slot.nameEl);
-  const slotEl = document.getElementById(slot.slotEl);
-  if (url) {
-    nameEl.textContent = filename || url.split('/').pop().split('?')[0];
-    slotEl.classList.add('has-file');
-  } else {
-    nameEl.textContent = '—';
-    slotEl.classList.remove('has-file');
-  }
+function refreshPbrSlot(kind,filename){
+  const slot=PBR_SLOTS[kind]; if(!slot) return;
+  const url=document.getElementById(slot.urlInput).value.trim();
+  const nameEl=document.getElementById(slot.nameEl); const slotEl=document.getElementById(slot.slotEl);
+  if(url){nameEl.textContent=filename||url.split('/').pop().split('?')[0];slotEl.classList.add('has-file');}
+  else{nameEl.textContent='—';slotEl.classList.remove('has-file');}
 }
-
-function clearPbrSlot(kind) {
-  const slot = PBR_SLOTS[kind];
-  if (!slot) return;
-  document.getElementById(slot.urlInput).value = '';
-  refreshPbrSlot(kind);
-  schedulePreview();
-}
-
-async function saveSol() {
-  const name = document.getElementById('sName').value.trim();
-  if (!name) { toast('Nom requis', 'err'); return; }
-  const imageUrl = document.getElementById('sImageUrl').value.trim();
-  if (!imageUrl) { toast('Image de texture requise', 'err'); return; }
-  setSpin('spinSol', true);
-  let slug = document.getElementById('sSlug').value.trim();
-  if (!slug) {
-    slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  }
-  const wantDefault = document.getElementById('sDefault').checked;
-  const payload = {
-    name,
-    slug: slug || null,
-    category: document.getElementById('sCategory').value || null,
-    image_url: imageUrl,
-    normal_url:    document.getElementById('sNormalUrl').value.trim() || null,
-    roughness_url: document.getElementById('sRoughnessUrl').value.trim() || null,
-    ao_url:        document.getElementById('sAoUrl').value.trim() || null,
-    normal_scale: parseFloat(document.getElementById('sNormalScale').value) || 1.0,
-    ao_intensity: parseFloat(document.getElementById('sAoIntensity').value) || 1.0,
-    repeat_x: parseFloat(document.getElementById('sRepeatX').value) || 4,
-    repeat_y: parseFloat(document.getElementById('sRepeatY').value) || 4,
-    roughness: parseFloat(document.getElementById('sRoughness').value) || 0.85,
-    bg_color: document.getElementById('sBgColor').value || '#EEEBE3',
-    sort_order: parseInt(document.getElementById('sOrder').value) || 0,
-    is_active: document.getElementById('sActive').checked,
-    is_default: wantDefault
-  };
-  // Si default coché → on désactive d'abord les autres pour respecter l'index unique
-  if (wantDefault) {
-    let q = sb.from('floor_textures').update({is_default:false}).eq('is_default',true);
-    if (currentSolId) q = q.neq('id', currentSolId);
-    const {error: e1} = await q;
-    if (e1) { setSpin('spinSol', false); toast('Erreur reset défaut : '+e1.message, 'err'); return; }
-  }
+function clearPbrSlot(kind){const slot=PBR_SLOTS[kind];if(!slot)return;document.getElementById(slot.urlInput).value='';refreshPbrSlot(kind);schedulePreview();}
+async function saveSol(){
+  const name=document.getElementById('sName').value.trim();
+  if(!name){toast('Nom requis','err');return;}
+  const imageUrl=document.getElementById('sImageUrl').value.trim();
+  if(!imageUrl){toast('Image de texture requise','err');return;}
+  setSpin('spinSol',true);
+  let slug=document.getElementById('sSlug').value.trim();
+  if(!slug) slug=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const wantDefault=document.getElementById('sDefault').checked;
+  const payload={name,slug:slug||null,category:document.getElementById('sCategory').value||null,image_url:imageUrl,normal_url:document.getElementById('sNormalUrl').value.trim()||null,roughness_url:document.getElementById('sRoughnessUrl').value.trim()||null,ao_url:document.getElementById('sAoUrl').value.trim()||null,normal_scale:parseFloat(document.getElementById('sNormalScale').value)||1.0,ao_intensity:parseFloat(document.getElementById('sAoIntensity').value)||1.0,repeat_x:parseFloat(document.getElementById('sRepeatX').value)||4,repeat_y:parseFloat(document.getElementById('sRepeatY').value)||4,roughness:parseFloat(document.getElementById('sRoughness').value)||0.85,bg_color:document.getElementById('sBgColor').value||'#EEEBE3',sort_order:parseInt(document.getElementById('sOrder').value)||0,is_active:document.getElementById('sActive').checked,is_default:wantDefault};
+  if(wantDefault){let q=sb.from('floor_textures').update({is_default:false}).eq('is_default',true);if(currentSolId)q=q.neq('id',currentSolId);const {error:e1}=await q;if(e1){setSpin('spinSol',false);toast('Erreur reset défaut : '+e1.message,'err');return;}}
   let error;
-  if (currentSolId) {
-    ({error} = await sb.from('floor_textures').update(payload).eq('id', currentSolId));
-  } else {
-    ({error} = await sb.from('floor_textures').insert([payload]));
-  }
-  setSpin('spinSol', false);
-  if (error) { toast('Erreur : '+error.message, 'err'); return; }
-  toast('✓ Texture "'+name+'" '+(currentSolId?'mise à jour':'créée'), 'ok');
-  closeSolModal();
-  loadSols();
+  if(currentSolId){({error}=await sb.from('floor_textures').update(payload).eq('id',currentSolId));}
+  else{({error}=await sb.from('floor_textures').insert([payload]));}
+  setSpin('spinSol',false);
+  if(error){toast('Erreur : '+error.message,'err');return;}
+  toast('✓ Texture "'+name+'" '+(currentSolId?'mise à jour':'créée'),'ok');
+  closeSolModal(); loadSols();
 }
-
-async function setDefaultSol(id) {
-  // Désactive tous les autres défauts puis active celui-ci
-  const {error: e1} = await sb.from('floor_textures').update({is_default:false}).eq('is_default',true).neq('id', id);
-  if (e1) { toast('Erreur : '+e1.message, 'err'); return; }
-  const {error: e2} = await sb.from('floor_textures').update({is_default:true, is_active:true}).eq('id', id);
-  if (e2) { toast('Erreur : '+e2.message, 'err'); return; }
-  toast('✓ Texture définie par défaut', 'ok');
-  loadSols();
+async function setDefaultSol(id){
+  const {error:e1}=await sb.from('floor_textures').update({is_default:false}).eq('is_default',true).neq('id',id);
+  if(e1){toast('Erreur : '+e1.message,'err');return;}
+  const {error:e2}=await sb.from('floor_textures').update({is_default:true,is_active:true}).eq('id',id);
+  if(e2){toast('Erreur : '+e2.message,'err');return;}
+  toast('✓ Texture définie par défaut','ok'); loadSols();
 }
-
-/* ── Three.js preview live ────────────────────────────────────────── */
-async function initSolPreview() {
-  if (solPreview) { return; } // déjà créé
-  try {
-    const THREE = await import('three');
-    const canvas = document.getElementById('solPreviewCanvas');
-    const wrap = canvas.parentElement;
-    const w = wrap.clientWidth || 360;
-    const h = wrap.clientHeight || 270;
-
-    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(w, h, false);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1C1B18);
-
-    const camera = new THREE.PerspectiveCamera(38, w/h, 0.1, 50);
-    camera.position.set(2.4, 2.6, 3.2);
-    camera.lookAt(0, 0.4, 0);
-
-    // Lumières
-    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.4);
-    dir.position.set(3, 5, 2);
-    scene.add(dir);
-    const hemi = new THREE.HemisphereLight(0xfff5e8, 0x2a2520, 0.5);
-    scene.add(hemi);
-
-    // Sol 4m × 4m
-    const floorGeo = new THREE.PlaneGeometry(4, 4);
-    /* uv1 nécessaire pour aoMap (Three.js r152+) */
-    floorGeo.setAttribute('uv1', floorGeo.attributes.uv);
-    const floorMat = new THREE.MeshStandardMaterial({color:0xE4DFD6, roughness:0.85, metalness:0});
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI/2;
-    scene.add(floor);
-
-    // Repère 1m discret
-    const grid = new THREE.GridHelper(4, 4, 0xB8986A, 0x3a3530);
-    grid.material.opacity = 0.18;
-    grid.material.transparent = true;
-    grid.position.y = 0.001;
-    scene.add(grid);
-
-    // Chaise de référence (45×85×45 cm) au centre
-    const chairGeo = new THREE.BoxGeometry(0.45, 0.85, 0.45);
-    const chairMat = new THREE.MeshStandardMaterial({color:0x8a8880, roughness:0.6, metalness:0.05});
-    const chair = new THREE.Mesh(chairGeo, chairMat);
-    chair.position.set(0, 0.425, 0);
-    scene.add(chair);
-
-    // Petite ombre sous la chaise
-    const shadowGeo = new THREE.PlaneGeometry(0.7, 0.7);
-    const shadowMat = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.18});
-    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-    shadow.rotation.x = -Math.PI/2;
-    shadow.position.y = 0.002;
-    scene.add(shadow);
-
-    solPreview = {THREE, scene, camera, renderer, floor, floorMat, chair, grid, shadow, texture:null, w, h, raf:null};
-
-    function animate() {
-      if (!solPreview) return;
-      solPreview.raf = requestAnimationFrame(animate);
-      // Rotation lente pour évaluer le matériau
-      solPreview.chair.rotation.y += 0.005;
-      solPreview.renderer.render(solPreview.scene, solPreview.camera);
-    }
-    animate();
-    updateSolPreview();
-  } catch (e) {
-    console.error('Three.js preview init failed', e);
-    toast('Aperçu 3D indisponible : '+e.message, 'err');
-  }
+async function initSolPreview(){
+  if(solPreview) return;
+  try{
+    const THREE=await import('three');
+    const canvas=document.getElementById('solPreviewCanvas');
+    const wrap=canvas.parentElement;
+    const w=wrap.clientWidth||360,h=wrap.clientHeight||270;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2)); renderer.setSize(w,h,false);
+    renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+    const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1C1B18);
+    const camera=new THREE.PerspectiveCamera(38,w/h,0.1,50); camera.position.set(2.4,2.6,3.2); camera.lookAt(0,0.4,0);
+    scene.add(new THREE.AmbientLight(0xffffff,0.45));
+    const dir=new THREE.DirectionalLight(0xffffff,1.4); dir.position.set(3,5,2); scene.add(dir);
+    scene.add(new THREE.HemisphereLight(0xfff5e8,0x2a2520,0.5));
+    const floorGeo=new THREE.PlaneGeometry(4,4);
+    floorGeo.setAttribute('uv1',floorGeo.attributes.uv);
+    const floorMat=new THREE.MeshStandardMaterial({color:0xE4DFD6,roughness:0.85,metalness:0});
+    const floor=new THREE.Mesh(floorGeo,floorMat); floor.rotation.x=-Math.PI/2; scene.add(floor);
+    const grid=new THREE.GridHelper(4,4,0xB8986A,0x3a3530); grid.material.opacity=0.18; grid.material.transparent=true; grid.position.y=0.001; scene.add(grid);
+    const chairMat=new THREE.MeshStandardMaterial({color:0x8a8880,roughness:0.6,metalness:0.05});
+    const chair=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.85,0.45),chairMat); chair.position.set(0,0.425,0); scene.add(chair);
+    const shadowMesh=new THREE.Mesh(new THREE.PlaneGeometry(0.7,0.7),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.18}));
+    shadowMesh.rotation.x=-Math.PI/2; shadowMesh.position.y=0.002; scene.add(shadowMesh);
+    solPreview={THREE,scene,camera,renderer,floor,floorMat,chair,grid,shadowMesh,texture:null,w,h,raf:null};
+    function animate(){if(!solPreview)return;solPreview.raf=requestAnimationFrame(animate);solPreview.chair.rotation.y+=0.005;solPreview.renderer.render(solPreview.scene,solPreview.camera);}
+    animate(); updateSolPreview();
+  }catch(e){console.error('Sol preview init failed',e);}
 }
-
-async function updateSolPreview() {
-  if (!solPreview) return;
-  const {THREE, floorMat, renderer} = solPreview;
-  const url     = document.getElementById('sImageUrl').value.trim();
-  const nrmUrl  = document.getElementById('sNormalUrl').value.trim();
-  const rghUrl  = document.getElementById('sRoughnessUrl').value.trim();
-  const aoUrl   = document.getElementById('sAoUrl').value.trim();
-  const repX    = parseFloat(document.getElementById('sRepeatX').value) || 4;
-  const repY    = parseFloat(document.getElementById('sRepeatY').value) || 4;
-  const rough   = parseFloat(document.getElementById('sRoughness').value);
-  const nScale  = parseFloat(document.getElementById('sNormalScale').value) || 1;
-  const aoInt   = parseFloat(document.getElementById('sAoIntensity').value) || 1;
-  const bgCol   = document.getElementById('sBgColor').value || '#EEEBE3';
-  const emptyEl = document.getElementById('solPreviewEmpty');
-
-  /* Pas d'albedo → mode couleur unie, on dispose tout le reste */
-  if (!url) {
-    ['_albedoTex','_normalTex','_roughnessTex','_aoTex'].forEach(k => {
-      if (solPreview[k]) { solPreview[k].dispose(); solPreview[k] = null; }
-    });
-    floorMat.map = null;
-    floorMat.normalMap = null;
-    floorMat.roughnessMap = null;
-    floorMat.aoMap = null;
-    floorMat.color.set(bgCol);
-    floorMat.roughness = isNaN(rough) ? 0.85 : rough;
-    floorMat.needsUpdate = true;
-    if (emptyEl) emptyEl.style.display = 'flex';
-    return;
-  }
-
-  if (emptyEl) emptyEl.style.display = 'none';
-
-  /* Helper : (re)charge une texture si l'URL a changé. Réutilise l'instance
-     cachée sur solPreview pour économiser les re-télécharges quand on
-     modifie juste un slider. */
-  async function ensureTex(slot, theUrl, isData) {
-    if (!theUrl) {
-      if (solPreview[slot]) { solPreview[slot].dispose(); solPreview[slot] = null; }
-      return null;
-    }
-    const cached = solPreview[slot];
-    if (cached && cached._url === theUrl) return cached;
-    if (cached) cached.dispose();
-    return await new Promise((resolve) => {
-      const loader = new THREE.TextureLoader();
-      loader.crossOrigin = 'anonymous';
-      loader.load(theUrl, (tex) => {
-        tex._url = theUrl;
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.colorSpace = isData ? THREE.NoColorSpace : THREE.SRGBColorSpace;
-        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        solPreview[slot] = tex;
-        resolve(tex);
-      }, null, () => resolve(null));
+async function updateSolPreview(){
+  if(!solPreview) return;
+  const {THREE,floorMat,renderer}=solPreview;
+  const url=document.getElementById('sImageUrl').value.trim();
+  const nrmUrl=document.getElementById('sNormalUrl').value.trim();
+  const rghUrl=document.getElementById('sRoughnessUrl').value.trim();
+  const aoUrl=document.getElementById('sAoUrl').value.trim();
+  const repX=parseFloat(document.getElementById('sRepeatX').value)||4;
+  const repY=parseFloat(document.getElementById('sRepeatY').value)||4;
+  const rough=parseFloat(document.getElementById('sRoughness').value);
+  const nScale=parseFloat(document.getElementById('sNormalScale').value)||1;
+  const aoInt=parseFloat(document.getElementById('sAoIntensity').value)||1;
+  const bgCol=document.getElementById('sBgColor').value||'#EEEBE3';
+  const emptyEl=document.getElementById('solPreviewEmpty');
+  if(!url){['_albedoTex','_normalTex','_roughnessTex','_aoTex'].forEach(k=>{if(solPreview[k]){solPreview[k].dispose();solPreview[k]=null;}});floorMat.map=null;floorMat.normalMap=null;floorMat.roughnessMap=null;floorMat.aoMap=null;floorMat.color.set(bgCol);floorMat.roughness=isNaN(rough)?0.85:rough;floorMat.needsUpdate=true;if(emptyEl)emptyEl.style.display='flex';return;}
+  if(emptyEl) emptyEl.style.display='none';
+  async function ensureTex(slot,theUrl,isData){
+    if(!theUrl){if(solPreview[slot]){solPreview[slot].dispose();solPreview[slot]=null;}return null;}
+    const cached=solPreview[slot];
+    if(cached&&cached._url===theUrl) return cached;
+    if(cached) cached.dispose();
+    return await new Promise((resolve)=>{
+      const loader=new THREE.TextureLoader(); loader.crossOrigin='anonymous';
+      loader.load(theUrl,(tex)=>{tex._url=theUrl;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=isData?THREE.NoColorSpace:THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();solPreview[slot]=tex;resolve(tex);},null,()=>resolve(null));
     });
   }
-
-  const [albedoTex, normalTex, rghTex, aoTex] = await Promise.all([
-    ensureTex('_albedoTex',    url,    false),
-    ensureTex('_normalTex',    nrmUrl, true),
-    ensureTex('_roughnessTex', rghUrl, true),
-    ensureTex('_aoTex',        aoUrl,  true)
-  ]);
-
-  /* Application des maps + paramètres */
-  if (albedoTex) {
-    albedoTex.repeat.set(repX, repY);
-    albedoTex.needsUpdate = true;
-    floorMat.map = albedoTex;
-    floorMat.color.set(0xffffff);
-  } else {
-    floorMat.map = null;
-    floorMat.color.set(bgCol);
-    if (emptyEl) { emptyEl.textContent = '✗ Image albedo introuvable'; emptyEl.style.display = 'flex'; }
-  }
-  if (normalTex) {
-    normalTex.repeat.set(repX, repY);
-    normalTex.needsUpdate = true;
-    floorMat.normalMap = normalTex;
-    floorMat.normalScale.set(nScale, nScale);
-  } else {
-    floorMat.normalMap = null;
-  }
-  if (rghTex) {
-    rghTex.repeat.set(repX, repY);
-    rghTex.needsUpdate = true;
-    floorMat.roughnessMap = rghTex;
-    floorMat.roughness = isNaN(rough) ? 1.0 : rough; /* multiplicateur quand map présente */
-  } else {
-    floorMat.roughnessMap = null;
-    floorMat.roughness = isNaN(rough) ? 0.85 : rough;
-  }
-  if (aoTex) {
-    aoTex.repeat.set(repX, repY);
-    aoTex.needsUpdate = true;
-    floorMat.aoMap = aoTex;
-    floorMat.aoMapIntensity = aoInt;
-  } else {
-    floorMat.aoMap = null;
-  }
-  floorMat.needsUpdate = true;
+  const [albedoTex,normalTex,rghTex,aoTex]=await Promise.all([ensureTex('_albedoTex',url,false),ensureTex('_normalTex',nrmUrl,true),ensureTex('_roughnessTex',rghUrl,true),ensureTex('_aoTex',aoUrl,true)]);
+  if(albedoTex){albedoTex.repeat.set(repX,repY);albedoTex.needsUpdate=true;floorMat.map=albedoTex;floorMat.color.set(0xffffff);}
+  else{floorMat.map=null;floorMat.color.set(bgCol);if(emptyEl){emptyEl.textContent='✗ Image albedo introuvable';emptyEl.style.display='flex';}}
+  if(normalTex){normalTex.repeat.set(repX,repY);normalTex.needsUpdate=true;floorMat.normalMap=normalTex;floorMat.normalScale.set(nScale,nScale);}else floorMat.normalMap=null;
+  if(rghTex){rghTex.repeat.set(repX,repY);rghTex.needsUpdate=true;floorMat.roughnessMap=rghTex;floorMat.roughness=isNaN(rough)?1.0:rough;}else{floorMat.roughnessMap=null;floorMat.roughness=isNaN(rough)?0.85:rough;}
+  if(aoTex){aoTex.repeat.set(repX,repY);aoTex.needsUpdate=true;floorMat.aoMap=aoTex;floorMat.aoMapIntensity=aoInt;}else floorMat.aoMap=null;
+  floorMat.needsUpdate=true;
 }
-
-function disposeSolPreview() {
-  if (!solPreview) return;
-  if (solPreview.raf) cancelAnimationFrame(solPreview.raf);
-  ['_albedoTex','_normalTex','_roughnessTex','_aoTex','texture'].forEach(k => {
-    if (solPreview[k]) { try { solPreview[k].dispose(); } catch(_){} }
-  });
-  solPreview.floorMat.dispose();
-  solPreview.chair.material.dispose();
-  solPreview.chair.geometry.dispose();
-  solPreview.floor.geometry.dispose();
-  solPreview.renderer.dispose();
-  solPreview = null;
+function disposeSolPreview(){
+  if(!solPreview) return;
+  if(solPreview.raf) cancelAnimationFrame(solPreview.raf);
+  ['_albedoTex','_normalTex','_roughnessTex','_aoTex','texture'].forEach(k=>{if(solPreview[k]){try{solPreview[k].dispose();}catch(_){}}});
+  solPreview.floorMat.dispose(); solPreview.chair.material.dispose();
+  solPreview.chair.geometry.dispose(); solPreview.floor.geometry.dispose();
+  solPreview.renderer.dispose(); solPreview=null;
 }
-
 </script>
+
+<!-- ══ TEXTURE STUDIO — Three.js module ══ -->
+<script type="module">
+import * as THREE      from 'three';
+import { OBJLoader }   from 'three/addons/loaders/OBJLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
+
+let scene, camera, renderer, controls, model;
+const meshMap = {};
+const texLoader = new THREE.TextureLoader();
+window.tsMeshMap    = meshMap;
+window.tsThreeReady = false;
+
+window.tsInitThree = function() {
+  if (window.tsThreeReady) return;
+  window.tsThreeReady = true;
+  const container = document.getElementById('tsViewerWrap');
+  scene    = new THREE.Scene(); scene.background = new THREE.Color(0x141414);
+  camera   = new THREE.PerspectiveCamera(42, container.clientWidth/container.clientHeight, .001, 1000);
+  camera.position.set(0, 1.4, 3.5);
+  renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+  renderer.shadowMap.enabled = true;
+  container.appendChild(renderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = .06; controls.target.set(0,.5,0);
+  const key = new THREE.DirectionalLight(0xfff8ee, 2.0);
+  key.position.set(5,8,5); key.castShadow=true; key.shadow.mapSize.setScalar(2048); key.shadow.bias=-.001;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xe8f0ff, .6); fill.position.set(-4,3,-4); scene.add(fill);
+  scene.add(new THREE.HemisphereLight(0xfff5e0,0x222222,.7));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(20,20), new THREE.ShadowMaterial({opacity:.2}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+  scene.add(new THREE.GridHelper(10,24,0x252525,0x1e1e1e));
+  window.addEventListener('resize',()=>{
+    camera.aspect=container.clientWidth/container.clientHeight; camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  });
+  (function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);})();
+};
+
+window.tsLoad = function(file) {
+  const url = URL.createObjectURL(file);
+  new OBJLoader().load(url, (obj) => {
+    if (model) scene.remove(model);
+    Object.keys(meshMap).forEach(k => delete meshMap[k]);
+    model = obj; let idx=0;
+    obj.traverse(child => {
+      if (!child.isMesh) return;
+      if (!child.name) child.name = `mesh_${idx++}`;
+      meshMap[child.name] = child;
+      child.material = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+      child.castShadow = true; child.receiveShadow = true;
+    });
+    const box = new THREE.Box3().setFromObject(obj);
+    const ctr = box.getCenter(new THREE.Vector3());
+    const siz = box.getSize(new THREE.Vector3());
+    obj.position.sub(ctr); obj.position.y += siz.y/2;
+    obj.scale.setScalar(2/Math.max(siz.x,siz.y,siz.z));
+    camera.position.set(0,1.2,3.5); controls.target.set(0,.6,0); controls.update();
+    scene.add(obj);
+    document.getElementById('tsDrop').classList.add('hidden');
+    document.getElementById('tsBadge').classList.add('show');
+    document.getElementById('tsBadgeName').textContent = file.name;
+    document.getElementById('tsBtnGlb').disabled  = false;
+    document.getElementById('tsBtnSupa').disabled = false;
+    document.getElementById('tsBtnReload').style.display = 'block';
+    window.tsPartAssign = {};
+    tsAutoAssign(); tsRebuildParts();
+    URL.revokeObjectURL(url);
+  }, undefined, () => { window.toast && window.toast('Erreur chargement OBJ','err'); });
+};
+
+window.tsLoadTexture = function(part, mapKey, objUrl, fileName, onDone) {
+  texLoader.load(objUrl, tex => {
+    if (mapKey==='albedo') tex.colorSpace=THREE.SRGBColorSpace;
+    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+    const rep = window.tsPartRepeat[part]||{x:1,y:1};
+    tex.repeat.set(rep.x, rep.y);
+    if (!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
+    window.tsPartMat[part].maps[mapKey] = tex;
+    onDone && onDone();
+  });
+};
+
+window.tsApplyMaterial = function(part) {
+  const assign = window.tsPartAssign[part];
+  if (!assign?.size) return;
+  const d = window.tsPartMat[part]||{};
+  const m = d.maps||{};
+  const mat = new THREE.MeshStandardMaterial({
+    color:        new THREE.Color(d.color||'#ffffff'),
+    map:          m.albedo    || null,
+    normalMap:    m.normal    || null,
+    roughnessMap: m.roughness || null, roughness: m.roughness?1:.75,
+    metalnessMap: m.metalness || null, metalness: m.metalness?1:0,
+    aoMap:        m.ao        || null
+  });
+  assign.forEach(name => { if(meshMap[name]) meshMap[name].material=mat; });
+};
+
+window.tsResetMesh = function(name) {
+  if (meshMap[name]) meshMap[name].material = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+};
+
+window.tsUpdateRepeat = function(part) {
+  const rep = window.tsPartRepeat[part]||{x:1,y:1};
+  Object.values(window.tsPartMat[part]?.maps||{}).forEach(tex=>{tex.repeat.set(rep.x,rep.y);tex.needsUpdate=true;});
+};
+
+window.tsRemoveModel = function() { if(model){scene.remove(model);model=null;} };
+
+window.tsGetGLBBlob = function() {
+  return new Promise((resolve,reject) => {
+    if (!model){reject(new Error('Aucun modèle chargé'));return;}
+    new GLTFExporter().parse(model, result => {
+      resolve(new Blob([result],{type:'model/gltf-binary'}));
+    }, err=>reject(err), {binary:true});
+  });
+};
+</script>
+
 </body>
 </html>
