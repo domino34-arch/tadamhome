@@ -3088,7 +3088,7 @@ window.tsSetViewMode = function(mode) {
     controls.object = perspCamera;
     controls.enableRotate = true;
     controls.enablePan    = true;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
     const d = radius * 2.5;
     perspCamera.position.set(center.x + d*0.6, center.y + d*0.5, center.z + d);
     perspCamera.up.set(0, 1, 0);
@@ -3106,7 +3106,7 @@ window.tsSetViewMode = function(mode) {
     controls.target.copy(center);
     controls.enableRotate = true;
     controls.enablePan    = true;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
 
   } else if (mode === 'plan'){
     /* Vue de dessus — orthographique, pas de rotation */
@@ -3120,7 +3120,7 @@ window.tsSetViewMode = function(mode) {
     controls.target.copy(center);
     controls.enableRotate = false;
     controls.enablePan    = true;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
   }
 
   controls.update();
@@ -3168,7 +3168,7 @@ window.tsLoad = function(file) {
     } else {
       controls.object=perspCamera; activeCamera=perspCamera;
       controls.enableRotate=true;
-      controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN};
+      controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.PAN};
     }
     controls.update();
     scene.add(obj);
