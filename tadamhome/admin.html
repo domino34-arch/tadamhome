@@ -256,7 +256,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
 #tsStudio{display:none;flex:1;flex-direction:column;overflow:hidden}
 .ts-layout{display:flex;gap:0;flex:1;min-height:0}
 .ts-viewer{flex:1;position:relative;background:#141414;overflow:hidden;min-width:0}
-.ts-viewer canvas{display:block;width:100%!important;height:100%!important}
+.ts-viewer canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
 .ts-drop{position:absolute;inset:20px;border:1px dashed #3a3a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;z-index:5;transition:border-color .25s}
 .ts-drop.hidden{display:none}
 .ts-drop.drag-over{border-color:var(--accent)}
@@ -265,13 +265,19 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-drop:hover .ts-drop-icon,.ts-drop.drag-over .ts-drop-icon{border-color:var(--accent)}
 .ts-drop h3{font-family:var(--serif);font-size:17px;font-weight:300;color:#555}
 .ts-drop p{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#3a3a3a;font-family:var(--sans)}
-.ts-view-btns{position:absolute;bottom:12px;left:12px;display:flex;gap:2px;z-index:10}
-.ts-view-btn{padding:6px 12px;background:rgba(20,20,20,.75);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:9px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);transition:all .2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;gap:5px}
-.ts-view-btn:hover{border-color:var(--accent);color:rgba(255,255,255,.8)}
-.ts-view-btn.active{background:rgba(184,152,106,.25);border-color:var(--accent);color:var(--white)}
-.ts-view-btn svg{width:14px;height:14px;flex-shrink:0}
+.ts-viewer-ui{position:absolute;bottom:0;left:0;right:0;padding:20px 16px 14px;background:linear-gradient(to top,rgba(10,10,10,.85) 0%,transparent 100%);display:flex;align-items:center;gap:8px;z-index:10}
+.ts-view-btns{display:flex;gap:1px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px}
+.ts-view-btn{padding:5px 10px;background:transparent;border:none;color:rgba(255,255,255,.4);font-size:8px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);transition:all .18s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ts-view-btn:hover{color:rgba(255,255,255,.8)}
+.ts-view-btn.active{background:rgba(184,152,106,.2);color:var(--white)}
+.ts-view-btn svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.ts-view-btn.active svg{opacity:1}
+.ts-view-sep{width:1px;background:rgba(255,255,255,.1);align-self:stretch;margin:0 4px}
+.ts-view-del{padding:5px 10px;background:transparent;border:1px solid rgba(192,57,43,.25);color:rgba(192,57,43,.6);font-size:8px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);transition:all .18s;display:flex;align-items:center;gap:4px}
+.ts-view-del:hover{border-color:rgba(192,57,43,.6);color:rgba(192,57,43,.9)}
 .ts-badge{position:absolute;top:12px;left:12px;background:rgba(20,20,20,.85);border:1px solid #2a2a2a;padding:5px 12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#666;display:none;font-family:var(--sans)}
 .ts-badge.show{display:block}
+.ts-badge{z-index:10}
 .ts-badge span{color:var(--accent)}
 .ts-controls{width:310px;background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .ts-controls-head{padding:7px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -819,39 +825,38 @@ tr:hover td{background:rgba(184,152,106,.03)}
                 <p>Glisser-déposer ou cliquer</p>
               </div>
               <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
-              <!-- Boutons de vue -->
-              <div class="ts-view-btns" id="tsViewBtns">
-                <button class="ts-view-btn active" data-mode="3d" onclick="tsHandleViewMode(this)" title="Vue 3D perspective">
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
-                    <path d="M7 1L13 4.5v5L7 13 1 9.5v-5z"/>
-                    <line x1="7" y1="1" x2="7" y2="7.5"/>
-                    <line x1="1" y1="4.5" x2="7" y2="7.5"/>
-                    <line x1="13" y1="4.5" x2="7" y2="7.5"/>
-                  </svg>
-                  3D
-                </button>
-                <button class="ts-view-btn" data-mode="axo" onclick="tsHandleViewMode(this)" title="Vue axonométrique (isométrique)">
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
-                    <path d="M7 2L13 5v4L7 12 1 9V5z"/>
-                    <line x1="7" y1="2" x2="7" y2="7"/>
-                    <line x1="1" y1="5" x2="7" y2="7"/>
-                    <line x1="13" y1="5" x2="7" y2="7"/>
-                  </svg>
-                  Axo
-                </button>
-                <button class="ts-view-btn" data-mode="plan" onclick="tsHandleViewMode(this)" title="Vue de dessus (plan)">
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
-                    <rect x="1" y="1" width="12" height="12" rx="0.5"/>
-                    <line x1="7" y1="1" x2="7" y2="13" stroke-dasharray="1.5 1.5"/>
-                    <line x1="1" y1="7" x2="13" y2="7" stroke-dasharray="1.5 1.5"/>
-                  </svg>
-                  Plan
-                </button>
-                <button class="ts-view-btn" onclick="tsReload()" title="Supprimer le modèle et repartir à zéro" style="margin-left:8px;border-color:rgba(192,57,43,.3)">
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" width="14" height="14">
+              <!-- Viewer UI : vues + actions -->
+              <div class="ts-viewer-ui">
+                <div class="ts-view-btns" id="tsViewBtns">
+                  <button class="ts-view-btn active" data-mode="3d" onclick="tsHandleViewMode(this)" title="Vue 3D perspective">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <path d="M7 1L13 4.5v5L7 13 1 9.5v-5z"/>
+                      <line x1="7" y1="1" x2="7" y2="7.5"/>
+                      <line x1="1" y1="4.5" x2="7" y2="7.5"/>
+                      <line x1="13" y1="4.5" x2="7" y2="7.5"/>
+                    </svg>3D
+                  </button>
+                  <button class="ts-view-btn" data-mode="axo" onclick="tsHandleViewMode(this)" title="Vue axonométrique">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <path d="M7 2L13 5v4L7 12 1 9V5z"/>
+                      <line x1="7" y1="2" x2="7" y2="7"/>
+                      <line x1="1" y1="5" x2="7" y2="7"/>
+                      <line x1="13" y1="5" x2="7" y2="7"/>
+                    </svg>Axo
+                  </button>
+                  <button class="ts-view-btn" data-mode="plan" onclick="tsHandleViewMode(this)" title="Vue de dessus">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <rect x="1" y="1" width="12" height="12" rx="0.5"/>
+                      <line x1="7" y1="1" x2="7" y2="13" stroke-dasharray="1.5 1.5"/>
+                      <line x1="1" y1="7" x2="13" y2="7" stroke-dasharray="1.5 1.5"/>
+                    </svg>Plan
+                  </button>
+                </div>
+                <div class="ts-view-sep"></div>
+                <button class="ts-view-del" onclick="tsReload()" title="Repartir à zéro">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" width="12" height="12">
                     <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
-                  </svg>
-                  Vider
+                  </svg>Vider
                 </button>
               </div>
             </div>
@@ -909,7 +914,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
           </div>
 
           <!-- Footer export -->
-          <div class="ts-footer-v2" style="padding:8px 14px">
+          <div class="ts-footer-v2">
             <button class="btn-primary" id="tsBtnGlb" onclick="tsExportGLB()" disabled style="padding:10px 18px;font-size:10px">
               <div class="spin" id="tsSpinGlb"></div>Export GLB
             </button>
@@ -2874,7 +2879,7 @@ window.tsInitThree = function() {
 
   renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(W, H);
+  renderer.setSize(W, H, false);   /* CSS gère la taille d'affichage */
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true;
@@ -2893,12 +2898,18 @@ window.tsInitThree = function() {
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
   scene.add(new THREE.GridHelper(10,24,0x252525,0x1e1e1e));
 
-  window.addEventListener('resize',()=>{
+  /* ResizeObserver > window.resize pour le canvas dans un flex layout */
+  function onContainerResize(){
     const W2=container.clientWidth, H2=container.clientHeight;
-    perspCamera.aspect = W2/H2; perspCamera.updateProjectionMatrix();
+    if(!W2||!H2) return;
+    perspCamera.aspect = W2/H2;
+    perspCamera.updateProjectionMatrix();
     updateOrthoFrustum(container);
-    renderer.setSize(W2, H2);
-  });
+    renderer.setSize(W2, H2, false);   /* false = ne pas toucher au style CSS */
+  }
+  const resizeObs = new ResizeObserver(onContainerResize);
+  resizeObs.observe(container);
+  window.addEventListener('resize', onContainerResize);
 
   (function animate(){
     requestAnimationFrame(animate);
@@ -3461,8 +3472,17 @@ window.tsGetGLBBlob = function() {
 window.tsGetUSDZBlob = async function() {
   if (!model) throw new Error('Aucun modèle chargé');
   const exporter = new USDZExporter();
-  const arraybuffer = await exporter.parseAsync(model);
-  return new Blob([arraybuffer], {type:'model/vnd.usdz+zip'});
+  let result;
+  /* Three.js r158 : parse() synchrone. parseAsync() apparu en r163+ */
+  if (typeof exporter.parseAsync === 'function') {
+    result = await exporter.parseAsync(model);
+  } else if (typeof exporter.parse === 'function') {
+    const r = exporter.parse(model);
+    result = (r instanceof Promise) ? await r : r;
+  } else {
+    throw new Error('USDZExporter non disponible dans cette version de Three.js');
+  }
+  return new Blob([result], {type:'model/vnd.usdz+zip'});
 };
 </script>
 
