@@ -113,12 +113,26 @@
     border-bottom: 1px solid var(--th-border);
   }
 
-  /* Viewer 3D */
+  /* Viewer 3D
+     ────────────────────────────────────────────
+     SCROLL DÉSACTIVÉ DANS LE VIEWER 3D :
+     - touch-action: none      → tous les gestes tactiles (1 doigt vertical
+                                  inclus) sont captés par le viewer pour la
+                                  rotation/pan/zoom du modèle, le scroll
+                                  vertical de la page n'est plus déclenché
+                                  quand le doigt est dans le cadre 3D.
+     - overscroll-behavior:    → bloque le scroll-chaining vers le parent
+       contain                   quand la molette atteint une limite de zoom.
+     - sur <model-viewer> :    → touch-action="none" (au lieu de pan-y) pour
+                                  que la lib ne réserve pas le swipe vertical
+                                  au scroll de page. */
   .viewer3d {
     position: relative;
     background: var(--th-paper-2);
     overflow: hidden;
     min-height: 700px;
+    touch-action: none;
+    overscroll-behavior: contain;
   }
   /* Grille fine de fond — esprit blueprint */
   .viewer3d::before {
@@ -138,6 +152,8 @@
     background: transparent;
     --poster-color: transparent;
     z-index: 2;
+    /* Renforce côté CSS le touch-action="none" appliqué via attribut */
+    touch-action: none;
   }
   /* Cache le bouton AR natif du model-viewer */
   .viewer3d model-viewer::part(default-ar-button) { display: none !important; }
@@ -739,13 +755,16 @@
   <!-- Viewer 3D -->
   <div class="viewer3d">
 
+    <!-- touch-action="none" : capte tous les gestes (rotation 1 doigt en X ET Y,
+         pan 2 doigts, pinch zoom). Le scroll de page reste possible en
+         touchant la zone hors-viewer. -->
     <model-viewer
       id="mv"
       alt="Modèle 3D du produit"
       camera-controls
-      touch-action="pan-y"
+      touch-action="none"
       min-camera-orbit="auto 0deg auto"
-      max-camera-orbit="auto 180deg auto"
+      max-camera-orbit="auto 90deg auto"
       auto-rotate
       auto-rotate-delay="5000"
       rotation-per-second="20deg"
@@ -1004,6 +1023,23 @@
     };
     viewer.addEventListener('touchstart', skip, { once: true, passive: true });
     viewer.addEventListener('mousedown', skip, { once: true });
+  }
+
+  /* ── WHEEL CAPTURE — desktop ──────────────────────────────────────────
+     Sur desktop, model-viewer avec camera-controls zoome déjà sur la
+     molette à l'intérieur du viewer. Mais quand le zoom atteint sa limite
+     min/max, l'événement wheel peut bubbler jusqu'à la page et déclencher
+     un scroll vertical → exactement ce qu'on veut empêcher.
+
+     On attache un listener wheel non-passif sur .viewer3d avec
+     preventDefault, ce qui garantit que la molette reste 100% au service
+     du viewer 3D, jamais du scroll de page. */
+  function setupWheelCapture() {
+    const viewer = document.querySelector('.viewer3d');
+    if (!viewer) return;
+    viewer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+    }, { passive: false });
   }
 
   /* ── MATERIAL POLISH ──────────────────────────────────────────────────
@@ -1532,6 +1568,7 @@
     setupStickyCta();
     setupGestureHint();
     setupMaterialPolish();
+    setupWheelCapture();
 
     const params = new URLSearchParams(location.search);
     const productId = params.get('id');
