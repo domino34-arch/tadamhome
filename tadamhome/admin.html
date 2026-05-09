@@ -262,6 +262,11 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-drop:hover .ts-drop-icon,.ts-drop.drag-over .ts-drop-icon{border-color:var(--accent)}
 .ts-drop h3{font-family:var(--serif);font-size:17px;font-weight:300;color:#555}
 .ts-drop p{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#3a3a3a;font-family:var(--sans)}
+.ts-view-btns{position:absolute;bottom:12px;left:12px;display:flex;gap:2px;z-index:10}
+.ts-view-btn{padding:6px 12px;background:rgba(20,20,20,.75);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:9px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);transition:all .2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;gap:5px}
+.ts-view-btn:hover{border-color:var(--accent);color:rgba(255,255,255,.8)}
+.ts-view-btn.active{background:rgba(184,152,106,.25);border-color:var(--accent);color:var(--white)}
+.ts-view-btn svg{width:14px;height:14px;flex-shrink:0}
 .ts-badge{position:absolute;top:12px;left:12px;background:rgba(20,20,20,.85);border:1px solid #2a2a2a;padding:5px 12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#666;display:none;font-family:var(--sans)}
 .ts-badge.show{display:block}
 .ts-badge span{color:var(--accent)}
@@ -389,6 +394,27 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-color-sw:hover{border-color:var(--accent)}
 .ts-color-sw input[type=color]{position:absolute;inset:-6px;opacity:0;cursor:pointer;width:calc(100%+12px);height:calc(100%+12px)}
 .ts-uv-row{padding:10px 14px;border-bottom:1px solid var(--border)}
+/* Projection texture */
+.ts-proj-row{padding:10px 14px;border-bottom:1px solid var(--border)}
+.ts-proj-label{font-size:11px;color:var(--ink);font-family:var(--sans);margin-bottom:8px}
+.ts-proj-btns{display:flex;gap:3px}
+.ts-proj-btn{flex:1;padding:6px 4px;border:1px solid var(--border);background:var(--white);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:all .15s;color:var(--muted)}
+.ts-proj-btn:hover{border-color:var(--accent);color:var(--ink)}
+.ts-proj-btn.active{background:var(--ink);border-color:var(--ink);color:var(--white)}
+.ts-proj-btn svg{width:18px;height:18px}
+.ts-proj-btn span{font-size:7px;letter-spacing:.06em;font-family:var(--sans);white-space:nowrap}
+/* Mesh section clarity */
+.ts-mesh-bar{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.ts-mesh-bar-ttl{flex:1;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
+.ts-mesh-bar-cnt{font-size:9px;color:var(--muted);font-family:monospace}
+.ts-mesh-action{font-size:8px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans);text-decoration:underline;padding:0}
+.ts-mesh-action:hover{color:var(--accent)}
+.ts-mesh-explain{font-size:9px;color:var(--muted);font-family:var(--sans);line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:none}
+/* Help tooltip auto-seg */
+.ts-help-btn{background:none;border:1px solid var(--border);width:18px;height:18px;border-radius:50%;font-size:9px;cursor:pointer;color:var(--muted);font-family:var(--sans);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.ts-help-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ts-seg-help{padding:8px 12px;background:rgba(184,152,106,.08);border:1px solid rgba(184,152,106,.3);font-size:10px;color:var(--ink);font-family:var(--sans);line-height:1.6;display:none;margin-top:4px}
+.ts-seg-help strong{color:var(--accent)}
 .ts-uv-item{display:grid;grid-template-columns:12px 1fr 28px;align-items:center;gap:6px;margin-bottom:4px}
 .ts-uv-item:last-child{margin-bottom:0}
 .ts-uv-axis{font-size:9px;color:var(--muted);font-family:var(--sans);font-weight:500}
@@ -788,6 +814,35 @@ tr:hover td{background:rgba(184,152,106,.03)}
                 <p>Glisser-déposer ou cliquer</p>
               </div>
               <div class="ts-badge" id="tsBadge">Modèle : <span id="tsBadgeName">—</span></div>
+              <!-- Boutons de vue -->
+              <div class="ts-view-btns" id="tsViewBtns">
+                <button class="ts-view-btn active" data-mode="3d" onclick="tsHandleViewMode(this)" title="Vue 3D perspective">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <path d="M7 1L13 4.5v5L7 13 1 9.5v-5z"/>
+                    <line x1="7" y1="1" x2="7" y2="7.5"/>
+                    <line x1="1" y1="4.5" x2="7" y2="7.5"/>
+                    <line x1="13" y1="4.5" x2="7" y2="7.5"/>
+                  </svg>
+                  3D
+                </button>
+                <button class="ts-view-btn" data-mode="axo" onclick="tsHandleViewMode(this)" title="Vue axonométrique (isométrique)">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <path d="M7 2L13 5v4L7 12 1 9V5z"/>
+                    <line x1="7" y1="2" x2="7" y2="7"/>
+                    <line x1="1" y1="5" x2="7" y2="7"/>
+                    <line x1="13" y1="5" x2="7" y2="7"/>
+                  </svg>
+                  Axo
+                </button>
+                <button class="ts-view-btn" data-mode="plan" onclick="tsHandleViewMode(this)" title="Vue de dessus (plan)">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <rect x="1" y="1" width="12" height="12" rx="0.5"/>
+                    <line x1="7" y1="1" x2="7" y2="13" stroke-dasharray="1.5 1.5"/>
+                    <line x1="1" y1="7" x2="13" y2="7" stroke-dasharray="1.5 1.5"/>
+                  </svg>
+                  Plan
+                </button>
+              </div>
             </div>
 
             <!-- Colonne droite : Tableau PBR -->
@@ -797,7 +852,15 @@ tr:hover td{background:rgba(184,152,106,.03)}
                   <h4>Textures PBR</h4>
                   <p id="tsCtrlSub">Charger un modèle OBJ</p>
                 </div>
-                <button class="ts-seg-btn" id="tsSegBtn" onclick="tsSegmentAuto()" disabled style="width:auto;padding:6px 10px;font-size:8px">⬡ Auto-segmenter</button>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button class="ts-seg-btn" id="tsSegBtn" onclick="tsSegmentAuto()" disabled style="width:auto;padding:6px 10px;font-size:8px;flex:1">⬡ Auto-segmenter</button>
+                  <button class="ts-help-btn" onclick="tsToggleSegHelp()" title="Comment fonctionne l'auto-segmentation ?">?</button>
+                </div>
+                <div class="ts-seg-help" id="tsSegHelp">
+                  <strong>Auto-segmenter</strong> analyse les composantes géométriques <em>physiquement séparées</em> du modèle (groupes de triangles non-connectés) et les classe par partie selon leur position :<br>
+                  • Y bas → piétement &nbsp;• Y médian plat → assise &nbsp;• Y haut → dossier<br>
+                  <strong>Pourquoi 8 piétements ?</strong> Un fauteuil peut avoir 8 pièces distinctes : 4 pieds + 4 traverses ou supports. Ce sont toutes des parties du piétement, même si visuellement ça fait 4 pieds.
+                </div>
               </div>
 
               <!-- Part pills (générés dynamiquement) -->
@@ -2131,7 +2194,25 @@ function tsShowPartProps(part,meshNamesArg){
           oninput="tsHandleIntensity(event);tsUpdateSliderFill(this)">`:''}
       </div>`;
     } else if(p.type==='uv'){
-      html+=`<div class="ts-uv-row">
+      const curProj = (window.tsPartProjection||{})[part]||'uv';
+      const projModes = [
+        {id:'uv',     lbl:'UV',      svg:'<rect x="2" y="2" width="14" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="2" x2="9" y2="16" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5"/>'},
+        {id:'planar', lbl:'Plan',    svg:'<ellipse cx="9" cy="14" rx="7" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="14" x2="9" y2="5" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="14" x2="9" y2="5" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>'},
+        {id:'box',    lbl:'Boîte',   svg:'<path d="M9 2L16 6v8l-7 4-7-4V6z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="2" x2="9" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="6" x2="9" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="6" x2="9" y2="10" stroke="currentColor" stroke-width="1.5"/>'},
+        {id:'sphere', lbl:'Sphère',  svg:'<circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="9" cy="9" rx="4" ry="7" fill="none" stroke="currentColor" stroke-width="1.5"/>'},
+        {id:'cylinder',lbl:'Cylindre',svg:'<ellipse cx="9" cy="5" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="9" cy="13" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="5" x2="3" y2="13" stroke="currentColor" stroke-width="1.5"/><line x1="15" y1="5" x2="15" y2="13" stroke="currentColor" stroke-width="1.5"/>'},
+      ];
+      html+=`<div class="ts-proj-row">
+        <div class="ts-proj-label">Projection de texture</div>
+        <div class="ts-proj-btns" id="tsProjBtns-${CSS.escape(part)}">
+          ${projModes.map(m=>`<button class="ts-proj-btn${curProj===m.id?' active':''}" data-proj="${m.id}" data-part="${part}"
+            onclick="tsHandleProjection(event)" title="${m.lbl}">
+            <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">${m.svg}</svg>
+            <span>${m.lbl}</span>
+          </button>`).join('')}
+        </div>
+      </div>
+      <div class="ts-uv-row">
         <div style="font-size:11px;color:var(--ink);font-family:var(--sans);margin-bottom:8px">Répétition UV</div>
         <div class="ts-uv-item">
           <span class="ts-uv-axis">U</span>
@@ -2148,14 +2229,43 @@ function tsShowPartProps(part,meshNamesArg){
   });
   document.getElementById('tsPropsPanel').innerHTML=html;
   if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
-  document.getElementById('tsMeshChips').innerHTML=meshNames.length
-    ?meshNames.map(m=>`<span class="ts-mchip${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')
-    :`<span style="font-size:10px;color:#bbb;font-family:var(--sans);font-style:italic">Aucun mesh chargé</span>`;
+  /* Meshes section — version clarifiée */
+  const meshSec = document.getElementById('tsMeshSection');
+  const assign  = window.tsPartAssign[part] || new Set();
+  const assignedMeshes = meshNames.filter(m => assign.has(m));
+  const nAssigned = assignedMeshes.length;
+
+  /* Titre + badge + actions */
+  const ttlEl = meshSec.querySelector('.ts-mesh-section-ttl') || document.createElement('div');
+  ttlEl.outerHTML && null;
+  
+  /* Reconstruire la section mesh */
+  meshSec.innerHTML = `<div class="ts-mesh-bar">
+    <span class="ts-mesh-bar-ttl">Meshes associés à "${part}"</span>
+    <span class="ts-mesh-bar-cnt">${nAssigned}/${meshNames.length}</span>
+    <button class="ts-mesh-action" onclick="tsMeshSelectAll('${part}')">Tout</button>
+    <button class="ts-mesh-action" onclick="tsMeshSelectNone('${part}')">Aucun</button>
+  </div>
+  <div class="ts-mesh-chips" id="tsMeshChips">
+    ${meshNames.length
+      ? meshNames.map(m=>`<span class="ts-mchip${assign.has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')
+      : `<span style="font-size:10px;color:#bbb;font-family:var(--sans);font-style:italic">Charger un modèle OBJ</span>`}
+  </div>
+  ${meshNames.length > 1 ? `<div class="ts-mesh-explain" id="tsMeshExplain">
+    <strong>Pourquoi plusieurs meshes ?</strong> Après auto-segmentation, chaque pièce géométriquement séparée (ex. pied de chaise, traverse) devient un mesh distinct. Ils sont tous assignés à "${part}" car ils forment la même partie du meuble.
+    <br><button class="ts-mesh-action" onclick="document.getElementById('tsMeshExplain').style.display='none'" style="margin-top:4px">Fermer</button>
+  </div>
+  <button class="ts-mesh-action" style="margin-top:4px;font-size:8px;display:${nAssigned>1?'block':'none'}" onclick="document.getElementById('tsMeshExplain').style.display='block'">
+    ⓘ Pourquoi ${nAssigned} mesh${nAssigned>1?'es':''} ?
+  </button>` : ''}`;
+
   document.getElementById('tsMeshChips').querySelectorAll('.ts-mchip').forEach(chip=>{
     chip.addEventListener('click',()=>{
       const m=chip.dataset.mesh,pt=chip.dataset.part;
       if(window.tsPartAssign[pt].has(m)){window.tsPartAssign[pt].delete(m);chip.classList.remove('active');window.tsResetMesh&&window.tsResetMesh(m);}
       else{window.tsPartAssign[pt].add(m);chip.classList.add('active');window.tsApplyMaterial&&window.tsApplyMaterial(pt);}
+      /* Mettre à jour le compteur */
+      meshSec.querySelector('.ts-mesh-bar-cnt').textContent = [...window.tsPartAssign[pt]].filter(n=>window.tsMeshMap[n]).length+'/'+meshNames.length;
     });
   });
   /* Toujours appliquer le matériau au switch — preview live même sans mesh assigné */
@@ -2244,6 +2354,38 @@ function tsHandleIntensity(e){
   window.tsApplyMaterial && window.tsApplyMaterial(part);
 }
 
+function tsHandleViewMode(btn){
+  document.querySelectorAll('.ts-view-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window.tsSetViewMode && window.tsSetViewMode(btn.dataset.mode);
+}
+function tsToggleSegHelp(){
+  const el=document.getElementById('tsSegHelp');
+  el.style.display=el.style.display==='block'?'none':'block';
+}
+function tsHandleProjection(e){
+  const part=e.currentTarget.dataset.part;
+  const mode=e.currentTarget.dataset.proj;
+  if(!window.tsPartProjection) window.tsPartProjection={};
+  window.tsPartProjection[part]=mode;
+  /* Mettre à jour l'UI des boutons */
+  const wrap=document.getElementById(`tsProjBtns-${CSS.escape(part)}`);
+  if(wrap) wrap.querySelectorAll('.ts-proj-btn').forEach(b=>b.classList.toggle('active',b.dataset.proj===mode));
+  /* Appliquer la projection sur le modèle */
+  window.tsSetProjectionMode && window.tsSetProjectionMode(part, mode, window.tsPartRepeat[part]||{x:1,y:1});
+}
+function tsMeshSelectAll(part){
+  const meshMap=window.tsMeshMap||{};
+  if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
+  Object.keys(meshMap).forEach(m=>{window.tsPartAssign[part].add(m);});
+  tsShowPartProps(part, Object.keys(meshMap));
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
+}
+function tsMeshSelectNone(part){
+  window.tsPartAssign[part]=new Set();
+  Object.keys(window.tsMeshMap||{}).forEach(m=>window.tsResetMesh&&window.tsResetMesh(m));
+  tsShowPartProps(part, Object.keys(window.tsMeshMap||{}));
+}
 function tsHandleRepeat(e){
   const part=e.target.dataset.part, axis=e.target.dataset.axis;
   const val=parseFloat(e.target.value);
@@ -2672,36 +2814,140 @@ const texLoader = new THREE.TextureLoader();
 window.tsMeshMap    = meshMap;
 window.tsThreeReady = false;
 
+/* ── Cameras ────────────────────────────────────────────────── */
+let perspCamera, orthoCamera, activeCamera;
+let orthoFrustumScale = 3.0;  /* demi-hauteur de la frustum ortho */
+
+function getModelCenter(){
+  if (!model) return new THREE.Vector3(0, 0.6, 0);
+  const bb = new THREE.Box3().setFromObject(model);
+  return bb.getCenter(new THREE.Vector3());
+}
+function getModelRadius(){
+  if (!model) return 2;
+  const bb = new THREE.Box3().setFromObject(model);
+  return bb.getSize(new THREE.Vector3()).length() * 0.5;
+}
+function updateOrthoFrustum(cont){
+  const asp = cont.clientWidth / cont.clientHeight;
+  const s   = orthoFrustumScale;
+  orthoCamera.left   = -s * asp;  orthoCamera.right  = s * asp;
+  orthoCamera.top    =  s;        orthoCamera.bottom = -s;
+  orthoCamera.updateProjectionMatrix();
+}
+
 /* ── Init Three.js ─────────────────────────────────────────── */
 window.tsInitThree = function() {
   if (window.tsThreeReady) return;
   window.tsThreeReady = true;
   const container = document.getElementById('tsViewerWrap');
-  scene    = new THREE.Scene(); scene.background = new THREE.Color(0x141414);
-  camera   = new THREE.PerspectiveCamera(42, container.clientWidth/container.clientHeight, .001, 1000);
-  camera.position.set(0, 1.4, 3.5);
+  const W = container.clientWidth, H = container.clientHeight;
+  const asp = W / H;
+
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x141414);
+
+  /* Caméra perspective (mode 3D) */
+  perspCamera = new THREE.PerspectiveCamera(42, asp, .001, 1000);
+  perspCamera.position.set(0, 1.4, 3.5);
+
+  /* Caméra orthographique (modes Plan + Axo) */
+  orthoCamera = new THREE.OrthographicCamera(
+    -orthoFrustumScale*asp,  orthoFrustumScale*asp,
+     orthoFrustumScale,     -orthoFrustumScale,
+    0.001, 1000
+  );
+
+  activeCamera = perspCamera;
+  camera = perspCamera;  /* alias rétro-compat */
+
   renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setSize(W, H);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
-  controls = new OrbitControls(camera, renderer.domElement);
+
+  controls = new OrbitControls(perspCamera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = .06; controls.target.set(0,.5,0);
+
   const key = new THREE.DirectionalLight(0xfff8ee, 2.0);
   key.position.set(5,8,5); key.castShadow=true; key.shadow.mapSize.setScalar(2048); key.shadow.bias=-.001;
   scene.add(key);
-  scene.add(new THREE.DirectionalLight(0xe8f0ff,.6).position.set(-4,3,-4) && new THREE.DirectionalLight(0xe8f0ff,.6));
+  scene.add(new THREE.DirectionalLight(0xe8f0ff,.6));
+  scene.children[scene.children.length-1].position.set(-4,3,-4);
   scene.add(new THREE.HemisphereLight(0xfff5e0,0x222222,.7));
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(20,20), new THREE.ShadowMaterial({opacity:.2}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
   scene.add(new THREE.GridHelper(10,24,0x252525,0x1e1e1e));
+
   window.addEventListener('resize',()=>{
-    camera.aspect=container.clientWidth/container.clientHeight; camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    const W2=container.clientWidth, H2=container.clientHeight;
+    perspCamera.aspect = W2/H2; perspCamera.updateProjectionMatrix();
+    updateOrthoFrustum(container);
+    renderer.setSize(W2, H2);
   });
-  (function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);})();
+
+  (function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, activeCamera);
+  })();
+};
+
+/* ── Changement de vue ─────────────────────────────────────── */
+window.tsSetViewMode = function(mode) {
+  if (!perspCamera) return;
+  const container = document.getElementById('tsViewerWrap');
+  const center = getModelCenter();
+  const radius = getModelRadius();
+
+  /* Adapter la frustum ortho à la taille du modèle */
+  orthoFrustumScale = Math.max(radius * 1.4, 2.0);
+
+  if (mode === '3d'){
+    /* Vue perspective — orbite libre */
+    activeCamera = perspCamera;
+    controls.object = perspCamera;
+    controls.enableRotate = true;
+    controls.enablePan    = true;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    const d = radius * 2.5;
+    perspCamera.position.set(center.x + d*0.6, center.y + d*0.5, center.z + d);
+    perspCamera.up.set(0, 1, 0);
+    controls.target.copy(center);
+
+  } else if (mode === 'axo'){
+    /* Vue axonométrique — orthographique, rotation + pan + zoom */
+    activeCamera = orthoCamera;
+    controls.object = orthoCamera;
+    updateOrthoFrustum(container);
+    const d = orthoFrustumScale * 3;
+    orthoCamera.position.set(center.x + d, center.y + d*0.7, center.z + d);
+    orthoCamera.up.set(0, 1, 0);
+    orthoCamera.lookAt(center);
+    controls.target.copy(center);
+    controls.enableRotate = true;
+    controls.enablePan    = true;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+
+  } else if (mode === 'plan'){
+    /* Vue de dessus — orthographique, pas de rotation */
+    activeCamera = orthoCamera;
+    controls.object = orthoCamera;
+    updateOrthoFrustum(container);
+    const h = orthoFrustumScale * 3;
+    orthoCamera.position.set(center.x, center.y + h, center.z);
+    orthoCamera.up.set(0, 0, -1);  /* Z négatif = haut de l'écran = "nord" */
+    orthoCamera.lookAt(center);
+    controls.target.copy(center);
+    controls.enableRotate = false;
+    controls.enablePan    = true;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+  }
+
+  controls.update();
+  window.tsCurrentViewMode = mode;
 };
 
 /* ── Load OBJ ──────────────────────────────────────────────── */
@@ -2723,7 +2969,23 @@ window.tsLoad = function(file) {
     const siz = box.getSize(new THREE.Vector3());
     obj.position.sub(ctr); obj.position.y += siz.y/2;
     obj.scale.setScalar(2/Math.max(siz.x,siz.y,siz.z));
-    camera.position.set(0,1.2,3.5); controls.target.set(0,.6,0); controls.update();
+    /* Recentrer la caméra sur le modèle chargé */
+    const bb2=new THREE.Box3().setFromObject(obj);
+    const ctr2=bb2.getCenter(new THREE.Vector3());
+    const rad2=bb2.getSize(new THREE.Vector3()).length()*0.5;
+    const d2=rad2*2.5;
+    perspCamera.position.set(ctr2.x+d2*0.6, ctr2.y+d2*0.5, ctr2.z+d2);
+    perspCamera.up.set(0,1,0);
+    controls.target.copy(ctr2);
+    /* Si un mode de vue était actif, le réappliquer */
+    if (window.tsCurrentViewMode && window.tsCurrentViewMode!=='3d'){
+      window.tsSetViewMode(window.tsCurrentViewMode);
+    } else {
+      controls.object=perspCamera; activeCamera=perspCamera;
+      controls.enableRotate=true;
+      controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN};
+    }
+    controls.update();
     scene.add(obj);
     document.getElementById('tsDrop').classList.add('hidden');
     document.getElementById('tsBadge').classList.add('show');
@@ -2734,6 +2996,9 @@ window.tsLoad = function(file) {
     document.getElementById('tsBtnReload').style.display = 'block';
     document.getElementById('tsSegBtn').disabled = false;
     window.tsPartAssign = {};
+    window.tsPartProjection = {};  /* reset projections au nouveau modèle */
+    /* Sauvegarder UVs originaux de chaque mesh */
+    Object.values(meshMap).forEach(mesh => saveOriginalUVs(mesh));
     /* Auto-assign par mots-clés si catégorie sélectionnée */
     if (window.tsCurrentCat) tsKeywordAssign();
     tsRenderPBRTable();
@@ -3043,24 +3308,116 @@ window.tsApplyMaterial = function(part) {
     ? [...assign].filter(n => meshMap[n]).map(n => meshMap[n])
     : Object.values(meshMap);
 
-  targets.forEach(mesh => { mesh.material = mat; });
+  targets.forEach(mesh => {
+    mesh.material = mat;
+    /* Sauvegarder les UVs originaux si pas encore fait */
+    saveOriginalUVs(mesh);
+    /* Re-appliquer la projection si un mode est actif */
+    const proj = (window.tsPartProjection||{})[part];
+    if (proj && proj !== 'uv') {
+      const rep = window.tsPartRepeat[part]||{x:1,y:1};
+      applyProjectionToMesh(mesh, proj, rep.x, rep.y);
+    }
+  });
 };
 
 window.tsResetMesh = function(name) {
   if(meshMap[name]) meshMap[name].material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
 };
 
-/* ── UV repeat : mise à jour directe sans recréer le matériau ── */
+/* ── UV repeat ── */
 window.tsUpdateRepeat = function(part) {
   const rep = window.tsPartRepeat[part]||{x:1,y:1};
   const mat = partMaterials[part];
-  /* Mettre à jour les textures */
   Object.values(window.tsPartMat[part]?.maps||{}).forEach(tex=>{
     tex.repeat.set(rep.x, rep.y);
     tex.needsUpdate = true;
   });
-  /* Forcer le rendu du matériau */
   if (mat) mat.needsUpdate = true;
+};
+
+/* ── Texture Projection ────────────────────────────────────── */
+window.tsPartProjection = {};
+
+/* Stockage des UVs originaux par mesh */
+function saveOriginalUVs(mesh){
+  const geo = mesh.geometry;
+  if (!geo._origUV && geo.attributes.uv) {
+    geo._origUV = new Float32Array(geo.attributes.uv.array);
+  }
+}
+
+function applyProjectionToMesh(mesh, mode, scaleX, scaleY){
+  const geo = mesh.geometry;
+  if (!geo.attributes.position) return;
+  saveOriginalUVs(mesh);
+
+  const pos    = geo.attributes.position;
+  const norms  = geo.attributes.normal;
+  const count  = pos.count;
+
+  /* Restaurer les UVs originaux si mode UV */
+  if (mode === 'uv') {
+    if (geo._origUV && geo.attributes.uv) {
+      geo.attributes.uv.array.set(geo._origUV);
+      geo.attributes.uv.needsUpdate = true;
+    }
+    return;
+  }
+
+  /* Calculer la bounding box locale du mesh */
+  geo.computeBoundingBox();
+  const bb   = geo.boundingBox;
+  const size = bb.getSize(new THREE.Vector3());
+  const ctr  = bb.getCenter(new THREE.Vector3());
+  const sx   = size.x||1, sy = size.y||1, sz = size.z||1;
+
+  if (!geo.attributes.uv) {
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(count*2), 2));
+  }
+  const uv = geo.attributes.uv;
+
+  for (let i=0; i<count; i++){
+    const x = pos.getX(i) - ctr.x;
+    const y = pos.getY(i) - ctr.y;
+    const z = pos.getZ(i) - ctr.z;
+    let u=0, v=0;
+
+    if (mode === 'planar'){
+      /* Projection depuis le dessus (XZ) */
+      u = x/sx + 0.5;
+      v = z/sz + 0.5;
+    } else if (mode === 'box'){
+      /* Triplanar : axe dominant de la normale */
+      const nx = norms ? Math.abs(norms.getX(i)) : 0;
+      const ny = norms ? Math.abs(norms.getY(i)) : 1;
+      const nz = norms ? Math.abs(norms.getZ(i)) : 0;
+      if (nx >= ny && nx >= nz){ u = z/sz+.5; v = y/sy+.5; }
+      else if (ny >= nx && ny >= nz){ u = x/sx+.5; v = z/sz+.5; }
+      else { u = x/sx+.5; v = y/sy+.5; }
+    } else if (mode === 'sphere'){
+      const r = Math.sqrt(x*x+y*y+z*z)||1;
+      u = Math.atan2(z, x)/(2*Math.PI) + 0.5;
+      v = Math.asin(Math.max(-1, Math.min(1, y/r)))/Math.PI + 0.5;
+    } else if (mode === 'cylinder'){
+      u = Math.atan2(z, x)/(2*Math.PI) + 0.5;
+      v = y/sy + 0.5;
+    }
+    uv.setXY(i, u, v);
+  }
+  geo.attributes.uv.needsUpdate = true;
+}
+
+window.tsSetProjectionMode = function(part, mode, rep){
+  const assign  = window.tsPartAssign[part];
+  const hasAssign = assign && assign.size > 0;
+  const targets = hasAssign
+    ? [...assign].filter(n=>meshMap[n]).map(n=>meshMap[n])
+    : Object.values(meshMap);
+  const rx = rep?.x||1, ry = rep?.y||1;
+  targets.forEach(mesh => applyProjectionToMesh(mesh, mode, rx, ry));
+  /* Mettre à jour la texture repeat en conséquence */
+  if (partMaterials[part]) partMaterials[part].needsUpdate = true;
 };
 
 /* ── Apply real dimensions (cm → m) ───────────────────────── */
