@@ -352,59 +352,54 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-cat-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-family:var(--sans);white-space:nowrap}
 
 /* ══ PBR SPREADSHEET TABLE ══ */
-.ts-table-wrap{flex:1;overflow-y:auto;overflow-x:auto}
-.ts-table-wrap::-webkit-scrollbar{width:3px;height:3px}
-.ts-table-wrap::-webkit-scrollbar-thumb{background:var(--border)}
-.ts-pbr-tbl{width:100%;border-collapse:collapse}
-.ts-pbr-tbl th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 4px;background:var(--bg);border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;font-family:var(--sans);font-weight:400;position:sticky;top:0;z-index:1}
-.ts-pbr-tbl th:first-child{text-align:left;padding-left:12px;min-width:90px}
-.ts-pbr-tbl td{border-bottom:1px solid var(--border);padding:5px 4px;vertical-align:middle;text-align:center}
-.ts-pbr-tbl td:first-child{font-family:var(--serif);font-size:14px;color:var(--ink);text-transform:capitalize;padding-left:12px;text-align:left;white-space:nowrap;font-weight:400}
-.ts-pbr-tbl tr:last-child td{border-bottom:none}
-.ts-pbr-tbl tr:hover td{background:rgba(184,152,106,.03)}
-.ts-tbl-dot{width:7px;height:7px;border:1px solid var(--border);display:inline-block;vertical-align:middle;margin-right:5px;flex-shrink:0}
-.ts-tbl-dot.live{background:var(--accent);border-color:var(--accent)}
-/* PBR Cell */
-.ts-pcell{position:relative;width:50px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px dashed var(--border);background:var(--white);cursor:pointer;overflow:hidden;transition:border-color .2s;vertical-align:middle}
-.ts-pcell:hover{border-color:var(--accent)}
-.ts-pcell.loaded{border-style:solid;border-color:var(--accent)}
-.ts-pcell input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}
-.ts-pcell-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.ts-pcell-ico{font-size:12px;color:var(--muted);z-index:1}
-.ts-pcell-del{position:absolute;top:1px;right:1px;width:14px;height:14px;background:rgba(192,57,43,.9);border:none;color:white;font-size:8px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:3;line-height:1}
-.ts-pcell.loaded .ts-pcell-del{display:flex}
-/* ── Intensity overlay (hover sur cellule PBR) ── */
-.ts-pcell-int{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.72);padding:2px 4px;display:flex;align-items:center;gap:2px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2}
-.ts-pcell:hover .ts-pcell-int,.ts-pcell:focus-within .ts-pcell-int{opacity:1;pointer-events:all}
-.ts-int-sl{flex:1;-webkit-appearance:none;appearance:none;height:1px;background:rgba(255,255,255,.25);outline:none;cursor:pointer;min-width:0}
-.ts-int-sl::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
-.ts-int-sl::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
-.ts-int-val{font-size:7px;color:rgba(255,255,255,.9);font-family:monospace;min-width:22px;text-align:right;white-space:nowrap}
-/* ── Sliders roughness/metalness dans la ligne de base ── */
-.ts-base-sl{display:flex;align-items:center;gap:3px}
-.ts-base-sl label{font-size:8px;color:var(--muted);font-family:var(--sans);white-space:nowrap}
-.ts-base-sl input[type=range]{width:44px;-webkit-appearance:none;appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer}
-.ts-base-sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
-.ts-base-sl input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
-.ts-base-sl span{font-size:8px;color:var(--ink);font-family:monospace;min-width:24px}
-/* Mesh tags row */
-.ts-mesh-row td{padding:4px 4px}
-.ts-mesh-row td:first-child{font-size:10px;color:var(--muted);font-family:var(--sans);font-style:italic;font-family:var(--sans)}
-.ts-mesh-chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
-.ts-mchip{font-size:9px;padding:2px 6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+/* ══ VECTARY-STYLE CONTROLS ══ */
+.ts-part-pills{display:none;gap:2px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;flex-shrink:0}
+.ts-part-pill{padding:5px 12px;font-size:9px;letter-spacing:.06em;text-transform:capitalize;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.ts-part-pill:hover{border-color:var(--accent);color:var(--ink)}
+.ts-part-pill.active{background:var(--ink);border-color:var(--ink);color:var(--white)}
+.ts-pp-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+.ts-part-pill.active .ts-pp-dot{background:rgba(255,255,255,.6)}
+.ts-props-scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:none}
+.ts-props-scroll::-webkit-scrollbar{width:2px}
+.ts-props-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+.ts-mat-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between}
+.ts-mat-name{font-size:13px;font-weight:500;color:var(--ink);font-family:var(--sans);text-transform:capitalize;line-height:1.2}
+.ts-mat-sub{font-size:10px;color:var(--muted);font-family:var(--sans);margin-top:2px}
+.ts-prop-row{padding:11px 14px 12px;border-bottom:1px solid var(--border);position:relative;transition:background .15s}
+.ts-prop-row:hover{background:rgba(184,152,106,.02)}
+.ts-prop-top{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ts-prop-label{flex:1;font-size:12px;color:var(--ink);font-family:var(--sans);font-weight:400}
+.ts-prop-pct{font-size:11px;color:var(--muted);font-family:monospace;min-width:36px;text-align:right}
+.ts-prop-swatch{width:34px;height:34px;border:1px solid var(--border);flex-shrink:0;cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s}
+.ts-prop-swatch:hover{border-color:var(--accent)}
+.ts-prop-swatch.loaded{border-color:var(--accent)}
+.ts-prop-swatch input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2;width:100%;height:100%}
+.ts-prop-swatch img{width:100%;height:100%;object-fit:cover;display:block}
+.ts-sw-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--border);background:var(--bg)}
+.ts-prop-swatch:hover .ts-sw-empty{color:var(--muted)}
+.ts-prop-del-btn{position:absolute;top:11px;right:56px;font-size:9px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans);text-decoration:underline;opacity:0;transition:opacity .2s;padding:0;line-height:1}
+.ts-prop-row:hover .ts-prop-del-btn{opacity:1}
+.ts-prop-del-btn:hover{color:var(--red)}
+.ts-prop-sl{width:100%;-webkit-appearance:none;appearance:none;height:2px;border-radius:1px;outline:none;cursor:pointer}
+.ts-prop-sl::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--white);border:1.5px solid rgba(28,27,24,.2);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ts-prop-sl::-moz-range-thumb{width:14px;height:14px;background:var(--white);border:1.5px solid rgba(28,27,24,.2);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ts-color-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.ts-color-label{flex:1;font-size:12px;color:var(--ink);font-family:var(--sans)}
+.ts-color-sw{width:34px;height:34px;border:1px solid var(--border);cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s}
+.ts-color-sw:hover{border-color:var(--accent)}
+.ts-color-sw input[type=color]{position:absolute;inset:-6px;opacity:0;cursor:pointer;width:calc(100%+12px);height:calc(100%+12px)}
+.ts-uv-row{padding:10px 14px;border-bottom:1px solid var(--border)}
+.ts-uv-item{display:grid;grid-template-columns:12px 1fr 28px;align-items:center;gap:6px;margin-bottom:4px}
+.ts-uv-item:last-child{margin-bottom:0}
+.ts-uv-axis{font-size:9px;color:var(--muted);font-family:var(--sans);font-weight:500}
+.ts-uv-val{font-size:9px;font-family:monospace;color:var(--ink);text-align:right}
+.ts-mesh-section{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;display:none}
+.ts-mesh-section-ttl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--sans)}
+.ts-mesh-chips{display:flex;flex-wrap:wrap;gap:3px}
+.ts-mchip{font-size:9px;padding:3px 8px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
 .ts-mchip:hover{border-color:var(--accent);color:var(--ink)}
 .ts-mchip.active{background:var(--accent);border-color:var(--accent);color:white}
-/* Color + UV row */
-.ts-extra-row td{padding:5px 4px;background:rgba(184,152,106,.03)}
-.ts-color-pick{width:30px;height:24px;border:1px solid var(--border);cursor:pointer;padding:1px;background:var(--bg);vertical-align:middle}
-.ts-uv-mini{display:flex;align-items:center;gap:3px;justify-content:center}
-.ts-uv-mini label{font-size:8px;color:var(--muted);font-family:var(--sans)}
-.ts-uv-mini input[type=range]{width:50px;-webkit-appearance:none;appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer}
-.ts-uv-mini input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:8px;height:8px;background:var(--accent);cursor:pointer}
-.ts-uv-mini input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:none;cursor:pointer}
-.ts-uv-mini span{font-size:9px;color:var(--ink);font-family:monospace;min-width:22px}
 
-/* ══ Controls sidebar (bottom part) ══ */
 .ts-ctrl-foot{flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border)}
 .ts-seg-btn{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);font-family:var(--sans);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
 .ts-seg-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -805,31 +800,28 @@ tr:hover td{background:rgba(184,152,106,.03)}
                 <button class="ts-seg-btn" id="tsSegBtn" onclick="tsSegmentAuto()" disabled style="width:auto;padding:6px 10px;font-size:8px">⬡ Auto-segmenter</button>
               </div>
 
-              <!-- Tableau scrollable -->
-              <div class="ts-table-wrap">
-                <div id="tsTableEmpty" style="padding:32px 16px;text-align:center;color:var(--muted)">
-                  <div style="font-family:var(--serif);font-size:15px;font-weight:300;margin-bottom:6px;color:var(--ink)">En attente d'un modèle</div>
-                  <p style="font-size:11px;line-height:1.7;font-family:var(--sans)">Glissez votre fichier OBJ<br>dans le viewer à gauche.</p>
-                </div>
-                <table class="ts-pbr-tbl" id="tsPbrTable" style="display:none">
-                  <thead>
-                    <tr>
-                      <th>Partie</th>
-                      <th title="Couleur de base">🎨 Albedo</th>
-                      <th title="Normal map">〰 Normal</th>
-                      <th title="Rugosité">◫ Rough</th>
-                      <th title="Métal">⬟ Métal</th>
-                      <th title="Ambient Occlusion">◉ AO</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tsPbrTbody"></tbody>
-                </table>
+              <!-- Part pills (générés dynamiquement) -->
+              <div class="ts-part-pills" id="tsPartPills"></div>
+
+              <!-- État vide -->
+              <div id="tsEmptyMsg" style="padding:32px 16px;text-align:center;color:var(--muted)">
+                <div style="font-family:var(--serif);font-size:15px;font-weight:300;margin-bottom:6px;color:var(--ink)">En attente d'un modèle</div>
+                <p style="font-size:11px;line-height:1.7;font-family:var(--sans)">Glissez votre fichier OBJ<br>dans le viewer à gauche.</p>
               </div>
 
-              <!-- Pied : segmentation -->
-              <div class="ts-ctrl-foot">
-                <div id="tsSegInfo" style="font-size:10px;color:var(--muted);font-family:var(--sans);margin-bottom:6px;display:none"></div>
+              <!-- Panneau propriétés Vectary -->
+              <div class="ts-props-scroll" id="tsPropsScroll">
+                <div id="tsPropsPanel"></div>
               </div>
+
+              <!-- Meshes associés (sticky bottom) -->
+              <div class="ts-mesh-section" id="tsMeshSection">
+                <div class="ts-mesh-section-ttl">Meshes associés</div>
+                <div class="ts-mesh-chips" id="tsMeshChips"></div>
+              </div>
+
+              <!-- Info segmentation -->
+              <div id="tsSegInfo" style="font-size:10px;color:var(--muted);font-family:var(--sans);padding:6px 14px;border-top:1px solid var(--border);display:none"></div>
             </div>
           </div>
 
@@ -2047,125 +2039,127 @@ function tsBackToCategories(){
 }
 
 /* ── 2. Tableau PBR ────────────────────────────────────────── */
-function tsRenderPBRTable(){
-  const cat  = TS_CATS[window.tsCurrentCat];
-  if (!cat) return;
-  const parts = cat.parts;
-  const meshMap = window.tsMeshMap || {};
-  const meshNames = Object.keys(meshMap);
+/* ── VECTARY PROPS PANEL ──────────────────────────────────────────────────────────── */
+window.tsActivePart = null;
+function tsRenderPBRTable(){ tsRenderPropsPanel(); }
 
-  document.getElementById('tsTableEmpty').style.display = 'none';
-  const tbl = document.getElementById('tsPbrTable');
-  tbl.style.display = 'table';
-  const tbody = document.getElementById('tsPbrTbody');
-  tbody.innerHTML = '';
-
-  parts.forEach(part => {
-    if (!window.tsPartAssign[part]) window.tsPartAssign[part] = new Set();
-    if (!window.tsPartMat[part])    window.tsPartMat[part]    = {color:'#ffffff', maps:{}};
-    if (!window.tsPartRepeat[part]) window.tsPartRepeat[part] = {x:1, y:1};
-
-    const mat = window.tsPartMat[part];
-    const rep = window.tsPartRepeat[part];
-    const hasTex = Object.keys(mat.maps).length > 0;
-
-    /* Row 1 : Part name + PBR cells */
-    const trMain = document.createElement('tr');
-    trMain.innerHTML = `<td><span class="ts-tbl-dot${hasTex?' live':''}" id="tsD-${CSS.escape(part)}"></span>${part}</td>`
-      + TS_PBR.map(map => {
-          const loaded  = !!mat.maps[map.key];
-          const preview = window.tsTexCache[part+'_'+map.key];
-          const ic      = TS_INT_CONFIG[map.key];
-          const curIv   = (window.tsPartMat[part].intensity||{})[map.key] ?? (ic?.def ?? 1);
-          const fmtPct  = v => ic ? (ic.max<=1 ? Math.round(v*100)+'%' : (v*100).toFixed(0)+'%') : '';
-          const intOverlay = (loaded && ic) ? `
-              <div class="ts-pcell-int">
-                <input type="range" class="ts-int-sl" min="${ic.min}" max="${ic.max}" step="${ic.step}"
-                       value="${curIv}" data-part="${part}" data-map="${map.key}"
-                       oninput="tsHandleIntensity(event)" onclick="event.stopPropagation()">
-                <span class="ts-int-val" id="tsIV-${CSS.escape(part)}-${map.key}">${fmtPct(curIv)}</span>
-              </div>` : '';
-          return `<td>
-            <div class="ts-pcell${loaded?' loaded':''}" id="tsPC-${CSS.escape(part)}-${map.key}" title="${map.label}·${map.hint}">
-              <input type="file" accept="image/*" data-part="${part}" data-map="${map.key}" onchange="tsHandleTexture(event)">
-              ${preview ? `<img class="ts-pcell-thumb" src="${preview}">` : ''}
-              ${!loaded ? `<span class="ts-pcell-ico">${map.icon}</span>` : ''}
-              ${intOverlay}
-              <button class="ts-pcell-del" data-part="${part}" data-map="${map.key}" onclick="tsClearCell(event)">✕</button>
-            </div>
-          </td>`;
-        }).join('');
-    tbody.appendChild(trMain);
-
-    /* Row 2 : Mesh chips */
-    const trMesh = document.createElement('tr');
-    trMesh.className = 'ts-mesh-row';
-    const chipsHtml = meshNames.length
-      ? `<div class="ts-mesh-chips">${meshNames.map(m=>`<span class="ts-mchip${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')}</div>`
-      : `<span style="font-size:10px;color:#bbb;font-family:var(--sans);font-style:italic">aucun mesh</span>`;
-    trMesh.innerHTML = `<td style="font-size:10px;color:var(--muted);font-family:var(--sans);font-style:italic">meshes</td>
-      <td colspan="5">${chipsHtml}</td>`;
-    tbody.appendChild(trMesh);
-
-    /* Row 3 : Couleur + UV repeat */
-    const trExtra = document.createElement('tr');
-    trExtra.className = 'ts-extra-row';
-    const _biv = window.tsPartMat[part].intensity||{};
-    const _br = _biv.roughness ?? 0.75, _bm = _biv.metalness ?? 0.0;
-    trExtra.innerHTML = `<td style="font-size:9px;color:var(--muted);font-family:var(--sans)">props / UV</td>
-      <td style="text-align:left;padding-left:6px">
-        <input type="color" class="ts-color-pick" value="${mat.color}" data-part="${part}" onchange="tsHandleColor(event)" title="Couleur de base">
-        <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" style="margin-left:4px" title="Réinitialiser la partie">↺</button>
-      </td>
-      <td title="Rugosité (multiplicateur si roughness map chargée)">
-        <div class="ts-base-sl">
-          <label>◫ Rough</label>
-          <input type="range" min="0" max="1" step="0.05" value="${_br}" data-part="${part}" data-map="roughness" oninput="tsHandleIntensity(event)">
-          <span id="tsIV-${CSS.escape(part)}-roughness">${Math.round(_br*100)}%</span>
-        </div>
-      </td>
-      <td title="Métal (multiplicateur si metalness map chargée)">
-        <div class="ts-base-sl">
-          <label>⧟ Métal</label>
-          <input type="range" min="0" max="1" step="0.05" value="${_bm}" data-part="${part}" data-map="metalness" oninput="tsHandleIntensity(event)">
-          <span id="tsIV-${CSS.escape(part)}-metalness">${Math.round(_bm*100)}%</span>
-        </div>
-      </td>
-      <td colspan="2">
-        <div class="ts-uv-mini">
-          <label>U</label>
-          <input type="range" min="0.1" max="20" step="0.1" value="${rep.x}" data-part="${part}" data-axis="x" oninput="tsHandleRepeat(event)">
-          <span id="tsUV-x-${CSS.escape(part)}">${rep.x.toFixed(1)}×</span>
-          <label style="margin-left:4px">V</label>
-          <input type="range" min="0.1" max="20" step="0.1" value="${rep.y}" data-part="${part}" data-axis="y" oninput="tsHandleRepeat(event)">
-          <span id="tsUV-y-${CSS.escape(part)}">${rep.y.toFixed(1)}×</span>
-        </div>
-      </td>`;
-    tbody.appendChild(trExtra);
-
-    /* Separator */
-    const trSep = document.createElement('tr');
-    trSep.innerHTML = `<td colspan="6" style="height:2px;background:var(--border);padding:0"></td>`;
-    tbody.appendChild(trSep);
-
-    /* Bind mesh chips */
-    trMesh.querySelectorAll('.ts-mchip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const m = chip.dataset.mesh, p = chip.dataset.part;
-        if (window.tsPartAssign[p].has(m)) {
-          window.tsPartAssign[p].delete(m); chip.classList.remove('active');
-          window.tsResetMesh && window.tsResetMesh(m);
-        } else {
-          window.tsPartAssign[p].add(m); chip.classList.add('active');
-          window.tsApplyMaterial && window.tsApplyMaterial(p);
-        }
-      });
-    });
-
-    if (window.tsPartAssign[part].size) window.tsApplyMaterial && window.tsApplyMaterial(part);
+function tsRenderPropsPanel(){
+  const cat=TS_CATS[window.tsCurrentCat]; if(!cat) return;
+  const parts=cat.parts;
+  const meshNames=Object.keys(window.tsMeshMap||{});
+  parts.forEach(part=>{
+    if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
+    if(!window.tsPartMat[part])    window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
+    if(!window.tsPartRepeat[part]) window.tsPartRepeat[part]={x:1,y:1};
+    const iv=window.tsPartMat[part].intensity;
+    Object.entries(TS_INT_CONFIG).forEach(([k,cfg])=>{if(cfg&&iv[k]===undefined)iv[k]=cfg.def;});
   });
+  if(!window.tsActivePart||!parts.includes(window.tsActivePart)) window.tsActivePart=parts[0];
+  document.getElementById('tsEmptyMsg').style.display='none';
+  const pillsEl=document.getElementById('tsPartPills');
+  pillsEl.style.display='flex';
+  document.getElementById('tsPropsScroll').style.display='block';
+  document.getElementById('tsMeshSection').style.display='block';
+  pillsEl.innerHTML=parts.map(part=>{
+    const hasTex=Object.keys(window.tsPartMat[part].maps||{}).length>0;
+    const isAct=part===window.tsActivePart;
+    return `<div class="ts-part-pill${isAct?' active':''}" data-part="${part}" onclick="tsSelectPart('${part}')">
+      ${hasTex?'<span class="ts-pp-dot"></span>':''} ${part}</div>`;
+  }).join('');
+  tsShowPartProps(window.tsActivePart,meshNames);
+  document.getElementById('tsCtrlSub').textContent=cat.parts.length+' parties · '+meshNames.length+' mesh'+(meshNames.length>1?'es':'');
+}
 
-  document.getElementById('tsCtrlSub').textContent = cat.parts.length + ' parties · ' + meshNames.length + ' meshes';
+function tsSelectPart(part){
+  window.tsActivePart=part;
+  document.querySelectorAll('.ts-part-pill').forEach(p=>p.classList.toggle('active',p.dataset.part===part));
+  tsShowPartProps(part,Object.keys(window.tsMeshMap||{}));
+}
+
+function tsUpdateSliderFill(sl){
+  const mn=parseFloat(sl.min||0),mx=parseFloat(sl.max||1),v=parseFloat(sl.value);
+  const p=((v-mn)/(mx-mn)*100).toFixed(1);
+  sl.style.background=`linear-gradient(to right,var(--accent) ${p}%,var(--border) ${p}%)`;
+}
+
+function tsShowPartProps(part,meshNamesArg){
+  const meshNames=meshNamesArg||Object.keys(window.tsMeshMap||{});
+  if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
+  if(!window.tsPartRepeat[part]) window.tsPartRepeat[part]={x:1,y:1};
+  const mat=window.tsPartMat[part];
+  const iv=mat.intensity||{};
+  const rep=window.tsPartRepeat[part];
+  const fmtPct=(v,mx)=>mx<=1?Math.round(v*100)+'%':Math.round(v/mx*100)+'%';
+  const slBg=(v,mn,mx)=>{const p=((v-mn)/(mx-mn)*100).toFixed(1);return `linear-gradient(to right,var(--accent) ${p}%,var(--border) ${p}%)`;};
+  const nTex=Object.keys(mat.maps||{}).length;
+  const PROPS=[
+    {type:'color'},
+    {type:'prop',mapKey:'roughness',label:'Rugosité',         min:0,max:1,  step:.05},
+    {type:'prop',mapKey:'metalness',label:'Métal',             min:0,max:1,  step:.05},
+    {type:'prop',mapKey:'albedo',   label:'Albedo / Couleur', min:0,max:1,  step:.05,noSlider:true},
+    {type:'prop',mapKey:'normal',   label:'Normal map',       min:0,max:2,  step:.05},
+    {type:'prop',mapKey:'ao',       label:'Occlusion (AO)',   min:0,max:2,  step:.10},
+    {type:'uv'},
+  ];
+  let html=`<div class="ts-mat-header">
+    <div><div class="ts-mat-name">${part}</div><div class="ts-mat-sub">${nTex} texture${nTex!==1?'s':''} chargée${nTex!==1?'s':''}</div></div>
+    <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" title="Réinitialiser">↻</button>
+  </div>`;
+  PROPS.forEach(p=>{
+    if(p.type==='color'){
+      html+=`<div class="ts-color-row">
+        <span class="ts-color-label">Couleur de base</span>
+        <div class="ts-color-sw" style="background:${mat.color}">
+          <input type="color" value="${mat.color}" data-part="${part}" onchange="tsHandleColor(event);this.parentElement.style.background=this.value">
+        </div></div>`;
+    } else if(p.type==='prop'){
+      const loaded=!!mat.maps[p.mapKey];
+      const preview=window.tsTexCache[part+'_'+p.mapKey];
+      const def=p.mapKey==='roughness'?.75:p.mapKey==='metalness'?0:1;
+      const curVal=iv[p.mapKey]!==undefined?iv[p.mapKey]:def;
+      html+=`<div class="ts-prop-row" id="tsPR-${CSS.escape(part)}-${p.mapKey}">
+        ${loaded?`<button class="ts-prop-del-btn" data-part="${part}" data-map="${p.mapKey}" onclick="tsClearCell(event)">Supprimer</button>`:''}
+        <div class="ts-prop-top">
+          <span class="ts-prop-label">${p.label}</span>
+          ${!p.noSlider?`<span class="ts-prop-pct" id="tsIV-${CSS.escape(part)}-${p.mapKey}">${fmtPct(curVal,p.max)}</span>`:''}
+          <div class="ts-prop-swatch${loaded?' loaded':''}" id="tsPS-${CSS.escape(part)}-${p.mapKey}" title="Cliquer pour charger / remplacer">
+            ${preview?`<img src="${preview}">`:`<div class="ts-sw-empty">+</div>`}
+            <input type="file" accept="image/*" data-part="${part}" data-map="${p.mapKey}" onchange="tsHandleTexture(event)">
+          </div></div>
+        ${!p.noSlider?`<input type="range" class="ts-prop-sl" min="${p.min}" max="${p.max}" step="${p.step}" value="${curVal}"
+          style="${slBg(curVal,p.min,p.max)}" data-part="${part}" data-map="${p.mapKey}"
+          oninput="tsHandleIntensity(event);tsUpdateSliderFill(this)">`:''}
+      </div>`;
+    } else if(p.type==='uv'){
+      html+=`<div class="ts-uv-row">
+        <div style="font-size:11px;color:var(--ink);font-family:var(--sans);margin-bottom:8px">Répétition UV</div>
+        <div class="ts-uv-item">
+          <span class="ts-uv-axis">U</span>
+          <input type="range" class="ts-prop-sl" min="0.1" max="20" step="0.1" value="${rep.x}" style="${slBg(rep.x,.1,20)}"
+            data-part="${part}" data-axis="x" oninput="tsHandleRepeat(event);tsUpdateSliderFill(this)">
+          <span class="ts-uv-val" id="tsUV-x-${CSS.escape(part)}">${rep.x.toFixed(1)}×</span></div>
+        <div class="ts-uv-item">
+          <span class="ts-uv-axis">V</span>
+          <input type="range" class="ts-prop-sl" min="0.1" max="20" step="0.1" value="${rep.y}" style="${slBg(rep.y,.1,20)}"
+            data-part="${part}" data-axis="y" oninput="tsHandleRepeat(event);tsUpdateSliderFill(this)">
+          <span class="ts-uv-val" id="tsUV-y-${CSS.escape(part)}">${rep.y.toFixed(1)}×</span></div>
+      </div>`;
+    }
+  });
+  document.getElementById('tsPropsPanel').innerHTML=html;
+  if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
+  document.getElementById('tsMeshChips').innerHTML=meshNames.length
+    ?meshNames.map(m=>`<span class="ts-mchip${window.tsPartAssign[part].has(m)?' active':''}" data-mesh="${m}" data-part="${part}">${m}</span>`).join('')
+    :`<span style="font-size:10px;color:#bbb;font-family:var(--sans);font-style:italic">Aucun mesh chargé</span>`;
+  document.getElementById('tsMeshChips').querySelectorAll('.ts-mchip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const m=chip.dataset.mesh,pt=chip.dataset.part;
+      if(window.tsPartAssign[pt].has(m)){window.tsPartAssign[pt].delete(m);chip.classList.remove('active');window.tsResetMesh&&window.tsResetMesh(m);}
+      else{window.tsPartAssign[pt].add(m);chip.classList.add('active');window.tsApplyMaterial&&window.tsApplyMaterial(pt);}
+    });
+  });
+  /* Toujours appliquer le matériau au switch — preview live même sans mesh assigné */
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
 }
 
 /* ── 3. Texture upload / clear ────────────────────────────── */
@@ -2185,8 +2179,10 @@ function tsHandleTexture(e){
       const ico=cell.querySelector('.ts-pcell-ico');
       if(ico) ico.remove();
     }
-    const dot=document.getElementById(`tsD-${CSS.escape(part)}`);
-    if(dot) dot.classList.add('live');
+    /* Refresh dot on pill */
+    document.querySelectorAll(`.ts-part-pill[data-part="${part}"]`).forEach(p=>{
+      if(!p.querySelector('.ts-pp-dot')){const d=document.createElement('span');d.className='ts-pp-dot';p.prepend(d);}
+    });
     /* Injecter overlay d'intensité si pas encore présent */
     const ic2 = TS_INT_CONFIG[mapKey];
     if(ic2 && cell && !cell.querySelector('.ts-pcell-int')){
@@ -2201,6 +2197,8 @@ function tsHandleTexture(e){
       cell.insertBefore(ov, del||null);
     }
     window.tsApplyMaterial && window.tsApplyMaterial(part);
+    /* Si la partie est active, rafraîcher le panneau */
+    if(window.tsActivePart===part) tsShowPartProps(part,Object.keys(window.tsMeshMap||{}));
     toast(`"${mapKey}" → "${part}" ✓`,'ok');
   });
 }
@@ -2222,6 +2220,7 @@ function tsClearCell(e){
     }
   }
   window.tsApplyMaterial && window.tsApplyMaterial(part);
+  if(window.tsActivePart===part) tsShowPartProps(part,Object.keys(window.tsMeshMap||{}));
   toast(`"${mapKey}" effacé`,'ok');
 }
 
@@ -2252,6 +2251,7 @@ function tsHandleRepeat(e){
   window.tsPartRepeat[part][axis]=val;
   const lbl=document.getElementById(`tsUV-${axis}-${CSS.escape(part)}`);
   if(lbl) lbl.textContent=val.toFixed(1)+'×';
+  /* Mettre à jour les UVs ET forcer le rendu immédiatement */
   window.tsUpdateRepeat && window.tsUpdateRepeat(part);
 }
 
@@ -2283,9 +2283,9 @@ async function tsSegmentAuto(){
     const infoEl=document.getElementById('tsSegInfo');
     infoEl.style.display='block';
     infoEl.innerHTML=`<strong style="color:var(--green)">✓ ${totalAssigned} composante(s) assignée(s)</strong> automatiquement`;
-    tsRenderPBRTable();
+    tsRenderPropsPanel();
     /* Appliquer les matériaux */
-    Object.keys(result).forEach(part=>{if(window.tsPartAssign[part]?.size)window.tsApplyMaterial&&window.tsApplyMaterial(part);});
+    Object.keys(result).forEach(part=>{ window.tsApplyMaterial && window.tsApplyMaterial(part); });
     toast('Segmentation auto terminée ✓','ok');
   }catch(err){toast('Segmentation : '+err.message,'err');}
   btn.textContent='⬡ Auto-segmenter'; btn.disabled=false;
@@ -2313,9 +2313,12 @@ function tsReload(){
   document.getElementById('tsBtnSupa').disabled=true;
   document.getElementById('tsBtnReload').style.display='none';
   document.getElementById('tsSegBtn').disabled=true;
-  document.getElementById('tsTableEmpty').style.display='block';
-  document.getElementById('tsPbrTable').style.display='none';
-  document.getElementById('tsPbrTbody').innerHTML='';
+  document.getElementById('tsEmptyMsg').style.display='block';
+  document.getElementById('tsPartPills').style.display='none';
+  document.getElementById('tsPropsScroll').style.display='none';
+  document.getElementById('tsMeshSection').style.display='none';
+  document.getElementById('tsPropsPanel').innerHTML='';
+  window.tsActivePart=null;
   document.getElementById('tsResult').classList.remove('show');
   document.getElementById('tsSegInfo').style.display='none';
   document.getElementById('tsCtrlSub').textContent='Charger un modèle OBJ';
@@ -2983,49 +2986,81 @@ function classifyComponents(comps, catKey) {
 /* ── Load texture ──────────────────────────────────────────── */
 window.tsLoadTexture = function(part, mapKey, objUrl, fileName, onDone) {
   texLoader.load(objUrl, tex => {
-    if (mapKey==='albedo') tex.colorSpace=THREE.SRGBColorSpace;
-    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-    const rep=window.tsPartRepeat[part]||{x:1,y:1};
-    tex.repeat.set(rep.x,rep.y);
-    if (!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{}};
-    window.tsPartMat[part].maps[mapKey]=tex;
-    onDone&&onDone();
+    /* Espace couleur correct pour chaque type de map */
+    tex.colorSpace = (mapKey==='albedo') ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const rep = window.tsPartRepeat[part]||{x:1,y:1};
+    tex.repeat.set(rep.x, rep.y);
+    tex.needsUpdate = true;
+    if (!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
+    window.tsPartMat[part].maps[mapKey] = tex;
+    /* Appliquer immédiatement au modèle — visible en temps réel */
+    window.tsApplyMaterial(part);
+    onDone && onDone();
+  }, undefined, (err) => {
+    console.warn('Texture load error:', err);
   });
 };
 
-/* ── Apply material ────────────────────────────────────────── */
+/* ── Matériaux persistants par partie (perf slider live) ─── */
+const partMaterials = {};   /* part → MeshStandardMaterial */
+
+function getOrCreateMat(part){
+  if(!partMaterials[part]) partMaterials[part] = new THREE.MeshStandardMaterial({roughness:.75,metalness:0});
+  return partMaterials[part];
+}
+
+/* ── Apply material — s'applique MÊME sans mesh assigné (preview) ── */
 window.tsApplyMaterial = function(part) {
-  const assign=window.tsPartAssign[part]; if(!assign?.size) return;
-  const d=window.tsPartMat[part]||{};
-  const m=d.maps||{};
-  const iv=d.intensity||{};
-  /* Valeurs d'intensité : servent aussi de multiplicateurs quand la map est présente */
+  const d  = window.tsPartMat[part]||{};
+  const m  = d.maps||{};
+  const iv = d.intensity||{};
+
   const roughness   = iv.roughness !== undefined ? iv.roughness : 0.75;
   const metalness   = iv.metalness !== undefined ? iv.metalness : 0.00;
   const aoIntensity = iv.ao        !== undefined ? iv.ao        : 1.00;
   const normalScale = iv.normal    !== undefined ? iv.normal    : 1.00;
-  const mat=new THREE.MeshStandardMaterial({
-    color:          new THREE.Color(d.color||'#ffffff'),
-    map:            m.albedo    || null,
-    normalMap:      m.normal    || null,
-    roughnessMap:   m.roughness || null,
-    roughness,
-    metalnessMap:   m.metalness || null,
-    metalness,
-    aoMap:          m.ao        || null,
-    aoMapIntensity: aoIntensity,
-  });
-  if (m.normal && mat.normalMap) mat.normalScale.set(normalScale, normalScale);
-  assign.forEach(name=>{ if(meshMap[name]) meshMap[name].material=mat; });
+
+  /* Réutiliser le matériau existant — évite GC pendant le drag slider */
+  const mat = getOrCreateMat(part);
+  mat.color.set(d.color||'#ffffff');
+  mat.map            = m.albedo    || null;
+  mat.normalMap      = m.normal    || null;
+  mat.roughnessMap   = m.roughness || null;
+  mat.roughness      = roughness;
+  mat.metalnessMap   = m.metalness || null;
+  mat.metalness      = metalness;
+  mat.aoMap          = m.ao        || null;
+  mat.aoMapIntensity = aoIntensity;
+  if (mat.normalMap) mat.normalScale.set(normalScale, normalScale);
+  mat.needsUpdate = true;
+
+  /* Cibles : meshes assignés OU tous les meshes du modèle si aucun assigné */
+  const assign  = window.tsPartAssign[part];
+  const hasAssign = assign && assign.size > 0;
+  const targets = hasAssign
+    ? [...assign].filter(n => meshMap[n]).map(n => meshMap[n])
+    : Object.values(meshMap);
+
+  targets.forEach(mesh => { mesh.material = mat; });
 };
 
 window.tsResetMesh = function(name) {
   if(meshMap[name]) meshMap[name].material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
 };
 
+/* ── UV repeat : mise à jour directe sans recréer le matériau ── */
 window.tsUpdateRepeat = function(part) {
-  const rep=window.tsPartRepeat[part]||{x:1,y:1};
-  Object.values(window.tsPartMat[part]?.maps||{}).forEach(tex=>{tex.repeat.set(rep.x,rep.y);tex.needsUpdate=true;});
+  const rep = window.tsPartRepeat[part]||{x:1,y:1};
+  const mat = partMaterials[part];
+  /* Mettre à jour les textures */
+  Object.values(window.tsPartMat[part]?.maps||{}).forEach(tex=>{
+    tex.repeat.set(rep.x, rep.y);
+    tex.needsUpdate = true;
+  });
+  /* Forcer le rendu du matériau */
+  if (mat) mat.needsUpdate = true;
 };
 
 /* ── Apply real dimensions (cm → m) ───────────────────────── */
