@@ -2357,10 +2357,20 @@ function tsAutoAssignByPartName(part){
     matched=meshNames.filter(m=>kw.some(k=>strip(m).includes(strip(k))));
   }
 
-  /* Priorité 3 : si une seule partie et un seul groupe de meshes → tout prendre */
+  /* Priorité 3 : classification géométrique (analyse spatiale du modèle) */
+  if(!matched.length && window.tsClassifyMeshes){
+    /* Cache de classification par modèle (réinitialisé au chargement) */
+    if(!window._tsMeshClassif){
+      window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
+    }
+    const classif = window._tsMeshClassif;
+    matched = meshNames.filter(m => classif[m] === part);
+  }
+
+  /* Priorité 4 : catégorie à une seule partie → tout prendre */
   if(!matched.length){
     const cat=TS_CATS[window.tsCurrentCat];
-    if(cat&&cat.parts.length===1) matched=meshNames;
+    if(cat && cat.parts.length===1) matched=meshNames;
   }
 
   if(matched.length){
@@ -2563,6 +2573,7 @@ function tsReload(){
   document.getElementById('tsMeshSection').style.display='none';
   document.getElementById('tsPropsPanel').innerHTML='';
   window.tsActivePart=null;
+  window._tsMeshClassif=null;
   const _ec=document.getElementById('tsMeshCnt');if(_ec)_ec.textContent='0/0';
   document.getElementById('tsResult').classList.remove('show');
   document.getElementById('tsSegInfo').style.display='none';
@@ -3182,6 +3193,7 @@ window.tsLoad = function(file) {
     document.getElementById('tsSegBtn').disabled = false;
     window.tsPartAssign = {};
     window.tsPartProjection = {};  /* reset projections au nouveau modèle */
+    window._tsMeshClassif = null;    /* reset classification géométrique */
     /* Sauvegarder UVs originaux de chaque mesh */
     Object.values(meshMap).forEach(mesh => saveOriginalUVs(mesh));
     /* Auto-assign par mots-clés si catégorie sélectionnée */
@@ -3486,12 +3498,11 @@ window.tsApplyMaterial = function(part) {
   if (mat.normalMap) mat.normalScale.set(normalScale, normalScale);
   mat.needsUpdate = true;
 
-  /* Cibles : meshes assignés OU tous les meshes du modèle si aucun assigné */
-  const assign  = window.tsPartAssign[part];
+  /* Cibles : uniquement les meshes explicitement assignés à cette partie */
+  const assign    = window.tsPartAssign[part];
   const hasAssign = assign && assign.size > 0;
-  const targets = hasAssign
-    ? [...assign].filter(n => meshMap[n]).map(n => meshMap[n])
-    : Object.values(meshMap);
+  if (!hasAssign) return;  /* rien d'assigné → ne rien appliquer */
+  const targets = [...assign].filter(n => meshMap[n]).map(n => meshMap[n]);
 
   targets.forEach(mesh => {
     mesh.material = mat;
@@ -3508,6 +3519,89 @@ window.tsApplyMaterial = function(part) {
 
 window.tsResetMesh = function(name) {
   if(meshMap[name]) meshMap[name].material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+};
+
+/* ── Classification géométrique des meshes par partie ───────
+   Analyse la position, hauteur et forme de chaque mesh pour
+   deviner à quelle partie il appartient (piétement/assise…)
+   Appelé une seule fois par modèle, résultat mis en cache.
+──────────────────────────────────────────────────────────── */
+window.tsClassifyMeshes = function(catKey) {
+  if (!model || !Object.keys(meshMap).length) return {};
+
+  /* Bounding box globale du modèle */
+  const mbox  = new THREE.Box3().setFromObject(model);
+  const mMin  = mbox.min, mMax = mbox.max;
+  const mH    = mMax.y - mMin.y || 1;
+  const mW    = mMax.x - mMin.x || 1;
+  const mCX   = (mMin.x + mMax.x) / 2;
+  const mCZ   = (mMin.z + mMax.z) / 2;
+
+  const result = {};
+
+  Object.entries(meshMap).forEach(([name, mesh]) => {
+    const box = new THREE.Box3().setFromObject(mesh);
+    const ctr = box.getCenter(new THREE.Vector3());
+    const sz  = box.getSize(new THREE.Vector3());
+
+    /* Métriques normalisées */
+    const yN     = (ctr.y - mMin.y) / mH;          // position Y [0=bas, 1=haut]
+    const xOff   = Math.abs(ctr.x - mCX) / (mW/2 + .001); // décalage latéral X [0=centre, 1=bord]
+    const flatR  = (sz.x + sz.z) / (2*(sz.y + .001));      // >1 = plat, <1 = vertical
+    const slimR  = sz.y / (Math.max(sz.x, sz.z) + .001);   // >2 = élancé (jambe)
+    const ySpan  = sz.y / mH;                        // hauteur relative du mesh
+
+    let part = 'inconnu';
+
+    if (catKey === 'chaise') {
+      /* ── Fauteuil / Chaise / Canapé ── */
+      const isLeg  = slimR > 1.8 && yN < 0.55;       // élancé et pas trop haut
+      const isFlat = flatR > 1.8 && yN < 0.60;        // plat (assise)
+      const isSide = xOff > 0.55 && yN > 0.25 && yN < 0.80; // côté (accoudoir)
+
+      if (isLeg || yN < 0.22) {
+        part = 'piétement';
+      } else if (isFlat && !isSide) {
+        part = 'assise';
+      } else if (isSide && !isLeg) {
+        part = 'accoudoir';
+      } else if (yN > 0.50 && ySpan > 0.15) {
+        part = 'dossier';
+      } else if (yN > 0.35) {
+        part = 'assise';
+      } else {
+        part = 'piétement';
+      }
+
+    } else if (catKey === 'table') {
+      /* ── Table ── */
+      if (slimR > 2 || yN < 0.30) part = 'piétement';
+      else part = 'plateau';
+
+    } else if (catKey === 'rangement') {
+      /* ── Rangement / Bureau ── */
+      if (yN < 0.12 && slimR > 1.5) part = 'piétement';
+      else if (flatR > 2.5 && yN > 0.3) part = 'tiroirs';
+      else if (xOff > 0.7) part = 'portes';
+      else part = 'corps';
+
+    } else if (catKey === 'luminaire_pied') {
+      /* ── Lampadaire ── */
+      if (yN < 0.30 || slimR > 2) part = 'piétement';
+      else if (yN > 0.80) part = 'tête';
+      else part = 'corps';
+
+    } else if (catKey === 'luminaire_suspendu') {
+      /* ── Suspension ── */
+      if (yN > 0.80) part = 'fixation';
+      else if (yN < 0.25) part = 'abat-jour';
+      else part = 'corps';
+    }
+
+    result[name] = part;
+  });
+
+  return result;
 };
 
 /* ── UV repeat ── */
