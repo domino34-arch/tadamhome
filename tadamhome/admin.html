@@ -2685,9 +2685,9 @@ function tsShowConfirm(action){
   const dimStr=[info.l,info.h,info.p].filter(Boolean).map(v=>v+' cm').join(' × ');
   const lbl={glb:'Exporter GLB',usdz:'Exporter USDZ',catalogue:'Envoyer au catalogue'}[action]||'Envoyer';
   const sub={
-    glb:'Télécharge le fichier GLB sur votre ordinateur. Pas d'envoi au catalogue.',
-    usdz:'Télécharge le fichier USDZ sur votre ordinateur. Pas d'envoi au catalogue.',
-    catalogue:'Génère GLB + USDZ, les uploade sur Supabase et crée UN seul produit dans le catalogue avec les deux formats.'
+    glb:"Télécharge le fichier GLB sur votre ordinateur uniquement. Pas d'envoi au catalogue.",
+    usdz:"Télécharge le fichier USDZ sur votre ordinateur uniquement. Pas d'envoi au catalogue.",
+    catalogue:"Génère GLB + USDZ, uploade les deux sur Supabase et crée un seul produit dans le catalogue avec les deux formats."
   }[action]||'';
   document.querySelector('#tsConfirmModal h3').textContent=lbl;
   document.getElementById('tsConfirmSubtitle').textContent=sub;
