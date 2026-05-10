@@ -3445,9 +3445,12 @@ window.tsLoad = function(file) {
     document.getElementById('tsBtnSupa').disabled = false;
     document.getElementById('tsBtnReload').style.display = 'block';
     document.getElementById('tsSegBtn').disabled = false;
-    window.tsPartAssign = {};
-    window.tsPartProjection = {};  /* reset projections au nouveau modèle */
-    window._tsMeshClassif = null;    /* reset classification géométrique */
+    window.tsPartAssign   = {};
+    window.tsPartMat      = {};   /* reset matériaux — repartir de zéro sur nouvel OBJ */
+    window.tsPartRepeat   = {};
+    window.tsPartProjection = {};
+    window.tsPartRotation   = {};
+    window._tsMeshClassif = null;
     /* Sauvegarder UVs originaux de chaque mesh */
     Object.values(meshMap).forEach(mesh => saveOriginalUVs(mesh));
     /* Auto-assign par mots-clés si catégorie sélectionnée */
@@ -4054,6 +4057,9 @@ window.tsLoadGLB = function(url){
       scene.add(model);
       /* Reset états */
       window.tsPartAssign   = {};
+      window.tsPartMat      = {};   /* reset — les matériaux seront extraits du GLB */
+      window.tsPartRepeat   = {};
+      window.tsPartRotation = {};
       window.tsPartProjection = {};
       window._tsMeshClassif = null;
       Object.values(meshMap).forEach(m=>saveOriginalUVs(m));
@@ -4161,14 +4167,14 @@ window.tsExtractGLBMaterials = function(){
     extractTex(mat.aoMap,        'ao');
   });
 
-  /* Ré-afficher le panneau avec les matériaux extraits */
-  if(window.tsActivePart && byPart[window.tsActivePart]){
-    if(typeof tsShowPartProps === 'function'){
-      tsShowPartProps(window.tsActivePart, Object.keys(meshMap));
-    }
-  } else if(typeof tsRenderPBRTable === 'function'){
-    tsRenderPBRTable();
-  }
+  /* Appliquer les matériaux extraits sur le modèle */
+  Object.keys(byPart).forEach(part=>{
+    window.tsApplyMaterial && window.tsApplyMaterial(part);
+  });
+
+  /* Ré-afficher le panneau PBR avec les valeurs extraites */
+  if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
+  else window.tsRenderPBRTable && window.tsRenderPBRTable();
 };
 
 window.tsGetModelDimsCm = function(){
