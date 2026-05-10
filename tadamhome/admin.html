@@ -2356,11 +2356,22 @@ function tsUpdateSelPanel(){
   }
   if(cgDiv&&cgPills){
     cgDiv.classList.toggle('visible',_customGroups.length>0);
-    cgPills.innerHTML=_customGroups.map(function(g){
+    var actCG = _customGroups.find(function(g){return g.key===window.tsActivePart;});
+    var pillsHtml = _customGroups.map(function(g){
       var isA=window.tsActivePart===g.key;
-      return '<div class="ts-variant-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSelectPartByEl(this)">'+g.label
-        +' <span data-k="'+g.key+'" onclick="event.stopPropagation();tsRemoveCustomGroup(this.dataset.k)" style="opacity:.5;cursor:pointer">✕</span></div>';
+      return '<div class="ts-variant-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSelectPartByEl(this)">'+g.label+'</div>';
     }).join('');
+    /* Toolbar d'actions sur le groupe actif */
+    var actionsHtml = '';
+    if(actCG){
+      actionsHtml = '<div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">'
+        +'<button class="ts-sa-btn" onclick="tsRenameGroup()">✎ Renommer</button>'
+        +'<button class="ts-sa-btn" onclick="tsMergeGroups()">⊕ Fusionner</button>'
+        +'<button class="ts-sa-btn" onclick="tsUngroupActive()">⊟ Dégrouper</button>'
+        +'<button class="ts-sa-btn" onclick="tsRemoveCustomGroup(\''+actCG.key+'\')" style="color:#c0392b">✕ Supprimer</button>'
+        +'</div>';
+    }
+    cgPills.innerHTML = pillsHtml + actionsHtml;
   }
 }
 window.tsUpdateSelPanel=tsUpdateSelPanel;
@@ -2382,9 +2393,75 @@ function tsCreateGroupFromSelection(){
 function tsRemoveCustomGroup(key){
   if(!confirm('Supprimer ce groupe ?')) return;
   _customGroups=_customGroups.filter(function(g){return g.key!==key;});
-  delete window.tsPartAssign[key]; delete window.tsPartMat[key];
+  delete window.tsPartAssign[key]; delete window.tsPartMat[key]; delete window.tsPartRepeat[key];
+  /* Si c'était l'actif, basculer sur la 1ère partie standard */
+  if(window.tsActivePart===key && window.tsCurrentCat?.parts?.length){
+    tsSelectPart(window.tsCurrentCat.parts[0].key);
+  }
   tsUpdateSelPanel(); toast('Groupe supprimé','ok');
 }
+function tsRenameGroup(){
+  var k = window.tsActivePart;
+  var g = _customGroups.find(function(x){return x.key===k;});
+  if(!g){ toast('Aucun groupe actif','err'); return; }
+  var newName = prompt('Nouveau nom du groupe :', g.label);
+  if(!newName||newName===g.label) return;
+  g.label = newName;
+  /* Force le panneau PBR à se re-render avec le nouveau label */
+  tsSelectPart(k);
+  tsUpdateSelPanel();
+  toast('Groupe renommé','ok');
+}
+
+function tsMergeGroups(){
+  if(_customGroups.length<2){ toast('Au moins 2 groupes requis','err'); return; }
+  var destKey = window.tsActivePart;
+  var dest = _customGroups.find(function(x){return x.key===destKey;});
+  if(!dest){ toast('Sélectionner d\'abord le groupe destinataire','err'); return; }
+  var others = _customGroups.filter(function(g){return g.key!==destKey;});
+  var list = others.map(function(g,i){return (i+1)+'. '+g.label;}).join('\n');
+  var choice = prompt('Fusionner DANS « '+dest.label+' » :\n'+list+'\n\nNuméros séparés par virgule (ex: 1,3) :');
+  if(!choice) return;
+  var idxs = choice.split(',').map(function(s){return parseInt(s.trim())-1;}).filter(function(i){return i>=0&&i<others.length;});
+  if(!idxs.length){ toast('Aucun groupe valide','err'); return; }
+  idxs.forEach(function(i){
+    var src = others[i];
+    var srcMeshes = window.tsPartAssign[src.key] || new Set();
+    srcMeshes.forEach(function(m){ window.tsPartAssign[destKey].add(m); });
+    delete window.tsPartAssign[src.key];
+    delete window.tsPartMat[src.key];
+    delete window.tsPartRepeat[src.key];
+  });
+  _customGroups = _customGroups.filter(function(g){
+    return g.key===destKey || !idxs.some(function(i){return others[i].key===g.key;});
+  });
+  tsSelectPart(destKey);
+  tsUpdateSelPanel();
+  toast(idxs.length+' groupe(s) fusionné(s) dans « '+dest.label+' »','ok');
+}
+
+function tsUngroupActive(){
+  var k = window.tsActivePart;
+  var g = _customGroups.find(function(x){return x.key===k;});
+  if(!g){ toast('Aucun groupe actif','err'); return; }
+  if(!confirm('Dégrouper « '+g.label+' » ? Les meshes seront libérés.')) return;
+  /* Récupérer les meshes pour les remettre en sélection libre */
+  var meshes = [...(window.tsPartAssign[k]||[])];
+  delete window.tsPartAssign[k];
+  delete window.tsPartMat[k];
+  delete window.tsPartRepeat[k];
+  _customGroups = _customGroups.filter(function(x){return x.key!==k;});
+  /* Resélectionner les meshes pour permettre une nouvelle organisation */
+  window.tsClearMeshSelection&&window.tsClearMeshSelection();
+  meshes.forEach(function(m,i){ window.tsMeshSelect&&window.tsMeshSelect(m, i>0); });
+  /* Revenir au panneau de la première partie standard */
+  if(window.tsCurrentCat&&window.tsCurrentCat.parts&&window.tsCurrentCat.parts.length){
+    tsSelectPart(window.tsCurrentCat.parts[0].key);
+  }
+  tsUpdateSelPanel();
+  toast('Groupe dégroupé — '+meshes.length+' mesh(es) re-sélectionnés','ok');
+}
+
 function tsApplyPipetteToSelection(){
   if(!window.tsIsPipetteReady||!window.tsIsPipetteReady()){toast('Pipette non prête','err');return;}
   var sel=window.tsGetSelectedMeshes?window.tsGetSelectedMeshes():[];
@@ -2488,8 +2565,16 @@ function tsShowPartProps(part,meshNamesArg){
     {type:'prop',mapKey:'ao',       label:'Occlusion (AO)',   min:0,max:2,  step:.10},
     {type:'uv'},
   ];
+  /* Si c'est un groupe perso, afficher son label au lieu de la clé Cg_xxx */
+  var _displayName = part;
+  try {
+    if (typeof _customGroups !== 'undefined') {
+      var _cg = _customGroups.find(function(g){return g.key===part;});
+      if (_cg) _displayName = _cg.label;
+    }
+  } catch(e){}
   let html=`<div class="ts-mat-header">
-    <div><span class="ts-mat-name">${part}</span><span class="ts-mat-sub"> · ${nTex} tex.</span></div>
+    <div><span class="ts-mat-name">${_displayName}</span><span class="ts-mat-sub"> · ${nTex} tex.</span></div>
     <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" title="Réinitialiser">&#8635;</button>
   </div>`;
   PROPS.forEach(p=>{
@@ -3630,10 +3715,22 @@ window.tsInitThree = function() {
     _mouse2D.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
     _mouse2D.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
     _raycaster.setFromCamera(_mouse2D, activeCamera);
-    const hits = _raycaster.intersectObjects(Object.values(meshMap), false);
-    if (!hits.length) return;
-    const hitName = Object.entries(meshMap).find(([,m]) => m === hits[0].object)?.[0];
-    if (!hitName||hits[0].object.userData.isOutline) return;
+    var allHits = _raycaster.intersectObjects(Object.values(meshMap), false)
+                    .filter(function(h){return !h.object.userData.isOutline;});
+    if (!allHits.length) return;
+    /* Click-cycling : re-clic au même endroit cycle dans les meshes superposés */
+    var sameSpot = Math.abs(e.clientX-_lastCX)<6 && Math.abs(e.clientY-_lastCY)<6;
+    if(_meshMode && sameSpot){ _hitIdx = (_hitIdx + 1) % allHits.length; }
+    else { _hitIdx = 0; }
+    _lastCX = e.clientX; _lastCY = e.clientY;
+    var hit = allHits[_hitIdx];
+    const hits = [hit]; /* compat avec le reste du code */
+    const hitName = Object.entries(meshMap).find(([,m]) => m === hit.object)?.[0];
+    if (!hitName) return;
+    /* Toast info pour cycling */
+    if(_meshMode && allHits.length>1){
+      window.toast && window.toast(hitName.slice(0,18)+(hitName.length>18?'..':'')+' ('+(_hitIdx+1)+'/'+allHits.length+')','ok');
+    }
     if(_pipette){
       if(!_pipetteMat){if(window.tsPipetteSample(hitName))window.toast&&window.toast('Materiau copie — clic sur cible','ok');}
       else{if(window.tsPipetteApply(hitName))window.toast&&window.toast('Materiau colle','ok');}
@@ -4534,23 +4631,20 @@ window.tsExtractGLBMaterials = function(){
 
 /* ══ MODE MESH ══════════════════════════════════════════════ */
 var _meshMode=false,_selMeshes=new Set(),_pipette=false,_pipetteMat=null,_pipetteSrc=null;
-function _addOutline(m){
-  if(!m||m.userData.outline) return;
-  var geo=m.geometry;
-  if(!geo.boundingBox) geo.computeBoundingBox();
-  var c=geo.boundingBox.getCenter(new THREE.Vector3()); /* centre géométrique local */
-  var s=1.042; /* facteur d'expansion */
-  /* Correction : ol.position = c*(1-s) pour scaler depuis le centre, pas l'origine */
-  var ol=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xB8965A,side:THREE.BackSide}));
-  ol.scale.setScalar(s);
-  ol.position.set(c.x*(1-s), c.y*(1-s), c.z*(1-s));
-  ol.userData.isOutline=true;
-  m.add(ol);
-  m.userData.outline=ol;
+var _lastCX=-999,_lastCY=-999,_hitIdx=0;
+/* Surcouche couleur : remplace le matériau (comme flash rouge mais persistant) */
+var _selMat = new THREE.MeshStandardMaterial({color:0xB8965A,roughness:.7,metalness:.15,transparent:true,opacity:.85});
+var _pipMat = new THREE.MeshStandardMaterial({color:0x1abc9c,roughness:.7,metalness:.15,transparent:true,opacity:.85});
+
+function _addOutline(m, isPip){
+  if(!m||m.userData.selOrigMat!==undefined) return;
+  m.userData.selOrigMat = m.material;
+  m.material = isPip ? _pipMat : _selMat;
 }
 function _removeOutline(m){
-  if(!m||!m.userData.outline) return;
-  m.remove(m.userData.outline); m.userData.outline.material.dispose(); delete m.userData.outline;
+  if(!m||m.userData.selOrigMat===undefined) return;
+  m.material = m.userData.selOrigMat;
+  delete m.userData.selOrigMat;
 }
 window.tsMeshSelect=function(name,add){
   if(!add){_selMeshes.forEach(function(n){_removeOutline(meshMap[n]);}); _selMeshes.clear();}
@@ -4579,14 +4673,7 @@ window.tsPipetteSample=function(name){
   var mat=Array.isArray(m.material)?m.material[0]:m.material; if(!mat) return false;
   if(_pipetteSrc) _removeOutline(meshMap[_pipetteSrc]);
   _pipetteSrc=name;
-  var pgeo=m.geometry;
-  if(!pgeo.boundingBox) pgeo.computeBoundingBox();
-  var pc=pgeo.boundingBox.getCenter(new THREE.Vector3());
-  var ps=1.042;
-  var ol=new THREE.Mesh(pgeo,new THREE.MeshBasicMaterial({color:0x1abc9c,side:THREE.BackSide}));
-  ol.scale.setScalar(ps);
-  ol.position.set(pc.x*(1-ps), pc.y*(1-ps), pc.z*(1-ps));
-  ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
+  _addOutline(m, true); /* surcouche verte */
   _pipetteMat={color:mat.color?'#'+mat.color.getHexString():'#ffffff',
     roughness:mat.roughness!=null?mat.roughness:.75,metalness:mat.metalness!=null?mat.metalness:0,
     map:mat.map||null,normalMap:mat.normalMap||null,roughnessMap:mat.roughnessMap||null,aoMap:mat.aoMap||null};
