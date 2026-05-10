@@ -374,6 +374,29 @@ tr:hover td{background:rgba(184,152,106,.03)}
 /* ══ PBR SPREADSHEET TABLE ══ */
 /* ══ VECTARY-STYLE CONTROLS ══ */
 .ts-part-pills{display:none;gap:2px;padding:5px 8px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;flex-shrink:0}
+.ts-mesh-toolbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:none;gap:3px;z-index:20;background:rgba(20,20,20,.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:4px 8px;border-radius:20px;align-items:center}
+.ts-mesh-toolbar.active{display:flex}
+.ts-mt-btn{padding:3px 9px;border:1px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.65);font-size:9px;font-family:var(--sans);cursor:pointer;border-radius:12px;transition:all .15s;white-space:nowrap}
+.ts-mt-btn:hover,.ts-mt-btn.active{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.4)}
+.ts-mt-btn.active{background:var(--accent);border-color:var(--accent)}
+.ts-mt-btn.pipette-on{background:#1abc9c!important;border-color:#1abc9c!important}
+.ts-mt-sep{width:1px;height:14px;background:rgba(255,255,255,.2)}
+#tsSelPanel{display:none;padding:8px 14px;background:var(--white);border-top:1px solid var(--border)}
+#tsSelPanel.active{display:block}
+.ts-sel-header{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);margin-bottom:5px}
+.ts-sel-pills{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px;min-height:20px}
+.ts-sel-mesh{padding:2px 7px;background:rgba(184,150,90,.1);border:1px solid var(--accent);color:var(--accent);font-size:9px;font-family:var(--sans);display:flex;align-items:center;gap:3px}
+.sm-del{opacity:.5;cursor:pointer}
+.sm-del:hover{opacity:1}
+.ts-sel-actions{display:flex;gap:3px;flex-wrap:wrap}
+.ts-sa-btn{padding:3px 9px;border:1px solid var(--border);background:var(--white);font-size:9px;font-family:var(--sans);color:var(--ink);cursor:pointer;transition:all .15s}
+.ts-sa-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ts-sa-btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.ts-custom-groups{margin-top:6px;padding-top:5px;border-top:1px solid var(--border);display:none}
+.ts-custom-groups.visible{display:block}
+.ts-cg-label{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);margin-bottom:3px}
+canvas.mesh-mode-cursor{cursor:crosshair!important}
+canvas.pipette-cursor{cursor:cell!important}
 .ts-sub-pills{display:flex;gap:2px;flex-wrap:wrap;padding:4px 0 2px 12px;border-left:2px solid var(--accent);margin-top:3px}
 .ts-sub-pill{padding:3px 8px;border:1px solid var(--border);background:var(--white);font-size:9px;font-family:var(--sans);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
 .ts-sub-pill:hover{border-color:var(--accent);color:var(--ink)}
@@ -784,7 +807,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
           <!-- Layout : viewer + tableau PBR -->
           <div class="ts-layout">
             <!-- Viewer 3D -->
-            <div class="ts-viewer" id="tsViewerWrap">
+            <div class="ts-viewer" id="tsViewerWrap" style="position:relative"><div class="ts-mesh-toolbar" id="tsMeshToolbar"><button class="ts-mt-btn active" id="tsMtPart" onclick="tsSetMeshMode(false)">◉ Parties</button><button class="ts-mt-btn" id="tsMtMesh" onclick="tsSetMeshMode(true)">⬡ Mesh</button><div class="ts-mt-sep"></div><button class="ts-mt-btn" id="tsMtPipette" onclick="tsTogglePipette()">⊙ Pipette</button></div>
               <div class="ts-drop" id="tsDrop">
                 <input type="file" accept=".obj" id="tsObjInput">
                 <div class="ts-drop-icon">
@@ -932,7 +955,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
           </div>
 
           <!-- Footer export -->
-          <div class="ts-footer-v2">
+          <div id="tsSelPanel"><div class="ts-sel-header">Sélection — <span id="tsSelCount">0</span> mesh(es)</div><div class="ts-sel-pills" id="tsSelPills"></div><div class="ts-sel-actions"><button class="ts-sa-btn accent" onclick="tsCreateGroupFromSelection()">⊞ Groupe</button><button class="ts-sa-btn" onclick="tsApplyPipetteToSelection()">⊙ Pipette</button><button class="ts-sa-btn" onclick="tsApplyColorToSel()">🎨 Couleur</button><button class="ts-sa-btn" onclick="window.tsClearMeshSelection&&window.tsClearMeshSelection()">✕ Désél.</button></div><div class="ts-custom-groups" id="tsCustomGroups"><div class="ts-cg-label">Groupes perso</div><div class="ts-variants-pills" id="tsCustomGroupPills"></div></div></div>
+      <div class="ts-footer-v2">
             <button class="btn-primary" id="tsBtnGlb" onclick="tsExportGLB()" disabled style="padding:10px 18px;font-size:10px">
               <div class="spin" id="tsSpinGlb"></div>Export GLB
             </button>
@@ -2226,18 +2250,18 @@ function tsRenderPropsPanel(){
   document.getElementById('tsPropsScroll').style.display='block';
   document.getElementById('tsMeshSection').style.display='block';
   const subParts = window.tsSubParts||{};
-  pillsEl.innerHTML=parts.map(part=>{
-    const hasTex=Object.keys(window.tsPartMat[part].maps||{}).length>0;
-    const isAct=part===window.tsActivePart;
-    const cnt=(window.tsPartAssign[part]?.size)||0;
-    const hasSub=subParts[part]?.length>0;
-    const canSeg=cnt>=2&&!hasSub;
-    return '<div class="ts-part-pill'+(isAct?' active':'')+'" data-part="'+part+'" onclick="tsSelectPart(''+part+'')">'
-      +(hasTex?'<span class="ts-pp-dot"></span>':'')
-      +' '+part
-      +(canSeg?' <span class="ts-seg-icon" onclick="event.stopPropagation();tsSegmentPart(''+part+'')" title="Segmenter">✂</span>':'')
-      +(hasSub?' <span class="ts-seg-icon" onclick="event.stopPropagation();tsMergePart(''+part+'')" title="Fusionner">⊕</span>':'')
-      +'</div>';
+  pillsEl.innerHTML=parts.map(function(part){
+    var hasTex=Object.keys((window.tsPartMat[part]||{}).maps||{}).length>0;
+    var isAct=part===window.tsActivePart;
+    var cnt=(window.tsPartAssign[part]?.size)||0;
+    var hasSub=(subParts[part]||[]).length>0;
+    var canSeg=cnt>=2&&!hasSub;
+    var h='<div class="ts-part-pill'+(isAct?' active':'')+'" data-part="'+part+'" " onclick="tsSelectPartByEl(this)">';
+    if(hasTex) h+='<span class="ts-pp-dot"></span>';
+    h+=' '+part;
+    if(canSeg) h+=' <span class="ts-seg-icon" data-seg="'+part+'" onclick="event.stopPropagation();tsSegmentPart(this.dataset.seg)" title="Segmenter">✂</span>';
+    if(hasSub) h+=' <span class="ts-seg-icon" data-mrg="'+part+'" onclick="event.stopPropagation();tsMergePart(this.dataset.mrg)" title="Fusionner">⊕</span>';
+    return h+'</div>';
   }).join('');
   /* Sous-pills pour la partie active */
   const oldSub=document.getElementById('tsSubPills');if(oldSub)oldSub.remove();
@@ -2248,9 +2272,9 @@ function tsRenderPropsPanel(){
     subDiv.innerHTML=activeSubs.map(s=>{
       const isA=window.tsActivePart===s.key;
       const sc=(window.tsPartAssign[s.key]?.size)||0;
-      return '<div class="ts-sub-pill'+(isA?' active':'')+'" onclick="tsSelectPart(''+s.key+'')">'
+      return '<div class="ts-sub-pill'+(isA?' active':'')+'" data-sp="'+s.key+'" " onclick="tsSelectPartByEl(this)">'
         +'· '+s.label+(sc?' <span class="ts-pp-count">'+sc+'</span>':'')
-        +' <span class="sp-del" onclick="event.stopPropagation();tsRemoveSubPart(''+window.tsActivePart+'',''+s.key+'')" title="Retirer">✕</span>'
+        +' <span class="sp-del" data-pp="'+window.tsActivePart+'" data-sk="'+s.key+'" onclick="event.stopPropagation();tsRemoveSubPart(this.dataset.pp,this.dataset.sk)">✕</span>'
         +'</div>';
     }).join('');
     pillsEl.insertAdjacentElement('afterend', subDiv);
@@ -2261,6 +2285,7 @@ function tsRenderPropsPanel(){
   const _arr=document.getElementById('tsMeshArrow');if(_arr)_arr.style.transform='';
 }
 
+function tsSelectPartByEl(el){tsSelectPart(el.dataset.part||el.dataset.sp);}
 function tsSelectPart(part){
   window.tsActivePart=part;
   document.querySelectorAll('.ts-part-pill').forEach(p=>p.classList.toggle('active',p.dataset.part===part));
@@ -2284,9 +2309,9 @@ function tsSelectPart(part){
     subDiv.className='ts-sub-pills'; subDiv.id='tsSubPills';
     subDiv.innerHTML=activeSubs.map(s=>{
       const isA=part===s.key;
-      return '<div class="ts-sub-pill'+(isA?' active':'')+'" onclick="tsSelectPart(''+s.key+'')">'
+      return '<div class="ts-sub-pill'+(isA?' active':'')+'" data-sp="'+s.key+'" " onclick="tsSelectPartByEl(this)">'
         +'· '+s.label
-        +' <span class="sp-del" onclick="event.stopPropagation();tsRemoveSubPart(''+parentPart+'',''+s.key+'')" title="Retirer">✕</span>'
+        +' <span class="sp-del" data-pp="'+parentPart+'" data-sk="'+s.key+'" onclick="event.stopPropagation();tsRemoveSubPart(this.dataset.pp,this.dataset.sk)">✕</span>'
         +'</div>';
     }).join('');
     pillsEl.insertAdjacentElement('afterend', subDiv);
@@ -2294,6 +2319,89 @@ function tsSelectPart(part){
   tsShowPartProps(part,Object.keys(window.tsMeshMap||{}));
 }
 
+var _uiMeshMode=false,_uiPipette=false,_customGroups=[];
+function tsSetMeshMode(on){
+  _uiMeshMode=on; _uiPipette=false;
+  window.tsSetMeshModeModule&&window.tsSetMeshModeModule(on);
+  window.tsSetPipetteModeModule&&window.tsSetPipetteModeModule(false);
+  document.getElementById('tsMtPart')?.classList.toggle('active',!on);
+  document.getElementById('tsMtMesh')?.classList.toggle('active',on);
+  document.getElementById('tsMtPipette')?.classList.remove('active','pipette-on');
+  tsUpdateSelPanel();
+}
+function tsTogglePipette(){
+  _uiPipette=!_uiPipette; if(_uiPipette) _uiMeshMode=true;
+  window.tsSetPipetteModeModule&&window.tsSetPipetteModeModule(_uiPipette);
+  if(_uiPipette) window.tsSetMeshModeModule&&window.tsSetMeshModeModule(true);
+  document.getElementById('tsMtPipette')?.classList.toggle('pipette-on',_uiPipette);
+  document.getElementById('tsMtMesh')?.classList.toggle('active',_uiPipette||_uiMeshMode);
+  toast(_uiPipette?'Pipette — clic sur mesh source':'Pipette off','ok');
+}
+function tsUpdateSelPanel(){
+  var panel=document.getElementById('tsSelPanel');
+  var pills=document.getElementById('tsSelPills');
+  var cnt=document.getElementById('tsSelCount');
+  var cgDiv=document.getElementById('tsCustomGroups');
+  var cgPills=document.getElementById('tsCustomGroupPills');
+  if(!panel) return;
+  var sel=window.tsGetSelectedMeshes?window.tsGetSelectedMeshes():[];
+  var pip=window.tsIsPipetteReady?window.tsIsPipetteReady():false;
+  panel.classList.toggle('active',_uiMeshMode);
+  if(cnt) cnt.textContent=sel.length;
+  if(pills){
+    pills.innerHTML=sel.map(function(n){
+      return '<div class="ts-sel-mesh">'+n.slice(0,16)+(n.length>16?'..':'')
+        +' <span class="sm-del" data-n="'+n+'" onclick="window.tsMeshSelect&&window.tsMeshSelect(this.dataset.n,true)">✕</span></div>';
+    }).join('')+(pip?'<div class="ts-sel-mesh" style="border-color:#1abc9c;color:#1abc9c">⊙ Prête</div>':'');
+  }
+  if(cgDiv&&cgPills){
+    cgDiv.classList.toggle('visible',_customGroups.length>0);
+    cgPills.innerHTML=_customGroups.map(function(g){
+      var isA=window.tsActivePart===g.key;
+      return '<div class="ts-variant-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSelectPartByEl(this)">'+g.label
+        +' <span data-k="'+g.key+'" onclick="event.stopPropagation();tsRemoveCustomGroup(this.dataset.k)" style="opacity:.5;cursor:pointer">✕</span></div>';
+    }).join('');
+  }
+}
+window.tsUpdateSelPanel=tsUpdateSelPanel;
+function tsCreateGroupFromSelection(){
+  var meshes=window.tsGetSelectedMeshes?window.tsGetSelectedMeshes():[];
+  if(!meshes.length){toast('Sélectionner des meshes (mode ⬡ Mesh)','err');return;}
+  var name=prompt('Nom du groupe ('+meshes.length+' mesh) :','Groupe '+(_customGroups.length+1));
+  if(!name) return;
+  var key='cg_'+Date.now();
+  window.tsPartAssign[key]=new Set(meshes);
+  window.tsPartMat[key]={color:'#ffffff',maps:{},intensity:{}};
+  window.tsPartRepeat[key]={x:1,y:1};
+  _customGroups.push({key:key,label:name});
+  window.tsClearMeshSelection();
+  tsSelectPart(key);
+  tsUpdateSelPanel();
+  toast('Groupe "'+name+'" créé — voir panneau PBR','ok');
+}
+function tsRemoveCustomGroup(key){
+  if(!confirm('Supprimer ce groupe ?')) return;
+  _customGroups=_customGroups.filter(function(g){return g.key!==key;});
+  delete window.tsPartAssign[key]; delete window.tsPartMat[key];
+  tsUpdateSelPanel(); toast('Groupe supprimé','ok');
+}
+function tsApplyPipetteToSelection(){
+  if(!window.tsIsPipetteReady||!window.tsIsPipetteReady()){toast('Pipette non prête','err');return;}
+  var sel=window.tsGetSelectedMeshes?window.tsGetSelectedMeshes():[];
+  if(!sel.length){toast('Sélectionner des meshes cibles','err');return;}
+  var n=0; sel.forEach(function(m){if(window.tsPipetteApply(m)) n++;});
+  toast(n+' mesh(es) mis à jour','ok');
+}
+function tsApplyColorToSel(){
+  var sel=window.tsGetSelectedMeshes?window.tsGetSelectedMeshes():[];
+  if(!sel.length){toast('Sélectionner des meshes','err');return;}
+  var c=prompt('Couleur hex :','#B87333'); if(!c) return;
+  sel.forEach(function(name){
+    var m=window.tsMeshMap&&window.tsMeshMap[name]; if(!m) return;
+    m.material=new THREE.MeshStandardMaterial({color:new THREE.Color(c),roughness:.8,metalness:0});
+  });
+  toast('Couleur appliquée sur '+sel.length+' mesh(es)','ok');
+}
 function tsSegmentPart(part){
   var meshNames=[...(window.tsPartAssign[part]||new Set())].filter(n=>window.tsMeshMap&&window.tsMeshMap[n]);
   if(meshNames.length<2){toast('Il faut 2+ meshes dans "'+part+'" pour segmenter','err');return;}
@@ -2795,6 +2903,9 @@ function tsReload(){
   window._tsEditProductId=null;
   window._tsActiveVariantIdx=null;
   window.tsSubParts={};
+  document.getElementById('tsMeshToolbar')?.classList.remove('active');
+  document.getElementById('tsSelPanel')?.classList.remove('active');
+  window.tsClearMeshSelection&&window.tsClearMeshSelection();
   const _oldSub=document.getElementById('tsSubPills');if(_oldSub)_oldSub.remove();
   const _vb=document.getElementById('tsVariantsBar');if(_vb)_vb.style.display='none';
   const _ec=document.getElementById('tsMeshCnt');if(_ec)_ec.textContent='0/0';
@@ -3522,7 +3633,13 @@ window.tsInitThree = function() {
     const hits = _raycaster.intersectObjects(Object.values(meshMap), false);
     if (!hits.length) return;
     const hitName = Object.entries(meshMap).find(([,m]) => m === hits[0].object)?.[0];
-    if (!hitName) return;
+    if (!hitName||hits[0].object.userData.isOutline) return;
+    if(_pipette){
+      if(!_pipetteMat){if(window.tsPipetteSample(hitName))window.toast&&window.toast('Materiau copie — clic sur cible','ok');}
+      else{if(window.tsPipetteApply(hitName))window.toast&&window.toast('Materiau colle','ok');}
+      return;
+    }
+    if(_meshMode){window.tsMeshSelect(hitName,e.ctrlKey||e.metaKey);return;}
     if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
     const part = window._tsMeshClassif?.[hitName];
     if (!part || part === 'inconnu') return;
@@ -3659,6 +3776,7 @@ window.tsLoad = function(file) {
     document.getElementById('tsDrop').classList.add('hidden');
     document.getElementById('tsBadge').classList.add('show');
     document.getElementById('tsBadgeName').textContent = file.name;
+    document.getElementById('tsMeshToolbar')?.classList.add('active');
     document.getElementById('tsBtnGlb').disabled  = false;
     document.getElementById('tsBtnUsdz').disabled = false;
     document.getElementById('tsBtnSupa').disabled = false;
@@ -4305,7 +4423,8 @@ window.tsLoadGLB = function(url){
       if(badge){badge.classList.add('show');}
       const bName=document.getElementById('tsBadgeName');
       if(bName) bName.textContent='(GLB chargé)';
-      ['tsBtnGlb','tsBtnUsdz','tsBtnSupa','tsSegBtn'].forEach(id=>{
+      document.getElementById('tsMeshToolbar')?.classList.add('active');
+    ['tsBtnGlb','tsBtnUsdz','tsBtnSupa','tsSegBtn'].forEach(id=>{
         const el=document.getElementById(id); if(el) el.disabled=false;
       });
       /* Recalibrer la caméra */
@@ -4412,6 +4531,64 @@ window.tsExtractGLBMaterials = function(){
   if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
   else window.tsRenderPBRTable && window.tsRenderPBRTable();
 };
+
+/* ══ MODE MESH ══════════════════════════════════════════════ */
+var _meshMode=false,_selMeshes=new Set(),_pipette=false,_pipetteMat=null,_pipetteSrc=null;
+function _addOutline(m){
+  if(!m||m.userData.outline) return;
+  var ol=new THREE.Mesh(m.geometry,new THREE.MeshBasicMaterial({color:0xB8965A,side:THREE.BackSide}));
+  ol.scale.setScalar(1.038); ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
+}
+function _removeOutline(m){
+  if(!m||!m.userData.outline) return;
+  m.remove(m.userData.outline); m.userData.outline.material.dispose(); delete m.userData.outline;
+}
+window.tsMeshSelect=function(name,add){
+  if(!add){_selMeshes.forEach(function(n){_removeOutline(meshMap[n]);}); _selMeshes.clear();}
+  if(_selMeshes.has(name)){_selMeshes.delete(name);_removeOutline(meshMap[name]);}
+  else{_selMeshes.add(name);_addOutline(meshMap[name]);}
+  window.tsUpdateSelPanel&&window.tsUpdateSelPanel();
+};
+window.tsClearMeshSelection=function(){
+  _selMeshes.forEach(function(n){_removeOutline(meshMap[n]);}); _selMeshes.clear();
+  if(_pipetteSrc){_removeOutline(meshMap[_pipetteSrc]);_pipetteSrc=null;} _pipetteMat=null;
+  window.tsUpdateSelPanel&&window.tsUpdateSelPanel();
+};
+window.tsGetSelectedMeshes=function(){return[..._selMeshes];};
+window.tsSetMeshModeModule=function(on){
+  _meshMode=on; if(renderer) renderer.domElement.classList.toggle('mesh-mode-cursor',on&&!_pipette);
+  if(!on) window.tsClearMeshSelection();
+};
+window.tsSetPipetteModeModule=function(on){
+  _pipette=on; if(!renderer) return;
+  renderer.domElement.classList.toggle('pipette-cursor',on);
+  renderer.domElement.classList.toggle('mesh-mode-cursor',!on&&_meshMode);
+  if(!on&&_pipetteSrc){_removeOutline(meshMap[_pipetteSrc]);_pipetteSrc=null;_pipetteMat=null;}
+};
+window.tsPipetteSample=function(name){
+  var m=meshMap[name]; if(!m) return false;
+  var mat=Array.isArray(m.material)?m.material[0]:m.material; if(!mat) return false;
+  if(_pipetteSrc) _removeOutline(meshMap[_pipetteSrc]);
+  _pipetteSrc=name;
+  var ol=new THREE.Mesh(m.geometry,new THREE.MeshBasicMaterial({color:0x1abc9c,side:THREE.BackSide}));
+  ol.scale.setScalar(1.038); ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
+  _pipetteMat={color:mat.color?'#'+mat.color.getHexString():'#ffffff',
+    roughness:mat.roughness!=null?mat.roughness:.75,metalness:mat.metalness!=null?mat.metalness:0,
+    map:mat.map||null,normalMap:mat.normalMap||null,roughnessMap:mat.roughnessMap||null,aoMap:mat.aoMap||null};
+  window.tsUpdateSelPanel&&window.tsUpdateSelPanel(); return true;
+};
+window.tsPipetteApply=function(name){
+  if(!_pipetteMat) return false;
+  var m=meshMap[name]; if(!m) return false;
+  var mat=new THREE.MeshStandardMaterial({color:new THREE.Color(_pipetteMat.color),
+    roughness:_pipetteMat.roughness,metalness:_pipetteMat.metalness});
+  if(_pipetteMat.map) mat.map=_pipetteMat.map;
+  if(_pipetteMat.normalMap) mat.normalMap=_pipetteMat.normalMap;
+  if(_pipetteMat.roughnessMap) mat.roughnessMap=_pipetteMat.roughnessMap;
+  if(_pipetteMat.aoMap) mat.aoMap=_pipetteMat.aoMap;
+  mat.needsUpdate=true; m.material=mat; return true;
+};
+window.tsIsPipetteReady=function(){return!!_pipetteMat;};
 
 window.tsGetModelDimsCm = function(){
   if(!model) return null;
