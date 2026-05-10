@@ -3144,14 +3144,25 @@ window.tsInitThree = function() {
     if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
     const part = window._tsMeshClassif?.[hitName];
     if (!part || part === 'inconnu') return;
-    /* 1. Ouvrir la fenêtre de la partie en premier */
+    /* 1. Ouvrir la fenêtre de la partie */
     window.tsSelectPart && window.tsSelectPart(part);
-    /* 2. Flash rouge APRÈS (sinon tsApplyMaterial écrase le flash) */
+    /* 2. Flash rouge — sauvegarde des matériaux AVANT le flash,
+          annulation du flash précédent si on reclique vite */
+    if (window._flashTimeout) { clearTimeout(window._flashTimeout); window._flashTimeout=null; }
+    /* Restaurer les matériaux du flash précédent si encore actif */
+    if (window._flashRestore) { window._flashRestore(); window._flashRestore=null; }
     const flashMat = new THREE.MeshStandardMaterial({color:0xe74c3c,roughness:.8,transparent:true,opacity:.85});
     const partMeshes = Object.entries(window._tsMeshClassif||{})
       .filter(([,p])=>p===part).map(([n])=>meshMap[n]).filter(Boolean);
+    const savedMats = partMeshes.map(m=>m.material); /* sauvegarder AVANT le flash */
     partMeshes.forEach(m=>{m.material=flashMat;});
-    setTimeout(()=>{ window.tsApplyMaterial && window.tsApplyMaterial(part); }, 500);
+    /* Restauration directe depuis la sauvegarde (pas via tsApplyMaterial) */
+    window._flashRestore = ()=>{ partMeshes.forEach((m,i)=>{m.material=savedMats[i];}); };
+    window._flashTimeout = setTimeout(()=>{
+      if(window._flashRestore){ window._flashRestore(); window._flashRestore=null; }
+      window._flashTimeout=null;
+      window.tsApplyMaterial && window.tsApplyMaterial(part);
+    }, 500);
   });
 
   (function animate(){
