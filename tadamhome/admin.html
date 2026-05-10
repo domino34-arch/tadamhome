@@ -1420,6 +1420,7 @@ function renderTable(products, id) {
       + '<td><span class="td-badge '+(p.model_usdz_url?'ok':'')+'">'+(p.model_usdz_url?'✓ USDZ':'—')+'</span></td>'
       + '<td><div class="row-actions">'
       +   '<button class="row-btn" onclick="openEdit(\''+p.id+'\')">✏ Éditer</button>'
+      +   '<button class="row-btn" style="color:var(--accent)" onclick="openInStudio(\''+p.id+'\')">⚡ Studio</button>'
       +   '<button class="row-btn" onclick="showQR(\''+p.id+'\',\''+nm+'\')">QR</button>'
       +   '<button class="row-btn" onclick="window.open(\''+BASE_URL+'?id='+p.id+'\',\'_blank\')">AR</button>'
       +   '<button class="row-btn del" onclick="askDelete(\''+p.id+'\',\''+nm+'\',\'product\')">✕</button>'
@@ -1850,6 +1851,31 @@ async function confirmDelete(){
 }
 
 /* ══ EDIT PRODUCT ══ */
+function openInStudio(id){
+  const p=allProducts.find(x=>x.id===id); if(!p) return;
+  window._tsEditProduct=p; window._tsEditProductId=id;
+  showPanel('texture');
+  setTimeout(()=>{
+    const setVal=(eid,val)=>{const el=document.getElementById(eid);if(el)el.value=val||'';};
+    setVal('tsNom',p.name); setVal('tsMarque',p.enseigne_name||'');
+    if(p.dimensions){setVal('tsL',p.dimensions.l);setVal('tsH',p.dimensions.h);setVal('tsP',p.dimensions.p);}
+    const typeEl=document.getElementById('tsFurnitureType');
+    if(typeEl&&p.category){[...typeEl.options].forEach(o=>{if(o.value===p.category)o.selected=true;});}
+    const res=document.getElementById('tsResult');
+    if(res){res.classList.add('show');res.innerHTML=
+      '<strong>⚡ Ré-édition de "'+p.name+'"</strong><br>'
+      +'<span style="font-size:11px;color:var(--muted)">'
+      +(p.model_glb_url
+        ? 'Cliquer sur <strong>Charger GLB</strong> pour rouvrir le modèle, ou glisser un nouvel OBJ.'
+        : 'Glisser un fichier OBJ dans le viewer.')
+      +'</span>'
+      +(p.model_glb_url
+        ? '<br><button class="btn-secondary" style="margin-top:6px;padding:5px 10px;font-size:10px" onclick="tsLoadExistingGLB()">⬇ Charger GLB existant</button>'
+        : '')
+      +'<br><span style="font-size:10px;color:var(--accent)">Les exports seront enregistrés comme variante de ce produit.</span>';}
+    toast('Ré-édition : "'+p.name+'"','ok');
+  },350);
+}
 function openEdit(id){
   const p=allProducts.find(x=>x.id===id); if(!p) return;
   editId=id; editGlbUrl=null; editUsdzUrl=null;
@@ -2622,6 +2648,12 @@ function tsReload(){
 
 /* ── 7. Exports ──────────────────────────────────────────── */
 /* ── Collecte des infos de la barre ──────────────────── */
+function tsLoadExistingGLB(){
+  const p=window._tsEditProduct;
+  if(!p||!p.model_glb_url){toast('Aucun GLB pour ce produit','err');return;}
+  if(!window.tsLoadGLB){toast('Module 3D non prêt','err');return;}
+  window.tsLoadGLB(p.model_glb_url);
+}
 function tsGatherInfo(){
   return {
     nom:    (document.getElementById('tsNom')?.value||'').trim(),
@@ -2636,6 +2668,7 @@ function tsCloseConfirm(){ const m=document.getElementById('tsConfirmModal'); m.
 let _tsConfirmAction=null;
 
 function tsShowConfirm(action){
+  try{
   _tsConfirmAction=action;
   const info=tsGatherInfo();
   const dimStr=[info.l,info.h,info.p].filter(Boolean).map(v=>v+' cm').join(' × ');
@@ -2654,7 +2687,10 @@ function tsShowConfirm(action){
     <div class="ts-confirm-row"><span class="ts-confirm-row-label">Marque</span><span class="ts-confirm-row-val">${info.marque||'<em style="color:var(--muted)">Non renseignée</em>'}</span></div>
     <div class="ts-confirm-row"><span class="ts-confirm-row-label">Dimensions</span><span class="ts-confirm-row-val">${dimStr||'<em style="color:var(--muted)">Non renseignées</em>'}</span></div>
     ${!info.nom?'<div style="margin-top:8px;padding:8px;background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.2);font-size:10px;color:#c0392b;font-family:var(--sans)">⚠ Le nom est vide — pensez à le renseigner.</div>':''}`;
-  const _m=document.getElementById('tsConfirmModal'); _m.style.display='flex'; _m.classList.add('open');
+  const _m=document.getElementById('tsConfirmModal');
+  if(!_m){toast('Erreur : modale introuvable','err');return;}
+  _m.style.display='flex'; _m.classList.add('open');
+  }catch(e){toast('Erreur modale : '+e.message,'err');console.error(e);}
 }
 
 async function tsConfirmSend(){
@@ -2725,9 +2761,16 @@ async function tsDoExportAndCatalogue(action){
         dimensions:(info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null,
         model_glb_url:glbUrl, model_usdz_url:usdzUrl,
       };
-      const {error:dbErr}=await sb.from('products').insert([payload]);
-      if(dbErr) throw dbErr;
-
+      const editProduct=window._tsEditProduct;
+      if(editProduct){
+        const variant={name:info.nom||slug,glb_url:glbUrl,usdz_url:usdzUrl,created_at:new Date().toISOString()};
+        const existing=Array.isArray(editProduct.variants)?editProduct.variants:[];
+        const {error:vErr}=await sb.from('products').update({variants:[...existing,variant]}).eq('id',editProduct.id);
+        if(vErr) throw vErr;
+      } else {
+        const {error:dbErr}=await sb.from('products').insert([payload]);
+        if(dbErr) throw dbErr;
+      }
       loadProducts();
       resultEl.classList.add('show');
       resultEl.innerHTML=`
@@ -2741,22 +2784,46 @@ async function tsDoExportAndCatalogue(action){
 }
 
 async function tsExportGLB(){
-  if(!window.tsGetGLBBlob || !Object.keys(window.tsMeshMap||{}).length){
-    toast("Charger un modèle OBJ d'abord",'err'); return;
-  }
-  tsShowConfirm('glb');
+  try{
+    if(!window.tsGetGLBBlob){toast('Module 3D non chargé','err');return;}
+    if(!Object.keys(window.tsMeshMap||{}).length){toast("Charger un modèle OBJ d'abord",'err');return;}
+    /* Export direct : téléchargement sans passer par la modale */
+    setSpin('tsSpinGlb',true);
+    document.getElementById('tsBtnGlb').disabled=true;
+    const info=tsGatherInfo();
+    const slug=(info.nom||'modele').replace(/\s+/g,'_')||'modele';
+    const blob=await window.tsGetGLBBlob();
+    const url=URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:slug+'.glb'}).click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('GLB téléchargé ✓','ok');
+  }catch(e){toast('Erreur GLB : '+e.message,'err');console.error(e);}
+  setSpin('tsSpinGlb',false);
+  document.getElementById('tsBtnGlb').disabled=false;
 }
 async function tsExportUSDZ(){
-  if(!window.tsGetUSDZBlob || !Object.keys(window.tsMeshMap||{}).length){
-    toast("Charger un modèle OBJ d'abord",'err'); return;
-  }
-  tsShowConfirm('usdz');
+  try{
+    if(!window.tsGetUSDZBlob){toast('Module 3D non chargé','err');return;}
+    if(!Object.keys(window.tsMeshMap||{}).length){toast("Charger un modèle OBJ d'abord",'err');return;}
+    setSpin('tsSpinUsdz',true);
+    document.getElementById('tsBtnUsdz').disabled=true;
+    const info=tsGatherInfo();
+    const slug=(info.nom||'modele').replace(/\s+/g,'_')||'modele';
+    const blob=await window.tsGetUSDZBlob();
+    const url=URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:slug+'.usdz'}).click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('USDZ téléchargé ✓','ok');
+  }catch(e){toast('Erreur USDZ : '+e.message,'err');console.error(e);}
+  setSpin('tsSpinUsdz',false);
+  document.getElementById('tsBtnUsdz').disabled=false;
 }
 async function tsUploadSupabase(){
-  if(!window.tsGetGLBBlob || !Object.keys(window.tsMeshMap||{}).length){
-    toast("Charger un modèle OBJ d'abord",'err'); return;
-  }
-  tsShowConfirm('catalogue');
+  try{
+    if(!window.tsGetGLBBlob){toast('Module 3D non chargé','err');return;}
+    if(!Object.keys(window.tsMeshMap||{}).length){toast("Charger un modèle OBJ d'abord",'err');return;}
+    tsShowConfirm('catalogue');
+  }catch(e){toast('Erreur : '+e.message,'err');console.error(e);}
 }
 
 /* ══════════════════════════════════════════════════════════════════ */
@@ -3035,6 +3102,7 @@ import { OBJLoader }   from 'three/addons/loaders/OBJLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFExporter }  from 'three/addons/exporters/GLTFExporter.js';
 import { USDZExporter }  from 'three/addons/exporters/USDZExporter.js';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, camera, renderer, controls, model;
 const meshMap = {};
@@ -3777,10 +3845,10 @@ function applyProjectionToMesh(mesh, mode, scaleX, scaleY, angleDeg){
       ─────────────────────────────────────────────────────── */
       let nnx=0, nny=1, nnz=0;
       if (norms) {
-        tmpV.fromBufferAttribute(norms, i).applyMatrix3(
-          new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)
-        ).normalize();
-        nnx=Math.abs(tmpV.x); nny=Math.abs(tmpV.y); nnz=Math.abs(tmpV.z);
+        /* Utiliser la normale locale (suffisant pour axe dominant) */
+        nnx=Math.abs(norms.getX(i));
+        nny=Math.abs(norms.getY(i));
+        nnz=Math.abs(norms.getZ(i));
       }
       if (nny >= nnx && nny >= nnz){
         u = wx_/refSize; v = wz_/refSize;            // dessus → grain X/Z
