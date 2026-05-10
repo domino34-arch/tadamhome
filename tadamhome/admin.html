@@ -2693,8 +2693,7 @@ async function tsAddNewVariant(){
   const info  = tsGatherInfo();
   const base  = window._tsEditProduct;
   const vName = prompt(
-    "Nom de cette variante :
-(ex: Tissu Rouge, Cuir Noir, Edition Limitée)",
+    "Nom de cette variante (ex: Tissu Rouge, Cuir Noir, Edition Limitee) :",
     info.nom ? info.nom + " - Variante" : "Nouvelle variante"
   );
   if(!vName) return;
