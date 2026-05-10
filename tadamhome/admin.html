@@ -404,9 +404,8 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-cg-pill .ts-cg-count{font-size:8px;background:rgba(184,150,90,.12);color:var(--accent);padding:2px 5px;border-radius:8px;margin-left:4px}
 .ts-cg-pill.active .ts-cg-count{background:var(--accent);color:#fff}
 
-/* Highlight du PBR header quand un groupe perso est actif */
-.ts-mat-header.is-cg{background:linear-gradient(to right, rgba(184,150,90,.10), rgba(184,150,90,.02));border-left:2px solid var(--accent);padding:10px 14px;margin:-10px -16px 12px;border-radius:0}
-.ts-mat-header.is-cg .ts-mat-name{color:var(--accent);font-weight:500}
+/* Header subtilement teinté quand groupe perso actif (cohérence avec pill) */
+.ts-mat-header.is-cg .ts-mat-name{color:var(--accent)}
 
 canvas.mesh-mode-cursor{cursor:crosshair!important}
 canvas.pipette-cursor{cursor:cell!important}
@@ -421,6 +420,9 @@ canvas.pipette-cursor{cursor:cell!important}
 .ts-part-pill{padding:4px 10px;font-size:9px;letter-spacing:.06em;text-transform:capitalize;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:4px}
 .ts-part-pill:hover{border-color:var(--accent);color:var(--ink)}
 .ts-part-pill.active{background:var(--ink);border-color:var(--ink);color:var(--white)}
+.ts-part-pill-cg{border-style:dashed;border-color:rgba(184,150,90,.4)}
+.ts-part-pill-cg:hover{border-style:solid}
+.ts-part-pill-cg.active{background:var(--accent);border-color:var(--accent);border-style:solid;color:var(--white)}
 .ts-pp-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
 .ts-part-pill.active .ts-pp-dot{background:rgba(255,255,255,.6)}
 .ts-props-scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:none}
@@ -2263,7 +2265,7 @@ function tsRenderPropsPanel(){
   document.getElementById('tsPropsScroll').style.display='block';
   document.getElementById('tsMeshSection').style.display='block';
   const subParts = window.tsSubParts||{};
-  pillsEl.innerHTML=parts.map(function(part){
+  var standardPills = parts.map(function(part){
     var hasTex=Object.keys((window.tsPartMat[part]||{}).maps||{}).length>0;
     var isAct=part===window.tsActivePart;
     var cnt=(window.tsPartAssign[part]?.size)||0;
@@ -2276,6 +2278,21 @@ function tsRenderPropsPanel(){
     if(hasSub) h+=' <span class="ts-seg-icon" data-mrg="'+part+'" onclick="event.stopPropagation();tsMergePart(this.dataset.mrg)" title="Fusionner">⊕</span>';
     return h+'</div>';
   }).join('');
+  /* Groupes perso : même style que les pills standard, dans la même rangée */
+  var customPills = '';
+  try {
+    if (typeof _customGroups !== 'undefined' && _customGroups.length) {
+      customPills = _customGroups.map(function(g){
+        var hasTex = Object.keys((window.tsPartMat[g.key]||{}).maps||{}).length>0;
+        var isAct  = g.key===window.tsActivePart;
+        var h = '<div class="ts-part-pill ts-part-pill-cg'+(isAct?' active':'')+'" data-part="'+g.key+'" onclick="tsSelectPartByEl(this)">';
+        if (hasTex) h += '<span class="ts-pp-dot"></span>';
+        h += ' ' + g.label;
+        return h + '</div>';
+      }).join('');
+    }
+  } catch(e){}
+  pillsEl.innerHTML = standardPills + customPills;
   /* Sous-pills pour la partie active */
   const oldSub=document.getElementById('tsSubPills');if(oldSub)oldSub.remove();
   const activeSubs=subParts[window.tsActivePart];
@@ -2380,15 +2397,16 @@ function tsUpdateSelPanel(){
   if(cgDiv&&cgPills){
     cgDiv.classList.toggle('visible',_customGroups.length>0);
     var actCG = _customGroups.find(function(g){return g.key===window.tsActivePart;});
-    var pillsHtml = _customGroups.map(function(g){
-      var isA=window.tsActivePart===g.key;
-      var cnt = (window.tsPartAssign[g.key]||{size:0}).size||0;
-      return '<div class="ts-cg-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSyncGroupSelection(this.dataset.sp)">'
-        +'<span class="ts-cg-ico">◉</span>'
-        +'<span>'+g.label+'</span>'
-        +'<span class="ts-cg-count">'+cnt+'</span>'
+    /* Pills retirés du bas — ils sont maintenant dans la rangée principale en haut.
+       On garde un petit indicateur du groupe actif pour le contexte des actions. */
+    var pillsHtml = '';
+    if(actCG){
+      pillsHtml = '<div style="font-size:9px;letter-spacing:.08em;color:var(--muted);font-family:var(--sans);margin-bottom:4px">'
+        +'Actions sur <strong style="color:var(--accent)">'+actCG.label.toUpperCase()+'</strong>'
         +'</div>';
-    }).join('');
+    } else if(_customGroups.length){
+      pillsHtml = '<div style="font-size:9px;color:var(--muted);font-family:var(--sans);margin-bottom:4px">Sélectionner un groupe en haut pour voir les actions</div>';
+    }
     /* Toolbar d'actions sur le groupe actif */
     var actionsHtml = '';
     if(actCG){
@@ -2503,7 +2521,10 @@ function tsApplyColorToSel(){
   var c=prompt('Couleur hex :','#B87333'); if(!c) return;
   sel.forEach(function(name){
     var m=window.tsMeshMap&&window.tsMeshMap[name]; if(!m) return;
-    m.material=new THREE.MeshStandardMaterial({color:new THREE.Color(c),roughness:.8,metalness:0});
+    var newMat = new THREE.MeshStandardMaterial({color:new THREE.Color(c),roughness:.8,metalness:0});
+    m.material = newMat;
+    /* Préserver après désélection */
+    if (m.userData.selOrigMat !== undefined) m.userData.selOrigMat = newMat;
   });
   toast('Couleur appliquée sur '+sel.length+' mesh(es)','ok');
 }
@@ -4253,6 +4274,12 @@ window.tsApplyMaterial = function(part) {
 
   targets.forEach(mesh => {
     mesh.material = mat;
+    /* Si le mesh est actuellement sélectionné (gold tint), mettre à jour selOrigMat
+       pour que la texture persiste à la désélection — sinon _removeOutline
+       restaure l'ancien matériau (blanc) et écrase la texture */
+    if (mesh.userData.selOrigMat !== undefined) {
+      mesh.userData.selOrigMat = mat;
+    }
     /* Sauvegarder les UVs originaux si pas encore fait */
     saveOriginalUVs(mesh);
     /* Re-appliquer la projection si un mode est actif */
@@ -4265,7 +4292,13 @@ window.tsApplyMaterial = function(part) {
 };
 
 window.tsResetMesh = function(name) {
-  if(meshMap[name]) meshMap[name].material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+  if(!meshMap[name]) return;
+  var newMat = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:0});
+  meshMap[name].material = newMat;
+  /* Préserver la cohérence avec la sélection en cours */
+  if (meshMap[name].userData.selOrigMat !== undefined) {
+    meshMap[name].userData.selOrigMat = newMat;
+  }
 };
 
 /* ── Classification géométrique des meshes par partie ───────
@@ -4751,7 +4784,10 @@ window.tsPipetteApply=function(name){
   if(_pipetteMat.normalMap) mat.normalMap=_pipetteMat.normalMap;
   if(_pipetteMat.roughnessMap) mat.roughnessMap=_pipetteMat.roughnessMap;
   if(_pipetteMat.aoMap) mat.aoMap=_pipetteMat.aoMap;
-  mat.needsUpdate=true; m.material=mat; return true;
+  mat.needsUpdate=true; m.material=mat;
+  /* Préserver après désélection */
+  if (m.userData.selOrigMat !== undefined) m.userData.selOrigMat = mat;
+  return true;
 };
 window.tsIsPipetteReady=function(){return!!_pipetteMat;};
 
