@@ -453,6 +453,17 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-seg-btn:hover{border-color:var(--accent);color:var(--accent)}
 .ts-seg-btn:disabled{opacity:.4;cursor:default}
 
+/* ── Variantes ──────────────────────────────────────────── */
+.ts-variants-bar{padding:8px 14px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;display:none}
+.ts-variants-label{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);margin-bottom:6px}
+.ts-variants-pills{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.ts-variant-pill{padding:4px 10px;border:1px solid var(--border);background:var(--white);font-size:9px;font-family:var(--sans);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.ts-variant-pill:hover{border-color:var(--accent);color:var(--ink)}
+.ts-variant-pill.active{background:var(--accent);border-color:var(--accent);color:var(--white)}
+.ts-vp-del{font-size:10px;opacity:.5;margin-left:2px;line-height:1}
+.ts-variant-pill:hover .ts-vp-del{opacity:1}
+.ts-variant-new{padding:4px 10px;border:1px dashed var(--border);background:transparent;font-size:9px;font-family:var(--sans);color:var(--muted);cursor:pointer;transition:all .15s}
+.ts-variant-new:hover{border-color:var(--accent);color:var(--accent)}
 /* ══ Footer export bar ══ */
 .ts-footer-v2{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--white);border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
 
@@ -925,6 +936,10 @@ tr:hover td{background:rgba(184,152,106,.03)}
             </button>
             <div style="flex:1"></div>
             <button class="btn-secondary" id="tsBtnReload" onclick="tsReload()" style="display:none;padding:10px 16px;font-size:10px">↺ Nouveau modèle</button>
+          </div>
+          <div class="ts-variants-bar" id="tsVariantsBar">
+            <div class="ts-variants-label">Variantes du produit</div>
+            <div class="ts-variants-pills" id="tsVariantsPills"></div>
           </div>
           <div class="ts-result" id="tsResult"></div>
         </div>
@@ -1416,7 +1431,7 @@ function renderTable(products, id) {
       + '<td><div class="td-brand">'+(p.enseigne_name||'—')+'</div><div class="td-name">'+(p.name||'—')+'</div></td>'
       + '<td>'+(p.category||'—')+'</td>'
       + '<td>'+(p.price?p.price+'€':'—')+'</td>'
-      + '<td><span class="td-badge '+(p.model_glb_url?'ok':'')+'">'+(p.model_glb_url?'✓ GLB':'✗')+'</span></td>'
+      + '<td>'+'<span class="td-badge '+(p.model_glb_url?'ok':'')+'">'+(p.model_glb_url?'✓ GLB':'✗')+'</span>'+(Array.isArray(p.variants)&&p.variants.length?' <span class="td-badge ok" title="'+p.variants.length+' variante(s)">'+p.variants.length+'v</span>':'')+'</td>'
       + '<td><span class="td-badge '+(p.model_usdz_url?'ok':'')+'">'+(p.model_usdz_url?'✓ USDZ':'—')+'</span></td>'
       + '<td><div class="row-actions">'
       +   '<button class="row-btn" onclick="openEdit(\''+p.id+'\')">✏ Éditer</button>'
@@ -1873,7 +1888,9 @@ function openInStudio(id){
         ? '<br><button class="btn-secondary" style="margin-top:6px;padding:5px 10px;font-size:10px" onclick="tsLoadExistingGLB()">⬇ Charger GLB existant</button>'
         : '')
       +'<br><span style="font-size:10px;color:var(--accent)">Les exports seront enregistrés comme variante de ce produit.</span>';}
-    toast('Ré-édition : "'+p.name+'" — chargement du modèle…','ok');
+    toast('Ré-édition : "'+p.name+'" — chargement…','ok');
+    window._tsActiveVariantIdx = 0;
+    tsRenderVariantsBar();
     /* Charger automatiquement le GLB — forcer init Three.js si besoin */
     if(p.model_glb_url){
       const tryLoad=(retries)=>{
@@ -2654,6 +2671,10 @@ function tsReload(){
   document.getElementById('tsPropsPanel').innerHTML='';
   window.tsActivePart=null;
   window._tsMeshClassif=null;
+  window._tsEditProduct=null;
+  window._tsEditProductId=null;
+  window._tsActiveVariantIdx=null;
+  const _vb=document.getElementById('tsVariantsBar');if(_vb)_vb.style.display='none';
   const _ec=document.getElementById('tsMeshCnt');if(_ec)_ec.textContent='0/0';
   document.getElementById('tsResult').classList.remove('show');
   document.getElementById('tsSegInfo').style.display='none';
@@ -2662,6 +2683,58 @@ function tsReload(){
 
 /* ── 7. Exports ──────────────────────────────────────────── */
 /* ── Collecte des infos de la barre ──────────────────── */
+/* ── Variantes ─────────────────────────────────────────────── */
+window._tsActiveVariantIdx=null;
+
+function tsRenderVariantsBar(){
+  const p=window._tsEditProduct;
+  const bar=document.getElementById('tsVariantsBar');
+  const pills=document.getElementById('tsVariantsPills');
+  if(!bar||!pills) return;
+  if(!p){bar.style.display='none';return;}
+  bar.style.display='block';
+  const variants=Array.isArray(p.variants)?p.variants:[];
+  const all=[{name:'Base',glb_url:p.model_glb_url,usdz_url:p.model_usdz_url,_base:true},...variants];
+  pills.innerHTML=all.map((v,i)=>{
+    const active=window._tsActiveVariantIdx===i;
+    return '<div class="ts-variant-pill'+(active?' active':'')+'" onclick="tsLoadVariant('+i+')" title="'+(v.glb_url||'Pas de GLB')+'">'
+      +(v.name||'Variante '+i)
+      +(!v._base?'<span class="ts-vp-del" onclick="event.stopPropagation();tsDeleteVariant('+(i-1)+')" title="Supprimer">✕</span>':'')
+      +'</div>';
+  }).join('')
+  +'<button class="ts-variant-new" onclick="tsShowConfirm('catalogue')" title="Nouvelle variante">+ Nouvelle variante</button>';
+}
+
+function tsLoadVariant(idx){
+  const p=window._tsEditProduct;
+  if(!p) return;
+  const variants=Array.isArray(p.variants)?p.variants:[];
+  const all=[{name:'Base',glb_url:p.model_glb_url,_base:true},...variants];
+  const v=all[idx];
+  if(!v||!v.glb_url){toast("Cette variante n'a pas de GLB",'err');return;}
+  window._tsActiveVariantIdx=idx;
+  tsRenderVariantsBar();
+  if(!v._base&&v.name){const el=document.getElementById('tsNom');if(el)el.value=v.name;}
+  if(window.tsLoadGLB) window.tsLoadGLB(v.glb_url);
+  else toast("Module 3D non prêt",'err');
+}
+
+async function tsDeleteVariant(variantIdx){
+  const p=window._tsEditProduct;
+  if(!p) return;
+  const variants=[...(Array.isArray(p.variants)?p.variants:[])];
+  const v=variants[variantIdx];
+  if(!v||!confirm('Supprimer la variante "'+v.name+'" ?')) return;
+  variants.splice(variantIdx,1);
+  const {error}=await sb.from('products').update({variants}).eq('id',p.id);
+  if(error){toast('Erreur : '+error.message,'err');return;}
+  p.variants=variants;
+  window._tsActiveVariantIdx=0;
+  tsRenderVariantsBar();
+  loadProducts();
+  toast('Variante supprimée ✓','ok');
+}
+
 function tsLoadExistingGLB(){
   const p=window._tsEditProduct;
   if(!p||!p.model_glb_url){toast('Aucun GLB pour ce produit','err');return;}
@@ -2786,6 +2859,11 @@ async function tsDoExportAndCatalogue(action){
         if(dbErr) throw dbErr;
       }
       loadProducts();
+      /* Rafraîchir la barre de variantes */
+      setTimeout(()=>{
+        const u=allProducts.find(x=>x.id===window._tsEditProductId);
+        if(u){window._tsEditProduct=u;tsRenderVariantsBar();}
+      },800);
       resultEl.classList.add('show');
       resultEl.innerHTML=`
         <strong>✓ Ajouté au catalogue !</strong><br>
@@ -3180,6 +3258,9 @@ window.tsInitThree = function() {
 
   controls = new OrbitControls(perspCamera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = .06; controls.target.set(0,.5,0);
+  /* Molette clic = PAN, scroll = zoom (standard) */
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
   const key = new THREE.DirectionalLight(0xfff8ee, 2.0);
   key.position.set(5,8,5); key.castShadow=true; key.shadow.mapSize.setScalar(2048); key.shadow.bias=-.001;
@@ -3226,24 +3307,26 @@ window.tsInitThree = function() {
     if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
     const part = window._tsMeshClassif?.[hitName];
     if (!part || part === 'inconnu') return;
-    /* 1. Ouvrir la fenêtre de la partie */
-    window.tsSelectPart && window.tsSelectPart(part);
-    /* 2. Flash rouge — sauvegarde des matériaux AVANT le flash,
-          annulation du flash précédent si on reclique vite */
+    /* IMPORTANT : sauvegarder les matériaux AVANT tsSelectPart
+       (tsSelectPart peut écraser les textures GLB d'origine) */
     if (window._flashTimeout) { clearTimeout(window._flashTimeout); window._flashTimeout=null; }
-    /* Restaurer les matériaux du flash précédent si encore actif */
     if (window._flashRestore) { window._flashRestore(); window._flashRestore=null; }
     const flashMat = new THREE.MeshStandardMaterial({color:0xe74c3c,roughness:.8,transparent:true,opacity:.85});
     const partMeshes = Object.entries(window._tsMeshClassif||{})
       .filter(([,p])=>p===part).map(([n])=>meshMap[n]).filter(Boolean);
-    const savedMats = partMeshes.map(m=>m.material); /* sauvegarder AVANT le flash */
+    const savedMats = partMeshes.map(m=>m.material); /* capture AVANT tout écrasement */
+    /* Ouvrir la fenêtre de la partie (peut modifier les matériaux) */
+    window.tsSelectPart && window.tsSelectPart(part);
+    /* Appliquer le flash par-dessus */
     partMeshes.forEach(m=>{m.material=flashMat;});
-    /* Restauration directe depuis la sauvegarde (pas via tsApplyMaterial) */
     window._flashRestore = ()=>{ partMeshes.forEach((m,i)=>{m.material=savedMats[i];}); };
     window._flashTimeout = setTimeout(()=>{
       if(window._flashRestore){ window._flashRestore(); window._flashRestore=null; }
       window._flashTimeout=null;
-      window.tsApplyMaterial && window.tsApplyMaterial(part);
+      /* Ré-appliquer le matériau studio seulement si des textures ont été configurées */
+      const hasMat = Object.keys(window.tsPartMat?.[part]?.maps||{}).length > 0
+                  || (window.tsPartMat?.[part]?.color && window.tsPartMat[part].color !== '#ffffff');
+      if(hasMat) window.tsApplyMaterial && window.tsApplyMaterial(part);
     }, 500);
   });
 
@@ -3750,10 +3833,22 @@ window.tsClassifyMeshes = function(catKey) {
       else part = 'corps';
 
     } else if (catKey === 'luminaire_suspendu') {
-      /* ── Suspension ── */
-      if (yN > 0.80) part = 'fixation';
-      else if (yN < 0.25) part = 'abat-jour';
-      else part = 'corps';
+      /* ── Suspension ──
+         Câbles : slimR très élevé (fin et long) → corps
+         Fixation : tout en haut, petite surface
+         Abat-jour : volumes larges/ronds, hors câbles
+         Corps : tout le reste (boîtier central, jonctions)
+      ── */
+      const isCable = slimR > 4.0;  /* câble : hauteur >> largeur */
+      if (isCable) {
+        part = 'corps';             /* les câbles font partie du corps */
+      } else if (yN > 0.80 && sz.y < mH*0.15) {
+        part = 'fixation';          /* très haut ET petit → fixation plafond */
+      } else if (flatR >= 0.6 && flatR <= 2.5 && sz.x > mW*0.1) {
+        part = 'abat-jour';         /* volume rond proportionné → abat-jour */
+      } else {
+        part = 'corps';
+      }
     }
 
     result[name] = part;
