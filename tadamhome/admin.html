@@ -2950,17 +2950,11 @@ async function tsUploadSupabase(){
   const nom  = info.nom  || '(sans nom)';
   const marc = info.marque || '';
   const ok   = confirm(
-    'Envoyer au catalogue ?
-
-' +
-    'Nom : ' + nom + '
-' +
-    (marc ? 'Marque : ' + marc + '
-' : '') +
-    'Type : ' + (info.type||'—') + '
-
-' +
-    'Le modèle sera uploadé sur Supabase et créé dans le catalogue.'
+    "Envoyer au catalogue ?\n\n" +
+    "Nom : " + nom + "\n" +
+    (marc ? "Marque : " + marc + "\n" : "") +
+    "Type : " + (info.type||"-") + "\n\n" +
+    "Le modele sera uploade sur Supabase et cree dans le catalogue."
   );
   if(!ok) return;
 
@@ -2970,7 +2964,7 @@ async function tsUploadSupabase(){
   try{
     await tsDoExportAndCatalogue('catalogue');
   }catch(e){
-    alert('Erreur lors de l\'envoi : ' + (e.message||'inconnue'));
+    alert("Erreur lors de l'envoi : " + (e.message||"inconnue"));
   }
   if(btn){ btn.disabled=false; btn.textContent='⬆ Envoyer au catalogue'; }
 }
