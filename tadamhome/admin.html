@@ -2698,14 +2698,7 @@ async function tsAddNewVariant(){
   );
   if(!vName) return;
 
-  const ok = confirm(
-    "Créer la variante "" + vName + "" ?
-
-" +
-    "Un nouveau produit sera créé dans le catalogue avec ce GLB/USDZ.
-" +
-    (base ? "Basé sur : " + base.name : "")
-  );
+  const ok = confirm("Creer la variante " + vName + " ? Un nouveau produit sera cree dans le catalogue." + (base ? " Base sur : " + base.name : ""));
   if(!ok) return;
 
   const btn = document.getElementById('tsBtnSupa');
@@ -2745,12 +2738,12 @@ async function tsAddNewVariant(){
     if(dbErr) throw dbErr;
 
     loadProducts();
-    toast("Variante ""+vName+"" créée dans le catalogue ✓","ok");
+    toast("Variante " + vName + " cree dans le catalogue","ok");
     const res = document.getElementById("tsResult");
     if(res){res.classList.add("show");res.innerHTML=
-      "<strong>✓ Variante créée !</strong><br>"+
-      "<span style="font-size:11px;color:var(--muted)">"+vName+"</span><br>"+
-      "<span style="font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showPanel('catalogue')">→ Voir dans le catalogue</span>";}
+      '<strong>Variante creee !</strong><br>'+
+      '<span style="font-size:11px;color:var(--muted)">'+vName+'</span><br>'+
+      '<span style="font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showPanel('catalogue')">Voir dans le catalogue</span>';}
   }catch(e){
     alert("Erreur variante : "+(e.message||"inconnue"));
     console.error(e);
