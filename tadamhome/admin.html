@@ -1874,17 +1874,19 @@ function openInStudio(id){
         : '')
       +'<br><span style="font-size:10px;color:var(--accent)">Les exports seront enregistrés comme variante de ce produit.</span>';}
     toast('Ré-édition : "'+p.name+'" — chargement du modèle…','ok');
-    /* Charger automatiquement le GLB si disponible */
+    /* Charger automatiquement le GLB — forcer init Three.js si besoin */
     if(p.model_glb_url){
-      /* Attendre que Three.js soit initialisé (tsThreeReady) */
-      const tryLoad=()=>{
+      const tryLoad=(retries)=>{
+        if(retries<=0){toast('Timeout module 3D','err');return;}
+        /* Forcer tsInitThree si pas encore fait */
+        if(window.tsInitThree && !window.tsThreeReady) window.tsInitThree();
         if(window.tsLoadGLB && window.tsThreeReady){
           window.tsLoadGLB(p.model_glb_url);
         } else {
-          setTimeout(tryLoad, 150); /* réessayer */
+          setTimeout(()=>tryLoad(retries-1), 200);
         }
       };
-      setTimeout(tryLoad, 400);
+      setTimeout(()=>tryLoad(30), 300); /* 30 × 200ms = 6s max */
     }
   },350);
 }
@@ -3927,6 +3929,64 @@ window.tsRemoveModel = function() {
 
 
 /* ── Dimensions réelles du modèle (en cm) ─────────────────── */
+/* ── Charger un GLB existant depuis URL ─────────────────── */
+window.tsLoadGLB = function(url){
+  if(!scene){toast('Viewer non initialisé','err');return;}
+  const loader = new GLTFLoader();
+  toast('Chargement du GLB…','ok');
+  loader.load(url,
+    (gltf)=>{
+      /* Nettoyer le modèle précédent */
+      if(model){ scene.remove(model); model=null; }
+      Object.keys(meshMap).forEach(k=>delete meshMap[k]);
+      /* Ajouter le nouveau modèle */
+      model = gltf.scene;
+      let idx=0;
+      model.traverse(child=>{
+        if(child.isMesh){
+          const name = child.name||('mesh_'+idx);
+          meshMap[name] = child;
+          child.castShadow = true;
+          child.receiveShadow = true;
+          idx++;
+        }
+      });
+      /* Centrer sur le sol */
+      const bb  = new THREE.Box3().setFromObject(model);
+      const ctr = bb.getCenter(new THREE.Vector3());
+      model.position.sub(ctr);
+      model.position.y = -bb.min.y + ctr.y;
+      scene.add(model);
+      /* Reset états */
+      window.tsPartAssign   = {};
+      window.tsPartProjection = {};
+      window._tsMeshClassif = null;
+      Object.values(meshMap).forEach(m=>saveOriginalUVs(m));
+      /* Activer les boutons */
+      ['tsDrop'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('hidden');});
+      const badge=document.getElementById('tsBadge');
+      if(badge){badge.classList.add('show');}
+      const bName=document.getElementById('tsBadgeName');
+      if(bName) bName.textContent='(GLB chargé)';
+      ['tsBtnGlb','tsBtnUsdz','tsBtnSupa','tsSegBtn'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.disabled=false;
+      });
+      /* Recalibrer la caméra */
+      const rad=bb.getSize(new THREE.Vector3()).length()*0.5;
+      const d=rad*2.5;
+      perspCamera.position.set(ctr.x+d*0.6,ctr.y+d*0.5,ctr.z+d);
+      controls.target.copy(new THREE.Vector3(ctr.x,0,ctr.z));
+      controls.update();
+      /* Render PBR panel */
+      if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
+      else window.tsRenderPBRTable && window.tsRenderPBRTable();
+      toast(Object.keys(meshMap).length+' meshes chargés depuis GLB ✓','ok');
+    },
+    (xhr)=>{/* progress */},
+    (err)=>{ toast('Erreur GLB : '+(err.message||err),'err'); console.error(err); }
+  );
+};
+
 window.tsGetModelDimsCm = function(){
   if(!model) return null;
   const box=new THREE.Box3().setFromObject(model);
