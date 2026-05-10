@@ -4103,8 +4103,10 @@ window.tsLoadGLB = function(url){
       /* Centrer sur le sol */
       const bb  = new THREE.Box3().setFromObject(model);
       const ctr = bb.getCenter(new THREE.Vector3());
-      model.position.sub(ctr);
-      model.position.y = -bb.min.y + ctr.y;
+      /* Centrer horizontalement, poser au sol (Y=0) */
+      model.position.x = -ctr.x;
+      model.position.z = -ctr.z;
+      model.position.y = -bb.min.y;   /* bas du modèle → sol */
       scene.add(model);
       /* Reset états */
       window.tsPartAssign   = {};
