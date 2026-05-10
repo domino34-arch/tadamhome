@@ -3899,20 +3899,35 @@ window.tsClassifyMeshes = function(catKey) {
     const sz  = box.getSize(new THREE.Vector3());
 
     /* Métriques normalisées */
-    const yN     = (ctr.y - mMin.y) / mH;          // position Y [0=bas, 1=haut]
-    const xOff   = Math.abs(ctr.x - mCX) / (mW/2 + .001); // décalage latéral X [0=centre, 1=bord]
-    const flatR  = (sz.x + sz.z) / (2*(sz.y + .001));      // >1 = plat, <1 = vertical
-    const slimR  = sz.y / (Math.max(sz.x, sz.z) + .001);   // >2 = élancé (jambe)
-    const ySpan  = sz.y / mH;                        // hauteur relative du mesh
+    const yN      = (ctr.y - mMin.y) / mH;          // position Y [0=bas, 1=haut]
+    const xOff    = Math.abs(ctr.x - mCX) / (mW/2 + .001); // décalage latéral X
+    const flatR   = (sz.x + sz.z) / (2*(sz.y + .001));      // >1 = plat, <1 = vertical
+    const slimR   = sz.y / (Math.max(sz.x, sz.z) + .001);   // >2 = élancé (jambe)
+    const ySpan   = sz.y / mH;                        // hauteur relative du mesh
+    const groundY = (box.min.y - mMin.y) / mH;        // Y du bas du mesh [0=sol, 1=sommet]
+    const topY    = (box.max.y - mMin.y) / mH;        // Y du haut du mesh
 
     let part = 'inconnu';
 
     if (catKey === 'chaise') {
-      /* ── Fauteuil / Chaise / Canapé ── */
-      /* piétement = jambes (élancées+basses), assise = tout le tissu */
-      const isLeg = (slimR > 1.6 && yN < 0.50)
-                 || (yN < 0.18 && sz.y < mH*0.35);
-      part = isLeg ? 'piétement' : 'assise';
+      /* ── Fauteuil / Chaise / Canapé ──
+         Logique multicritères :
+         1. Élancé ET bas → jambe classique
+         2. Touche le sol ET couvre une grande hauteur → cadre/structure (piétement)
+         3. Ne touche pas le sol OU très plat → tissu (assise)
+         4. Mesh unique très large qui touche le sol → frame, sauf si très plat (coussin)
+      ── */
+      const touchesSol  = groundY < 0.08;              // bas du mesh près du sol
+      const grandeHaut  = ySpan   > 0.40;              // couvre 40%+ de la hauteur totale
+      const trèsPlat    = flatR   > 2.5;               // très plat → coussin/tissu
+      const élancé      = slimR   > 1.5;               // élancé → jambe
+
+      const isPiétement =
+        (élancé && yN < 0.55)           ||   // jambe classique (élancée et basse)
+        (touchesSol && grandeHaut && !trèsPlat) ||  // cadre qui touche le sol + grand
+        (touchesSol && élancé);               // jambe qui touche le sol
+
+      part = isPiétement ? 'piétement' : 'assise';
 
     } else if (catKey === 'table') {
       /* ── Table ── */
