@@ -2507,6 +2507,26 @@ function tsApplyColorToSel(){
   });
   toast('Couleur appliquée sur '+sel.length+' mesh(es)','ok');
 }
+/* Active le groupe perso contenant ce mesh (pour la sélection viewer→PBR) */
+window.tsActivateGroupForMesh = function(meshName){
+  for(var i=0;i<_customGroups.length;i++){
+    var g=_customGroups[i];
+    if(window.tsPartAssign[g.key]&&window.tsPartAssign[g.key].has(meshName)){
+      if(window.tsActivePart!==g.key) tsSelectPart(g.key);
+      return true;
+    }
+  }
+  return false;
+};
+
+/* Clic pill groupe perso : switch en mesh mode + active le groupe en PBR.
+   tsSelectPart applique la teinte or via le hook _cgHit dans tsSelectPart. */
+function tsSyncGroupSelection(part){
+  if(!_uiMeshMode) tsSetMeshMode(true);
+  tsSelectPart(part);
+}
+window.tsSyncGroupSelection = tsSyncGroupSelection;
+
 function tsSegmentPart(part){
   var meshNames=[...(window.tsPartAssign[part]||new Set())].filter(n=>window.tsMeshMap&&window.tsMeshMap[n]);
   if(meshNames.length<2){toast('Il faut 2+ meshes dans "'+part+'" pour segmenter','err');return;}
