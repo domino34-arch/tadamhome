@@ -3254,12 +3254,14 @@ async function tsDoExportAndCatalogue(action){
       toast('GLB telecharge ('+blobSizeMB(blob)+' Mo)','ok');
 
     } else if(action==='usdz'){
-      /* ── Export USDZ : téléchargement local uniquement ── */
-      const blob=await window.tsGetUSDZBlob();
+      /* Export USDZ avec qualite superieure pour download local */
+      toast('Generation USDZ...','ok');
+      const blob = await window.tsGetUSDZBlob({maxTexSize: 2048});
+      if (!blob || blob.size < 1024) throw new Error('USDZ genere est vide ou corrompu (' + (blob?blob.size:0) + ' octets)');
       const dlUrl=URL.createObjectURL(blob);
       Object.assign(document.createElement('a'),{href:dlUrl,download:`${slug}.usdz`}).click();
       setTimeout(()=>URL.revokeObjectURL(dlUrl),5000);
-      toast('USDZ téléchargé ✓','ok');
+      toast('USDZ telecharge ('+blobSizeMB(blob)+' Mo)','ok');
 
     } else {
 
@@ -5063,20 +5065,93 @@ window.tsGetGLBBlob = async function(opts) {
 };
 
 /* ── Export USDZ ───────────────────────────────────────────── */
-window.tsGetUSDZBlob = async function() {
-  if (!model) throw new Error('Aucun modèle chargé');
-  const exporter = new USDZExporter();
-  let result;
-  /* Three.js r158 : parse() synchrone. parseAsync() apparu en r163+ */
-  if (typeof exporter.parseAsync === 'function') {
-    result = await exporter.parseAsync(model);
-  } else if (typeof exporter.parse === 'function') {
-    const r = exporter.parse(model);
-    result = (r instanceof Promise) ? await r : r;
-  } else {
-    throw new Error('USDZExporter non disponible dans cette version de Three.js');
+window.tsGetUSDZBlob = async function(opts) {
+  opts = opts || {};
+  var maxTexSize = opts.maxTexSize || 1024;
+  if (!model) throw new Error('Aucun modele charge');
+  console.log('[USDZ] Export start...');
+
+  /* ─ 1. Désactiver les shaders triplanar (USDZ ne supporte pas les custom shaders) ─ */
+  var triplanarBackups = [];
+  model.traverse(function(obj){
+    if(!obj.material) return;
+    var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    mats.forEach(function(mat){
+      if(mat.userData && mat.userData.isTriplanar){
+        triplanarBackups.push({
+          mat: mat,
+          obc: mat.onBeforeCompile,
+          cck: mat.customProgramCacheKey,
+          isTri: mat.userData.isTriplanar,
+          uni: mat.userData.triUni
+        });
+        mat.onBeforeCompile = function(){};
+        mat.customProgramCacheKey = function(){ return 'usdz_safe'; };
+        delete mat.userData.isTriplanar;
+        delete mat.userData.triUni;
+        mat.needsUpdate = true;
+      }
+    });
+  });
+  if(triplanarBackups.length) console.log('[USDZ] '+triplanarBackups.length+' shader(s) triplanar desactive(s)');
+
+  /* ─ 2. Restaurer les matériaux réels pour les meshes sélectionnés (sinon ça exporte la teinte or) ─ */
+  var selectionBackups = [];
+  model.traverse(function(obj){
+    if(!obj.isMesh || obj.userData.selOrigMat === undefined) return;
+    selectionBackups.push({mesh: obj, currentMat: obj.material});
+    obj.material = obj.userData.selOrigMat;
+  });
+  if(selectionBackups.length) console.log('[USDZ] '+selectionBackups.length+' mesh(es) selectionne(s) restaure(s)');
+
+  /* ─ 3. Compression textures (1024px JPEG color, PNG precision) ─ */
+  var restoreTex = function(){};
+  try {
+    restoreTex = await compressTexturesForExport(model, {maxSize: maxTexSize, jpegQuality: 0.85});
+    console.log('[USDZ] Textures compressees a '+maxTexSize+'px max');
+  } catch(e){
+    console.warn('[USDZ] Compression textures echec, on continue :', e);
   }
-  return new Blob([result], {type:'model/vnd.usdz+zip'});
+
+  /* ─ 4. Export USDZ avec error handling robuste ─ */
+  var result, error;
+  try {
+    var exporter = new USDZExporter();
+    if (typeof exporter.parseAsync === 'function') {
+      result = await exporter.parseAsync(model);
+    } else if (typeof exporter.parse === 'function') {
+      var r = exporter.parse(model);
+      result = (r instanceof Promise) ? await r : r;
+    } else {
+      throw new Error('USDZExporter non disponible');
+    }
+    if (!result) throw new Error('USDZExporter a retourne un resultat vide');
+    console.log('[USDZ] Raw size : '+(result.byteLength||result.length||0)+' octets');
+  } catch(e){
+    error = e;
+    console.error('[USDZ] Export error :', e);
+  } finally {
+    /* Toujours restaurer l'etat du viewer, meme si l'export plante */
+    try { restoreTex(); } catch(e){}
+    selectionBackups.forEach(function(b){
+      try { b.mesh.material = b.currentMat; } catch(e){}
+    });
+    triplanarBackups.forEach(function(b){
+      try {
+        b.mat.onBeforeCompile = b.obc;
+        b.mat.customProgramCacheKey = b.cck;
+        if(b.isTri) b.mat.userData.isTriplanar = b.isTri;
+        if(b.uni) b.mat.userData.triUni = b.uni;
+        b.mat.needsUpdate = true;
+      } catch(e){}
+    });
+  }
+
+  if (error) throw error;
+
+  var blob = new Blob([result], {type:'model/vnd.usdz+zip'});
+  console.log('[USDZ] Final blob : '+blobSizeMB(blob)+' Mo');
+  return blob;
 };
 </script>
 
