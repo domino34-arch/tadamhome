@@ -2702,7 +2702,7 @@ function tsRenderVariantsBar(){
       +(!v._base?'<span class="ts-vp-del" onclick="event.stopPropagation();tsDeleteVariant('+(i-1)+')" title="Supprimer">✕</span>':'')
       +'</div>';
   }).join('')
-  +'<button class="ts-variant-new" onclick="tsShowConfirm('catalogue')" title="Nouvelle variante">+ Nouvelle variante</button>';
+  +'<button class="ts-variant-new" onclick="tsShowConfirm(&quot;catalogue&quot;)" title="Nouvelle variante">+ Nouvelle variante</button>';
 }
 
 function tsLoadVariant(idx){
