@@ -4536,8 +4536,17 @@ window.tsExtractGLBMaterials = function(){
 var _meshMode=false,_selMeshes=new Set(),_pipette=false,_pipetteMat=null,_pipetteSrc=null;
 function _addOutline(m){
   if(!m||m.userData.outline) return;
-  var ol=new THREE.Mesh(m.geometry,new THREE.MeshBasicMaterial({color:0xB8965A,side:THREE.BackSide}));
-  ol.scale.setScalar(1.038); ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
+  var geo=m.geometry;
+  if(!geo.boundingBox) geo.computeBoundingBox();
+  var c=geo.boundingBox.getCenter(new THREE.Vector3()); /* centre géométrique local */
+  var s=1.042; /* facteur d'expansion */
+  /* Correction : ol.position = c*(1-s) pour scaler depuis le centre, pas l'origine */
+  var ol=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xB8965A,side:THREE.BackSide}));
+  ol.scale.setScalar(s);
+  ol.position.set(c.x*(1-s), c.y*(1-s), c.z*(1-s));
+  ol.userData.isOutline=true;
+  m.add(ol);
+  m.userData.outline=ol;
 }
 function _removeOutline(m){
   if(!m||!m.userData.outline) return;
@@ -4570,8 +4579,14 @@ window.tsPipetteSample=function(name){
   var mat=Array.isArray(m.material)?m.material[0]:m.material; if(!mat) return false;
   if(_pipetteSrc) _removeOutline(meshMap[_pipetteSrc]);
   _pipetteSrc=name;
-  var ol=new THREE.Mesh(m.geometry,new THREE.MeshBasicMaterial({color:0x1abc9c,side:THREE.BackSide}));
-  ol.scale.setScalar(1.038); ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
+  var pgeo=m.geometry;
+  if(!pgeo.boundingBox) pgeo.computeBoundingBox();
+  var pc=pgeo.boundingBox.getCenter(new THREE.Vector3());
+  var ps=1.042;
+  var ol=new THREE.Mesh(pgeo,new THREE.MeshBasicMaterial({color:0x1abc9c,side:THREE.BackSide}));
+  ol.scale.setScalar(ps);
+  ol.position.set(pc.x*(1-ps), pc.y*(1-ps), pc.z*(1-ps));
+  ol.userData.isOutline=true; m.add(ol); m.userData.outline=ol;
   _pipetteMat={color:mat.color?'#'+mat.color.getHexString():'#ffffff',
     roughness:mat.roughness!=null?mat.roughness:.75,metalness:mat.metalness!=null?mat.metalness:0,
     map:mat.map||null,normalMap:mat.normalMap||null,roughnessMap:mat.roughnessMap||null,aoMap:mat.aoMap||null};
