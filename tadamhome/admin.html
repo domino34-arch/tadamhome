@@ -2686,6 +2686,79 @@ function tsReload(){
 /* ── Variantes ─────────────────────────────────────────────── */
 window._tsActiveVariantIdx=null;
 
+async function tsAddNewVariant(){
+  /* Créer une nouvelle variante = nouveau produit lié par le nom */
+  if(!window.tsGetGLBBlob){alert("Module 3D non prêt");return;}
+  if(!Object.keys(window.tsMeshMap||{}).length){alert("Charger un modèle d'abord");return;}
+  const info  = tsGatherInfo();
+  const base  = window._tsEditProduct;
+  const vName = prompt(
+    "Nom de cette variante :
+(ex: Tissu Rouge, Cuir Noir, Edition Limitée)",
+    info.nom ? info.nom + " - Variante" : "Nouvelle variante"
+  );
+  if(!vName) return;
+
+  const ok = confirm(
+    "Créer la variante "" + vName + "" ?
+
+" +
+    "Un nouveau produit sera créé dans le catalogue avec ce GLB/USDZ.
+" +
+    (base ? "Basé sur : " + base.name : "")
+  );
+  if(!ok) return;
+
+  const btn = document.getElementById('tsBtnSupa');
+  if(btn){btn.disabled=true;btn.textContent="⏳ Variante…";}
+  try{
+    const slug = vName.replace(/\s+/g,"_").replace(/[^\w\-]/g,"") || "variante";
+    const ts2  = Date.now();
+
+    /* GLB */
+    const glbBlob = await window.tsGetGLBBlob();
+    const glbPath = "studio/"+ts2+"_"+slug+".glb";
+    const {error:ge} = await sb.storage.from(BUCKET).upload(glbPath,glbBlob,{contentType:"model/gltf-binary",upsert:true});
+    if(ge) throw ge;
+    const glbUrl = sb.storage.from(BUCKET).getPublicUrl(glbPath).data.publicUrl;
+
+    /* USDZ */
+    let usdzUrl = null;
+    try{
+      const usdzBlob = await window.tsGetUSDZBlob();
+      const usdzPath = "studio/"+ts2+"_"+slug+".usdz";
+      const {error:ue} = await sb.storage.from(BUCKET).upload(usdzPath,usdzBlob,{contentType:"model/vnd.usdz+zip",upsert:true});
+      if(!ue) usdzUrl = sb.storage.from(BUCKET).getPublicUrl(usdzPath).data.publicUrl;
+    }catch(_){}
+
+    /* Créer un nouveau produit pour cette variante */
+    const payload = {
+      name:          vName,
+      enseigne_name: base ? base.enseigne_name : (info.marque||null),
+      category:      base ? base.category       : (info.type||null),
+      price:         null,
+      is_active:     true,
+      dimensions:    base ? base.dimensions : ((info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null),
+      model_glb_url:  glbUrl,
+      model_usdz_url: usdzUrl,
+    };
+    const {error:dbErr} = await sb.from("products").insert([payload]);
+    if(dbErr) throw dbErr;
+
+    loadProducts();
+    toast("Variante ""+vName+"" créée dans le catalogue ✓","ok");
+    const res = document.getElementById("tsResult");
+    if(res){res.classList.add("show");res.innerHTML=
+      "<strong>✓ Variante créée !</strong><br>"+
+      "<span style="font-size:11px;color:var(--muted)">"+vName+"</span><br>"+
+      "<span style="font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showPanel('catalogue')">→ Voir dans le catalogue</span>";}
+  }catch(e){
+    alert("Erreur variante : "+(e.message||"inconnue"));
+    console.error(e);
+  }
+  if(btn){btn.disabled=false;btn.textContent="⬆ Envoyer au catalogue";}
+}
+
 function tsRenderVariantsBar(){
   const p=window._tsEditProduct;
   const bar=document.getElementById('tsVariantsBar');
@@ -2702,7 +2775,7 @@ function tsRenderVariantsBar(){
       +(!v._base?'<span class="ts-vp-del" onclick="event.stopPropagation();tsDeleteVariant('+(i-1)+')" title="Supprimer">✕</span>':'')
       +'</div>';
   }).join('')
-  +'<button class="ts-variant-new" onclick="tsShowConfirm(&quot;catalogue&quot;)" title="Nouvelle variante">+ Nouvelle variante</button>';
+  +'<button class="ts-variant-new" onclick="tsAddNewVariant()" title="Exporter comme nouvelle variante">+ Nouvelle variante</button>';
 }
 
 function tsLoadVariant(idx){
@@ -2869,12 +2942,7 @@ async function tsDoExportAndCatalogue(action){
 
         if(upErr) throw upErr;
         savedMsg=`Produit "${updatePayload.name}" mis à jour`;
-        /* Aussi ajouter comme variante si la table le supporte */
-        try{
-          const variant={name:info.nom||slug,glb_url:glbUrl,usdz_url:usdzUrl,created_at:new Date().toISOString()};
-          const existing=Array.isArray(editProduct.variants)?editProduct.variants:[];
-          await sb.from('products').update({variants:[...existing,variant]}).eq('id',editProduct.id);
-        }catch(_){}
+        /* variants column non requise - les variantes sont des produits séparés */
       } else {
         /* ── Nouveau produit ── */
 
