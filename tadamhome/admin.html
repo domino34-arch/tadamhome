@@ -4075,11 +4075,100 @@ window.tsLoadGLB = function(url){
       /* Render PBR panel */
       if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
       else window.tsRenderPBRTable && window.tsRenderPBRTable();
-      toast(Object.keys(meshMap).length+' meshes chargés depuis GLB ✓','ok');
+
+      /* ── Extraire les matériaux du GLB → peupler le panneau PBR ── */
+      window.tsExtractGLBMaterials();
+
+      toast(Object.keys(meshMap).length+' meshes chargés + matériaux extraits ✓','ok');
     },
     (xhr)=>{/* progress */},
     (err)=>{ toast('Erreur GLB : '+(err.message||err),'err'); console.error(err); }
   );
+};
+
+/* ── Extraction des matériaux GLB → panneau PBR ─────────── */
+window.tsExtractGLBMaterials = function(){
+  const catKey = window.tsCurrentCat;
+  if(!catKey || !Object.keys(meshMap).length) return;
+
+  /* Classification géométrique pour savoir quelle mesh = quelle partie */
+  if(!window._tsMeshClassif){
+    window._tsMeshClassif = window.tsClassifyMeshes(catKey);
+  }
+
+  /* Réinitialiser les états PBR */
+  if(!window.tsPartMat)    window.tsPartMat    = {};
+  if(!window.tsPartAssign) window.tsPartAssign = {};
+  if(!window.tsTexCache)   window.tsTexCache   = {};
+
+  /* Grouper les meshes par partie */
+  const byPart = {};
+  Object.entries(window._tsMeshClassif).forEach(([name, part])=>{
+    if(!byPart[part]) byPart[part]=[];
+    byPart[part].push(name);
+  });
+
+  /* Extraire le matériau dominant pour chaque partie */
+  Object.entries(byPart).forEach(([part, names])=>{
+    /* Assigner les meshes à la partie */
+    if(!window.tsPartAssign[part]) window.tsPartAssign[part]=new Set();
+    names.forEach(n=>window.tsPartAssign[part].add(n));
+
+    /* Lire le matériau du premier mesh non-câble */
+    const mesh = names.map(n=>meshMap[n]).find(m=>m && m.material);
+    if(!mesh) return;
+
+    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    if(!mat) return;
+
+    /* Initialiser tsPartMat pour cette partie */
+    if(!window.tsPartMat[part]) window.tsPartMat[part]={color:'#ffffff',maps:{},intensity:{}};
+    const pm = window.tsPartMat[part];
+
+    /* Couleur de base */
+    if(mat.color){
+      const c=mat.color;
+      pm.color='#'+Math.round(c.r*255).toString(16).padStart(2,'0')
+               +Math.round(c.g*255).toString(16).padStart(2,'0')
+               +Math.round(c.b*255).toString(16).padStart(2,'0');
+    }
+
+    /* Intensités */
+    pm.intensity.roughness = mat.roughness ?? 0.75;
+    pm.intensity.metalness = mat.metalness ?? 0.0;
+    pm.intensity.ao = mat.aoMapIntensity ?? 1.0;
+    if(mat.normalScale) pm.intensity.normal = mat.normalScale.x ?? 1.0;
+
+    /* Textures — extraire un aperçu canvas vers tsTexCache */
+    const extractTex = (texture, key)=>{
+      if(!texture || !texture.image) return;
+      try{
+        const img = texture.image;
+        const canvas = document.createElement('canvas');
+        const size = 48;
+        canvas.width = canvas.height = size;
+        const ctx2 = canvas.getContext('2d');
+        ctx2.drawImage(img, 0, 0, size, size);
+        window.tsTexCache[part+'_'+key] = canvas.toDataURL('image/jpeg', 0.8);
+        pm.maps[key] = texture; /* référence Three.js texture */
+      }catch(e){/* cross-origin ou image pas encore disponible */}
+    };
+
+    extractTex(mat.map,          'albedo');
+    extractTex(mat.normalMap,    'normal');
+    extractTex(mat.roughnessMap, 'roughness');
+    extractTex(mat.metalnessMap, 'metalness');
+    extractTex(mat.aoMap,        'ao');
+  });
+
+  /* Ré-afficher le panneau avec les matériaux extraits */
+  if(window.tsActivePart && byPart[window.tsActivePart]){
+    if(typeof tsShowPartProps === 'function'){
+      tsShowPartProps(window.tsActivePart, Object.keys(meshMap));
+    }
+  } else if(typeof tsRenderPBRTable === 'function'){
+    tsRenderPBRTable();
+  }
 };
 
 window.tsGetModelDimsCm = function(){
