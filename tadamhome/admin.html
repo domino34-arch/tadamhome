@@ -374,6 +374,14 @@ tr:hover td{background:rgba(184,152,106,.03)}
 /* ══ PBR SPREADSHEET TABLE ══ */
 /* ══ VECTARY-STYLE CONTROLS ══ */
 .ts-part-pills{display:none;gap:2px;padding:5px 8px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap;flex-shrink:0}
+.ts-sub-pills{display:flex;gap:2px;flex-wrap:wrap;padding:4px 0 2px 12px;border-left:2px solid var(--accent);margin-top:3px}
+.ts-sub-pill{padding:3px 8px;border:1px solid var(--border);background:var(--white);font-size:9px;font-family:var(--sans);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.ts-sub-pill:hover{border-color:var(--accent);color:var(--ink)}
+.ts-sub-pill.active{background:var(--accent);border-color:var(--accent);color:var(--white)}
+.sp-del{opacity:.4;font-size:9px;cursor:pointer}
+.ts-sub-pill:hover .sp-del{opacity:.9}
+.ts-seg-icon{font-size:9px;opacity:.5;cursor:pointer;margin-left:3px}
+.ts-seg-icon:hover{opacity:1}
 .ts-part-pill{padding:4px 10px;font-size:9px;letter-spacing:.06em;text-transform:capitalize;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:4px}
 .ts-part-pill:hover{border-color:var(--accent);color:var(--ink)}
 .ts-part-pill.active{background:var(--ink);border-color:var(--ink);color:var(--white)}
@@ -2217,12 +2225,36 @@ function tsRenderPropsPanel(){
   pillsEl.style.display='flex';
   document.getElementById('tsPropsScroll').style.display='block';
   document.getElementById('tsMeshSection').style.display='block';
+  const subParts = window.tsSubParts||{};
   pillsEl.innerHTML=parts.map(part=>{
     const hasTex=Object.keys(window.tsPartMat[part].maps||{}).length>0;
     const isAct=part===window.tsActivePart;
-    return `<div class="ts-part-pill${isAct?' active':''}" data-part="${part}" onclick="tsSelectPart('${part}')">
-      ${hasTex?'<span class="ts-pp-dot"></span>':''} ${part}</div>`;
+    const cnt=(window.tsPartAssign[part]?.size)||0;
+    const hasSub=subParts[part]?.length>0;
+    const canSeg=cnt>=2&&!hasSub;
+    return '<div class="ts-part-pill'+(isAct?' active':'')+'" data-part="'+part+'" onclick="tsSelectPart(''+part+'')">'
+      +(hasTex?'<span class="ts-pp-dot"></span>':'')
+      +' '+part
+      +(canSeg?' <span class="ts-seg-icon" onclick="event.stopPropagation();tsSegmentPart(''+part+'')" title="Segmenter">✂</span>':'')
+      +(hasSub?' <span class="ts-seg-icon" onclick="event.stopPropagation();tsMergePart(''+part+'')" title="Fusionner">⊕</span>':'')
+      +'</div>';
   }).join('');
+  /* Sous-pills pour la partie active */
+  const oldSub=document.getElementById('tsSubPills');if(oldSub)oldSub.remove();
+  const activeSubs=subParts[window.tsActivePart];
+  if(activeSubs&&activeSubs.length){
+    const subDiv=document.createElement('div');
+    subDiv.className='ts-sub-pills'; subDiv.id='tsSubPills';
+    subDiv.innerHTML=activeSubs.map(s=>{
+      const isA=window.tsActivePart===s.key;
+      const sc=(window.tsPartAssign[s.key]?.size)||0;
+      return '<div class="ts-sub-pill'+(isA?' active':'')+'" onclick="tsSelectPart(''+s.key+'')">'
+        +'· '+s.label+(sc?' <span class="ts-pp-count">'+sc+'</span>':'')
+        +' <span class="sp-del" onclick="event.stopPropagation();tsRemoveSubPart(''+window.tsActivePart+'',''+s.key+'')" title="Retirer">✕</span>'
+        +'</div>';
+    }).join('');
+    pillsEl.insertAdjacentElement('afterend', subDiv);
+  }
   tsShowPartProps(window.tsActivePart,meshNames);
   document.getElementById('tsCtrlSub').textContent=cat.parts.length+' parties · '+meshNames.length+' mesh'+(meshNames.length>1?'es':'');
   const _exp=document.getElementById('tsMeshExpanded');if(_exp)_exp.style.display='none';
@@ -2232,9 +2264,97 @@ function tsRenderPropsPanel(){
 function tsSelectPart(part){
   window.tsActivePart=part;
   document.querySelectorAll('.ts-part-pill').forEach(p=>p.classList.toggle('active',p.dataset.part===part));
+  document.querySelectorAll('.ts-sub-pill').forEach(p=>p.classList.toggle('active',p.textContent.trim().startsWith('· ')&&p.onclick&&false));
+  document.querySelectorAll('.ts-sub-pill').forEach(p=>{p.classList.remove('active');});
+  /* Trouver à quelle pill principale appartient cette part */
+  const subParts=window.tsSubParts||{};
+  let parentPart=part;
+  Object.entries(subParts).forEach(([parent,subs])=>{
+    if(subs.find(s=>s.key===part)){
+      parentPart=parent;
+      document.querySelectorAll('.ts-part-pill').forEach(p=>p.classList.toggle('active',p.dataset.part===parent));
+    }
+  });
+  /* Activer le bon sous-pill */
+  const oldSub=document.getElementById('tsSubPills');if(oldSub)oldSub.remove();
+  const activeSubs=subParts[parentPart];
+  if(activeSubs&&activeSubs.length){
+    const pillsEl=document.getElementById('tsPartPills');
+    const subDiv=document.createElement('div');
+    subDiv.className='ts-sub-pills'; subDiv.id='tsSubPills';
+    subDiv.innerHTML=activeSubs.map(s=>{
+      const isA=part===s.key;
+      return '<div class="ts-sub-pill'+(isA?' active':'')+'" onclick="tsSelectPart(''+s.key+'')">'
+        +'· '+s.label
+        +' <span class="sp-del" onclick="event.stopPropagation();tsRemoveSubPart(''+parentPart+'',''+s.key+'')" title="Retirer">✕</span>'
+        +'</div>';
+    }).join('');
+    pillsEl.insertAdjacentElement('afterend', subDiv);
+  }
   tsShowPartProps(part,Object.keys(window.tsMeshMap||{}));
 }
 
+function tsSegmentPart(part){
+  var meshNames=[...(window.tsPartAssign[part]||new Set())].filter(n=>window.tsMeshMap&&window.tsMeshMap[n]);
+  if(meshNames.length<2){toast('Il faut 2+ meshes dans "'+part+'" pour segmenter','err');return;}
+  var modelBB=new THREE.Box3();
+  Object.values(window.tsMeshMap).forEach(function(m){modelBB.expandByObject(m);});
+  var mH=modelBB.max.y-modelBB.min.y||1;
+  var meshData=meshNames.map(function(name){
+    var m=window.tsMeshMap[name];
+    var bb=new THREE.Box3().setFromObject(m);
+    var sz=bb.getSize(new THREE.Vector3());
+    var ctr=bb.getCenter(new THREE.Vector3());
+    var flatR=(sz.x+sz.z)/(2*(sz.y+.001));
+    var yN=(ctr.y-modelBB.min.y)/mH;
+    return {name:name,flatR:flatR,yN:yN};
+  });
+  var garnissage=meshData.filter(function(d){return d.flatR>1.8||(d.yN>0.45&&d.flatR>1.2);});
+  var coque=meshData.filter(function(d){return !garnissage.find(function(g){return g.name===d.name;});});
+  var finalGroups=[];
+  if(coque.length)      finalGroups.push({label:'Coque',meshes:coque.map(function(d){return d.name;})});
+  if(garnissage.length) finalGroups.push({label:'Garnissage',meshes:garnissage.map(function(d){return d.name;})});
+  if(finalGroups.length===1){
+    var half=Math.ceil(meshNames.length/2);
+    finalGroups=[{label:'Partie A',meshes:meshNames.slice(0,half)},{label:'Partie B',meshes:meshNames.slice(half)}];
+  }
+  if(!window.tsSubParts) window.tsSubParts={};
+  var subList=[];
+  finalGroups.forEach(function(g,i){
+    var key=part+'__'+i;
+    window.tsPartAssign[key]=new Set(g.meshes);
+    if(!window.tsPartMat[key]) window.tsPartMat[key]={color:'#ffffff',maps:{},intensity:{}};
+    subList.push({key:key,label:g.label});
+  });
+  window.tsSubParts[part]=subList;
+  tsSelectPart(subList[0].key);
+  toast('Segmenté : '+finalGroups.map(function(g){return g.label;}).join(' + '),'ok');
+}
+function tsMergePart(part){
+  if(!window.tsSubParts||!window.tsSubParts[part]) return;
+  var allMeshes=new Set();
+  window.tsSubParts[part].forEach(function(s){
+    (window.tsPartAssign[s.key]||new Set()).forEach(function(m){allMeshes.add(m);});
+    delete window.tsPartAssign[s.key];
+    delete window.tsPartMat[s.key];
+  });
+  window.tsPartAssign[part]=allMeshes;
+  delete window.tsSubParts[part];
+  tsSelectPart(part);
+  toast('Sous-parties fusionnées','ok');
+}
+function tsRemoveSubPart(parentPart,subKey){
+  var subs=window.tsSubParts[parentPart]; if(!subs) return;
+  (window.tsPartAssign[subKey]||new Set()).forEach(function(m){
+    window.tsPartAssign[parentPart]=window.tsPartAssign[parentPart]||new Set();
+    window.tsPartAssign[parentPart].add(m);
+  });
+  delete window.tsPartAssign[subKey]; delete window.tsPartMat[subKey];
+  window.tsSubParts[parentPart]=subs.filter(function(s){return s.key!==subKey;});
+  if(!window.tsSubParts[parentPart].length) delete window.tsSubParts[parentPart];
+  tsSelectPart(parentPart);
+  toast('Sous-partie retirée','ok');
+}
 function tsUpdateSliderFill(sl){
   const mn=parseFloat(sl.min||0),mx=parseFloat(sl.max||1),v=parseFloat(sl.value);
   const p=((v-mn)/(mx-mn)*100).toFixed(1);
@@ -2674,6 +2794,8 @@ function tsReload(){
   window._tsEditProduct=null;
   window._tsEditProductId=null;
   window._tsActiveVariantIdx=null;
+  window.tsSubParts={};
+  const _oldSub=document.getElementById('tsSubPills');if(_oldSub)_oldSub.remove();
   const _vb=document.getElementById('tsVariantsBar');if(_vb)_vb.style.display='none';
   const _ec=document.getElementById('tsMeshCnt');if(_ec)_ec.textContent='0/0';
   document.getElementById('tsResult').classList.remove('show');
