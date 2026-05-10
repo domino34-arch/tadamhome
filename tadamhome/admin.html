@@ -395,6 +395,19 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .ts-custom-groups{margin-top:6px;padding-top:5px;border-top:1px solid var(--border);display:none}
 .ts-custom-groups.visible{display:block}
 .ts-cg-label{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);margin-bottom:3px}
+/* Style des pills groupes perso — inspiré de la nav gauche */
+.ts-cg-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:transparent;border:1px solid var(--border);font-family:var(--sans);font-size:10px;font-weight:300;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.ts-cg-pill:hover{color:var(--ink);background:rgba(184,150,90,.04);border-color:rgba(184,150,90,.3)}
+.ts-cg-pill.active{color:var(--accent);background:rgba(184,152,106,.10);border-color:var(--accent);font-weight:400}
+.ts-cg-pill .ts-cg-ico{font-size:11px;width:14px;text-align:center;opacity:.5}
+.ts-cg-pill.active .ts-cg-ico{opacity:1}
+.ts-cg-pill .ts-cg-count{font-size:8px;background:rgba(184,150,90,.12);color:var(--accent);padding:2px 5px;border-radius:8px;margin-left:4px}
+.ts-cg-pill.active .ts-cg-count{background:var(--accent);color:#fff}
+
+/* Highlight du PBR header quand un groupe perso est actif */
+.ts-mat-header.is-cg{background:linear-gradient(to right, rgba(184,150,90,.10), rgba(184,150,90,.02));border-left:2px solid var(--accent);padding:10px 14px;margin:-10px -16px 12px;border-radius:0}
+.ts-mat-header.is-cg .ts-mat-name{color:var(--accent);font-weight:500}
+
 canvas.mesh-mode-cursor{cursor:crosshair!important}
 canvas.pipette-cursor{cursor:cell!important}
 .ts-sub-pills{display:flex;gap:2px;flex-wrap:wrap;padding:4px 0 2px 12px;border-left:2px solid var(--accent);margin-top:3px}
@@ -2288,6 +2301,16 @@ function tsRenderPropsPanel(){
 function tsSelectPartByEl(el){tsSelectPart(el.dataset.part||el.dataset.sp);}
 function tsSelectPart(part){
   window.tsActivePart=part;
+  /* Si c'est un groupe perso et qu'on est en mode mesh, sync la sélection visuelle */
+  try {
+    if(typeof _customGroups!=='undefined' && _uiMeshMode){
+      var _cgHit = _customGroups.find(function(g){return g.key===part;});
+      if(_cgHit && window.tsSetSelection){
+        var _cgMeshes = [...(window.tsPartAssign[part]||[])];
+        window.tsSetSelection(_cgMeshes);
+      }
+    }
+  } catch(e){}
   document.querySelectorAll('.ts-part-pill').forEach(p=>p.classList.toggle('active',p.dataset.part===part));
   document.querySelectorAll('.ts-sub-pill').forEach(p=>p.classList.toggle('active',p.textContent.trim().startsWith('· ')&&p.onclick&&false));
   document.querySelectorAll('.ts-sub-pill').forEach(p=>{p.classList.remove('active');});
@@ -2359,7 +2382,12 @@ function tsUpdateSelPanel(){
     var actCG = _customGroups.find(function(g){return g.key===window.tsActivePart;});
     var pillsHtml = _customGroups.map(function(g){
       var isA=window.tsActivePart===g.key;
-      return '<div class="ts-variant-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSelectPartByEl(this)">'+g.label+'</div>';
+      var cnt = (window.tsPartAssign[g.key]||{size:0}).size||0;
+      return '<div class="ts-cg-pill'+(isA?' active':'')+'" data-sp="'+g.key+'" onclick="tsSyncGroupSelection(this.dataset.sp)">'
+        +'<span class="ts-cg-ico">◉</span>'
+        +'<span>'+g.label+'</span>'
+        +'<span class="ts-cg-count">'+cnt+'</span>'
+        +'</div>';
     }).join('');
     /* Toolbar d'actions sur le groupe actif */
     var actionsHtml = '';
@@ -2573,7 +2601,9 @@ function tsShowPartProps(part,meshNamesArg){
       if (_cg) _displayName = _cg.label;
     }
   } catch(e){}
-  let html=`<div class="ts-mat-header">
+  var _isCG = false;
+  try { _isCG = (typeof _customGroups!=='undefined') && !!_customGroups.find(function(g){return g.key===part;}); } catch(e){}
+  let html=`<div class="ts-mat-header${_isCG?' is-cg':''}">
     <div><span class="ts-mat-name">${_displayName}</span><span class="ts-mat-sub"> · ${nTex} tex.</span></div>
     <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" title="Réinitialiser">&#8635;</button>
   </div>`;
@@ -3736,7 +3766,13 @@ window.tsInitThree = function() {
       else{if(window.tsPipetteApply(hitName))window.toast&&window.toast('Materiau colle','ok');}
       return;
     }
-    if(_meshMode){window.tsMeshSelect(hitName,e.ctrlKey||e.metaKey);return;}
+    if(_meshMode){
+      window.tsMeshSelect(hitName,e.ctrlKey||e.metaKey);
+      if(!(e.ctrlKey||e.metaKey) && window.tsActivateGroupForMesh){
+        window.tsActivateGroupForMesh(hitName);
+      }
+      return;
+    }
     if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
     const part = window._tsMeshClassif?.[hitName];
     if (!part || part === 'inconnu') return;
@@ -4655,6 +4691,13 @@ window.tsMeshSelect=function(name,add){
 window.tsClearMeshSelection=function(){
   _selMeshes.forEach(function(n){_removeOutline(meshMap[n]);}); _selMeshes.clear();
   if(_pipetteSrc){_removeOutline(meshMap[_pipetteSrc]);_pipetteSrc=null;} _pipetteMat=null;
+  window.tsUpdateSelPanel&&window.tsUpdateSelPanel();
+};
+window.tsSetSelection=function(names){
+  _selMeshes.forEach(function(n){_removeOutline(meshMap[n]);}); _selMeshes.clear();
+  (names||[]).forEach(function(n){
+    if(meshMap[n]){_selMeshes.add(n);_addOutline(meshMap[n]);}
+  });
   window.tsUpdateSelPanel&&window.tsUpdateSelPanel();
 };
 window.tsGetSelectedMeshes=function(){return[..._selMeshes];};
