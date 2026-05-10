@@ -1873,7 +1873,19 @@ function openInStudio(id){
         ? '<br><button class="btn-secondary" style="margin-top:6px;padding:5px 10px;font-size:10px" onclick="tsLoadExistingGLB()">⬇ Charger GLB existant</button>'
         : '')
       +'<br><span style="font-size:10px;color:var(--accent)">Les exports seront enregistrés comme variante de ce produit.</span>';}
-    toast('Ré-édition : "'+p.name+'"','ok');
+    toast('Ré-édition : "'+p.name+'" — chargement du modèle…','ok');
+    /* Charger automatiquement le GLB si disponible */
+    if(p.model_glb_url){
+      /* Attendre que Three.js soit initialisé (tsThreeReady) */
+      const tryLoad=()=>{
+        if(window.tsLoadGLB && window.tsThreeReady){
+          window.tsLoadGLB(p.model_glb_url);
+        } else {
+          setTimeout(tryLoad, 150); /* réessayer */
+        }
+      };
+      setTimeout(tryLoad, 400);
+    }
   },350);
 }
 function openEdit(id){
