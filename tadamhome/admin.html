@@ -2529,14 +2529,14 @@ function tsHandleRotation(e){
   const angle = parseInt(e.currentTarget.dataset.angle)||0;
   if(!window.tsPartRotation) window.tsPartRotation={};
   window.tsPartRotation[part] = angle;
-  /* Mettre à jour les boutons */
-  const wrap = document.getElementById(`tsRotBtns-${CSS.escape(part)}`);
+  /* Mettre à jour les boutons actifs */
+  const wrap = document.getElementById('tsRotBtns-'+CSS.escape(part));
   if(wrap) wrap.querySelectorAll('.ts-rot-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.angle)===angle));
-  /* Ré-appliquer la projection avec la nouvelle rotation */
+  /* Ré-appliquer la projection avec la rotation */
   const mode = (window.tsPartProjection||{})[part]||'box';
   const rep  = window.tsPartRepeat[part]||{x:4,y:4};
-  window.tsSetProjectionMode && window.tsSetProjectionMode(part, mode, rep, angle);
-  window.tsApplyMaterial && window.tsApplyMaterial(part);
+  if(window.tsSetProjectionMode) window.tsSetProjectionMode(part, mode, rep, angle);
+  else window.tsApplyMaterial && window.tsApplyMaterial(part);
 }
 function tsHandleRepeat(e){
   const part=e.target.dataset.part, axis=e.target.dataset.axis;
@@ -2741,15 +2741,21 @@ async function tsDoExportAndCatalogue(action){
 }
 
 async function tsExportGLB(){
-  if(!window.tsGetGLBBlob){toast("Charger un modèle OBJ d'abord",'err');return;}
+  if(!window.tsGetGLBBlob || !Object.keys(window.tsMeshMap||{}).length){
+    toast("Charger un modèle OBJ d'abord",'err'); return;
+  }
   tsShowConfirm('glb');
 }
 async function tsExportUSDZ(){
-  if(!window.tsGetUSDZBlob){toast("Charger un modèle OBJ d'abord",'err');return;}
+  if(!window.tsGetUSDZBlob || !Object.keys(window.tsMeshMap||{}).length){
+    toast("Charger un modèle OBJ d'abord",'err'); return;
+  }
   tsShowConfirm('usdz');
 }
 async function tsUploadSupabase(){
-  if(!window.tsGetGLBBlob){toast("Charger un modèle OBJ d'abord",'err');return;}
+  if(!window.tsGetGLBBlob || !Object.keys(window.tsMeshMap||{}).length){
+    toast("Charger un modèle OBJ d'abord",'err'); return;
+  }
   tsShowConfirm('catalogue');
 }
 
@@ -3115,6 +3121,38 @@ window.tsInitThree = function() {
   const resizeObs = new ResizeObserver(onContainerResize);
   resizeObs.observe(container);
   window.addEventListener('resize', onContainerResize);
+
+  /* ── Raycasting : clic sur modèle → sélection de partie ── */
+  const _raycaster = new THREE.Raycaster();
+  const _mouse2D   = new THREE.Vector2();
+  let   _dragDist  = 0;
+
+  renderer.domElement.addEventListener('mousedown', () => { _dragDist = 0; });
+  renderer.domElement.addEventListener('mousemove', e => {
+    if (e.buttons) _dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
+  });
+  renderer.domElement.addEventListener('click', e => {
+    if (_dragDist > 6 || !model) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    _mouse2D.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+    _mouse2D.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+    _raycaster.setFromCamera(_mouse2D, activeCamera);
+    const hits = _raycaster.intersectObjects(Object.values(meshMap), false);
+    if (!hits.length) return;
+    const hitName = Object.entries(meshMap).find(([,m]) => m === hits[0].object)?.[0];
+    if (!hitName) return;
+    if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
+    const part = window._tsMeshClassif?.[hitName];
+    if (!part || part === 'inconnu') return;
+    /* 1. Ouvrir la fenêtre de la partie en premier */
+    window.tsSelectPart && window.tsSelectPart(part);
+    /* 2. Flash rouge APRÈS (sinon tsApplyMaterial écrase le flash) */
+    const flashMat = new THREE.MeshStandardMaterial({color:0xe74c3c,roughness:.8,transparent:true,opacity:.85});
+    const partMeshes = Object.entries(window._tsMeshClassif||{})
+      .filter(([,p])=>p===part).map(([n])=>meshMap[n]).filter(Boolean);
+    partMeshes.forEach(m=>{m.material=flashMat;});
+    setTimeout(()=>{ window.tsApplyMaterial && window.tsApplyMaterial(part); }, 500);
+  });
 
   (function animate(){
     requestAnimationFrame(animate);
@@ -3795,38 +3833,7 @@ window.tsRemoveModel = function() {
   if(model){scene.remove(model);model=null;}
 };
 
-/* ── Raycasting : clic sur modèle → sélection de partie ─── */
-const _raycaster = new THREE.Raycaster();
-const _mouse2D   = new THREE.Vector2();
-let   _dragDist  = 0;
 
-renderer.domElement.addEventListener('mousedown', () => { _dragDist = 0; });
-renderer.domElement.addEventListener('mousemove', e => {
-  if (e.buttons) _dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
-});
-renderer.domElement.addEventListener('click', e => {
-  if (_dragDist > 6 || !model) return;
-  const rect = renderer.domElement.getBoundingClientRect();
-  _mouse2D.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
-  _mouse2D.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
-  _raycaster.setFromCamera(_mouse2D, activeCamera);
-  const hits = _raycaster.intersectObjects(Object.values(meshMap), false);
-  if (!hits.length) return;
-  const hitName = Object.entries(meshMap).find(([,m]) => m === hits[0].object)?.[0];
-  if (!hitName) return;
-  if (!window._tsMeshClassif) window._tsMeshClassif = window.tsClassifyMeshes(window.tsCurrentCat);
-  const part = window._tsMeshClassif?.[hitName];
-  if (!part || part === 'inconnu') return;
-  /* Flash rouge sur tous les meshes de cette partie */
-  const flashMat = new THREE.MeshStandardMaterial({color:0xe74c3c,roughness:.8,transparent:true,opacity:.85});
-  const partMeshes = Object.entries(window._tsMeshClassif||{})
-    .filter(([,p])=>p===part).map(([n])=>meshMap[n]).filter(Boolean);
-  const origMats = partMeshes.map(m=>m.material);
-  partMeshes.forEach(m=>{m.material=flashMat;});
-  setTimeout(()=>{partMeshes.forEach((m,i)=>{m.material=origMats[i];});}, 500);
-  /* Switcher vers la partie dans l'UI */
-  window.tsSelectPart && window.tsSelectPart(part);
-});
 
 /* ── Dimensions réelles du modèle (en cm) ─────────────────── */
 window.tsGetModelDimsCm = function(){
