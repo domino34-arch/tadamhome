@@ -3247,11 +3247,11 @@ async function tsDoExportAndCatalogue(action){
   try{
     if(action==='glb'){
       /* ── Export GLB : téléchargement local uniquement ── */
-      const blob=await window.tsGetGLBBlob();
+      const blob=await window.tsGetGLBBlob({maxTexSize: 2048});
       const dlUrl=URL.createObjectURL(blob);
       Object.assign(document.createElement('a'),{href:dlUrl,download:`${slug}.glb`}).click();
       setTimeout(()=>URL.revokeObjectURL(dlUrl),5000);
-      toast('GLB téléchargé ✓','ok');
+      toast('GLB telecharge ('+blobSizeMB(blob)+' Mo)','ok');
 
     } else if(action==='usdz'){
       /* ── Export USDZ : téléchargement local uniquement ── */
@@ -3263,7 +3263,7 @@ async function tsDoExportAndCatalogue(action){
 
     } else {
 
-      toast('Génération GLB…','ok');
+      toast('Generation GLB + compression Draco...','ok');
 
       /* GLB */
 
@@ -3399,7 +3399,15 @@ async function tsUploadSupabase(){
   try{
     await tsDoExportAndCatalogue('catalogue');
   }catch(e){
-    alert("Erreur lors de l'envoi : " + (e.message||"inconnue"));
+    var msg = e.message || 'inconnue';
+    if(/maximum.*size|exceed.*size|too.*large|payload.*too.*large/i.test(msg)){
+      msg = "Le fichier est trop volumineux pour Supabase (limite ~50 Mo).\n\n"
+        + "Causes : textures haute resolution embarquees, plusieurs maps PBR.\n\n"
+        + "Solutions :\n"
+        + "- Reduire la resolution des textures uploadees (1024-2048 px ideal)\n"
+        + "- Augmenter la limite max file size dans Supabase Storage > Bucket settings";
+    }
+    alert("Erreur lors de l envoi : " + msg);
   }
   if(btn){ btn.disabled=false; btn.textContent='⬆ Envoyer au catalogue'; }
 }
@@ -4855,7 +4863,11 @@ window.tsSetPipetteModeModule=function(on){
 };
 window.tsPipetteSample=function(name){
   var m=meshMap[name]; if(!m) return false;
-  var mat=Array.isArray(m.material)?m.material[0]:m.material; if(!mat) return false;
+  /* IMPORTANT : si le mesh est sélectionné (or), m.material = goldMat
+     On doit lire le matériau RÉEL stocké dans selOrigMat */
+  var realMat = m.userData.selOrigMat !== undefined ? m.userData.selOrigMat : m.material;
+  var mat = Array.isArray(realMat) ? realMat[0] : realMat;
+  if(!mat) return false;
   if(_pipetteSrc) _removeOutline(meshMap[_pipetteSrc]);
   _pipetteSrc=name;
   _addOutline(m, true); /* surcouche verte */
@@ -4890,13 +4902,164 @@ window.tsGetModelDimsCm = function(){
 
 
 /* ── Export GLB ────────────────────────────────────────────── */
-window.tsGetGLBBlob = function() {
-  return new Promise((resolve,reject) => {
-    if (!model){reject(new Error('Aucun modèle chargé'));return;}
-    new GLTFExporter().parse(model, result => {
-      resolve(new Blob([result],{type:'model/gltf-binary'}));
-    }, err=>reject(err), {binary:true});
+/* Compression textures : downscale + JPEG pour color/AO, PNG pour précision */
+async function compressTexturesForExport(model, opts){
+  opts = opts || {};
+  var maxSize = opts.maxSize || 512;
+  var jpegQuality = opts.jpegQuality || 0.82;
+  var backups = [];
+  /* Maps qui peuvent être JPEG (perte acceptable) vs PNG (précision requise) */
+  var COLOR_KEYS = ['map','aoMap','emissiveMap'];
+  var PRECISION_KEYS = ['normalMap','roughnessMap','metalnessMap'];
+
+  /* Collecter toutes les textures uniques */
+  var jobs = [];
+  var seen = new Set();
+  model.traverse(function(obj){
+    if(!obj.material) return;
+    var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    mats.forEach(function(mat){
+      COLOR_KEYS.forEach(function(k){
+        var tex = mat[k];
+        if(tex && tex.image && !seen.has(tex)){ seen.add(tex); jobs.push({tex:tex, useJpeg:true}); }
+      });
+      PRECISION_KEYS.forEach(function(k){
+        var tex = mat[k];
+        if(tex && tex.image && !seen.has(tex)){ seen.add(tex); jobs.push({tex:tex, useJpeg:false}); }
+      });
+    });
   });
+
+  /* Process en parallèle */
+  await Promise.all(jobs.map(function(job){
+    return new Promise(function(resolve){
+      var tex = job.tex;
+      var img = tex.image;
+      var w = img.width || img.naturalWidth || 0;
+      var h = img.height || img.naturalHeight || 0;
+      if(!w || !h){ resolve(); return; }
+
+      var needsResize = w > maxSize || h > maxSize;
+      if(!needsResize && !job.useJpeg){ resolve(); return; }
+
+      var scale = needsResize ? Math.min(maxSize/w, maxSize/h) : 1;
+      var newW = Math.max(2, Math.floor(w*scale));
+      var newH = Math.max(2, Math.floor(h*scale));
+
+      var canvas = document.createElement('canvas');
+      canvas.width = newW; canvas.height = newH;
+      try { canvas.getContext('2d').drawImage(img, 0, 0, newW, newH); }
+      catch(e){ resolve(); return; }
+
+      if(job.useJpeg){
+        /* Convertir en JPEG via blob → Image (réduit beaucoup la taille) */
+        canvas.toBlob(function(blob){
+          if(!blob){ resolve(); return; }
+          var url = URL.createObjectURL(blob);
+          var newImg = new Image();
+          newImg.onload = function(){
+            backups.push({tex:tex, oldImage:tex.image, url:url});
+            tex.image = newImg;
+            tex.needsUpdate = true;
+            resolve();
+          };
+          newImg.onerror = function(){ URL.revokeObjectURL(url); resolve(); };
+          newImg.src = url;
+        }, 'image/jpeg', jpegQuality);
+      } else {
+        /* PNG : garder le canvas tel quel (taille réduite uniquement) */
+        backups.push({tex:tex, oldImage:tex.image});
+        tex.image = canvas;
+        tex.needsUpdate = true;
+        resolve();
+      }
+    });
+  }));
+
+  return function restore(){
+    backups.forEach(function(b){
+      b.tex.image = b.oldImage;
+      b.tex.needsUpdate = true;
+      if(b.url) URL.revokeObjectURL(b.url);
+    });
+  };
+}
+function blobSizeMB(blob){ return (blob.size/1024/1024).toFixed(1); }
+
+/* Compression Draco via gltf-transform (chargé en lazy depuis CDN).
+   Réduit la géométrie de 5-15x sans perte visuelle perceptible. */
+async function compressGLBWithDraco(glbBlob){
+  if(!window._gltfDraco){
+    try {
+      console.log('Chargement gltf-transform + draco3d...');
+      const [coreM, extM, fnM, dracoM] = await Promise.all([
+        import('https://esm.sh/@gltf-transform/core@4.0.4'),
+        import('https://esm.sh/@gltf-transform/extensions@4.0.4'),
+        import('https://esm.sh/@gltf-transform/functions@4.0.4'),
+        import('https://esm.sh/draco3dgltf@1.5.7')
+      ]);
+      const draco3d = dracoM.default || dracoM;
+      const encoder = await draco3d.createEncoderModule();
+      const decoder = await draco3d.createDecoderModule();
+      window._gltfDraco = {
+        WebIO: coreM.WebIO,
+        ALL_EXTENSIONS: extM.ALL_EXTENSIONS,
+        draco: fnM.draco,
+        encoder: encoder,
+        decoder: decoder
+      };
+      console.log('gltf-transform pret');
+    } catch(e){
+      console.warn('Draco non disponible :', e);
+      return glbBlob;
+    }
+  }
+  try {
+    const T = window._gltfDraco;
+    const io = new T.WebIO()
+      .registerExtensions(T.ALL_EXTENSIONS)
+      .registerDependencies({
+        'draco3d.encoder': T.encoder,
+        'draco3d.decoder': T.decoder
+      });
+    const arr = new Uint8Array(await glbBlob.arrayBuffer());
+    const doc = await io.readBinary(arr);
+    await doc.transform(T.draco({ method: 'edgebreaker' }));
+    const out = await io.writeBinary(doc);
+    var compressed = new Blob([out], {type:'model/gltf-binary'});
+    console.log('Draco : ' + blobSizeMB(glbBlob) + ' Mo -> ' + blobSizeMB(compressed) + ' Mo');
+    return compressed;
+  } catch(e){
+    console.error('Erreur Draco :', e);
+    return glbBlob;
+  }
+}
+
+window.tsGetGLBBlob = async function(opts) {
+  opts = opts || {};
+  var maxTexSize = opts.maxTexSize || 512;     /* default 512 = très compact */
+  var useDraco   = opts.useDraco !== false;    /* default true */
+  if (!model) throw new Error('Aucun modele charge');
+
+  /* 1. Compresser les textures (downscale + JPEG) */
+  var restore = await compressTexturesForExport(model, {maxSize: maxTexSize, jpegQuality: 0.82});
+
+  /* 2. Export GLB via Three.js */
+  var glbBlob = await new Promise(function(resolve, reject){
+    new GLTFExporter().parse(model, function(result){
+      resolve(new Blob([result],{type:'model/gltf-binary'}));
+    }, function(err){ reject(err); }, {binary:true});
+  }).finally(function(){ restore(); });
+
+  console.log('GLB raw : ' + blobSizeMB(glbBlob) + ' Mo (textures ' + maxTexSize + 'px JPEG)');
+
+  /* 3. Compression Draco (optionnelle, asynchrone) */
+  if (useDraco) {
+    glbBlob = await compressGLBWithDraco(glbBlob);
+  }
+
+  console.log('GLB final : ' + blobSizeMB(glbBlob) + ' Mo');
+  return glbBlob;
 };
 
 /* ── Export USDZ ───────────────────────────────────────────── */
