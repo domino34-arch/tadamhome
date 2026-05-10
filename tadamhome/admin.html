@@ -4430,6 +4430,83 @@ function rotateUV(u, v, angleDeg){
 }
 
 /* ── Projection + orientation intelligente ───────────────── */
+/* ── Triplanar mapping via shader injection ──────────────────
+   Élimine les coutures du box projection en échantillonnant la
+   texture sur les 3 plans (X/Y/Z) et en mélangeant selon la
+   normale world. Pas de stretching aux 45°, pas de discontinuité.
+─────────────────────────────────────────────────────────────── */
+function applyTriplanarShader(mat, refSize, repX, repY, angleDeg){
+  if(!mat) return;
+  /* Mise à jour des uniforms si déjà triplanar */
+  if(mat.userData.isTriplanar && mat.userData.triUni){
+    mat.userData.triUni.uRefSize.value = refSize;
+    mat.userData.triUni.uScale.value.set(repX, repY);
+    mat.userData.triUni.uRot.value = (angleDeg||0) * Math.PI / 180;
+    return;
+  }
+  /* Première activation : injecter le shader */
+  var uni = {
+    uRefSize: { value: refSize },
+    uScale:   { value: new THREE.Vector2(repX, repY) },
+    uBlend:   { value: 4.0 },
+    uRot:     { value: (angleDeg||0) * Math.PI / 180 }
+  };
+  mat.userData.triUni = uni;
+  mat.userData.isTriplanar = true;
+  mat.customProgramCacheKey = function(){ return 'triplanar_v1'; };
+  mat.onBeforeCompile = function(shader){
+    Object.assign(shader.uniforms, uni);
+    /* ── Vertex : passer position/normale world ── */
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <common>',
+      '#include <common>\nvarying vec3 vTriWPos;\nvarying vec3 vTriWNorm;'
+    ).replace(
+      '#include <fog_vertex>',
+      '#include <fog_vertex>\nvTriWPos = (modelMatrix * vec4(position,1.0)).xyz;\nvTriWNorm = normalize(mat3(modelMatrix) * normal);'
+    );
+    /* ── Fragment : helpers + override des chunks de sampling ── */
+    var helpers = '\nvarying vec3 vTriWPos;\nvarying vec3 vTriWNorm;\n'
+      +'uniform float uRefSize;\nuniform vec2 uScale;\nuniform float uBlend;\nuniform float uRot;\n'
+      +'vec2 triRot(vec2 uv){ float s=sin(uRot),c=cos(uRot); vec2 d=uv-vec2(0.5); return vec2(d.x*c-d.y*s, d.x*s+d.y*c)+vec2(0.5); }\n'
+      +'vec3 triW(){ vec3 w=pow(abs(vTriWNorm), vec3(uBlend)); return w/max(w.x+w.y+w.z, 0.0001); }\n'
+      +'vec4 triSample(sampler2D tex){\n'
+      +'  vec3 w = triW();\n'
+      +'  vec2 uvX = (vTriWPos.zy / uRefSize + 0.5) * uScale;\n'
+      +'  vec2 uvY = (vTriWPos.xz / uRefSize + 0.5) * uScale;\n'
+      +'  vec2 uvZ = (vTriWPos.xy / uRefSize + 0.5) * uScale;\n'
+      +'  return texture2D(tex, triRot(uvX)) * w.x + texture2D(tex, triRot(uvY)) * w.y + texture2D(tex, triRot(uvZ)) * w.z;\n'
+      +'}\n';
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>'+helpers
+    ).replace(
+      '#include <map_fragment>',
+      '#ifdef USE_MAP\n  diffuseColor *= triSample(map);\n#endif'
+    ).replace(
+      '#include <roughnessmap_fragment>',
+      'float roughnessFactor = roughness;\n#ifdef USE_ROUGHNESSMAP\n  roughnessFactor *= triSample(roughnessMap).g;\n#endif'
+    ).replace(
+      '#include <aomap_fragment>',
+      '#ifdef USE_AOMAP\n  float ambientOcclusion = (triSample(aoMap).r - 1.0) * aoMapIntensity + 1.0;\n'
+      +'  reflectedLight.indirectDiffuse *= ambientOcclusion;\n'
+      +'  #if defined(USE_ENVMAP) && defined(STANDARD)\n'
+      +'    float dotNV = saturate(dot(geometryNormal, geometryViewDir));\n'
+      +'    reflectedLight.indirectSpecular *= computeSpecularOcclusion(dotNV, ambientOcclusion, material.roughness);\n'
+      +'  #endif\n#endif'
+    );
+  };
+  mat.needsUpdate = true;
+}
+
+function removeTriplanarShader(mat){
+  if(!mat || !mat.userData.isTriplanar) return;
+  mat.onBeforeCompile = function(){};
+  mat.customProgramCacheKey = function(){ return 'standard_v1'; };
+  delete mat.userData.isTriplanar;
+  delete mat.userData.triUni;
+  mat.needsUpdate = true;
+}
+
 function applyProjectionToMesh(mesh, mode, scaleX, scaleY, angleDeg){
   const geo = mesh.geometry;
   if (!geo.attributes.position) return;
@@ -4530,6 +4607,18 @@ window.tsSetProjectionMode = function(part, mode, rep, angleDeg){
   if (!assign?.size) return;
   const targets = [...assign].filter(n=>meshMap[n]).map(n=>meshMap[n]);
   const rx = rep?.x||1, ry = rep?.y||1;
+
+  /* Mode "box" → triplanar shader-based (élimine les coutures) */
+  const mat = partMaterials[part] || (targets[0] && targets[0].material);
+  const refSize = model
+    ? (function(){ const mb=new THREE.Box3().setFromObject(model); const ms=mb.getSize(new THREE.Vector3()); return Math.max(ms.x,ms.z)||1; })()
+    : 1;
+  if (mode === 'box') {
+    applyTriplanarShader(mat, refSize, rx, ry, angleDeg||0);
+  } else {
+    removeTriplanarShader(mat);
+  }
+
   targets.forEach(mesh => applyProjectionToMesh(mesh, mode, rx, ry, angleDeg||0));
   if (partMaterials[part]) partMaterials[part].needsUpdate = true;
 };
