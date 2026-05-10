@@ -2687,68 +2687,54 @@ function tsReload(){
 window._tsActiveVariantIdx=null;
 
 async function tsAddNewVariant(){
-  /* Créer une nouvelle variante = nouveau produit lié par le nom */
-  if(!window.tsGetGLBBlob){alert("Module 3D non prêt");return;}
-  if(!Object.keys(window.tsMeshMap||{}).length){alert("Charger un modèle d'abord");return;}
-  const info  = tsGatherInfo();
-  const base  = window._tsEditProduct;
-  const vName = prompt(
-    "Nom de cette variante (ex: Tissu Rouge, Cuir Noir, Edition Limitee) :",
-    info.nom ? info.nom + " - Variante" : "Nouvelle variante"
-  );
+  if(!window.tsGetGLBBlob){alert('Module 3D non pret');return;}
+  if(!Object.keys(window.tsMeshMap||{}).length){alert('Charger un modele dabord');return;}
+  var info  = tsGatherInfo();
+  var base  = window._tsEditProduct;
+  var defNm = info.nom ? info.nom+' - Variante' : 'Nouvelle variante';
+  var vName = prompt('Nom de cette variante (ex: Tissu Rouge, Cuir Noir) :', defNm);
   if(!vName) return;
-
-  const ok = confirm("Creer la variante " + vName + " ? Un nouveau produit sera cree dans le catalogue." + (base ? " Base sur : " + base.name : ""));
-  if(!ok) return;
-
-  const btn = document.getElementById('tsBtnSupa');
-  if(btn){btn.disabled=true;btn.textContent="⏳ Variante…";}
+  var baseTxt = base ? ' Base sur : '+base.name : '';
+  if(!confirm('Creer la variante '+vName+' ?'+baseTxt)) return;
+  var btn=document.getElementById('tsBtnSupa');
+  if(btn){btn.disabled=true;btn.textContent='Upload...';}
   try{
-    const slug = vName.replace(/\s+/g,"_").replace(/[^\w\-]/g,"") || "variante";
-    const ts2  = Date.now();
-
-    /* GLB */
-    const glbBlob = await window.tsGetGLBBlob();
-    const glbPath = "studio/"+ts2+"_"+slug+".glb";
-    const {error:ge} = await sb.storage.from(BUCKET).upload(glbPath,glbBlob,{contentType:"model/gltf-binary",upsert:true});
-    if(ge) throw ge;
-    const glbUrl = sb.storage.from(BUCKET).getPublicUrl(glbPath).data.publicUrl;
-
-    /* USDZ */
-    let usdzUrl = null;
+    var ts2  = Date.now();
+    var slug = vName.replace(/\s+/g,'_').replace(/[^\w-]/g,'') || 'variante';
+    var glbBlob = await window.tsGetGLBBlob();
+    var glbPath = 'studio/'+ts2+'_'+slug+'.glb';
+    var upG = await sb.storage.from(BUCKET).upload(glbPath,glbBlob,{contentType:'model/gltf-binary',upsert:true});
+    if(upG.error) throw upG.error;
+    var glbUrl = sb.storage.from(BUCKET).getPublicUrl(glbPath).data.publicUrl;
+    var usdzUrl = null;
     try{
-      const usdzBlob = await window.tsGetUSDZBlob();
-      const usdzPath = "studio/"+ts2+"_"+slug+".usdz";
-      const {error:ue} = await sb.storage.from(BUCKET).upload(usdzPath,usdzBlob,{contentType:"model/vnd.usdz+zip",upsert:true});
-      if(!ue) usdzUrl = sb.storage.from(BUCKET).getPublicUrl(usdzPath).data.publicUrl;
-    }catch(_){}
-
-    /* Créer un nouveau produit pour cette variante */
-    const payload = {
-      name:          vName,
+      var usdzBlob = await window.tsGetUSDZBlob();
+      var usdzPath = 'studio/'+ts2+'_'+slug+'.usdz';
+      var upU = await sb.storage.from(BUCKET).upload(usdzPath,usdzBlob,{contentType:'model/vnd.usdz+zip',upsert:true});
+      if(!upU.error) usdzUrl = sb.storage.from(BUCKET).getPublicUrl(usdzPath).data.publicUrl;
+    }catch(e2){}
+    var payload = {
+      name: vName,
       enseigne_name: base ? base.enseigne_name : (info.marque||null),
       category:      base ? base.category       : (info.type||null),
-      price:         null,
-      is_active:     true,
-      dimensions:    base ? base.dimensions : ((info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null),
-      model_glb_url:  glbUrl,
-      model_usdz_url: usdzUrl,
+      price: null, is_active: true,
+      dimensions: base ? base.dimensions : ((info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null),
+      model_glb_url: glbUrl, model_usdz_url: usdzUrl
     };
-    const {error:dbErr} = await sb.from("products").insert([payload]);
-    if(dbErr) throw dbErr;
-
+    var ins = await sb.from('products').insert([payload]);
+    if(ins.error) throw ins.error;
     loadProducts();
-    toast("Variante " + vName + " cree dans le catalogue","ok");
-    const res = document.getElementById("tsResult");
-    if(res){res.classList.add("show");res.innerHTML=
-      '<strong>Variante creee !</strong><br>'+
-      '<span style="font-size:11px;color:var(--muted)">'+vName+'</span><br>'+
-      '<span style="font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="showPanel('catalogue')">Voir dans le catalogue</span>';}
+    toast('Variante '+vName+' creee','ok');
+    var res=document.getElementById('tsResult');
+    if(res){
+      res.classList.add('show');
+      res.innerHTML='<strong>Variante creee !</strong><br><span>'+vName+'</span>';
+    }
   }catch(e){
-    alert("Erreur variante : "+(e.message||"inconnue"));
+    alert('Erreur : '+(e.message||'inconnue'));
     console.error(e);
   }
-  if(btn){btn.disabled=false;btn.textContent="⬆ Envoyer au catalogue";}
+  if(btn){btn.disabled=false;btn.textContent='\u2b06 Envoyer au catalogue';}
 }
 
 function tsRenderVariantsBar(){
