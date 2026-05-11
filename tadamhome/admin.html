@@ -513,6 +513,82 @@ canvas.pipette-cursor{cursor:cell!important}
 /* ══ Footer export bar ══ */
 .ts-footer-v2{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--white);border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
 
+/* ══════════════════════════════════════════════════════════════ */
+/* ══ BIBLIOTHÈQUE MATÉRIAUX ════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════ */
+.mat-stats{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
+@media(max-width:1024px){.mat-stats{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:768px){.mat-stats{grid-template-columns:repeat(2,1fr)}}
+.mat-cat-tabs{display:flex;gap:1px;background:var(--white);border:1px solid var(--border);margin-bottom:2px;overflow-x:auto;flex-wrap:wrap}
+.mat-cat-tab{flex:1;min-width:120px;padding:14px 12px;background:transparent;border:none;cursor:pointer;color:var(--muted);font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.mat-cat-tab:hover{color:var(--ink);background:rgba(184,152,106,.04)}
+.mat-cat-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(184,152,106,.06)}
+.mat-cat-tab .mat-cat-tab-ico{font-size:14px}
+.mat-cat-tab .mat-cat-tab-cnt{font-size:9px;background:rgba(184,150,90,.15);color:var(--accent);padding:1px 6px;border-radius:8px}
+.mat-cat-tab.active .mat-cat-tab-cnt{background:var(--accent);color:#fff}
+.mat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px;background:var(--border);min-height:200px}
+.mat-card{background:var(--white);position:relative;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.mat-card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(28,27,24,.08);z-index:2}
+.mat-card-thumb{aspect-ratio:1;background:var(--bg) center/cover no-repeat;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border)}
+.mat-card-body{padding:10px 12px;flex:1}
+.mat-card-cat{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-family:var(--sans);margin-bottom:4px}
+.mat-card-name{font-family:var(--serif);font-size:16px;font-weight:400;color:var(--ink);line-height:1.2;margin-bottom:2px}
+.mat-card-sub{font-size:10px;color:var(--muted);font-family:var(--sans);letter-spacing:.04em}
+.mat-card-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transition:opacity .2s}
+.mat-card:hover .mat-card-actions{opacity:1}
+.mat-card-actions .row-btn{background:rgba(255,255,255,.95);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.mat-card-inactive{opacity:.5}
+.mat-card-inactive::after{content:'INACTIF';position:absolute;top:8px;left:8px;background:rgba(192,57,43,.85);color:white;font-size:8px;letter-spacing:.1em;padding:2px 6px;font-family:var(--sans)}
+.mat-empty{padding:48px 24px;text-align:center;color:var(--muted);font-family:var(--sans);font-size:13px;grid-column:1/-1;background:var(--white)}
+
+/* ══ MATERIAL MODAL (PBR editor) ══ */
+.mat-cat-radios{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px}
+@media(max-width:600px){.mat-cat-radios{grid-template-columns:repeat(2,1fr)}}
+.mat-cat-radio{padding:10px 8px;border:1px solid var(--border);background:var(--white);cursor:pointer;text-align:center;transition:all .15s;font-family:var(--sans);font-size:11px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none}
+.mat-cat-radio:hover{border-color:var(--accent);background:rgba(184,152,106,.04)}
+.mat-cat-radio.active{border-color:var(--accent);background:rgba(184,152,106,.10);color:var(--accent)}
+.mat-cat-radio span:first-child{font-size:18px}
+.mat-cat-radio input{display:none}
+.mat-pbr-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+@media(max-width:600px){.mat-pbr-grid{grid-template-columns:1fr}}
+.mat-preview-wrap{position:relative;background:#1C1B18;border:1px solid var(--border);overflow:hidden;aspect-ratio:1}
+.mat-preview-wrap canvas{display:block;width:100%;height:100%}
+.mat-preview-hint{position:absolute;top:8px;left:10px;background:rgba(28,27,24,.6);backdrop-filter:blur(6px);color:rgba(255,255,255,.85);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;font-family:var(--sans);pointer-events:none}
+.mat-preview-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--sans);pointer-events:none;text-align:center;padding:20px}
+
+/* ══ PICKER OVERLAY (dans le Studio Texture) ══ */
+#tsMatPicker{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:25;background:rgba(10,10,10,.94);backdrop-filter:blur(3px);transition:opacity .25s;padding:24px;overflow:hidden}
+#tsMatPicker.closing{opacity:0;pointer-events:none}
+.ts-pk-box{width:100%;max-width:780px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.ts-pk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0}
+.ts-pk-title{font-family:var(--serif);font-size:22px;font-weight:300;color:rgba(255,255,255,.92)}
+.ts-pk-title em{font-style:italic;color:var(--accent)}
+.ts-pk-head-sub{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:2px;font-family:var(--sans)}
+.ts-pk-close{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.ts-pk-close:hover{border-color:var(--accent);color:var(--accent)}
+.ts-pk-tabs{display:flex;gap:2px;margin-bottom:12px;flex-wrap:wrap;flex-shrink:0}
+.ts-pk-tab{padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.ts-pk-tab:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.9)}
+.ts-pk-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.ts-pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:2px;background:rgba(255,255,255,.06);overflow-y:auto;flex:1;min-height:0;align-content:start;padding:1px}
+.ts-pk-card{background:rgba(255,255,255,.05);padding:10px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:4px;border:1px solid transparent}
+.ts-pk-card:hover{background:rgba(184,150,90,.16);border-color:var(--accent)}
+.ts-pk-thumb{aspect-ratio:1;background:#2a2a2a center/cover no-repeat;border:1px solid rgba(255,255,255,.1)}
+.ts-pk-name{font-family:var(--serif);font-size:13px;font-weight:400;color:rgba(255,255,255,.92);line-height:1.2}
+.ts-pk-card-sub{font-size:9px;color:rgba(255,255,255,.45);font-family:var(--sans)}
+
+/* Bouton picker / save dans le header de partie */
+.ts-mat-action{padding:4px 8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:11px;font-family:var(--sans);transition:all .15s;line-height:1}
+.ts-mat-action:hover{border-color:var(--accent);color:var(--accent);background:rgba(184,150,90,.04)}
+.ts-mat-action.primary{border-color:var(--accent);color:var(--accent)}
+.ts-mat-action.primary:hover{background:var(--accent);color:#fff}
+
+/* Undo toast */
+.undo-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--white);padding:8px 12px 8px 16px;border-left:2px solid var(--accent);display:flex;align-items:center;gap:14px;z-index:10000;font-family:var(--sans);font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none}
+.undo-toast.show{opacity:1;pointer-events:auto}
+.undo-toast button{background:transparent;border:1px solid rgba(255,255,255,.3);color:var(--white);padding:4px 10px;font-size:10px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.undo-toast button:hover{border-color:var(--accent);color:var(--accent)}
+
 /* ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════ */
 
@@ -557,6 +633,7 @@ canvas.pipette-cursor{cursor:cell!important}
     <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
     <button class="nav-btn" onclick="showPanel('icones')"><span class="ico">✦</span>Icônes<span class="sidebar-badge" id="navBadgeIcones">0</span></button>
     <button class="nav-btn" onclick="showPanel('sols')"><span class="ico">▭</span>Sols<span class="sidebar-badge" id="navBadgeSols">0</span></button>
+    <button class="nav-btn" onclick="showPanel('materiaux')"><span class="ico">◊</span>Matériaux<span class="sidebar-badge" id="navBadgeMateriaux">0</span></button>
     <button class="nav-btn" onclick="showPanel('texture')"><span class="ico">◫</span>Studio Texture</button>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">Liens</div>
@@ -792,6 +869,38 @@ canvas.pipette-cursor{cursor:cell!important}
         </div>
       </div>
 
+      <!-- MATÉRIAUX (bibliothèque PBR) -->
+      <div class="panel" id="panelMateriaux">
+        <div class="section-head" style="margin-bottom:2px">
+          <div class="section-title">Vos <em>Matériaux</em></div>
+        </div>
+        <div class="mat-stats">
+          <div class="stat-card"><div class="stat-ico">◊</div><div class="stat-val" id="stMatTotal">0</div><div class="stat-lbl">Total</div></div>
+          <div class="stat-card"><div class="stat-ico">🪵</div><div class="stat-val" id="stMat_bois">0</div><div class="stat-lbl">Bois</div></div>
+          <div class="stat-card"><div class="stat-ico">⬛</div><div class="stat-val" id="stMat_metal">0</div><div class="stat-lbl">Métal</div></div>
+          <div class="stat-card"><div class="stat-ico">🧵</div><div class="stat-val" id="stMat_tissu">0</div><div class="stat-lbl">Tissu</div></div>
+          <div class="stat-card"><div class="stat-ico">🪨</div><div class="stat-val" id="stMat_pierre">0</div><div class="stat-lbl">Pierre</div></div>
+          <div class="stat-card"><div class="stat-ico">🟤</div><div class="stat-val" id="stMat_cuir">0</div><div class="stat-lbl">Cuir</div></div>
+          <div class="stat-card"><div class="stat-ico">🔷</div><div class="stat-val" id="stMat_verre">0</div><div class="stat-lbl">Verre</div></div>
+        </div>
+        <div class="mat-cat-tabs" id="matCatTabs">
+          <button class="mat-cat-tab active" data-cat="" onclick="filterMaterialsByCategory('')"><span class="mat-cat-tab-ico">◊</span>Tous <span class="mat-cat-tab-cnt" id="matTabCnt_all">0</span></button>
+          <button class="mat-cat-tab" data-cat="bois" onclick="filterMaterialsByCategory('bois')"><span class="mat-cat-tab-ico">🪵</span>Bois <span class="mat-cat-tab-cnt" id="matTabCnt_bois">0</span></button>
+          <button class="mat-cat-tab" data-cat="metal" onclick="filterMaterialsByCategory('metal')"><span class="mat-cat-tab-ico">⬛</span>Métal <span class="mat-cat-tab-cnt" id="matTabCnt_metal">0</span></button>
+          <button class="mat-cat-tab" data-cat="tissu" onclick="filterMaterialsByCategory('tissu')"><span class="mat-cat-tab-ico">🧵</span>Tissu <span class="mat-cat-tab-cnt" id="matTabCnt_tissu">0</span></button>
+          <button class="mat-cat-tab" data-cat="pierre" onclick="filterMaterialsByCategory('pierre')"><span class="mat-cat-tab-ico">🪨</span>Pierre <span class="mat-cat-tab-cnt" id="matTabCnt_pierre">0</span></button>
+          <button class="mat-cat-tab" data-cat="cuir" onclick="filterMaterialsByCategory('cuir')"><span class="mat-cat-tab-ico">🟤</span>Cuir <span class="mat-cat-tab-cnt" id="matTabCnt_cuir">0</span></button>
+          <button class="mat-cat-tab" data-cat="verre" onclick="filterMaterialsByCategory('verre')"><span class="mat-cat-tab-ico">🔷</span>Verre <span class="mat-cat-tab-cnt" id="matTabCnt_verre">0</span></button>
+        </div>
+        <div class="search-bar" style="margin-top:2px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="matSearch" placeholder="Rechercher un matériau…" oninput="filterMaterialsBySearch()"/>
+          <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadMaterials()">↺ Actualiser</button>
+          <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="openNewMaterial()">+ Nouveau matériau</button>
+        </div>
+        <div class="mat-grid" id="matGrid"></div>
+      </div>
+
       <!-- ══ STUDIO TEXTURE ══ -->
       <div class="panel" id="panelTexture">
 
@@ -834,6 +943,28 @@ canvas.pipette-cursor{cursor:cell!important}
                 <h3>Déposer un fichier OBJ</h3>
                 <p>Glisser-déposer ou cliquer</p>
               </div>
+              <!-- Material picker overlay (bibliothèque PBR) -->
+              <div id="tsMatPicker">
+                <div class="ts-pk-box">
+                  <div class="ts-pk-head">
+                    <div>
+                      <div class="ts-pk-title">Bibliothèque <em>Matériaux</em></div>
+                      <div class="ts-pk-head-sub">Choisir un matériau pour <span id="tsPkPartName" style="color:var(--accent)">—</span></div>
+                    </div>
+                    <button class="ts-pk-close" onclick="closeMaterialPicker()">✕</button>
+                  </div>
+                  <div class="ts-pk-tabs" id="tsPkTabs">
+                    <button class="ts-pk-tab" data-cat="bois" onclick="filterPickerByCategory('bois')"><span>🪵</span>Bois</button>
+                    <button class="ts-pk-tab" data-cat="metal" onclick="filterPickerByCategory('metal')"><span>⬛</span>Métal</button>
+                    <button class="ts-pk-tab" data-cat="tissu" onclick="filterPickerByCategory('tissu')"><span>🧵</span>Tissu</button>
+                    <button class="ts-pk-tab" data-cat="pierre" onclick="filterPickerByCategory('pierre')"><span>🪨</span>Pierre</button>
+                    <button class="ts-pk-tab" data-cat="cuir" onclick="filterPickerByCategory('cuir')"><span>🟤</span>Cuir</button>
+                    <button class="ts-pk-tab" data-cat="verre" onclick="filterPickerByCategory('verre')"><span>🔷</span>Verre</button>
+                  </div>
+                  <div class="ts-pk-grid" id="tsPickerGrid"></div>
+                </div>
+              </div>
+
               <!-- Picker catégorie en overlay sur le viewer -->
               <div id="tsCatPicker">
                 <div class="ts-cat-picker">
@@ -1209,6 +1340,152 @@ canvas.pipette-cursor{cursor:cell!important}
   </div>
 </div>
 
+<!-- MODAL MATÉRIAU -->
+<div class="modal-bg" id="materialModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3 id="materialModalTitle">Nouveau matériau</h3>
+      <button class="modal-close" onclick="closeMaterialModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-section-title">Identité</div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field"><label>Nom *</label><input type="text" id="mName" placeholder="ex. Chêne naturel"/></div>
+          <div class="field"><label>Slug (URL)</label><input type="text" id="mSlug" placeholder="auto-généré"/></div>
+        </div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="field"><label>Sous-catégorie</label><input type="text" id="mSubcat" placeholder="ex. chêne, noyer, velours…"/></div>
+          <div class="field"><label>Tags (séparés par virgules)</label><input type="text" id="mTags" placeholder="ex. clair, mat, scandinave"/></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Ordre d'affichage</label><input type="number" id="mOrder" value="0"/></div>
+          <div></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Catégorie *</div>
+        <div class="mat-cat-radios">
+          <label class="mat-cat-radio" data-cat="bois">   <span>🪵</span> Bois   </label>
+          <label class="mat-cat-radio" data-cat="metal">  <span>⬛</span> Métal  </label>
+          <label class="mat-cat-radio" data-cat="tissu">  <span>🧵</span> Tissu  </label>
+          <label class="mat-cat-radio" data-cat="pierre"> <span>🪨</span> Pierre </label>
+          <label class="mat-cat-radio" data-cat="cuir">   <span>🟤</span> Cuir   </label>
+          <label class="mat-cat-radio" data-cat="verre">  <span>🔷</span> Verre  </label>
+        </div>
+        <input type="hidden" id="mCategoryNew" value="bois"/>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Cartes PBR</div>
+        <div class="drop-zone" id="matDropZone" style="padding:18px">
+          <input type="file" id="matFile" accept=".jpg,.jpeg,.png,.webp" multiple onchange="onMatPbrFiles(this.files)"/>
+          <div class="drop-ico" style="font-size:18px;margin-bottom:6px">◊</div>
+          <div style="font-size:12px;color:var(--ink);font-family:var(--sans);margin-bottom:4px">Glissez vos fichiers PBR ici (jusqu'à 5 d'un coup)</div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--sans)">Détection auto : <strong>_Albedo</strong>, <strong>_Normal</strong>, <strong>_Roughness</strong>, <strong>_Metalness</strong>, <strong>_AO</strong></div>
+          <div id="matFileLbl" style="font-size:11px;color:var(--accent);margin-top:6px;font-family:var(--sans)">ou cliquez pour parcourir</div>
+          <div class="drop-progress" id="matFileProg"><div class="drop-bar" id="matFileBar"></div></div>
+        </div>
+        <div class="pbr-detect-toast" id="matPbrDetectToast"></div>
+        <div class="pbr-grid">
+          <div class="pbr-slot required" id="mSlotAlbedo">
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Albedo (couleur)</div><button type="button" class="pbr-slot-clear" onclick="clearMatPbrSlot('albedo')">Effacer</button></div>
+            <div class="pbr-slot-name" id="mNameAlbedo">—</div>
+            <input type="text" id="mAlbedoUrl" class="pbr-slot-url" placeholder="URL albedo" oninput="scheduleMatPreview();refreshMatPbrSlot('albedo')"/>
+          </div>
+          <div class="pbr-slot" id="mSlotNormal">
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Normal map</div><button type="button" class="pbr-slot-clear" onclick="clearMatPbrSlot('normal')">Effacer</button></div>
+            <div class="pbr-slot-name" id="mNameNormal">—</div>
+            <input type="text" id="mNormalUrl" class="pbr-slot-url" placeholder="URL normal" oninput="scheduleMatPreview();refreshMatPbrSlot('normal')"/>
+          </div>
+          <div class="pbr-slot" id="mSlotRoughness">
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Roughness map</div><button type="button" class="pbr-slot-clear" onclick="clearMatPbrSlot('roughness')">Effacer</button></div>
+            <div class="pbr-slot-name" id="mNameRoughness">—</div>
+            <input type="text" id="mRoughnessUrl" class="pbr-slot-url" placeholder="URL roughness" oninput="scheduleMatPreview();refreshMatPbrSlot('roughness')"/>
+          </div>
+          <div class="pbr-slot" id="mSlotMetalness">
+            <div class="pbr-slot-head"><div class="pbr-slot-label">Metalness map</div><button type="button" class="pbr-slot-clear" onclick="clearMatPbrSlot('metalness')">Effacer</button></div>
+            <div class="pbr-slot-name" id="mNameMetalness">—</div>
+            <input type="text" id="mMetalnessUrl" class="pbr-slot-url" placeholder="URL metalness" oninput="scheduleMatPreview();refreshMatPbrSlot('metalness')"/>
+          </div>
+          <div class="pbr-slot" id="mSlotAo">
+            <div class="pbr-slot-head"><div class="pbr-slot-label">AO map</div><button type="button" class="pbr-slot-clear" onclick="clearMatPbrSlot('ao')">Effacer</button></div>
+            <div class="pbr-slot-name" id="mNameAo">—</div>
+            <input type="text" id="mAoUrl" class="pbr-slot-url" placeholder="URL AO" oninput="scheduleMatPreview();refreshMatPbrSlot('ao')"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Couleur, intensités et UV</div>
+        <div class="mat-pbr-grid">
+          <div>
+            <div class="form-grid" style="margin-bottom:10px">
+              <div class="field"><label>Couleur de base</label><input type="color" id="mBaseColor" value="#ffffff" style="height:40px;padding:4px"/></div>
+              <div class="field"><label>Projection texture</label>
+                <select id="mProjection">
+                  <option value="uv">UV (fichier)</option>
+                  <option value="planar">Planaire</option>
+                  <option value="box" selected>Box (triplanar)</option>
+                  <option value="sphere">Sphère</option>
+                  <option value="cylinder">Cylindre</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Rugosité</label>
+              <div class="sol-slider-row"><input type="range" id="mRoughness" min="0" max="1" step="0.05" value="0.75" oninput="onMatParamChange()"/><input type="number" id="mRoughnessNum" class="sol-slider-num" min="0" max="1" step="0.05" value="0.75" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Metalness</label>
+              <div class="sol-slider-row"><input type="range" id="mMetalness" min="0" max="1" step="0.05" value="0" oninput="onMatParamChange()"/><input type="number" id="mMetalnessNum" class="sol-slider-num" min="0" max="1" step="0.05" value="0" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Intensité Normal</label>
+              <div class="sol-slider-row"><input type="range" id="mNormalScale" min="0" max="2" step="0.1" value="1" oninput="onMatParamChange()"/><input type="number" id="mNormalScaleNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Intensité AO</label>
+              <div class="sol-slider-row"><input type="range" id="mAoIntensity" min="0" max="2" step="0.1" value="1" oninput="onMatParamChange()"/><input type="number" id="mAoIntensityNum" class="sol-slider-num" min="0" max="2" step="0.1" value="1" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Répétitions U (horizontal)</label>
+              <div class="sol-slider-row"><input type="range" id="mRepeatU" min="0.1" max="20" step="0.1" value="1" oninput="onMatParamChange()"/><input type="number" id="mRepeatUNum" class="sol-slider-num" min="0.1" max="20" step="0.1" value="1" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Répétitions V (vertical)</label>
+              <div class="sol-slider-row"><input type="range" id="mRepeatV" min="0.1" max="20" step="0.1" value="1" oninput="onMatParamChange()"/><input type="number" id="mRepeatVNum" class="sol-slider-num" min="0.1" max="20" step="0.1" value="1" oninput="onMatParamChange('num')"/></div>
+            </div>
+            <div class="field">
+              <label>Rotation (°)</label>
+              <div class="sol-slider-row"><input type="range" id="mRotation" min="0" max="360" step="15" value="0" oninput="onMatParamChange()"/><input type="number" id="mRotationNum" class="sol-slider-num" min="0" max="360" step="15" value="0" oninput="onMatParamChange('num')"/></div>
+            </div>
+          </div>
+          <div>
+            <div class="mat-preview-wrap">
+              <canvas id="matPreviewCanvas"></canvas>
+              <div class="mat-preview-hint">Aperçu temps réel · sphère</div>
+              <div class="mat-preview-empty" id="matPreviewEmpty">Importez une image albedo pour voir l'aperçu</div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="field"><label>URL miniature (optionnel)</label><input type="text" id="mThumbnailUrl" placeholder="auto-capturée si vide"/></div>
+            </div>
+          </div>
+        </div>
+        <div class="sol-checkbox-row" onclick="document.getElementById('mActive').click()">
+          <input type="checkbox" id="mActive" checked onclick="event.stopPropagation()"/>
+          <label for="mActive">Actif <span class="sol-checkbox-hint">— visible dans le picker du Studio</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeMaterialModal()">Annuler</button>
+      <button class="btn-primary" id="btnMatSave" onclick="saveMaterial()">
+        <div class="spin" id="spinMat"></div>
+        <span id="matSaveLbl">Créer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- QR MODAL -->
 <div class="modal-bg" id="qrModal">
   <div class="modal">
@@ -1374,6 +1651,7 @@ function unlock() {
     loadProducts();
     loadEditorials();
     loadSols();
+    loadMaterials();
   } else {
     const el = document.getElementById('lockErr');
     el.textContent = 'Mot de passe incorrect.';
@@ -1418,11 +1696,13 @@ const panelTitles = {
   catalogue:'Vos <em style="font-style:italic;color:var(--accent)">modèles</em>',
   icones:   'Vos <em style="font-style:italic;color:var(--accent)">Icônes</em>',
   sols:     'Vos <em style="font-style:italic;color:var(--accent)">Sols</em>',
+  materiaux:'Bibliothèque <em style="font-style:italic;color:var(--accent)">Matériaux</em>',
   texture:  'Studio <em style="font-style:italic;color:var(--accent)">Texture</em>'
 };
 const panelActions = {
   icones:  '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewEdito()">+ Nouvel édito</button>',
   sols:    '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewSol()">+ Nouvelle texture</button>',
+  materiaux:'<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="openNewMaterial()">+ Nouveau matériau</button>',
   texture: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button>',
   default: '<button class="topbar-btn ghost" onclick="showPanel(\'catalogue\')">Catalogue</button><button class="topbar-btn" onclick="showPanel(\'upload\')">+ Ajouter</button>'
 };
@@ -1434,7 +1714,7 @@ function showPanel(name) {
   document.getElementById('topbarTitle').innerHTML = panelTitles[name] || name;
   document.getElementById('topbarActions').innerHTML = panelActions[name] || panelActions.default;
   document.querySelector('.content').scrollTop = 0;
-  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols',texture:'texture'};
+  const map = {overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols',materiaux:'matériaux',texture:'texture'};
   document.querySelectorAll('.nav-btn').forEach(b => {
     if (b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
   });
@@ -1901,6 +2181,7 @@ async function confirmDelete(){
   let table = 'products';
   if (deleteType === 'edito') table = 'editorials';
   else if (deleteType === 'sol') table = 'floor_textures';
+  else if (deleteType === 'material') table = 'materials_library';
   const {error}=await sb.from(table).delete().eq('id',deleteId);
   closeConfirm();
   if(error){toast('Erreur : '+error.message,'err');}
@@ -1908,6 +2189,7 @@ async function confirmDelete(){
     toast('Supprimé','ok');
     if(deleteType==='edito') loadEditorials();
     else if(deleteType==='sol') loadSols();
+    else if(deleteType==='material') loadMaterials();
     else loadProducts();
   }
 }
@@ -2646,7 +2928,11 @@ function tsShowPartProps(part,meshNamesArg){
   try { _isCG = (typeof _customGroups!=='undefined') && !!_customGroups.find(function(g){return g.key===part;}); } catch(e){}
   let html=`<div class="ts-mat-header${_isCG?' is-cg':''}">
     <div><span class="ts-mat-name">${_displayName}</span><span class="ts-mat-sub"> · ${nTex} tex.</span></div>
-    <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" title="Réinitialiser">&#8635;</button>
+    <div style="display:flex;gap:4px;align-items:center">
+      <button class="ts-mat-action primary" data-part="${part}" onclick="openMaterialPicker('${part}')" title="Choisir un matériau de la bibliothèque">🎨</button>
+      <button class="ts-mat-action" data-part="${part}" onclick="saveCurrentPartAsMaterial('${part}')" title="Sauvegarder dans la bibliothèque">💾</button>
+      <button class="ts-btn-reset" data-part="${part}" onclick="tsResetPart(event)" title="Réinitialiser">&#8635;</button>
+    </div>
   </div>`;
   PROPS.forEach(p=>{
     if(p.type==='color'){
@@ -3680,6 +3966,763 @@ function disposeSolPreview(){
   solPreview.floorMat.dispose(); solPreview.chair.material.dispose();
   solPreview.chair.geometry.dispose(); solPreview.floor.geometry.dispose();
   solPreview.renderer.dispose(); solPreview=null;
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+/* ══ MATÉRIAUX (BIBLIOTHÈQUE PBR) ════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════ */
+
+const MATERIAL_CATEGORIES = [
+  {id:'bois',   label:'Bois',   icon:'🪵'},
+  {id:'metal',  label:'Métal',  icon:'⬛'},
+  {id:'tissu',  label:'Tissu',  icon:'🧵'},
+  {id:'pierre', label:'Pierre', icon:'🪨'},
+  {id:'cuir',   label:'Cuir',   icon:'🟤'},
+  {id:'verre',  label:'Verre',  icon:'🔷'}
+];
+const MAT_PATH_PREFIX = 'materials';
+
+let allMaterials = [];
+let currentMaterialId = null;
+let currentMaterialCategory = '';   // '' = tous
+let currentMaterialSearch = '';
+let materialPreviewState = null;
+let _matPreviewT = null;
+
+async function loadMaterials() {
+  try {
+    const {data, error} = await sb.from('materials_library').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:false});
+    if (error) { toast('Erreur chargement matériaux : '+error.message, 'err'); allMaterials=[]; }
+    else allMaterials = data || [];
+  } catch(e) {
+    toast('La table materials_library n\'existe pas — exécute le SQL fourni','err');
+    allMaterials=[];
+  }
+  document.getElementById('stMatTotal').textContent = allMaterials.length;
+  MATERIAL_CATEGORIES.forEach(c => {
+    const elStat = document.getElementById('stMat_'+c.id);
+    if (elStat) elStat.textContent = allMaterials.filter(m => m.category === c.id).length;
+    const elTab = document.getElementById('matTabCnt_'+c.id);
+    if (elTab) elTab.textContent = allMaterials.filter(m => m.category === c.id).length;
+  });
+  const tabAll = document.getElementById('matTabCnt_all');
+  if (tabAll) tabAll.textContent = allMaterials.length;
+  document.getElementById('navBadgeMateriaux').textContent = allMaterials.length;
+  renderMaterialsGrid();
+}
+
+function filterMaterialsByCategory(cat) {
+  currentMaterialCategory = cat;
+  document.querySelectorAll('.mat-cat-tab').forEach(t => t.classList.toggle('active', (t.dataset.cat||'') === cat));
+  renderMaterialsGrid();
+}
+
+function filterMaterialsBySearch() {
+  currentMaterialSearch = (document.getElementById('matSearch').value||'').toLowerCase();
+  renderMaterialsGrid();
+}
+
+function renderMaterialsGrid() {
+  const grid = document.getElementById('matGrid');
+  if (!grid) return;
+  let filtered = currentMaterialCategory
+    ? allMaterials.filter(m => m.category === currentMaterialCategory)
+    : [...allMaterials];
+  if (currentMaterialSearch) {
+    const q = currentMaterialSearch;
+    filtered = filtered.filter(m =>
+      (m.name||'').toLowerCase().includes(q) ||
+      (m.subcategory||'').toLowerCase().includes(q) ||
+      (m.tags||[]).some(t=>(t||'').toLowerCase().includes(q))
+    );
+  }
+  if (!filtered.length) {
+    const presetCat = currentMaterialCategory||'bois';
+    grid.innerHTML = '<div class="mat-empty">Aucun matériau dans cette catégorie<br><br><button class="btn-primary mat-empty-cta" onclick="openNewMaterial(\''+presetCat+'\')" style="padding:8px 18px;font-size:10px">+ Ajouter le premier</button></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(m => {
+    const cat = MATERIAL_CATEGORIES.find(c => c.id === m.category);
+    const thumb = m.thumbnail_url || m.albedo_url || '';
+    const subInfo = [
+      m.subcategory ? m.subcategory : '',
+      (m.tags && m.tags.length) ? m.tags.slice(0,2).join(' · ') : ''
+    ].filter(Boolean).join(' · ');
+    const inactive = (m.is_active === false) ? ' mat-card-inactive' : '';
+    const safeName = (m.name||'').replace(/'/g,"\\'");
+    return '<div class="mat-card'+inactive+'" onclick="openEditMaterial(\''+m.id+'\')">'
+      + '<div class="mat-card-thumb" style="'+(thumb?'background-image:url('+thumb+');background-size:cover;background-position:center':'background:'+(m.base_color||'#888'))+'">'
+      + (!thumb ? '<span style="color:white;font-family:var(--serif);font-size:32px">'+(cat?cat.icon:'?')+'</span>' : '')
+      + '</div>'
+      + '<div class="mat-card-body">'
+      + '<div class="mat-card-cat">'+(cat?cat.icon+' '+cat.label:m.category)+'</div>'
+      + '<div class="mat-card-name">'+(m.name||'—')+'</div>'
+      + (subInfo?'<div class="mat-card-sub">'+subInfo+'</div>':'')
+      + '</div>'
+      + '<div class="mat-card-actions" onclick="event.stopPropagation()">'
+      + '<button class="row-btn" onclick="openEditMaterial(\''+m.id+'\')">✏</button>'
+      + '<button class="row-btn del" onclick="askDelete(\''+m.id+'\',\''+safeName+'\',\'material\')">✕</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function _setMatCategoryRadio(cat) {
+  document.getElementById('mCategoryNew').value = cat;
+  document.querySelectorAll('.mat-cat-radio').forEach(r => r.classList.toggle('active', r.dataset.cat===cat));
+}
+
+function openNewMaterial(presetCategory) {
+  currentMaterialId = null;
+  document.getElementById('materialModalTitle').textContent = 'Nouveau matériau';
+  document.getElementById('matSaveLbl').textContent = 'Créer';
+  ['mName','mSlug','mSubcat','mTags','mAlbedoUrl','mNormalUrl','mRoughnessUrl','mMetalnessUrl','mAoUrl','mThumbnailUrl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  _setMatCategoryRadio(presetCategory || currentMaterialCategory || 'bois');
+  document.getElementById('mBaseColor').value = '#ffffff';
+  document.getElementById('mActive').checked = true;
+  document.getElementById('mProjection').value = 'box';
+  document.getElementById('mOrder').value = allMaterials.length;
+  setMatSliderPair('mRoughness', 0.75);
+  setMatSliderPair('mMetalness', 0);
+  setMatSliderPair('mNormalScale', 1.0);
+  setMatSliderPair('mAoIntensity', 1.0);
+  setMatSliderPair('mRepeatU', 1);
+  setMatSliderPair('mRepeatV', 1);
+  setMatSliderPair('mRotation', 0);
+  ['albedo','normal','roughness','metalness','ao'].forEach(k => refreshMatPbrSlot(k));
+  document.getElementById('matPbrDetectToast').classList.remove('show');
+  document.getElementById('matFile').value = '';
+  document.getElementById('matFileLbl').textContent = 'ou cliquez pour parcourir';
+  document.getElementById('matFileProg').style.display = 'none';
+  document.getElementById('matFileBar').style.width = '0';
+  document.getElementById('materialModal').classList.add('show');
+  initMatPreview();
+  scheduleMatPreview();
+}
+
+function openEditMaterial(id) {
+  const m = allMaterials.find(x => x.id === id);
+  if (!m) return;
+  currentMaterialId = id;
+  document.getElementById('materialModalTitle').textContent = 'Modifier — ' + (m.name||'');
+  document.getElementById('matSaveLbl').textContent = 'Enregistrer';
+  document.getElementById('mName').value = m.name||'';
+  document.getElementById('mSlug').value = m.slug||'';
+  _setMatCategoryRadio(m.category||'bois');
+  document.getElementById('mSubcat').value = m.subcategory||'';
+  document.getElementById('mTags').value = (m.tags||[]).join(', ');
+  document.getElementById('mAlbedoUrl').value = m.albedo_url||'';
+  document.getElementById('mNormalUrl').value = m.normal_url||'';
+  document.getElementById('mRoughnessUrl').value = m.roughness_url||'';
+  document.getElementById('mMetalnessUrl').value = m.metalness_url||'';
+  document.getElementById('mAoUrl').value = m.ao_url||'';
+  document.getElementById('mThumbnailUrl').value = m.thumbnail_url||'';
+  document.getElementById('mBaseColor').value = m.base_color||'#ffffff';
+  document.getElementById('mActive').checked = m.is_active !== false;
+  document.getElementById('mProjection').value = m.projection_mode||'box';
+  document.getElementById('mOrder').value = m.sort_order ?? 0;
+  setMatSliderPair('mRoughness', m.roughness_factor ?? 0.75);
+  setMatSliderPair('mMetalness', m.metalness_factor ?? 0);
+  setMatSliderPair('mNormalScale', m.normal_scale ?? 1.0);
+  setMatSliderPair('mAoIntensity', m.ao_intensity ?? 1.0);
+  setMatSliderPair('mRepeatU', m.uv_repeat_u ?? 1);
+  setMatSliderPair('mRepeatV', m.uv_repeat_v ?? 1);
+  setMatSliderPair('mRotation', m.uv_rotation ?? 0);
+  ['albedo','normal','roughness','metalness','ao'].forEach(k => refreshMatPbrSlot(k));
+  document.getElementById('matPbrDetectToast').classList.remove('show');
+  document.getElementById('materialModal').classList.add('show');
+  initMatPreview();
+  scheduleMatPreview();
+}
+
+function closeMaterialModal() {
+  document.getElementById('materialModal').classList.remove('show');
+  currentMaterialId = null;
+  disposeMatPreview();
+}
+
+/* Click handler pour les radios catégorie */
+document.addEventListener('click', function(e){
+  const radio = e.target.closest('.mat-cat-radio');
+  if (radio && radio.dataset.cat) {
+    _setMatCategoryRadio(radio.dataset.cat);
+  }
+});
+
+const MAT_PBR_SLOTS = {
+  albedo:    {urlInput:'mAlbedoUrl',    nameEl:'mNameAlbedo',    slotEl:'mSlotAlbedo'},
+  normal:    {urlInput:'mNormalUrl',    nameEl:'mNameNormal',    slotEl:'mSlotNormal'},
+  roughness: {urlInput:'mRoughnessUrl', nameEl:'mNameRoughness', slotEl:'mSlotRoughness'},
+  metalness: {urlInput:'mMetalnessUrl', nameEl:'mNameMetalness', slotEl:'mSlotMetalness'},
+  ao:        {urlInput:'mAoUrl',        nameEl:'mNameAo',        slotEl:'mSlotAo'}
+};
+
+function classifyMatPbrFile(filename){
+  const lower=filename.toLowerCase().replace(/\.[^.]+$/,'');
+  /* Metalness en priorité (mots distincts) */
+  if(/metal(?!l[io])|metallic|mtl/.test(lower)) return 'metalness';
+  if(/ambient[\s_-]*occlusion/.test(lower)||/\bocclusion\b/.test(lower)) return 'ao';
+  if(/base[\s_-]*color/.test(lower)||/base[\s_-]*colour/.test(lower)) return 'albedo';
+  const tokens=lower.split(/[\s_\-.]+/).filter(Boolean);
+  const METAL=new Set(['metal','metallic','met','mtl']);
+  const NORMAL=new Set(['normal','normalgl','normaldx','nrm','norm','nmap']);
+  const ROUGHNESS=new Set(['roughness','rough','rgh']);
+  const AO=new Set(['ao','occlusion','ambientocclusion']);
+  const ALBEDO=new Set(['albedo','color','colour','diffuse','basecolor','alb','diff','col']);
+  for(let i=tokens.length-1;i>=Math.max(0,tokens.length-3);i--){
+    const t=tokens[i];
+    if(METAL.has(t))     return 'metalness';
+    if(NORMAL.has(t))    return 'normal';
+    if(ROUGHNESS.has(t)) return 'roughness';
+    if(AO.has(t))        return 'ao';
+    if(ALBEDO.has(t))    return 'albedo';
+  }
+  return 'albedo';
+}
+
+async function onMatPbrFiles(fileList) {
+  const files = Array.from(fileList||[]);
+  if (!files.length) return;
+  const lbl = document.getElementById('matFileLbl');
+  const prog = document.getElementById('matFileProg');
+  const bar = document.getElementById('matFileBar');
+  const toastEl = document.getElementById('matPbrDetectToast');
+  prog.style.display = 'block'; bar.style.width = '5%';
+  lbl.textContent = '⏳ Upload de '+files.length+' fichier(s)…';
+  const cat = document.getElementById('mCategoryNew').value || 'autre';
+  const slugRaw = (document.getElementById('mName').value || 'material').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'mat';
+  const assignments = files.map(f => ({file:f, kind:classifyMatPbrFile(f.name)}));
+  const uploads = assignments.map(async (a) => {
+    const ext = a.file.name.split('.').pop();
+    const path = MAT_PATH_PREFIX+'/'+cat+'/'+Date.now()+'_'+slugRaw+'_'+a.kind+'.'+ext;
+    const {error} = await sb.storage.from(BUCKET).upload(path, a.file, {upsert:true});
+    if (error) return {kind:a.kind, name:a.file.name, error:error.message};
+    const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+    return {kind:a.kind, name:a.file.name, url:pub.publicUrl};
+  });
+  let done = 0;
+  const results = [];
+  for (const p of uploads) {
+    const r = await p;
+    results.push(r);
+    done++;
+    bar.style.width = (5 + (95*done/files.length)) + '%';
+  }
+  const summary = [];
+  for (const r of results) {
+    if (r.error) { summary.push('✗ '+r.name+' → erreur'); continue; }
+    const slot = MAT_PBR_SLOTS[r.kind];
+    if (!slot) continue;
+    document.getElementById(slot.urlInput).value = r.url;
+    refreshMatPbrSlot(r.kind, r.name);
+    summary.push('✓ <strong>'+r.name+'</strong> → '+r.kind);
+  }
+  toastEl.innerHTML = summary.join('<br/>');
+  toastEl.classList.add('show');
+  lbl.textContent = '✓ '+done+' fichier(s) uploadé(s)';
+  /* Auto-fill nom + slug si vide */
+  const nameField = document.getElementById('mName');
+  if (!nameField.value && files[0]) {
+    let suggested = files[0].name.replace(/\.[^.]+$/,'');
+    const tokens = suggested.split(/[\s_\-.]+/);
+    const lastTok = (tokens[tokens.length-1]||'').toLowerCase();
+    if (['albedo','color','colour','diffuse','basecolor','normal','roughness','metal','metallic','mtl','ao','occlusion'].includes(lastTok)) {
+      tokens.pop();
+      suggested = tokens.join(' ');
+    }
+    nameField.value = suggested;
+  }
+  const slugField = document.getElementById('mSlug');
+  if (!slugField.value && nameField.value) {
+    slugField.value = nameField.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+  scheduleMatPreview();
+}
+
+function refreshMatPbrSlot(kind, filename) {
+  const slot = MAT_PBR_SLOTS[kind];
+  if (!slot) return;
+  const url = document.getElementById(slot.urlInput).value.trim();
+  const nameEl = document.getElementById(slot.nameEl);
+  const slotEl = document.getElementById(slot.slotEl);
+  if (url) { nameEl.textContent = filename||url.split('/').pop().split('?')[0]; slotEl.classList.add('has-file'); }
+  else { nameEl.textContent = '—'; slotEl.classList.remove('has-file'); }
+}
+
+function clearMatPbrSlot(kind) {
+  const slot = MAT_PBR_SLOTS[kind];
+  if (!slot) return;
+  document.getElementById(slot.urlInput).value = '';
+  refreshMatPbrSlot(kind);
+  scheduleMatPreview();
+}
+
+function setMatSliderPair(baseId,val){
+  const r=document.getElementById(baseId);
+  const n=document.getElementById(baseId+'Num');
+  if(r)r.value=val;
+  if(n)n.value=val;
+}
+
+function onMatParamChange(source) {
+  const ids = ['mRoughness','mMetalness','mNormalScale','mAoIntensity','mRepeatU','mRepeatV','mRotation'];
+  ids.forEach(base => {
+    const r = document.getElementById(base);
+    const n = document.getElementById(base+'Num');
+    if (!r || !n) return;
+    if (source === 'num') r.value = n.value;
+    else n.value = r.value;
+  });
+  updateMatPreview();
+}
+
+function scheduleMatPreview() {
+  clearTimeout(_matPreviewT);
+  _matPreviewT = setTimeout(() => updateMatPreview(), 100);
+}
+
+async function initMatPreview(){
+  if(materialPreviewState) return;
+  try{
+    const THREE=await import('three');
+    const canvas=document.getElementById('matPreviewCanvas');
+    const wrap=canvas.parentElement;
+    const w=wrap.clientWidth||300,h=wrap.clientHeight||300;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,preserveDrawingBuffer:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.setSize(w,h,false);
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=1.05;
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x1C1B18);
+    const camera=new THREE.PerspectiveCamera(38,w/h,0.1,50);
+    camera.position.set(0,0.2,2.6);
+    camera.lookAt(0,0,0);
+    scene.add(new THREE.AmbientLight(0xffffff,0.35));
+    const dir=new THREE.DirectionalLight(0xffffff,1.6);
+    dir.position.set(3,5,4); scene.add(dir);
+    const fill=new THREE.DirectionalLight(0xa8c8ff,0.4);
+    fill.position.set(-3,2,-2); scene.add(fill);
+    scene.add(new THREE.HemisphereLight(0xfff5e8,0x2a2520,0.4));
+    const sphereGeo=new THREE.SphereGeometry(0.8,64,48);
+    sphereGeo.setAttribute('uv1',sphereGeo.attributes.uv);
+    const sphereMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.75,metalness:0});
+    const sphere=new THREE.Mesh(sphereGeo,sphereMat);
+    scene.add(sphere);
+    materialPreviewState={THREE,scene,camera,renderer,sphere,sphereMat,w,h,raf:null};
+    function animate(){
+      if(!materialPreviewState)return;
+      materialPreviewState.raf=requestAnimationFrame(animate);
+      materialPreviewState.sphere.rotation.y+=0.008;
+      materialPreviewState.renderer.render(materialPreviewState.scene,materialPreviewState.camera);
+    }
+    animate();
+    updateMatPreview();
+  }catch(e){console.error('Mat preview init failed',e);}
+}
+
+async function updateMatPreview(){
+  if(!materialPreviewState) return;
+  const {THREE,sphereMat,renderer}=materialPreviewState;
+  const url=document.getElementById('mAlbedoUrl').value.trim();
+  const nrmUrl=document.getElementById('mNormalUrl').value.trim();
+  const rghUrl=document.getElementById('mRoughnessUrl').value.trim();
+  const mtlUrl=document.getElementById('mMetalnessUrl').value.trim();
+  const aoUrl=document.getElementById('mAoUrl').value.trim();
+  const repX=parseFloat(document.getElementById('mRepeatU').value)||1;
+  const repY=parseFloat(document.getElementById('mRepeatV').value)||1;
+  const rotDeg=parseFloat(document.getElementById('mRotation').value)||0;
+  const rough=parseFloat(document.getElementById('mRoughness').value);
+  const metal=parseFloat(document.getElementById('mMetalness').value);
+  const nScale=parseFloat(document.getElementById('mNormalScale').value)||1;
+  const aoInt=parseFloat(document.getElementById('mAoIntensity').value)||1;
+  const baseCol=document.getElementById('mBaseColor').value||'#ffffff';
+  const emptyEl=document.getElementById('matPreviewEmpty');
+  if(!url){
+    ['_mAlbedo','_mNormal','_mRough','_mMetal','_mAo'].forEach(k=>{if(materialPreviewState[k]){materialPreviewState[k].dispose();materialPreviewState[k]=null;}});
+    sphereMat.map=null;sphereMat.normalMap=null;sphereMat.roughnessMap=null;sphereMat.metalnessMap=null;sphereMat.aoMap=null;
+    sphereMat.color.set(baseCol);
+    sphereMat.roughness=isNaN(rough)?0.75:rough;
+    sphereMat.metalness=isNaN(metal)?0:metal;
+    sphereMat.needsUpdate=true;
+    if(emptyEl)emptyEl.style.display='flex';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display='none';
+  async function ensureTex(slotKey,theUrl,isData){
+    if(!theUrl){if(materialPreviewState[slotKey]){materialPreviewState[slotKey].dispose();materialPreviewState[slotKey]=null;}return null;}
+    const cached=materialPreviewState[slotKey];
+    if(cached&&cached._url===theUrl) return cached;
+    if(cached) cached.dispose();
+    return await new Promise((resolve)=>{
+      const loader=new THREE.TextureLoader();
+      loader.crossOrigin='anonymous';
+      loader.load(theUrl,(tex)=>{
+        tex._url=theUrl;
+        tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+        tex.colorSpace=isData?THREE.NoColorSpace:THREE.SRGBColorSpace;
+        tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+        tex.center.set(0.5,0.5);
+        materialPreviewState[slotKey]=tex;
+        resolve(tex);
+      },null,()=>resolve(null));
+    });
+  }
+  const [albedoTex,normalTex,rghTex,mtlTex,aoTex]=await Promise.all([
+    ensureTex('_mAlbedo',url,false),
+    ensureTex('_mNormal',nrmUrl,true),
+    ensureTex('_mRough',rghUrl,true),
+    ensureTex('_mMetal',mtlUrl,true),
+    ensureTex('_mAo',aoUrl,true)
+  ]);
+  const rotRad=rotDeg*Math.PI/180;
+  [albedoTex,normalTex,rghTex,mtlTex,aoTex].forEach(t=>{
+    if(!t) return;
+    t.repeat.set(repX,repY);
+    t.rotation=rotRad;
+    t.needsUpdate=true;
+  });
+  if(albedoTex){sphereMat.map=albedoTex;sphereMat.color.set(baseCol);}
+  else{sphereMat.map=null;sphereMat.color.set(baseCol);}
+  if(normalTex){sphereMat.normalMap=normalTex;sphereMat.normalScale.set(nScale,nScale);}else sphereMat.normalMap=null;
+  if(rghTex){sphereMat.roughnessMap=rghTex;sphereMat.roughness=isNaN(rough)?1.0:rough;}else{sphereMat.roughnessMap=null;sphereMat.roughness=isNaN(rough)?0.75:rough;}
+  if(mtlTex){sphereMat.metalnessMap=mtlTex;sphereMat.metalness=isNaN(metal)?1.0:metal;}else{sphereMat.metalnessMap=null;sphereMat.metalness=isNaN(metal)?0:metal;}
+  if(aoTex){sphereMat.aoMap=aoTex;sphereMat.aoMapIntensity=aoInt;}else sphereMat.aoMap=null;
+  sphereMat.needsUpdate=true;
+}
+
+function disposeMatPreview(){
+  if(!materialPreviewState) return;
+  if(materialPreviewState.raf) cancelAnimationFrame(materialPreviewState.raf);
+  ['_mAlbedo','_mNormal','_mRough','_mMetal','_mAo'].forEach(k=>{if(materialPreviewState[k]){try{materialPreviewState[k].dispose();}catch(_){}}});
+  try{materialPreviewState.sphereMat.dispose();}catch(_){}
+  try{materialPreviewState.sphere.geometry.dispose();}catch(_){}
+  try{materialPreviewState.renderer.dispose();}catch(_){}
+  materialPreviewState=null;
+}
+
+async function saveMaterial() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) { toast('Nom requis','err'); return; }
+  const albedoUrl = document.getElementById('mAlbedoUrl').value.trim();
+  if (!albedoUrl) { toast('Map albedo requise','err'); return; }
+  setSpin('spinMat', true);
+  let slug = document.getElementById('mSlug').value.trim();
+  if (!slug) slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const tagsRaw = document.getElementById('mTags').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : null;
+  let thumbnailUrl = document.getElementById('mThumbnailUrl').value.trim() || null;
+  /* Auto-capture du thumbnail depuis le canvas preview */
+  if (!thumbnailUrl && materialPreviewState && materialPreviewState.renderer) {
+    try {
+      const blob = await new Promise(res => materialPreviewState.renderer.domElement.toBlob(res, 'image/jpeg', 0.85));
+      if (blob) {
+        const path = MAT_PATH_PREFIX+'/thumbnails/'+Date.now()+'_'+slug+'.jpg';
+        const {error:upErr} = await sb.storage.from(BUCKET).upload(path, blob, {upsert:true, contentType:'image/jpeg'});
+        if (!upErr) {
+          const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+          thumbnailUrl = pub.publicUrl;
+        }
+      }
+    } catch (e) { console.warn('thumbnail capture failed', e); }
+  }
+  const payload = {
+    name,
+    slug: slug || null,
+    category: document.getElementById('mCategoryNew').value,
+    subcategory: document.getElementById('mSubcat').value.trim() || null,
+    tags: tags,
+    thumbnail_url: thumbnailUrl,
+    albedo_url: albedoUrl,
+    normal_url: document.getElementById('mNormalUrl').value.trim() || null,
+    roughness_url: document.getElementById('mRoughnessUrl').value.trim() || null,
+    metalness_url: document.getElementById('mMetalnessUrl').value.trim() || null,
+    ao_url: document.getElementById('mAoUrl').value.trim() || null,
+    base_color: document.getElementById('mBaseColor').value || '#ffffff',
+    roughness_factor: parseFloat(document.getElementById('mRoughness').value) || 0.75,
+    metalness_factor: parseFloat(document.getElementById('mMetalness').value) || 0,
+    normal_scale: parseFloat(document.getElementById('mNormalScale').value) || 1.0,
+    ao_intensity: parseFloat(document.getElementById('mAoIntensity').value) || 1.0,
+    uv_repeat_u: parseFloat(document.getElementById('mRepeatU').value) || 1,
+    uv_repeat_v: parseFloat(document.getElementById('mRepeatV').value) || 1,
+    uv_rotation: parseInt(document.getElementById('mRotation').value) || 0,
+    projection_mode: document.getElementById('mProjection').value || 'box',
+    sort_order: parseInt(document.getElementById('mOrder').value) || 0,
+    is_active: document.getElementById('mActive').checked
+  };
+  let error;
+  if (currentMaterialId) {
+    ({error} = await sb.from('materials_library').update(payload).eq('id', currentMaterialId));
+  } else {
+    ({error} = await sb.from('materials_library').insert([payload]));
+  }
+  setSpin('spinMat', false);
+  if (error) { toast('Erreur : '+error.message, 'err'); return; }
+  toast('✓ Matériau "'+name+'" '+(currentMaterialId?'mis à jour':'créé'), 'ok');
+  closeMaterialModal();
+  loadMaterials();
+}
+
+/* ════ PICKER dans le Studio Texture ════════════════════════════ */
+
+function openMaterialPicker(part) {
+  if (!allMaterials.length) {
+    toast('Aucun matériau dans la bibliothèque — créez-en depuis l\'onglet Matériaux','err');
+    return;
+  }
+  window._tsPickerActivePart = part;
+  document.getElementById('tsPkPartName').textContent = part;
+  const overlay = document.getElementById('tsMatPicker');
+  overlay.style.display = 'flex';
+  overlay.classList.remove('closing');
+  const cat = inferCategoryFromPart(part);
+  filterPickerByCategory(cat);
+}
+
+function closeMaterialPicker() {
+  const overlay = document.getElementById('tsMatPicker');
+  overlay.classList.add('closing');
+  setTimeout(() => overlay.style.display = 'none', 260);
+}
+
+function inferCategoryFromPart(part) {
+  const p = (part||'').toLowerCase();
+  if (p.includes('plateau') || p.includes('piétement') || p.includes('pied') || p.includes('corps')) return 'bois';
+  if (p.includes('assise') || p.includes('dossier') || p.includes('accoudoir') || p.includes('coussin')) return 'tissu';
+  if (p.includes('abat') || p.includes('verre') || p.includes('shade')) return 'verre';
+  if (p.includes('fixation') || p.includes('métal') || p.includes('metal')) return 'metal';
+  return 'bois';
+}
+
+function filterPickerByCategory(cat) {
+  document.querySelectorAll('.ts-pk-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+  const grid = document.getElementById('tsPickerGrid');
+  const filtered = allMaterials.filter(m => m.category === cat && m.is_active !== false);
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;color:rgba(255,255,255,.5);font-family:var(--sans);font-size:11px">Aucun matériau dans cette catégorie<br><br><button class="btn-secondary" style="padding:6px 14px;font-size:10px;color:white;border-color:rgba(255,255,255,.3)" onclick="closeMaterialPicker();showPanel(\'materiaux\');openNewMaterial(\''+cat+'\')">+ Créer le premier</button></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(m => {
+    const thumb = m.thumbnail_url || m.albedo_url || '';
+    return '<div class="ts-pk-card" onclick="applyMaterialToPart(\''+m.id+'\')">'
+      + '<div class="ts-pk-thumb" style="'+(thumb?'background-image:url('+thumb+');background-size:cover;background-position:center':'background:'+(m.base_color||'#666'))+'"></div>'
+      + '<div class="ts-pk-name">'+(m.name||'—')+'</div>'
+      + (m.subcategory?'<div class="ts-pk-card-sub">'+m.subcategory+'</div>':'')
+      + '</div>';
+  }).join('');
+}
+
+async function applyMaterialToPart(materialId) {
+  const m = allMaterials.find(x => x.id === materialId);
+  const part = window._tsPickerActivePart;
+  if (!m || !part) return;
+  closeMaterialPicker();
+  toast('Chargement de "'+m.name+'"…','ok');
+
+  /* Sauvegarder l'état précédent pour le bouton Annuler */
+  const prevState = {
+    color:      window.tsPartMat[part]?.color || '#ffffff',
+    intensity:  Object.assign({}, window.tsPartMat[part]?.intensity || {}),
+    repeat:     Object.assign({}, window.tsPartRepeat[part] || {x:1,y:1}),
+    rotation:   (window.tsPartRotation||{})[part] || 0,
+    projection: (window.tsPartProjection||{})[part] || 'uv',
+    mapsKeys:   Object.keys(window.tsPartMat[part]?.maps || {})
+  };
+
+  if (!window.tsPartMat[part]) window.tsPartMat[part] = {color:'#ffffff', maps:{}, intensity:{}};
+  window.tsPartMat[part].maps = {};
+  window.tsPartMat[part].color = m.base_color || '#ffffff';
+  window.tsPartMat[part].intensity = {
+    roughness: m.roughness_factor ?? 0.75,
+    metalness: m.metalness_factor ?? 0,
+    normal:    m.normal_scale ?? 1.0,
+    ao:        m.ao_intensity ?? 1.0
+  };
+  if (!window.tsPartRepeat[part]) window.tsPartRepeat[part] = {x:1,y:1};
+  window.tsPartRepeat[part].x = m.uv_repeat_u ?? 1;
+  window.tsPartRepeat[part].y = m.uv_repeat_v ?? 1;
+  if (!window.tsPartRotation) window.tsPartRotation = {};
+  window.tsPartRotation[part] = m.uv_rotation ?? 0;
+  if (!window.tsPartProjection) window.tsPartProjection = {};
+  window.tsPartProjection[part] = m.projection_mode || 'box';
+
+  const mapsToLoad = [
+    ['albedo', m.albedo_url],
+    ['normal', m.normal_url],
+    ['roughness', m.roughness_url],
+    ['metalness', m.metalness_url],
+    ['ao', m.ao_url]
+  ].filter(([k,u]) => u);
+
+  for (const [mapKey, url] of mapsToLoad) {
+    await new Promise(resolve => {
+      window.tsLoadTexture(part, mapKey, url, (m.name||'mat')+'_'+mapKey, () => {
+        window.tsTexCache[part+'_'+mapKey] = url;
+        resolve();
+      });
+    });
+  }
+
+  if (window.tsAutoAssignByPartName) window.tsAutoAssignByPartName(part);
+  if (window.tsSetProjectionMode) {
+    window.tsSetProjectionMode(part, window.tsPartProjection[part], window.tsPartRepeat[part], window.tsPartRotation[part]);
+  }
+  window.tsApplyMaterial && window.tsApplyMaterial(part);
+
+  if (window.tsActivePart === part && typeof tsShowPartProps === 'function') {
+    tsShowPartProps(part, Object.keys(window.tsMeshMap||{}));
+  }
+
+  showUndoToast('Matériau « '+m.name+' » appliqué', () => {
+    /* Annulation : restaurer l'état précédent */
+    window.tsPartMat[part] = {color: prevState.color, maps:{}, intensity: prevState.intensity};
+    window.tsPartRepeat[part] = prevState.repeat;
+    window.tsPartRotation[part] = prevState.rotation;
+    window.tsPartProjection[part] = prevState.projection;
+    /* Nettoyer les textures actuelles du cache */
+    Object.keys(window.tsTexCache).filter(k => k.startsWith(part+'_')).forEach(k => delete window.tsTexCache[k]);
+    /* Reset visuel des meshes */
+    window.tsPartAssign[part]?.forEach(name => window.tsResetMesh && window.tsResetMesh(name));
+    window.tsApplyMaterial && window.tsApplyMaterial(part);
+    if (window.tsActivePart === part) tsShowPartProps(part, Object.keys(window.tsMeshMap||{}));
+    toast('Application annulée','ok');
+  });
+}
+
+let _undoT = null;
+let _undoFn = null;
+
+function showUndoToast(msg, undoFn) {
+  _undoFn = undoFn;
+  let el = document.getElementById('undoToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'undoToast';
+    el.className = 'undo-toast';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<span>'+msg+'</span><button onclick="performUndo()">Annuler</button>';
+  el.classList.add('show');
+  clearTimeout(_undoT);
+  _undoT = setTimeout(() => { el.classList.remove('show'); _undoFn = null; }, 4000);
+}
+
+function performUndo() {
+  if (_undoFn) { _undoFn(); _undoFn = null; }
+  const el = document.getElementById('undoToast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_undoT);
+}
+
+async function saveCurrentPartAsMaterial(part) {
+  const mat = window.tsPartMat[part];
+  const hasMaps = mat && Object.keys(mat.maps||{}).length > 0;
+  const hasColor = mat && mat.color && mat.color !== '#ffffff';
+  if (!mat || (!hasMaps && !hasColor)) {
+    toast('Aucun matériau à sauver — chargez d\'abord des textures sur cette partie','err');
+    return;
+  }
+  const defaultName = part.charAt(0).toUpperCase()+part.slice(1)+' '+new Date().toISOString().slice(0,10);
+  const name = prompt('Nom du matériau (ex: Chêne naturel) :', defaultName);
+  if (!name) return;
+  const categories = MATERIAL_CATEGORIES.map(c => c.id).join(' / ');
+  const inferred = inferCategoryFromPart(part);
+  const cat = prompt('Catégorie ('+categories+') :', inferred);
+  if (!cat) return;
+  if (!MATERIAL_CATEGORIES.find(c => c.id === cat)) {
+    toast('Catégorie invalide — choisir parmi : '+categories,'err');
+    return;
+  }
+  const subcat = prompt('Sous-catégorie (optionnel, ex: chêne, velours…) :', '') || null;
+  toast('Sauvegarde en cours…','ok');
+  const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'mat-'+Date.now();
+  const ts = Date.now();
+
+  /* Upload textures si elles sont en blob: ou data:, sinon réutiliser cache URL */
+  async function uploadIfLocal(mapKey) {
+    const tex = mat.maps[mapKey];
+    if (!tex) return null;
+    /* D'abord vérifier si le cache contient déjà une URL distante */
+    const cached = window.tsTexCache && window.tsTexCache[part+'_'+mapKey];
+    if (cached && (cached.startsWith('http://')||cached.startsWith('https://'))) return cached;
+    /* Sinon récupérer depuis l'image et uploader */
+    const src = tex.image?.src || cached || '';
+    if (src.startsWith('blob:') || src.startsWith('data:')) {
+      try {
+        const resp = await fetch(src);
+        const blob = await resp.blob();
+        const ext = (blob.type.split('/')[1] || 'png').split(';')[0];
+        const path = MAT_PATH_PREFIX+'/'+cat+'/'+ts+'_'+slug+'_'+mapKey+'.'+ext;
+        const {error} = await sb.storage.from(BUCKET).upload(path, blob, {upsert:true, contentType:blob.type});
+        if (error) throw error;
+        return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+      } catch (e) {
+        console.warn('upload failed for '+mapKey, e);
+        return null;
+      }
+    }
+    return (src.startsWith('http')) ? src : null;
+  }
+
+  const [albedoUrl, normalUrl, roughnessUrl, metalnessUrl, aoUrl] = await Promise.all([
+    uploadIfLocal('albedo'),
+    uploadIfLocal('normal'),
+    uploadIfLocal('roughness'),
+    uploadIfLocal('metalness'),
+    uploadIfLocal('ao')
+  ]);
+
+  if (!albedoUrl) {
+    toast('Impossible de récupérer la map albedo — vérifie qu\'une texture est bien chargée','err');
+    return;
+  }
+
+  /* Capture thumbnail depuis le viewer principal */
+  let thumbnailUrl = null;
+  try {
+    const canvas = document.querySelector('#tsViewerWrap canvas');
+    if (canvas) {
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.82));
+      if (blob) {
+        const path = MAT_PATH_PREFIX+'/thumbnails/'+ts+'_'+slug+'.jpg';
+        const {error} = await sb.storage.from(BUCKET).upload(path, blob, {upsert:true, contentType:'image/jpeg'});
+        if (!error) thumbnailUrl = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+      }
+    }
+  } catch (e) { console.warn('thumb capture failed', e); }
+
+  const iv = mat.intensity || {};
+  const rep = window.tsPartRepeat[part] || {x:1, y:1};
+
+  const payload = {
+    name, slug,
+    category: cat, subcategory: subcat,
+    thumbnail_url: thumbnailUrl,
+    albedo_url: albedoUrl,
+    normal_url: normalUrl,
+    roughness_url: roughnessUrl,
+    metalness_url: metalnessUrl,
+    ao_url: aoUrl,
+    base_color: mat.color || '#ffffff',
+    roughness_factor: iv.roughness ?? 0.75,
+    metalness_factor: iv.metalness ?? 0,
+    normal_scale: iv.normal ?? 1.0,
+    ao_intensity: iv.ao ?? 1.0,
+    uv_repeat_u: rep.x,
+    uv_repeat_v: rep.y,
+    uv_rotation: (window.tsPartRotation||{})[part] || 0,
+    projection_mode: (window.tsPartProjection||{})[part] || 'box',
+    is_active: true,
+    sort_order: allMaterials.length
+  };
+
+  const {error} = await sb.from('materials_library').insert([payload]);
+  if (error) { toast('Erreur : '+error.message, 'err'); return; }
+  toast('✓ Matériau "'+name+'" sauvegardé dans la bibliothèque','ok');
+  loadMaterials();
 }
 </script>
 
