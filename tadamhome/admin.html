@@ -2907,9 +2907,17 @@ async function tsDeserializeState(state){
       }
     }
 
-    /* 8. Re-render UI */
+    /* 8. Re-render UI — re-sélectionner la partie active force un rendu
+       complet du panneau PBR avec toutes les textures fraîchement chargées */
     if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
-    if(window.tsActivePart && typeof tsSelectPart === 'function') tsSelectPart(window.tsActivePart);
+    if(window.tsActivePart && typeof tsSelectPart === 'function'){
+      tsSelectPart(window.tsActivePart);
+      /* Double-tap : re-render explicite du panneau au cas où tsSelectPart
+         aurait été appelée avant que les textures async finissent */
+      if(typeof tsShowPartProps === 'function'){
+        try { tsShowPartProps(window.tsActivePart, Object.keys(window.tsMeshMap||{})); } catch(e){}
+      }
+    }
 
     tsSetSaveIndicator('saved', 'Restauré');
   } finally {
@@ -5738,6 +5746,13 @@ window.tsLoadTexture = function(part, mapKey, objUrl, fileName, onDone) {
     window.tsPartMat[part].maps[mapKey] = tex;
     /* Appliquer immédiatement au modèle — visible en temps réel */
     window.tsApplyMaterial(part);
+    /* Re-render le panneau si on regarde la partie qui vient de gagner une texture
+       (sinon le compteur "X tex." et les swatches restent obsolètes après une
+       restauration asynchrone — bug visible quand on a 3 maps mais qu'un seul
+       affichage initial du panneau a capturé un état intermédiaire) */
+    if(window.tsActivePart === part && typeof tsShowPartProps === 'function'){
+      try { tsShowPartProps(part, Object.keys(window.tsMeshMap||{})); } catch(e){}
+    }
     onDone && onDone();
   }, undefined, (err) => {
     console.warn('Texture load error:', err);
