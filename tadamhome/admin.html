@@ -3697,7 +3697,8 @@ function tsApplyDimensions(){
 /* ── 6. Reset modèle ─────────────────────────────────────── */
 function tsReload(){
   if(window.tsRemoveModel) window.tsRemoveModel();
-  window.tsMeshMap={};
+  /* Vider sans casser la référence partagée avec le module Three.js */
+  Object.keys(window.tsMeshMap||{}).forEach(k=>delete window.tsMeshMap[k]);
   Object.keys(window.tsPartAssign).forEach(k=>delete window.tsPartAssign[k]);
   document.getElementById('tsDrop').classList.remove('hidden');
   document.getElementById('tsBadge').classList.remove('show');
@@ -5403,6 +5404,8 @@ window.tsLoad = function(file) {
   new OBJLoader().load(url, (obj) => {
     if (model) scene.remove(model);
     Object.keys(meshMap).forEach(k => delete meshMap[k]);
+    /* Re-link la référence window au cas où tsReload aurait désynchronisé */
+    window.tsMeshMap = meshMap;
     model = obj; let idx=0;
     obj.traverse(child => {
       if (!child.isMesh) return;
@@ -5503,6 +5506,8 @@ window.tsSegmentMesh = async function(catKey) {
   /* D'abord retirer l'ancien model */
   if (model) scene.remove(model);
   Object.keys(meshMap).forEach(k => delete meshMap[k]);
+  /* Re-link la référence window au cas où */
+  window.tsMeshMap = meshMap;
 
   const group = new THREE.Group();
   let globalIdx = 0;
@@ -6144,6 +6149,8 @@ window.tsApplyScale = function(l, h, p) {
 
 window.tsRemoveModel = function() {
   if(model){scene.remove(model);model=null;}
+  /* Aussi vider meshMap interne pour rester cohérent */
+  Object.keys(meshMap).forEach(k=>delete meshMap[k]);
 };
 
 
@@ -6159,6 +6166,8 @@ window.tsLoadGLB = function(url, savedState){
       /* Nettoyer le modèle précédent */
       if(model){ scene.remove(model); model=null; }
       Object.keys(meshMap).forEach(k=>delete meshMap[k]);
+      /* Re-link la référence window au cas où tsReload aurait désynchronisé */
+      window.tsMeshMap = meshMap;
       /* Ajouter le nouveau modèle */
       model = gltf.scene;
       let idx=0;
