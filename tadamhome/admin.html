@@ -2765,11 +2765,17 @@ function tsSerializeState(){
   });
 
   /* Groupes perso */
-  const customGroups = cg.map(g => ({
-    key: g.key,
-    label: g.label,
-    state: serializePart(g.key)
-  }));
+  const customGroups = cg.map(g => {
+    const partState = serializePart(g.key);
+    if(partState.meshNames.length === 0){
+      console.warn('[tsSerializeState] Groupe "' + g.label + '" ('+ g.key +') sérialisé SANS meshes — tsPartAssign vide. Vérifier si tsReload a effacé la référence.');
+    }
+    return {
+      key: g.key,
+      label: g.label,
+      state: partState
+    };
+  });
 
   /* Infos barre */
   const info = {
@@ -3700,6 +3706,9 @@ function tsReload(){
   /* Vider sans casser la référence partagée avec le module Three.js */
   Object.keys(window.tsMeshMap||{}).forEach(k=>delete window.tsMeshMap[k]);
   Object.keys(window.tsPartAssign).forEach(k=>delete window.tsPartAssign[k]);
+  /* CRITIQUE : vider aussi _customGroups, sinon les pills restent affichés
+     mais sans meshes → state corrompu au prochain save */
+  if(window._tsSetCustomGroups) window._tsSetCustomGroups([]);
   document.getElementById('tsDrop').classList.remove('hidden');
   document.getElementById('tsBadge').classList.remove('show');
   document.getElementById('tsBtnGlb').disabled=true;
@@ -5460,6 +5469,8 @@ window.tsLoad = function(file) {
     window.tsPartProjection = {};
     window.tsPartRotation   = {};
     window._tsMeshClassif = null;
+    /* Reset groupes perso : un nouvel OBJ = repartir à zéro */
+    if(window._tsSetCustomGroups) window._tsSetCustomGroups([]);
     /* Sauvegarder UVs originaux de chaque mesh */
     Object.values(meshMap).forEach(mesh => saveOriginalUVs(mesh));
     /* Auto-assign par mots-clés si catégorie sélectionnée */
@@ -6195,6 +6206,9 @@ window.tsLoadGLB = function(url, savedState){
       window.tsPartRotation = {};
       window.tsPartProjection = {};
       window._tsMeshClassif = null;
+      /* Reset des groupes perso seulement si pas de state à restaurer
+         (sinon tsDeserializeState s'en occupe) */
+      if(!savedState && window._tsSetCustomGroups) window._tsSetCustomGroups([]);
       Object.values(meshMap).forEach(m=>saveOriginalUVs(m));
       /* Activer les boutons */
       ['tsDrop'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('hidden');});
