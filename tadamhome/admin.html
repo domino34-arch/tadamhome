@@ -589,6 +589,26 @@ canvas.pipette-cursor{cursor:cell!important}
 .undo-toast button{background:transparent;border:1px solid rgba(255,255,255,.3);color:var(--white);padding:4px 10px;font-size:10px;font-family:var(--sans);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
 .undo-toast button:hover{border-color:var(--accent);color:var(--accent)}
 
+/* ══ SPHÈRES PBR (icônes catégories style A23D) ══ */
+.mat-sphere{display:inline-block;border-radius:50%;position:relative;overflow:hidden;flex-shrink:0;background-size:cover;background-position:center;box-shadow:0 1px 3px rgba(0,0,0,.25),inset -2px -2px 4px rgba(0,0,0,.28),inset 2px 2px 4px rgba(255,255,255,.32)}
+.mat-sphere::after{content:'';position:absolute;top:12%;left:18%;width:30%;height:22%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 70%);pointer-events:none}
+.mat-sphere-sm{width:18px;height:18px}
+.mat-sphere-md{width:24px;height:24px}
+.mat-sphere-lg{width:36px;height:36px}
+/* Gradients par défaut (catégorie vide) — réalistes */
+.mat-sphere-bois   {background:radial-gradient(circle at 32% 32%,#D4A574 0%,#A0703D 45%,#5C3A1A 100%)}
+.mat-sphere-metal  {background:radial-gradient(circle at 32% 32%,#F0F0F0 0%,#9A9A9A 45%,#3A3A3A 100%)}
+.mat-sphere-tissu  {background:radial-gradient(circle at 32% 32%,#A89380 0%,#6B5A48 50%,#2F2820 100%)}
+.mat-sphere-pierre {background:radial-gradient(circle at 32% 32%,#C4C4BE 0%,#8E8E86 45%,#4A4A45 100%)}
+.mat-sphere-cuir   {background:radial-gradient(circle at 32% 32%,#9A5A2E 0%,#6B3818 50%,#2A1408 100%)}
+.mat-sphere-verre  {background:radial-gradient(circle at 32% 32%,#D8E8F0 0%,#7AA0BC 45%,#2A4060 100%)}
+.mat-sphere-tous   {background:conic-gradient(from 0deg,#A0703D,#9A9A9A,#6B5A48,#8E8E86,#6B3818,#7AA0BC,#A0703D)}
+/* Avec thumbnail réel : retire le gradient pour montrer la texture */
+.mat-sphere.has-thumb{background-color:transparent}
+.mat-sphere.has-thumb::after{opacity:.7}
+/* Override font-size: dans tabs, on remplace l'emoji */
+.mat-cat-tab .mat-sphere{font-size:0}
+
 /* ════════════════════════════════════════════════════════════════ */
 /* ════════════════════════════════════════════════════════════════ */
 
@@ -875,22 +895,22 @@ canvas.pipette-cursor{cursor:cell!important}
           <div class="section-title">Vos <em>Matériaux</em></div>
         </div>
         <div class="mat-stats">
-          <div class="stat-card"><div class="stat-ico">◊</div><div class="stat-val" id="stMatTotal">0</div><div class="stat-lbl">Total</div></div>
-          <div class="stat-card"><div class="stat-ico">🪵</div><div class="stat-val" id="stMat_bois">0</div><div class="stat-lbl">Bois</div></div>
-          <div class="stat-card"><div class="stat-ico">⬛</div><div class="stat-val" id="stMat_metal">0</div><div class="stat-lbl">Métal</div></div>
-          <div class="stat-card"><div class="stat-ico">🧵</div><div class="stat-val" id="stMat_tissu">0</div><div class="stat-lbl">Tissu</div></div>
-          <div class="stat-card"><div class="stat-ico">🪨</div><div class="stat-val" id="stMat_pierre">0</div><div class="stat-lbl">Pierre</div></div>
-          <div class="stat-card"><div class="stat-ico">🟤</div><div class="stat-val" id="stMat_cuir">0</div><div class="stat-lbl">Cuir</div></div>
-          <div class="stat-card"><div class="stat-ico">🔷</div><div class="stat-val" id="stMat_verre">0</div><div class="stat-lbl">Verre</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-tous mat-sphere-lg"></span></div><div class="stat-val" id="stMatTotal">0</div><div class="stat-lbl">Total</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-bois mat-sphere-lg" data-icon-cat="bois"></span></div><div class="stat-val" id="stMat_bois">0</div><div class="stat-lbl">Bois</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-metal mat-sphere-lg" data-icon-cat="metal"></span></div><div class="stat-val" id="stMat_metal">0</div><div class="stat-lbl">Métal</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-tissu mat-sphere-lg" data-icon-cat="tissu"></span></div><div class="stat-val" id="stMat_tissu">0</div><div class="stat-lbl">Tissu</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-pierre mat-sphere-lg" data-icon-cat="pierre"></span></div><div class="stat-val" id="stMat_pierre">0</div><div class="stat-lbl">Pierre</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-cuir mat-sphere-lg" data-icon-cat="cuir"></span></div><div class="stat-val" id="stMat_cuir">0</div><div class="stat-lbl">Cuir</div></div>
+          <div class="stat-card"><div class="stat-ico" style="display:flex;align-items:center;justify-content:flex-start"><span class="mat-sphere mat-sphere-verre mat-sphere-lg" data-icon-cat="verre"></span></div><div class="stat-val" id="stMat_verre">0</div><div class="stat-lbl">Verre</div></div>
         </div>
         <div class="mat-cat-tabs" id="matCatTabs">
-          <button class="mat-cat-tab active" data-cat="" onclick="filterMaterialsByCategory('')"><span class="mat-cat-tab-ico">◊</span>Tous <span class="mat-cat-tab-cnt" id="matTabCnt_all">0</span></button>
-          <button class="mat-cat-tab" data-cat="bois" onclick="filterMaterialsByCategory('bois')"><span class="mat-cat-tab-ico">🪵</span>Bois <span class="mat-cat-tab-cnt" id="matTabCnt_bois">0</span></button>
-          <button class="mat-cat-tab" data-cat="metal" onclick="filterMaterialsByCategory('metal')"><span class="mat-cat-tab-ico">⬛</span>Métal <span class="mat-cat-tab-cnt" id="matTabCnt_metal">0</span></button>
-          <button class="mat-cat-tab" data-cat="tissu" onclick="filterMaterialsByCategory('tissu')"><span class="mat-cat-tab-ico">🧵</span>Tissu <span class="mat-cat-tab-cnt" id="matTabCnt_tissu">0</span></button>
-          <button class="mat-cat-tab" data-cat="pierre" onclick="filterMaterialsByCategory('pierre')"><span class="mat-cat-tab-ico">🪨</span>Pierre <span class="mat-cat-tab-cnt" id="matTabCnt_pierre">0</span></button>
-          <button class="mat-cat-tab" data-cat="cuir" onclick="filterMaterialsByCategory('cuir')"><span class="mat-cat-tab-ico">🟤</span>Cuir <span class="mat-cat-tab-cnt" id="matTabCnt_cuir">0</span></button>
-          <button class="mat-cat-tab" data-cat="verre" onclick="filterMaterialsByCategory('verre')"><span class="mat-cat-tab-ico">🔷</span>Verre <span class="mat-cat-tab-cnt" id="matTabCnt_verre">0</span></button>
+          <button class="mat-cat-tab active" data-cat="" onclick="filterMaterialsByCategory('')"><span class="mat-sphere mat-sphere-tous mat-sphere-sm"></span>Tous <span class="mat-cat-tab-cnt" id="matTabCnt_all">0</span></button>
+          <button class="mat-cat-tab" data-cat="bois" onclick="filterMaterialsByCategory('bois')"><span class="mat-sphere mat-sphere-bois mat-sphere-sm" data-icon-cat="bois"></span>Bois <span class="mat-cat-tab-cnt" id="matTabCnt_bois">0</span></button>
+          <button class="mat-cat-tab" data-cat="metal" onclick="filterMaterialsByCategory('metal')"><span class="mat-sphere mat-sphere-metal mat-sphere-sm" data-icon-cat="metal"></span>Métal <span class="mat-cat-tab-cnt" id="matTabCnt_metal">0</span></button>
+          <button class="mat-cat-tab" data-cat="tissu" onclick="filterMaterialsByCategory('tissu')"><span class="mat-sphere mat-sphere-tissu mat-sphere-sm" data-icon-cat="tissu"></span>Tissu <span class="mat-cat-tab-cnt" id="matTabCnt_tissu">0</span></button>
+          <button class="mat-cat-tab" data-cat="pierre" onclick="filterMaterialsByCategory('pierre')"><span class="mat-sphere mat-sphere-pierre mat-sphere-sm" data-icon-cat="pierre"></span>Pierre <span class="mat-cat-tab-cnt" id="matTabCnt_pierre">0</span></button>
+          <button class="mat-cat-tab" data-cat="cuir" onclick="filterMaterialsByCategory('cuir')"><span class="mat-sphere mat-sphere-cuir mat-sphere-sm" data-icon-cat="cuir"></span>Cuir <span class="mat-cat-tab-cnt" id="matTabCnt_cuir">0</span></button>
+          <button class="mat-cat-tab" data-cat="verre" onclick="filterMaterialsByCategory('verre')"><span class="mat-sphere mat-sphere-verre mat-sphere-sm" data-icon-cat="verre"></span>Verre <span class="mat-cat-tab-cnt" id="matTabCnt_verre">0</span></button>
         </div>
         <div class="search-bar" style="margin-top:2px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -954,12 +974,12 @@ canvas.pipette-cursor{cursor:cell!important}
                     <button class="ts-pk-close" onclick="closeMaterialPicker()">✕</button>
                   </div>
                   <div class="ts-pk-tabs" id="tsPkTabs">
-                    <button class="ts-pk-tab" data-cat="bois" onclick="filterPickerByCategory('bois')"><span>🪵</span>Bois</button>
-                    <button class="ts-pk-tab" data-cat="metal" onclick="filterPickerByCategory('metal')"><span>⬛</span>Métal</button>
-                    <button class="ts-pk-tab" data-cat="tissu" onclick="filterPickerByCategory('tissu')"><span>🧵</span>Tissu</button>
-                    <button class="ts-pk-tab" data-cat="pierre" onclick="filterPickerByCategory('pierre')"><span>🪨</span>Pierre</button>
-                    <button class="ts-pk-tab" data-cat="cuir" onclick="filterPickerByCategory('cuir')"><span>🟤</span>Cuir</button>
-                    <button class="ts-pk-tab" data-cat="verre" onclick="filterPickerByCategory('verre')"><span>🔷</span>Verre</button>
+                    <button class="ts-pk-tab" data-cat="bois" onclick="filterPickerByCategory('bois')"><span class="mat-sphere mat-sphere-bois mat-sphere-sm" data-icon-cat="bois"></span>Bois</button>
+                    <button class="ts-pk-tab" data-cat="metal" onclick="filterPickerByCategory('metal')"><span class="mat-sphere mat-sphere-metal mat-sphere-sm" data-icon-cat="metal"></span>Métal</button>
+                    <button class="ts-pk-tab" data-cat="tissu" onclick="filterPickerByCategory('tissu')"><span class="mat-sphere mat-sphere-tissu mat-sphere-sm" data-icon-cat="tissu"></span>Tissu</button>
+                    <button class="ts-pk-tab" data-cat="pierre" onclick="filterPickerByCategory('pierre')"><span class="mat-sphere mat-sphere-pierre mat-sphere-sm" data-icon-cat="pierre"></span>Pierre</button>
+                    <button class="ts-pk-tab" data-cat="cuir" onclick="filterPickerByCategory('cuir')"><span class="mat-sphere mat-sphere-cuir mat-sphere-sm" data-icon-cat="cuir"></span>Cuir</button>
+                    <button class="ts-pk-tab" data-cat="verre" onclick="filterPickerByCategory('verre')"><span class="mat-sphere mat-sphere-verre mat-sphere-sm" data-icon-cat="verre"></span>Verre</button>
                   </div>
                   <div class="ts-pk-grid" id="tsPickerGrid"></div>
                 </div>
@@ -1366,12 +1386,12 @@ canvas.pipette-cursor{cursor:cell!important}
       <div class="modal-section">
         <div class="modal-section-title">Catégorie *</div>
         <div class="mat-cat-radios">
-          <label class="mat-cat-radio" data-cat="bois">   <span>🪵</span> Bois   </label>
-          <label class="mat-cat-radio" data-cat="metal">  <span>⬛</span> Métal  </label>
-          <label class="mat-cat-radio" data-cat="tissu">  <span>🧵</span> Tissu  </label>
-          <label class="mat-cat-radio" data-cat="pierre"> <span>🪨</span> Pierre </label>
-          <label class="mat-cat-radio" data-cat="cuir">   <span>🟤</span> Cuir   </label>
-          <label class="mat-cat-radio" data-cat="verre">  <span>🔷</span> Verre  </label>
+          <label class="mat-cat-radio" data-cat="bois"><span class="mat-sphere mat-sphere-bois mat-sphere-md" data-icon-cat="bois"></span>Bois</label>
+          <label class="mat-cat-radio" data-cat="metal"><span class="mat-sphere mat-sphere-metal mat-sphere-md" data-icon-cat="metal"></span>Métal</label>
+          <label class="mat-cat-radio" data-cat="tissu"><span class="mat-sphere mat-sphere-tissu mat-sphere-md" data-icon-cat="tissu"></span>Tissu</label>
+          <label class="mat-cat-radio" data-cat="pierre"><span class="mat-sphere mat-sphere-pierre mat-sphere-md" data-icon-cat="pierre"></span>Pierre</label>
+          <label class="mat-cat-radio" data-cat="cuir"><span class="mat-sphere mat-sphere-cuir mat-sphere-md" data-icon-cat="cuir"></span>Cuir</label>
+          <label class="mat-cat-radio" data-cat="verre"><span class="mat-sphere mat-sphere-verre mat-sphere-md" data-icon-cat="verre"></span>Verre</label>
         </div>
         <input type="hidden" id="mCategoryNew" value="bois"/>
       </div>
@@ -4008,6 +4028,26 @@ async function loadMaterials() {
   const tabAll = document.getElementById('matTabCnt_all');
   if (tabAll) tabAll.textContent = allMaterials.length;
   document.getElementById('navBadgeMateriaux').textContent = allMaterials.length;
+  /* Pour chaque catégorie : si elle contient au moins un matériau actif avec
+     thumbnail, on remplace la sphère gradient par son thumbnail réel. */
+  MATERIAL_CATEGORIES.forEach(c => {
+    const firstMat = allMaterials.find(m =>
+      m.category === c.id && m.is_active !== false && (m.thumbnail_url || m.albedo_url)
+    );
+    const spheres = document.querySelectorAll('[data-icon-cat="'+c.id+'"]');
+    if (firstMat) {
+      const thumb = firstMat.thumbnail_url || firstMat.albedo_url;
+      spheres.forEach(el => {
+        el.style.backgroundImage = 'url('+thumb+')';
+        el.classList.add('has-thumb');
+      });
+    } else {
+      spheres.forEach(el => {
+        el.style.backgroundImage = '';
+        el.classList.remove('has-thumb');
+      });
+    }
+  });
   renderMaterialsGrid();
 }
 
@@ -4051,8 +4091,8 @@ function renderMaterialsGrid() {
     const inactive = (m.is_active === false) ? ' mat-card-inactive' : '';
     const safeName = (m.name||'').replace(/'/g,"\\'");
     return '<div class="mat-card'+inactive+'" onclick="openEditMaterial(\''+m.id+'\')">'
-      + '<div class="mat-card-thumb" style="'+(thumb?'background-image:url('+thumb+');background-size:cover;background-position:center':'background:'+(m.base_color||'#888'))+'">'
-      + (!thumb ? '<span style="color:white;font-family:var(--serif);font-size:32px">'+(cat?cat.icon:'?')+'</span>' : '')
+      + '<div class="mat-card-thumb" style="'+(thumb?'background-image:url('+thumb+');background-size:cover;background-position:center':'background:#2a2a2a')+'">'
+      + (!thumb ? '<span class="mat-sphere mat-sphere-'+m.category+' mat-sphere-lg" style="width:48px;height:48px"></span>' : '')
       + '</div>'
       + '<div class="mat-card-body">'
       + '<div class="mat-card-cat">'+(cat?cat.icon+' '+cat.label:m.category)+'</div>'
