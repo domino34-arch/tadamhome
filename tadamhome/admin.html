@@ -625,6 +625,18 @@ canvas.pipette-cursor{cursor:cell!important}
   .ts-viewer{height:320px}
   .ts-controls{width:100%}
 }
+
+/* ══ Save status indicator (Studio Texture) ══ */
+.ts-save-status{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--bg);border:1px solid var(--border);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--sans);transition:all .2s;cursor:default;user-select:none;white-space:nowrap}
+.ts-save-status.dirty{border-color:var(--accent);color:var(--accent)}
+.ts-save-status.saving{border-color:var(--accent);color:var(--accent)}
+.ts-save-status.saved{border-color:rgba(39,112,74,.4);color:var(--green)}
+.ts-save-status.error{border-color:rgba(192,57,43,.4);color:var(--red)}
+.ts-save-status.hidden{display:none}
+.ts-save-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ts-save-status.saving .ts-save-dot{animation:tsSavePulse 1.2s ease-in-out infinite}
+@keyframes tsSavePulse{0%,100%{opacity:.3}50%{opacity:1}}
+
 </style>
 </head>
 <body>
@@ -946,6 +958,10 @@ canvas.pipette-cursor{cursor:cell!important}
             <input type="number" class="ts-ib-dim" id="tsP" placeholder="cm"/>
             <span class="ts-ib-unit">cm</span>
             <button class="ts-ib-apply" onclick="tsApplyDimensions()">→ Échelle</button>
+            <span class="ts-save-status hidden" id="tsSaveStatus" title="État de sauvegarde">
+              <span class="ts-save-dot"></span>
+              <span class="ts-save-lbl">—</span>
+            </span>
           </div>
 
           <!-- Layout : viewer + tableau PBR -->
@@ -1375,7 +1391,7 @@ canvas.pipette-cursor{cursor:cell!important}
           <div class="field"><label>Slug (URL)</label><input type="text" id="mSlug" placeholder="auto-généré"/></div>
         </div>
         <div class="form-grid" style="margin-bottom:10px">
-          <div class="field"><label>Sous-catégorie</label><input type="text" id="mSubcat" placeholder="ex. chêne, noyer, velours…"/></div>
+          <div class="field"><label>Sous-catégorie</label><input type="text" id="mSubcat" list="mSubcatOptions" placeholder="Choisir ou saisir un type…" autocomplete="off"/><datalist id="mSubcatOptions"></datalist></div>
           <div class="field"><label>Tags (séparés par virgules)</label><input type="text" id="mTags" placeholder="ex. clair, mat, scandinave"/></div>
         </div>
         <div class="form-grid">
@@ -2247,7 +2263,8 @@ function openInStudio(id){
         /* Forcer tsInitThree si pas encore fait */
         if(window.tsInitThree && !window.tsThreeReady) window.tsInitThree();
         if(window.tsLoadGLB && window.tsThreeReady){
-          window.tsLoadGLB(p.model_glb_url);
+          window.tsLoadGLB(p.model_glb_url, p.studio_state || null);
+          if(window.tsSetupSaveIndicatorForEdit) window.tsSetupSaveIndicatorForEdit(p);
         } else {
           setTimeout(()=>tryLoad(retries-1), 200);
         }
@@ -2662,6 +2679,341 @@ function tsSelectPart(part){
 }
 
 var _uiMeshMode=false,_uiPipette=false,_customGroups=[];
+window._tsGetCustomGroups = function(){ return _customGroups; };
+window._tsSetCustomGroups = function(arr){ _customGroups = Array.isArray(arr) ? arr : []; };
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* ══ STUDIO STATE — Persistance & Auto-save ══════════════════════ */
+/* ══════════════════════════════════════════════════════════════════ */
+
+/* État global de sauvegarde */
+window._tsSaveState  = 'idle';
+window._tsSaveTimer  = null;
+window._tsLastSaveAt = null;
+window._tsSerializing= false;
+window._tsRestoring  = false;
+
+/* Indicateur visuel ─────────────────────────────────────────────── */
+function tsSetSaveIndicator(state, msg){
+  const el = document.getElementById('tsSaveStatus');
+  if(!el) return;
+  el.classList.remove('hidden','dirty','saving','saved','error');
+  if(state === 'hidden'){ el.classList.add('hidden'); return; }
+  el.classList.add(state);
+  const lbl = el.querySelector('.ts-save-lbl');
+  if(lbl){
+    lbl.textContent = msg || ({
+      idle:'En attente', dirty:'Modifié', saving:'Sauvegarde…',
+      saved:'Sauvegardé', error:'Erreur'
+    })[state] || state;
+  }
+  window._tsSaveState = state;
+}
+window.tsSetSaveIndicator = tsSetSaveIndicator;
+
+/* Sérialisation ───────────────────────────────────────────────── */
+function tsSerializeState(){
+  if(!window.tsCurrentCat) return null;
+  const cg = (window._tsGetCustomGroups && window._tsGetCustomGroups()) || [];
+
+  function serializePart(partKey){
+    const assign = window.tsPartAssign[partKey];
+    const mat    = window.tsPartMat[partKey] || {};
+    const rep    = window.tsPartRepeat[partKey] || {x:1,y:1};
+    const rot    = (window.tsPartRotation||{})[partKey] || 0;
+    const proj   = (window.tsPartProjection||{})[partKey] || 'uv';
+
+    /* Maps : on stocke uniquement les URLs http(s) ou data:
+       (les blob: sont des objectURLs volatils, non sauvegardables) */
+    const maps = {};
+    const mapsObj = mat.maps || {};
+    Object.keys(mapsObj).forEach(k => {
+      const url = (window.tsTexCache||{})[partKey+'_'+k];
+      if(url && (url.startsWith('http')||url.startsWith('data:'))){
+        maps[k] = url;
+      }
+    });
+
+    return {
+      meshNames: assign ? [...assign] : [],
+      material: {
+        color: mat.color || '#ffffff',
+        intensity: Object.assign({}, mat.intensity || {})
+      },
+      maps: maps,
+      repeat: { x: rep.x, y: rep.y },
+      rotation: rot,
+      projection: proj
+    };
+  }
+
+  /* Parties standard de la catégorie */
+  const catCfg = (typeof TS_CATS !== 'undefined' && TS_CATS[window.tsCurrentCat]) || null;
+  const standardParts = catCfg ? catCfg.parts : [];
+  const parts = {};
+  standardParts.forEach(p => { parts[p] = serializePart(p); });
+
+  /* Sous-parties (segmentation manuelle) */
+  const subPartsRaw = window.tsSubParts || {};
+  const subParts = {};
+  Object.keys(subPartsRaw).forEach(parent => {
+    subParts[parent] = (subPartsRaw[parent]||[]).map(s => ({
+      key: s.key,
+      label: s.label,
+      state: serializePart(s.key)
+    }));
+  });
+
+  /* Groupes perso */
+  const customGroups = cg.map(g => ({
+    key: g.key,
+    label: g.label,
+    state: serializePart(g.key)
+  }));
+
+  /* Infos barre */
+  const info = {
+    nom:    (document.getElementById('tsNom')?.value || '').trim(),
+    type:   document.getElementById('tsFurnitureType')?.value || '',
+    marque: (document.getElementById('tsMarque')?.value || '').trim(),
+    l: parseFloat(document.getElementById('tsL')?.value) || null,
+    h: parseFloat(document.getElementById('tsH')?.value) || null,
+    p: parseFloat(document.getElementById('tsP')?.value) || null
+  };
+
+  return {
+    version:    1,
+    savedAt:    new Date().toISOString(),
+    category:   window.tsCurrentCat,
+    info:       info,
+    activePart: window.tsActivePart || null,
+    parts:      parts,
+    subParts:   subParts,
+    customGroups: customGroups
+  };
+}
+window.tsSerializeState = tsSerializeState;
+
+/* Désérialisation (async — charge les textures) ─────────────── */
+async function tsDeserializeState(state){
+  if(!state || !state.parts) return;
+  if(state.version !== 1) console.warn('Studio state version mismatch:', state.version);
+
+  window._tsRestoring = true;
+  try {
+    /* Catégorie */
+    if(state.category && state.category !== window.tsCurrentCat){
+      if(typeof tsSelectCategory==='function') tsSelectCategory(state.category);
+    }
+
+    /* Reset structures */
+    window.tsPartAssign     = {};
+    window.tsPartMat        = {};
+    window.tsPartRepeat     = {};
+    window.tsPartRotation   = window.tsPartRotation || {};
+    window.tsPartProjection = window.tsPartProjection || {};
+    Object.keys(window.tsTexCache||{}).forEach(k => delete window.tsTexCache[k]);
+
+    const meshNamesAvailable = new Set(Object.keys(window.tsMeshMap || {}));
+
+    function restorePartShell(partKey, ps){
+      if(!ps) return;
+      window.tsPartAssign[partKey] = new Set(
+        (ps.meshNames || []).filter(n => meshNamesAvailable.has(n))
+      );
+      window.tsPartMat[partKey] = {
+        color: ps.material?.color || '#ffffff',
+        maps: {},
+        intensity: Object.assign({}, ps.material?.intensity || {})
+      };
+      window.tsPartRepeat[partKey]     = { x: ps.repeat?.x ?? 1, y: ps.repeat?.y ?? 1 };
+      window.tsPartRotation[partKey]   = ps.rotation   || 0;
+      window.tsPartProjection[partKey] = ps.projection || 'uv';
+    }
+
+    /* 1. Coquille de toutes les parties */
+    Object.entries(state.parts || {}).forEach(([part, ps]) => restorePartShell(part, ps));
+
+    /* 2. Sous-parties */
+    window.tsSubParts = {};
+    Object.entries(state.subParts || {}).forEach(([parent, subs]) => {
+      window.tsSubParts[parent] = (subs||[]).map(s => ({key: s.key, label: s.label}));
+      (subs||[]).forEach(s => restorePartShell(s.key, s.state));
+    });
+
+    /* 3. Groupes perso */
+    const cgArr = (state.customGroups || []).map(g => ({ key: g.key, label: g.label }));
+    if(window._tsSetCustomGroups) window._tsSetCustomGroups(cgArr);
+    (state.customGroups || []).forEach(g => restorePartShell(g.key, g.state));
+
+    /* 4. Active part */
+    window.tsActivePart = state.activePart || null;
+
+    /* 5. Charger toutes les textures (async parallèle) */
+    const jobs = [];
+    function queueMaps(partKey, ps){
+      if(!ps || !ps.maps) return;
+      Object.entries(ps.maps).forEach(([mapKey, url]) => {
+        if(!url) return;
+        window.tsTexCache = window.tsTexCache || {};
+        window.tsTexCache[partKey+'_'+mapKey] = url;
+        jobs.push(new Promise(resolve => {
+          if(!window.tsLoadTexture){ resolve(); return; }
+          window.tsLoadTexture(partKey, mapKey, url, 'restored', () => resolve());
+        }));
+      });
+    }
+    Object.entries(state.parts || {}).forEach(([p, ps]) => queueMaps(p, ps));
+    Object.entries(state.subParts || {}).forEach(([parent, subs]) => {
+      (subs||[]).forEach(s => queueMaps(s.key, s.state));
+    });
+    (state.customGroups || []).forEach(g => queueMaps(g.key, g.state));
+
+    await Promise.all(jobs);
+
+    /* 6. Appliquer matériaux + projections */
+    const allPartKeys = new Set([
+      ...Object.keys(state.parts || {}),
+      ...Object.values(state.subParts || {}).flatMap(arr => (arr||[]).map(s => s.key)),
+      ...(state.customGroups || []).map(g => g.key)
+    ]);
+    allPartKeys.forEach(part => {
+      if(window.tsPartAssign[part]?.size){
+        window.tsApplyMaterial && window.tsApplyMaterial(part);
+        const proj = window.tsPartProjection[part];
+        if(proj && proj !== 'uv' && window.tsSetProjectionMode){
+          window.tsSetProjectionMode(part, proj, window.tsPartRepeat[part], window.tsPartRotation[part]);
+        }
+      }
+    });
+
+    /* 7. Restaurer infos barre */
+    if(state.info){
+      const set = (id, v) => { const el = document.getElementById(id); if(el && v!=null && v!=='') el.value = v; };
+      set('tsNom', state.info.nom);
+      set('tsMarque', state.info.marque);
+      set('tsL', state.info.l);
+      set('tsH', state.info.h);
+      set('tsP', state.info.p);
+      const typeEl = document.getElementById('tsFurnitureType');
+      if(typeEl && state.info.type){
+        [...typeEl.options].forEach(o => { if(o.value === state.info.type) o.selected = true; });
+      }
+    }
+
+    /* 8. Re-render UI */
+    if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
+    if(window.tsActivePart && typeof tsSelectPart === 'function') tsSelectPart(window.tsActivePart);
+
+    tsSetSaveIndicator('saved', 'Restauré');
+  } finally {
+    /* Petit délai pour laisser tsApplyMaterial finir sans déclencher de dirty */
+    setTimeout(() => { window._tsRestoring = false; }, 200);
+  }
+}
+window.tsDeserializeState = tsDeserializeState;
+
+/* Auto-save debounced ─────────────────────────────────────────── */
+function tsMarkDirty(){
+  if(!window._tsEditProduct) return;
+  if(window._tsSerializing || window._tsRestoring) return;
+  tsSetSaveIndicator('dirty');
+  if(window._tsSaveTimer) clearTimeout(window._tsSaveTimer);
+  window._tsSaveTimer = setTimeout(() => {
+    tsForceSaveState('auto').catch(e => console.warn('Auto-save failed:', e));
+  }, 10000); /* 10s */
+}
+window.tsMarkDirty = tsMarkDirty;
+
+/* Save forcé immédiat ──────────────────────────────────────────── */
+async function tsForceSaveState(reason){
+  const product = window._tsEditProduct;
+  if(!product){ return; }
+  if(window._tsSaveTimer){ clearTimeout(window._tsSaveTimer); window._tsSaveTimer = null; }
+
+  window._tsSerializing = true;
+  let state;
+  try { state = tsSerializeState(); }
+  finally { window._tsSerializing = false; }
+
+  if(!state) return;
+  tsSetSaveIndicator('saving');
+
+  /* Cible : variante active (>0) ou base (0/null) */
+  const variantIdx = window._tsActiveVariantIdx;
+  try {
+    if(typeof variantIdx === 'number' && variantIdx > 0){
+      const variants = [...(Array.isArray(product.variants) ? product.variants : [])];
+      const vi = variantIdx - 1;
+      if(variants[vi]){
+        variants[vi] = Object.assign({}, variants[vi], { studio_state: state });
+        const { error } = await sb.from('products').update({ variants }).eq('id', product.id);
+        if(error) throw error;
+        product.variants = variants;
+      }
+    } else {
+      const { error } = await sb.from('products').update({ studio_state: state }).eq('id', product.id);
+      if(error) throw error;
+      product.studio_state = state;
+    }
+    window._tsLastSaveAt = Date.now();
+    tsSetSaveIndicator('saved');
+    if(reason === 'manual') toast('État sauvegardé ✓', 'ok');
+  } catch(e){
+    console.error('tsForceSaveState:', e);
+    tsSetSaveIndicator('error', 'Erreur');
+    if(reason !== 'auto') toast('Erreur sauvegarde : '+(e.message||'inconnue'), 'err');
+  }
+}
+window.tsForceSaveState = tsForceSaveState;
+
+/* Wrapper auto-save autour de tsApplyMaterial (épicentre des modifs) */
+(function hookApplyMaterial(){
+  if(window.__tsApplyMatHooked) return;
+  window.__tsApplyMatHooked = true;
+  const tries = setInterval(() => {
+    if(window.tsApplyMaterial){
+      clearInterval(tries);
+      const orig = window.tsApplyMaterial;
+      window.tsApplyMaterial = function(part){
+        const r = orig.call(this, part);
+        if(window.tsMarkDirty && !window._tsSerializing && !window._tsRestoring){
+          window.tsMarkDirty();
+        }
+        return r;
+      };
+    }
+  }, 100);
+  setTimeout(() => clearInterval(tries), 8000);
+})();
+
+/* Listeners barre info + beforeunload */
+document.addEventListener('DOMContentLoaded', () => {
+  const ids = ['tsNom','tsMarque','tsL','tsH','tsP','tsFurnitureType'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const evt = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, () => { window.tsMarkDirty && window.tsMarkDirty(); });
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if(window._tsSaveState === 'dirty' && window._tsEditProduct){
+      e.preventDefault();
+      e.returnValue = 'Des modifications du Studio Texture ne sont pas encore sauvegardées.';
+      return e.returnValue;
+    }
+  });
+});
+
+/* Initialiser l'indicateur quand on ouvre un produit en édition */
+window.tsSetupSaveIndicatorForEdit = function(product){
+  if(product && product.id){
+    tsSetSaveIndicator('saved', product.studio_state ? 'Restauré' : 'Sauvegardé');
+  } else {
+    tsSetSaveIndicator('hidden');
+  }
+};
+
 function tsSetMeshMode(on){
   _uiMeshMode=on; _uiPipette=false;
   window.tsSetMeshModeModule&&window.tsSetMeshModeModule(on);
@@ -3382,54 +3734,76 @@ function tsReload(){
 window._tsActiveVariantIdx=null;
 
 async function tsAddNewVariant(){
-  if(!window.tsGetGLBBlob){alert('Module 3D non pret');return;}
-  if(!Object.keys(window.tsMeshMap||{}).length){alert('Charger un modele dabord');return;}
-  var info  = tsGatherInfo();
-  var base  = window._tsEditProduct;
-  var defNm = info.nom ? info.nom+' - Variante' : 'Nouvelle variante';
-  var vName = prompt('Nom de cette variante (ex: Tissu Rouge, Cuir Noir) :', defNm);
+  if(!window.tsGetGLBBlob){ alert('Module 3D non prêt'); return; }
+  if(!Object.keys(window.tsMeshMap||{}).length){ alert('Charger un modèle d\'abord'); return; }
+  const base = window._tsEditProduct;
+  if(!base){
+    alert('Variantes : ce produit doit d\'abord être enregistré dans le catalogue.\nUtilisez "Envoyer au catalogue" puis revenez créer des variantes.');
+    return;
+  }
+  const info = tsGatherInfo();
+  const defNm = info.nom ? info.nom + ' — Variante' : 'Nouvelle variante';
+  const vName = prompt('Nom de cette variante (ex: Tissu Rouge, Cuir Noir) :', defNm);
   if(!vName) return;
-  var baseTxt = base ? ' Base sur : '+base.name : '';
-  if(!confirm('Creer la variante '+vName+' ?'+baseTxt)) return;
-  var btn=document.getElementById('tsBtnSupa');
-  if(btn){btn.disabled=true;btn.textContent='Upload...';}
-  try{
-    var ts2  = Date.now();
-    var slug = vName.replace(/\s+/g,'_').replace(/[^\w-]/g,'') || 'variante';
-    var glbBlob = await window.tsGetGLBBlob();
-    var glbPath = 'studio/'+ts2+'_'+slug+'.glb';
-    var upG = await sb.storage.from(BUCKET).upload(glbPath,glbBlob,{contentType:'model/gltf-binary',upsert:true});
+  if(!confirm('Créer la variante "'+vName+'" sur "'+base.name+'" ?')) return;
+
+  const btn = document.getElementById('tsBtnSupa');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Upload variante…'; }
+  try {
+    const ts2  = Date.now();
+    const slug = (vName.replace(/\s+/g,'_').replace(/[^\w\-]/g,'') || 'variante').toLowerCase();
+
+    /* 1. Sérialiser l'état du studio AVANT exports */
+    const studio_state = (typeof tsSerializeState === 'function') ? tsSerializeState() : null;
+
+    /* 2. Upload GLB */
+    const glbBlob = await window.tsGetGLBBlob();
+    const glbPath = 'studio/'+ts2+'_'+slug+'.glb';
+    const upG = await sb.storage.from(BUCKET).upload(glbPath, glbBlob, {contentType:'model/gltf-binary', upsert:true});
     if(upG.error) throw upG.error;
-    var glbUrl = sb.storage.from(BUCKET).getPublicUrl(glbPath).data.publicUrl;
-    var usdzUrl = null;
-    try{
-      var usdzBlob = await window.tsGetUSDZBlob();
-      var usdzPath = 'studio/'+ts2+'_'+slug+'.usdz';
-      var upU = await sb.storage.from(BUCKET).upload(usdzPath,usdzBlob,{contentType:'model/vnd.usdz+zip',upsert:true});
-      if(!upU.error) usdzUrl = sb.storage.from(BUCKET).getPublicUrl(usdzPath).data.publicUrl;
-    }catch(e2){}
-    var payload = {
+    const glb_url = sb.storage.from(BUCKET).getPublicUrl(glbPath).data.publicUrl;
+
+    /* 3. Upload USDZ (non bloquant) */
+    let usdz_url = null;
+    try {
+      const usdzBlob = await window.tsGetUSDZBlob();
+      const usdzPath = 'studio/'+ts2+'_'+slug+'.usdz';
+      const upU = await sb.storage.from(BUCKET).upload(usdzPath, usdzBlob, {contentType:'model/vnd.usdz+zip', upsert:true});
+      if(!upU.error) usdz_url = sb.storage.from(BUCKET).getPublicUrl(usdzPath).data.publicUrl;
+    } catch(e2){ console.warn('USDZ variante échec:', e2); }
+
+    /* 4. UPDATE products.variants — append à la liste */
+    const variants = [...(Array.isArray(base.variants) ? base.variants : [])];
+    variants.push({
       name: vName,
-      enseigne_name: base ? base.enseigne_name : (info.marque||null),
-      category:      base ? base.category       : (info.type||null),
-      price: null, is_active: true,
-      dimensions: base ? base.dimensions : ((info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null),
-      model_glb_url: glbUrl, model_usdz_url: usdzUrl
-    };
-    var ins = await sb.from('products').insert([payload]);
-    if(ins.error) throw ins.error;
+      glb_url: glb_url,
+      usdz_url: usdz_url,
+      studio_state: studio_state,
+      created_at: new Date().toISOString()
+    });
+
+    const { error } = await sb.from('products').update({ variants }).eq('id', base.id);
+    if(error) throw error;
+
+    base.variants = variants;
+    window._tsActiveVariantIdx = variants.length; /* 0=base, donc nouvelle = variants.length */
+
+    tsRenderVariantsBar();
     loadProducts();
-    toast('Variante '+vName+' creee','ok');
-    var res=document.getElementById('tsResult');
+
+    const res = document.getElementById('tsResult');
     if(res){
       res.classList.add('show');
-      res.innerHTML='<strong>Variante creee !</strong><br><span>'+vName+'</span>';
+      res.innerHTML = '<strong>✓ Variante "'+vName+'" créée !</strong><br>'
+        + '<span style="font-size:11px;color:var(--muted)">Sur le produit "'+base.name+'"</span>';
     }
-  }catch(e){
+    toast('Variante "'+vName+'" créée ✓', 'ok');
+    if(window.tsSetSaveIndicator) window.tsSetSaveIndicator('saved');
+  } catch(e){
     alert('Erreur : '+(e.message||'inconnue'));
-    console.error(e);
+    console.error('tsAddNewVariant:', e);
   }
-  if(btn){btn.disabled=false;btn.textContent='\u2b06 Envoyer au catalogue';}
+  if(btn){ btn.disabled = false; btn.textContent = '⬆ Envoyer au catalogue'; }
 }
 
 function tsRenderVariantsBar(){
@@ -3455,13 +3829,13 @@ function tsLoadVariant(idx){
   const p=window._tsEditProduct;
   if(!p) return;
   const variants=Array.isArray(p.variants)?p.variants:[];
-  const all=[{name:'Base',glb_url:p.model_glb_url,_base:true},...variants];
+  const all=[{name:'Base',glb_url:p.model_glb_url,usdz_url:p.model_usdz_url,studio_state:p.studio_state,_base:true},...variants];
   const v=all[idx];
   if(!v||!v.glb_url){toast("Cette variante n'a pas de GLB",'err');return;}
   window._tsActiveVariantIdx=idx;
   tsRenderVariantsBar();
   if(!v._base&&v.name){const el=document.getElementById('tsNom');if(el)el.value=v.name;}
-  if(window.tsLoadGLB) window.tsLoadGLB(v.glb_url);
+  if(window.tsLoadGLB) window.tsLoadGLB(v.glb_url, v.studio_state || null);
   else toast("Module 3D non prêt",'err');
 }
 
@@ -3485,7 +3859,7 @@ function tsLoadExistingGLB(){
   const p=window._tsEditProduct;
   if(!p||!p.model_glb_url){toast('Aucun GLB pour ce produit','err');return;}
   if(!window.tsLoadGLB){toast('Module 3D non prêt','err');return;}
-  window.tsLoadGLB(p.model_glb_url);
+  window.tsLoadGLB(p.model_glb_url, p.studio_state || null);
 }
 function tsGatherInfo(){
   return {
@@ -3598,6 +3972,7 @@ async function tsDoExportAndCatalogue(action){
         price:null, is_active:true,
         dimensions:(info.l||info.h||info.p)?{l:info.l,h:info.h,p:info.p}:null,
         model_glb_url:glbUrl, model_usdz_url:usdzUrl,
+        studio_state: (typeof tsSerializeState === 'function' ? tsSerializeState() : null),
       };
       const editProduct=window._tsEditProduct;
 
@@ -3611,13 +3986,14 @@ async function tsDoExportAndCatalogue(action){
           enseigne_name:  info.marque || editProduct.enseigne_name,
           category:       info.type  || editProduct.category,
           dimensions:     payload.dimensions || editProduct.dimensions,
+          studio_state:   (typeof tsSerializeState === 'function' ? tsSerializeState() : null),
         };
 
         const {error:upErr}=await sb.from('products').update(updatePayload).eq('id',editProduct.id);
 
         if(upErr) throw upErr;
         savedMsg=`Produit "${updatePayload.name}" mis à jour`;
-        /* variants column non requise - les variantes sont des produits séparés */
+        /* L'état Studio est maintenant inclus dans updatePayload.studio_state */
       } else {
         /* ── Nouveau produit ── */
 
@@ -3651,6 +4027,10 @@ async function tsExportGLB(){
     /* Export direct : téléchargement sans passer par la modale */
     setSpin('tsSpinGlb',true);
     document.getElementById('tsBtnGlb').disabled=true;
+    /* Sauve l'état Studio si on est en ré-édition */
+    if(window._tsEditProduct && window.tsForceSaveState){
+      try { await window.tsForceSaveState('manual'); } catch(e){ console.warn('Save before GLB export failed:', e); }
+    }
     const info=tsGatherInfo();
     const slug=(info.nom||'modele').replace(/\s+/g,'_')||'modele';
     const blob=await window.tsGetGLBBlob();
@@ -4000,6 +4380,27 @@ const MATERIAL_CATEGORIES = [
   {id:'cuir',   label:'Cuir',   icon:'🟤'},
   {id:'verre',  label:'Verre',  icon:'🔷'}
 ];
+
+/* Sous-catégories suggérées par catégorie. Liste non-restrictive :
+   l'utilisateur peut toujours saisir une valeur custom. */
+const MATERIAL_SUBCATEGORIES = {
+  bois:   ['Clair', 'Moyen', 'Foncé'],
+  metal:  ['Chromé', 'Brossé', 'Satiné', 'Mat', 'Brillant'],
+  tissu:  ['Coton', 'Tapis', 'Daim', 'Voile', 'Éponge & tapis',
+           'Tissu brodé', 'Voile brodé', 'Lainage', 'Maille',
+           'Jute', 'Fourrure', 'Denim', 'Synthétique', 'Crochet', 'Natte'],
+  pierre: ['Marbre', 'Béton ciré', 'Granit', 'Ardoise', 'Travertin', 'Terrazzo'],
+  cuir:   ['Lisse', 'Grainé', 'Vieilli', 'Daim', 'Vernis'],
+  verre:  ['Transparent', 'Dépoli', 'Teinté', 'Miroir', 'Strié']
+};
+
+function updateMatSubcatOptions(cat) {
+  const dl = document.getElementById('mSubcatOptions');
+  if (!dl) return;
+  const opts = MATERIAL_SUBCATEGORIES[cat] || [];
+  dl.innerHTML = opts.map(o => '<option value="'+o+'">').join('');
+}
+
 const MAT_PATH_PREFIX = 'materials';
 
 let allMaterials = [];
@@ -4109,6 +4510,7 @@ function renderMaterialsGrid() {
 function _setMatCategoryRadio(cat) {
   document.getElementById('mCategoryNew').value = cat;
   document.querySelectorAll('.mat-cat-radio').forEach(r => r.classList.toggle('active', r.dataset.cat===cat));
+  updateMatSubcatOptions(cat);
 }
 
 function openNewMaterial(presetCategory) {
@@ -5748,7 +6150,7 @@ window.tsRemoveModel = function() {
 
 /* ── Dimensions réelles du modèle (en cm) ─────────────────── */
 /* ── Charger un GLB existant depuis URL ─────────────────── */
-window.tsLoadGLB = function(url){
+window.tsLoadGLB = function(url, savedState){
   if(!scene){toast('Viewer non initialisé','err');return;}
   const loader = new GLTFLoader();
   toast('Chargement du GLB…','ok');
@@ -5805,10 +6207,28 @@ window.tsLoadGLB = function(url){
       if(typeof tsRenderPBRTable === 'function') tsRenderPBRTable();
       else window.tsRenderPBRTable && window.tsRenderPBRTable();
 
-      /* ── Extraire les matériaux du GLB → peupler le panneau PBR ── */
-      window.tsExtractGLBMaterials();
-
-      toast(Object.keys(meshMap).length+' meshes chargés + matériaux extraits ✓','ok');
+      /* ── Restaurer l'état sauvegardé OU extraire depuis le GLB ── */
+      if(savedState){
+        /* Restauration depuis état Studio sauvegardé */
+        (async () => {
+          try {
+            if(window.tsDeserializeState){
+              await window.tsDeserializeState(savedState);
+              toast(Object.keys(meshMap).length+' meshes + état Studio restauré ✓','ok');
+            } else {
+              window.tsExtractGLBMaterials();
+              toast(Object.keys(meshMap).length+' meshes — pas de désérialiseur','err');
+            }
+          } catch(e){
+            console.error('Deserialize error:', e);
+            window.tsExtractGLBMaterials();
+            toast('Restauration partielle — fallback auto','err');
+          }
+        })();
+      } else {
+        window.tsExtractGLBMaterials();
+        toast(Object.keys(meshMap).length+' meshes chargés + matériaux extraits ✓','ok');
+      }
     },
     (xhr)=>{/* progress */},
     (err)=>{ toast('Erreur GLB : '+(err.message||err),'err'); console.error(err); }
