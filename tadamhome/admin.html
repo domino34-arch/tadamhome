@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>TadamHome · Studio Texture — v31 (Alignement schéma DB)</title>
+<title>TadamHome · Studio Texture — v32 (Fix INSERT + bouton publier)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -5581,7 +5581,7 @@ console.log('[studio v9/v10] view buttons + tree expand ✓');
       </div>
       <div class="admin-foot">
         <span class="admin-foot-brand">TADAMHOME</span>
-        <span class="admin-foot-version">Studio v31</span>
+        <span class="admin-foot-version">Studio v32</span>
       </div>
     `;
 
@@ -8536,13 +8536,15 @@ console.log('[studio v25] variantes Supabase câblées (Base + chips dynamiques 
                   : null;
       if (price !== null) payload.price = price;
 
-      /* Ajouter les dimensions si la table a ces colonnes — sinon ignoré silencieusement
-         (PostgreSQL/Supabase rejettent les colonnes inconnues, donc on tente d'abord
-         avec dimensions puis fallback sans si erreur de schéma) */
+      /* V32 — Dimensions vers les vraies colonnes :
+         - JSONB `dimensions` avec {L, H, P}
+         - Colonnes dédiées `height` (H) et `depth` (P) — pas de `width` (incertain) */
       const payloadWithDims = { ...payload };
-      if (dimL) payloadWithDims.dim_l = dimL;
-      if (dimH) payloadWithDims.dim_h = dimH;
-      if (dimP) payloadWithDims.dim_p = dimP;
+      if (dimL || dimH || dimP) {
+        payloadWithDims.dimensions = { L: dimL, H: dimH, P: dimP };
+      }
+      if (dimH) payloadWithDims.height = dimH;
+      if (dimP) payloadWithDims.depth  = dimP;
 
       window._v18.setBadge && window._v18.setBadge('saving', 'Création…');
 
@@ -8553,20 +8555,23 @@ console.log('[studio v25] variantes Supabase câblées (Base + chips dynamiques 
         .select('*')
         .single();
 
-      /* Si erreur de schéma (colonnes inconnues) → retry en virant les colonnes optionnelles
-         (dim_*, price) tout en gardant le studio_state pour récupérer les infos plus tard */
-      if (error && /column.*does not exist/i.test(error.message)) {
-        console.warn('[v26/v28] schéma incomplet, retry sans dim_* ni price :', error.message);
+      /* V32 — Regex élargi : Supabase peut renvoyer "schema cache", "Could not find",
+         "column does not exist" selon la version. On capture tous les variants. */
+      const isSchemaError = (err) => err && /(column.*does not exist|schema cache|could not find|not found)/i.test(err.message || '');
+
+      /* Si erreur de schéma → retry sans dimensions/height/depth/price */
+      if (isSchemaError(error)) {
+        console.warn('[v26/v32] retry sans dimensions/height/depth :', error.message);
         const retry = await sb
           .from('products')
-          .insert(payload)               /* sans dim_* */
+          .insert(payload)               /* sans dim columns */
           .select('*')
           .single();
         data = retry.data;
         error = retry.error;
-        /* Si toujours erreur (price), retry vraiment minimal */
-        if (error && /column.*does not exist/i.test(error.message)) {
-          console.warn('[v28] retry minimal sans price :', error.message);
+        /* Si toujours erreur (probablement price ou categorie) → retry minimal */
+        if (isSchemaError(error)) {
+          console.warn('[v32] retry minimal :', error.message);
           const minPayload = { name, enseigne_name: brand, category, categorie: category, studio_state: state, variants: [] };
           const retry2 = await sb
             .from('products')
@@ -8575,6 +8580,19 @@ console.log('[studio v25] variantes Supabase câblées (Base + chips dynamiques 
             .single();
           data = retry2.data;
           error = retry2.error;
+          /* Si encore erreur, retry ultra-minimal sans categorie/category dual */
+          if (isSchemaError(error)) {
+            console.warn('[v32] retry ultra-minimal :', error.message);
+            const ultraPayload = { name, enseigne_name: brand, studio_state: state };
+            if (category) ultraPayload.category = category;
+            const retry3 = await sb
+              .from('products')
+              .insert(ultraPayload)
+              .select('*')
+              .single();
+            data = retry3.data;
+            error = retry3.error;
+          }
         }
       }
 
@@ -9188,10 +9206,20 @@ console.log('[studio v27] modal nouveau modèle + autocomplete brand + dim lock 
           category:      state.category || null,
           categorie:     state.category || null,   /* dual-write FR */
         };
-        const { error } = await sb
+        let { error } = await sb
           .from('products')
           .update(update)
           .eq('id', window._v18.productId);
+        /* V32 — fallback minimal si une colonne manque (schema cache, etc.) */
+        if (error && /(column.*does not exist|schema cache|could not find|not found)/i.test(error.message || '')) {
+          console.warn('[v32 save] retry minimal :', error.message);
+          const minUpdate = { studio_state: state };
+          if (state.name)     minUpdate.name = state.name;
+          if (state.brand)    minUpdate.enseigne_name = state.brand;
+          if (state.category) minUpdate.category = state.category;
+          const r = await sb.from('products').update(minUpdate).eq('id', window._v18.productId);
+          error = r.error;
+        }
         if (error) throw error;
         if (window._v18.productRow) {
           window._v18.productRow.studio_state  = state;
@@ -9202,9 +9230,9 @@ console.log('[studio v27] modal nouveau modèle + autocomplete brand + dim lock 
         }
         window._v18.isDirty = false;
         window._v18.setBadge && window._v18.setBadge('saved');
-        console.log('[v29/v31 save] studio_state + enseigne_name + categorie/category ✓');
+        console.log('[v29/v32 save] studio_state + enseigne_name + categorie/category ✓');
       } catch (e) {
-        console.error('[v29/v31 save]', e);
+        console.error('[v29/v32 save]', e);
         window._v18.setBadge && window._v18.setBadge('error', 'Erreur · ' + (e.message || '').slice(0, 20));
       }
     };
@@ -9314,13 +9342,17 @@ console.log('[studio v29] refactor IA du burger panel + carte éditable + sync c
     /* Bouton publier */
     const publishBtn = document.getElementById('adminBtnPublish');
     if (publishBtn) {
-      /* On vise le span texte du bouton si présent, sinon textContent */
-      const labelEl = publishBtn.querySelector('span') || publishBtn;
+      /* CRITICAL : le bouton a 3 spans (icon, label, hint).
+         Il faut cibler .admin-action-label spécifiquement, pas querySelector('span'). */
+      const labelEl = publishBtn.querySelector('.admin-action-label') || publishBtn;
+      const hintEl  = publishBtn.querySelector('.admin-action-hint');
       if (status === 'publie' && linked) {
         labelEl.textContent = 'Dépublier';
+        if (hintEl) hintEl.textContent = 'Brouillon';
         publishBtn.title = 'Retire le produit du catalogue (repasse en brouillon)';
       } else {
         labelEl.textContent = 'Publier sur le catalogue';
+        if (hintEl) hintEl.textContent = 'Publier';
         publishBtn.title = linked
           ? 'Marque le produit comme publié dans le catalogue'
           : 'Disponible une fois le produit créé dans le catalogue';
