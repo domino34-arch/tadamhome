@@ -10297,7 +10297,81 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   }
   setInterval(_v34_syncMissingState, 5000);
 
-  console.log('[studio v34] OBJ source + groupComposition + customLabels persistés ; auto-export GLB/USDZ à la création ✓');
+  /* ─── 10. Restauration des dimensions custom au reload ─── */
+  /* L'auto-calc bounding box écrase les inputs tbDimL/H/P après chaque load
+     OBJ. Or à la création, le user saisit des dimensions custom (ex 69x78x68.5)
+     stockées dans products.dimensions (JSONB racine) + height/depth scalaires.
+     On les re-restaure après le load et on les persiste dans studio_state. */
+  window._v34.customDimensions = null;
+  
+  function _v34_loadCustomDims() {
+    const row = window._v18 && window._v18.productRow;
+    if (!row) return false;
+    const ss = row.studio_state || {};
+    /* Priorité : studio_state.dimensions > productRow.dimensions (JSONB) > height/depth */
+    if (ss.dimensions && (ss.dimensions.L != null || ss.dimensions.H != null || ss.dimensions.P != null)) {
+      window._v34.customDimensions = Object.assign({}, ss.dimensions);
+    } else if (row.dimensions && (row.dimensions.L != null || row.dimensions.H != null || row.dimensions.P != null)) {
+      window._v34.customDimensions = Object.assign({}, row.dimensions);
+    } else if (row.height != null || row.depth != null) {
+      window._v34.customDimensions = {
+        L: row.dimensions && row.dimensions.L != null ? row.dimensions.L : null,
+        H: row.height != null ? row.height : null,
+        P: row.depth != null ? row.depth : null,
+      };
+    }
+    if (window._v34.customDimensions) {
+      console.log('[v34] dimensions custom mémorisées depuis row :', window._v34.customDimensions);
+      return true;
+    }
+    return false;
+  }
+  
+  /* Attendre que productRow soit chargé pour lire les dims */
+  let _v34_dimsLoadAttempts = 0;
+  const _v34_dimsLoadTimer = setInterval(() => {
+    _v34_dimsLoadAttempts++;
+    if (_v34_dimsLoadAttempts > 30) { clearInterval(_v34_dimsLoadTimer); return; }
+    if (_v34_loadCustomDims()) clearInterval(_v34_dimsLoadTimer);
+  }, 500);
+  
+  /* Appliquer les dims custom après le load OBJ (auto-calc bbox a écrasé) */
+  let _v34_dimsApplied = false;
+  setInterval(() => {
+    if (_v34_dimsApplied) return;
+    if (!window._v34.customDimensions) return;
+    const dimL = document.getElementById('tbDimL');
+    const dimH = document.getElementById('tbDimH');
+    const dimP = document.getElementById('tbDimP');
+    if (!dimL || !dimH || !dimP) return;
+    /* Attendre que l'OBJ soit chargé : les inputs ont une valeur (bbox auto-calc) */
+    if (!dimL.value && !dimH.value && !dimP.value) return;
+    
+    const c = window._v34.customDimensions;
+    let changed = false;
+    if (c.L != null && parseFloat(dimL.value) !== parseFloat(c.L)) {
+      dimL.value = c.L;
+      changed = true;
+    }
+    if (c.H != null && parseFloat(dimH.value) !== parseFloat(c.H)) {
+      dimH.value = c.H;
+      changed = true;
+    }
+    if (c.P != null && parseFloat(dimP.value) !== parseFloat(c.P)) {
+      dimP.value = c.P;
+      changed = true;
+    }
+    if (changed) {
+      console.log('[v34] dimensions custom restaurées dans la topbar :', c);
+      /* Déclencher applyDimensionsToModel pour scaler le modèle 3D */
+      if (typeof window._studio_applyDims === 'function') {
+        try { window._studio_applyDims(); } catch(e) {}
+      }
+      _v34_dimsApplied = true;
+    }
+  }, 600);
+
+  console.log('[studio v34] OBJ source + groupComposition + customLabels + dimensions persistés ; auto-export GLB/USDZ à la création ✓');
 })();
 
 
