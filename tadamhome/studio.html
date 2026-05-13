@@ -14376,6 +14376,118 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v48 — AJUSTEMENT TYPO selon retour user
+   ─────────────────────────────────────────────────────────────────────────
+   - Nom du modèle (Note M-4060) : retirer le doré v47, mettre style
+     "ARBORESCENCE" (.panel-title : caps + tracking 0.20em + ink-soft)
+   - Nom du matériau actif (.mat-name) : style ARBORESCENCE aussi
+   - Noms des parties dans l'arbre (Pietement, Assise) : style 
+     "COULEUR DE BASE" (.mat-label : caps + tracking 0.14em + petit)
+   - Dossiers wrapper v36 (Fauteuil) : style label aussi pour cohérence
+   ════════════════════════════════════════════════════════════════════════ */
+(function v48TypoAdjust() {
+  if (window.__v48Init) return;
+  window.__v48Init = true;
+
+  const css = `
+    /* ─── 1. Nom du modèle "Note M-4060" → style ARBORESCENCE ─── */
+    .tb-name-input {
+      color: var(--ink-soft) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.20em !important;
+      text-transform: uppercase !important;
+      font-style: normal !important;
+    }
+    .tb-name-input::placeholder {
+      color: var(--ink-soft) !important;
+      opacity: 0.45 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.20em;
+    }
+    /* Marque : un peu plus discret */
+    .tb-marque-input {
+      color: var(--ink-muted, var(--ink-soft)) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      font-style: normal !important;
+    }
+
+    /* ─── 2. Nom matériau actif "58_canvas..." → style ARBORESCENCE ─── */
+    .mat-name {
+      color: var(--ink-soft) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      font-style: normal !important;
+      line-height: 1.4 !important;
+    }
+    /* sous-nom de matière : style un peu plus discret */
+    .mat-subname {
+      color: var(--ink-muted, var(--ink-soft)) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      font-style: normal !important;
+      opacity: 0.75;
+    }
+
+    /* ─── 3. Noms parties arbre (Pietement / Assise) → style COULEUR DE BASE ─── */
+    .tree-row .tree-name,
+    .tree-row.tree-parent .tree-name,
+    .tree-row.tree-child .tree-name,
+    .tree-child .tree-name {
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      color: var(--ink-soft) !important;
+      font-style: normal !important;
+    }
+    /* Sélection active : couleur légèrement plus foncée pour le contraste */
+    .tree-row.selected .tree-name,
+    .tree-row.tree-parent.selected .tree-name,
+    .tree-row.multi-selected .tree-name {
+      color: var(--ink, #2A2620) !important;
+      font-weight: 600 !important;
+    }
+
+    /* ─── 4. Dossier wrapper Fauteuil → cohérence label ─── */
+    .v36-wrapper-name {
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      color: var(--ink-soft) !important;
+      font-style: normal !important;
+    }
+    /* Le dossier renommable en mode édition : laisser un peu d'espace */
+    .v36-wrapper-name[contenteditable="true"] {
+      background: white !important;
+      padding: 2px 6px !important;
+    }
+  `;
+
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v48', 'typo-adjust');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  console.log('[studio v48] typos ajustées : noms modèle/matière en style ARBORESCENCE, parties en style label ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
