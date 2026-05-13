@@ -34,12 +34,14 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
   display:flex;flex-direction:column;align-items:center;
   padding:14px 0;
   border-right:1px solid #000;
-  overflow:hidden;
+  position:relative;
+  z-index:10;
 }
 .nav-burger{
   width:36px;height:36px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;color:var(--accent);
+  position:relative;
 }
 .nav-burger svg{width:18px;height:18px}
 .nav-brand{
@@ -80,16 +82,33 @@ body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-
   margin-top:auto;display:flex;flex-direction:column;
   gap:6px;padding-bottom:8px;
 }
-/* Tooltip au hover */
-.nav-icon[data-tooltip]:hover::after{
+/* Tooltip au hover (sur nav-icon et nav-burger) */
+.nav-icon[data-tooltip]:hover::after,
+.nav-burger[data-tooltip]:hover::after{
   content:attr(data-tooltip);
-  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);
   background:#000;color:#F5F2EC;
-  font-family:var(--sans);font-size:10px;letter-spacing:.06em;
-  text-transform:uppercase;
-  padding:5px 9px;white-space:nowrap;
+  font-family:var(--sans);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:500;
+  padding:6px 11px;white-space:nowrap;
   z-index:1000;pointer-events:none;
   border-left:2px solid var(--accent);
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+/* Petite flèche pointant vers l'icône */
+.nav-icon[data-tooltip]:hover::before,
+.nav-burger[data-tooltip]:hover::before{
+  content:'';
+  position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);
+  width:0;height:0;
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+  border-right:6px solid #000;
+  z-index:1000;pointer-events:none;
+}
+/* La barre verticale dorée à gauche du nav-icon.active prime sur la flèche */
+.nav-icon.active[data-tooltip]:hover::before{
+  display:none;
 }
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{height:52px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
@@ -409,7 +428,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
 <!-- APP -->
 <div class="app" id="app" style="display:none">
   <aside class="nav-rail">
-    <div class="nav-burger" data-tooltip="Verrouiller" onclick="logout()">
+    <div class="nav-burger" data-tooltip="Menu" onclick="toggleBurger()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </div>
     <div class="nav-brand">TADAMHOME</div>
@@ -449,6 +468,9 @@ tr:hover td{background:rgba(184,152,106,.03)}
       </button>
       <button class="nav-icon" data-tooltip="Dashboard" onclick="window.open('dashboard.html','_blank')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 12 L12 4 M12 12 L17 17"/></svg>
+      </button>
+      <button class="nav-icon" data-tooltip="Verrouiller" onclick="logout()" style="color:#8B4A4A">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10"/><path d="M8 11 V7 a4 4 0 0 1 8 0 V11"/></svg>
       </button>
     </div>
   </aside>
@@ -728,6 +750,29 @@ function logout(){
   document.getElementById('lock').style.display='flex';
   document.getElementById('app').style.display='none';
   document.getElementById('lockPw').value='';
+}
+/* Burger admin = comportement contextuel :
+   - Sur panel Studio Texture → ouvre/ferme le menu burger du studio (toggleNav exposé)
+   - Sinon → pas d'action (le bouton "Verrouiller" est en footer pour le logout) */
+function toggleBurger(){
+  const activePanel = document.querySelector('.panel.active');
+  if(activePanel && activePanel.id === 'panelTexture'){
+    /* Communiquer avec l'iframe studio (same-origin → accès direct OK) */
+    const iframe = document.getElementById('tsIframe');
+    if(iframe && iframe.contentWindow){
+      try {
+        if(typeof iframe.contentWindow.toggleNav === 'function'){
+          iframe.contentWindow.toggleNav();
+          return;
+        }
+      } catch(e){ console.warn('Impossible d\'ouvrir le menu studio:', e); }
+    }
+    /* fallback si l'iframe n'est pas prête : un petit toast */
+    if(typeof toast === 'function') toast('Studio en cours de chargement…','');
+  } else {
+    /* Sur un autre panel, le burger ne fait rien — la verrouillage est dans le footer */
+    if(typeof toast === 'function') toast('Vous êtes sur "'+(activePanel?activePanel.id.replace('panel',''):'')+'". Cliquez sur Studio Texture pour accéder à son menu.','');
+  }
 }
 document.addEventListener('DOMContentLoaded',()=>{
   const lp=document.getElementById('lockPw');
