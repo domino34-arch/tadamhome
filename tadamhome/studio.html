@@ -12009,6 +12009,868 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v38 — FICHE CATALOGUE : Photos du modèle + Visuel Texture
+   ─────────────────────────────────────────────────────────────────────────
+   Ajoute à la fiche d'information du produit :
+   - Photos du modèle : galerie multi-images, commune au produit, sert de
+     vignette + carrousel dans le catalogue. Stockée en `products.photos` (jsonb).
+   - Visuel texture : 1 swatch carré par variante, montre le tissu/matériau
+     principal. Stocké en studio_state.textureSwatchUrl (donc auto-routé sur
+     la bonne variante via le hook v25 doSave).
+   
+   Bouton 📸 ajouté dans la topbar → ouvre une modal full-screen avec les
+   deux sections.
+   
+   Migration SQL requise (à lancer 1 fois côté Supabase) :
+     ALTER TABLE products ADD COLUMN IF NOT EXISTS photos jsonb DEFAULT '[]'::jsonb;
+   
+   Le code fonctionne aussi SANS la migration (fallback dans studio_state),
+   mais c'est moins propre pour les requêtes catalogue.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v38CatalogAssets() {
+  if (window.__v38Init) return;
+  window.__v38Init = true;
+
+  window._v38 = window._v38 || {
+    photos: [],              /* URLs des photos produit (galerie) */
+    swatchByVariant: {},     /* variantId → URL swatch ; 'base' = Base */
+    pendingPhotos: [],       /* Blobs en attente avant productId */
+    pendingSwatch: null,     /* Blob en attente */
+    modalOpen: false,
+    photosColumnExists: null, /* null = pas testé, true/false après 1er upload */
+  };
+
+  const BUCKET = 'models';
+  const MAX_PHOTOS = 12;
+  const MAX_PHOTO_SIZE = 1600;   /* px longest side */
+  const MAX_SWATCH_SIZE = 800;   /* px longest side */
+  const JPEG_QUALITY = 0.85;
+
+  /* ───── CSS ───── */
+  const css = `
+    /* Bouton dans la topbar */
+    .v38-tb-btn {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: 1px solid rgba(0,0,0,0.12);
+      color: var(--ink-muted, #6E6660);
+      cursor: pointer;
+      transition: all 0.15s;
+      padding: 0;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .v38-tb-btn:hover {
+      color: var(--gold, #B8965A);
+      border-color: var(--gold, #B8965A);
+    }
+    .v38-tb-btn svg { width: 14px; height: 14px; }
+    .v38-tb-btn[data-count]::after {
+      content: attr(data-count);
+      position: absolute;
+      top: -5px; right: -5px;
+      background: var(--gold, #B8965A);
+      color: white;
+      font-size: 8px;
+      font-family: 'Jost', sans-serif;
+      font-weight: 600;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: 0.02em;
+    }
+    .v38-tb-btn[data-count=""], .v38-tb-btn:not([data-count])::after { content: none; }
+
+    /* Modal overlay */
+    .v38-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(42, 38, 32, 0.55);
+      z-index: 9500;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .v38-modal-overlay.v38-show {
+      opacity: 1; pointer-events: auto;
+    }
+    .v38-modal {
+      background: var(--cream, #EDEAE4);
+      width: 720px;
+      max-width: 92vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 16px 42px rgba(0,0,0,0.22);
+      display: flex;
+      flex-direction: column;
+    }
+    .v38-modal-head {
+      padding: 22px 28px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .v38-modal-title {
+      font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+      font-size: 26px;
+      letter-spacing: 0.01em;
+      color: var(--ink, #2A2620);
+      margin: 0;
+      font-weight: 500;
+    }
+    .v38-modal-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--ink-muted, #6E6660);
+      font-size: 20px;
+      padding: 0;
+      line-height: 1;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s;
+    }
+    .v38-modal-close:hover { color: var(--ink, #2A2620); }
+
+    .v38-modal-body {
+      padding: 22px 28px 28px;
+    }
+
+    .v38-section {
+      margin-bottom: 32px;
+    }
+    .v38-section:last-child { margin-bottom: 0; }
+    .v38-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .v38-section-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      font-weight: 500;
+    }
+    .v38-section-meta {
+      font-size: 11px;
+      color: var(--ink-muted, #6E6660);
+      font-style: italic;
+    }
+
+    /* Galerie photos */
+    .v38-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .v38-photo-tile {
+      aspect-ratio: 4 / 3;
+      position: relative;
+      background: rgba(0,0,0,0.04);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.15s;
+    }
+    .v38-photo-tile img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .v38-photo-tile:hover { transform: scale(1.02); }
+    .v38-photo-remove {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(42, 38, 32, 0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      transition: background 0.15s;
+    }
+    .v38-photo-tile:hover .v38-photo-remove { display: flex; }
+    .v38-photo-remove:hover { background: var(--danger, #B85450); }
+
+    .v38-photo-add {
+      aspect-ratio: 4 / 3;
+      border: 2px dashed rgba(184, 150, 90, 0.4);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--gold, #B8965A);
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .v38-photo-add:hover {
+      border-color: var(--gold, #B8965A);
+      background: rgba(184, 150, 90, 0.06);
+    }
+    .v38-photo-add svg { width: 22px; height: 22px; opacity: 0.7; }
+    .v38-photo-add.v38-uploading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Swatch */
+    .v38-swatch-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .v38-swatch-tile {
+      width: 100px; height: 100px;
+      background: rgba(0,0,0,0.04);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+    .v38-swatch-tile:hover { transform: scale(1.02); }
+    .v38-swatch-tile img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .v38-swatch-tile.v38-empty {
+      border: 2px dashed rgba(184, 150, 90, 0.4);
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--gold, #B8965A);
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 6px;
+    }
+    .v38-swatch-tile.v38-empty:hover {
+      border-color: var(--gold, #B8965A);
+      background: rgba(184, 150, 90, 0.06);
+    }
+    .v38-swatch-tile.v38-empty svg { width: 18px; height: 18px; opacity: 0.7; }
+    .v38-swatch-tile .v38-swatch-remove {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(42, 38, 32, 0.7);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .v38-swatch-tile:hover .v38-swatch-remove { display: flex; }
+    .v38-swatch-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .v38-swatch-info-title {
+      font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+      font-size: 18px;
+      color: var(--ink, #2A2620);
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .v38-swatch-info-desc {
+      font-size: 11px;
+      color: var(--ink-muted, #6E6660);
+      line-height: 1.5;
+    }
+    .v38-swatch-info-variant {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold, #B8965A);
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .v38-empty-state {
+      text-align: center;
+      padding: 32px 18px;
+      color: var(--ink-muted, #6E6660);
+      font-size: 12px;
+      font-style: italic;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ HELPERS ═══ */
+
+  /* Compresse une image (Blob ou File) → Blob JPEG */
+  async function compressImage(file, maxSize, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const w0 = img.naturalWidth, h0 = img.naturalHeight;
+        const ratio = Math.min(maxSize / w0, maxSize / h0, 1);
+        const w = Math.max(1, Math.round(w0 * ratio));
+        const h = Math.max(1, Math.round(h0 * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('toBlob failed'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image load failed'));
+      };
+      img.src = url;
+    });
+  }
+
+  /* Upload un blob vers Supabase Storage et retourne l'URL publique */
+  async function uploadToStorage(blob, path) {
+    if (typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible');
+    const { error } = await sb.storage.from(BUCKET).upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: true,
+      cacheControl: '31536000',
+    });
+    if (error) throw error;
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl + '?v=' + Date.now();   /* bust cache pour ré-uploads */
+  }
+
+  /* Read products.photos depuis la DB (avec fallback studio_state) */
+  function readPhotosFromRow(row) {
+    if (!row) return [];
+    if (Array.isArray(row.photos)) return row.photos;
+    /* Fallback studio_state.catalogPhotos */
+    if (row.studio_state && Array.isArray(row.studio_state.catalogPhotos)) {
+      return row.studio_state.catalogPhotos;
+    }
+    return [];
+  }
+
+  /* Write products.photos en DB ; fallback studio_state si colonne absente */
+  async function writePhotosToDB(productId, photos) {
+    if (!productId) return false;
+    /* Tenter la colonne dédiée d'abord */
+    if (window._v38.photosColumnExists !== false) {
+      try {
+        const { error } = await sb.from('products').update({ photos }).eq('id', productId);
+        if (!error) {
+          window._v38.photosColumnExists = true;
+          return true;
+        }
+        /* Si l'erreur indique colonne absente, on bascule en fallback */
+        if (/column.*photos.*does not exist|schema cache/i.test(error.message || '')) {
+          window._v38.photosColumnExists = false;
+          console.warn('[v38] colonne products.photos absente — fallback dans studio_state.catalogPhotos. SQL : ALTER TABLE products ADD COLUMN photos jsonb DEFAULT \'[]\'::jsonb;');
+        } else {
+          console.error('[v38 write photos]', error);
+          return false;
+        }
+      } catch (e) {
+        console.error('[v38 write photos exc]', e);
+      }
+    }
+    /* Fallback : stocker dans studio_state */
+    try {
+      const { data: row, error: e1 } = await sb.from('products').select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      state.catalogPhotos = photos;
+      const { error: e2 } = await sb.from('products').update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+      return true;
+    } catch (e) {
+      console.error('[v38 fallback write]', e);
+      return false;
+    }
+  }
+
+  /* Récupère l'ID de la variante active (v25), 'base' par défaut */
+  function activeVariantId() {
+    return (window._v25 && window._v25.activeVariantId) || 'base';
+  }
+
+  function activeVariantName() {
+    const id = activeVariantId();
+    if (id === 'base') return 'Base';
+    const v = window._v25 && window._v25.variants && window._v25.variants.find(x => x.id === id);
+    return (v && v.name) || 'Variante';
+  }
+
+  /* Lit le swatch URL pour la variante active depuis le state Supabase */
+  function readSwatchForActiveVariant() {
+    const id = activeVariantId();
+    const row = window._v18 && window._v18.productRow;
+    if (id === 'base') {
+      return (row && row.studio_state && row.studio_state.textureSwatchUrl) || null;
+    }
+    const v = window._v25 && window._v25.variants && window._v25.variants.find(x => x.id === id);
+    return (v && v.studio_state && v.studio_state.textureSwatchUrl) || null;
+  }
+
+  /* Écrit le swatch URL pour la variante active dans son state */
+  async function writeSwatchForActiveVariant(url) {
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      window._v38.pendingSwatch = url;   /* flush au create */
+      return false;
+    }
+    const id = activeVariantId();
+    if (id === 'base') {
+      /* Lire studio_state Base, modifier, ré-écrire */
+      const { data: row, error: e1 } = await sb.from('products').select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      if (url) state.textureSwatchUrl = url;
+      else delete state.textureSwatchUrl;
+      const { error: e2 } = await sb.from('products').update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+      /* Mirror sur la row en mémoire */
+      if (window._v18.productRow) window._v18.productRow.studio_state = state;
+    } else {
+      /* Variante : modifier dans le mirror v25 + push vers DB */
+      if (!window._v25 || !window._v25.variants) return false;
+      const idx = window._v25.variants.findIndex(x => x.id === id);
+      if (idx === -1) return false;
+      if (!window._v25.variants[idx].studio_state) window._v25.variants[idx].studio_state = {};
+      if (url) window._v25.variants[idx].studio_state.textureSwatchUrl = url;
+      else delete window._v25.variants[idx].studio_state.textureSwatchUrl;
+      const { error } = await sb.from('products').update({ variants: window._v25.variants }).eq('id', productId);
+      if (error) throw error;
+    }
+    return true;
+  }
+
+  /* ═══ MODAL UI ═══ */
+  let modalEl = null;
+  let photoFileInput = null;
+  let swatchFileInput = null;
+
+  function buildModal() {
+    if (modalEl) return modalEl;
+    modalEl = document.createElement('div');
+    modalEl.className = 'v38-modal-overlay';
+    modalEl.innerHTML = `
+      <div class="v38-modal" onclick="event.stopPropagation()">
+        <div class="v38-modal-head">
+          <h2 class="v38-modal-title">Fiche catalogue</h2>
+          <button class="v38-modal-close" data-act="close" title="Fermer">×</button>
+        </div>
+        <div class="v38-modal-body">
+          <section class="v38-section">
+            <div class="v38-section-head">
+              <span class="v38-section-label">Photos du modèle <span style="color:var(--ink-muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px"> · galerie commune au produit</span></span>
+              <span class="v38-section-meta" id="v38PhotoCount">0 / ${MAX_PHOTOS}</span>
+            </div>
+            <div class="v38-photo-grid" id="v38PhotoGrid"></div>
+          </section>
+          <section class="v38-section">
+            <div class="v38-section-head">
+              <span class="v38-section-label">Visuel texture</span>
+            </div>
+            <div class="v38-swatch-row">
+              <div id="v38SwatchSlot"></div>
+              <div class="v38-swatch-info">
+                <div class="v38-swatch-info-title">Le swatch montre le tissu (ou la matière) principal du modèle dans le catalogue.</div>
+                <div class="v38-swatch-info-desc">Idéal : photo macro du matériau réel (close-up de 5×5cm), JPEG, fond neutre.</div>
+                <div class="v38-swatch-info-variant" id="v38VariantBadge">Pour : —</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalEl);
+
+    /* Inputs files cachés (multi pour photos, simple pour swatch) */
+    photoFileInput = document.createElement('input');
+    photoFileInput.type = 'file';
+    photoFileInput.accept = 'image/*';
+    photoFileInput.multiple = true;
+    photoFileInput.style.display = 'none';
+    document.body.appendChild(photoFileInput);
+    photoFileInput.addEventListener('change', (e) => {
+      const files = [...(e.target.files || [])];
+      e.target.value = '';
+      handlePhotoFiles(files);
+    });
+
+    swatchFileInput = document.createElement('input');
+    swatchFileInput.type = 'file';
+    swatchFileInput.accept = 'image/*';
+    swatchFileInput.style.display = 'none';
+    document.body.appendChild(swatchFileInput);
+    swatchFileInput.addEventListener('change', (e) => {
+      const file = (e.target.files || [])[0];
+      e.target.value = '';
+      if (file) handleSwatchFile(file);
+    });
+
+    modalEl.addEventListener('click', (e) => {
+      if (e.target === modalEl) closeModal();
+    });
+    modalEl.querySelector('[data-act="close"]').addEventListener('click', closeModal);
+
+    return modalEl;
+  }
+
+  function openModal() {
+    buildModal();
+    window._v38.modalOpen = true;
+    renderModalContent();
+    modalEl.classList.add('v38-show');
+    /* Esc pour fermer */
+    document.addEventListener('keydown', escListener);
+  }
+
+  function closeModal() {
+    if (modalEl) modalEl.classList.remove('v38-show');
+    window._v38.modalOpen = false;
+    document.removeEventListener('keydown', escListener);
+  }
+  function escListener(e) {
+    if (e.key === 'Escape' && window._v38.modalOpen) closeModal();
+  }
+
+  function renderModalContent() {
+    if (!modalEl) return;
+    renderPhotoGrid();
+    renderSwatchSlot();
+    updateTopbarBadge();
+  }
+
+  /* ───── RENDU PHOTOS ───── */
+  function renderPhotoGrid() {
+    const grid = modalEl.querySelector('#v38PhotoGrid');
+    const counter = modalEl.querySelector('#v38PhotoCount');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const photos = window._v38.photos || [];
+
+    photos.forEach((url, idx) => {
+      const tile = document.createElement('div');
+      tile.className = 'v38-photo-tile';
+      tile.innerHTML = `
+        <img src="${escapeAttr(url)}" alt="Photo ${idx + 1}" loading="lazy">
+        <button class="v38-photo-remove" data-idx="${idx}" title="Retirer">×</button>
+      `;
+      tile.querySelector('.v38-photo-remove').onclick = (e) => {
+        e.stopPropagation();
+        removePhoto(idx);
+      };
+      grid.appendChild(tile);
+    });
+
+    if (photos.length < MAX_PHOTOS) {
+      const adder = document.createElement('button');
+      adder.className = 'v38-photo-add';
+      adder.id = 'v38PhotoAddBtn';
+      adder.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="5" width="18" height="14"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M9 5 l1.5 -2 h3 L15 5"/>
+        </svg>
+        Ajouter
+      `;
+      adder.onclick = () => photoFileInput && photoFileInput.click();
+      grid.appendChild(adder);
+    }
+
+    if (counter) counter.textContent = `${photos.length} / ${MAX_PHOTOS}`;
+  }
+
+  function escapeAttr(s) {
+    return String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  async function handlePhotoFiles(files) {
+    if (!files || files.length === 0) return;
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      toast('Crée d\'abord le produit (champ Nom + bouton "Enregistrer comme nouveau produit") avant d\'ajouter des photos', 'err', 5500);
+      return;
+    }
+    const remainingSlots = Math.max(0, MAX_PHOTOS - (window._v38.photos || []).length);
+    const toUpload = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      toast(`Maximum ${MAX_PHOTOS} photos ; les ${files.length - remainingSlots} surnuméraires sont ignorées`, 'info', 4000);
+    }
+
+    const adderBtn = modalEl?.querySelector('#v38PhotoAddBtn');
+    if (adderBtn) {
+      adderBtn.classList.add('v38-uploading');
+      adderBtn.textContent = `Upload ${toUpload.length} fichier${toUpload.length > 1 ? 's' : ''}…`;
+    }
+
+    let okCount = 0;
+    for (const file of toUpload) {
+      try {
+        const blob = await compressImage(file, MAX_PHOTO_SIZE, JPEG_QUALITY);
+        const path = `products/${productId}/photos/${Date.now()}-${Math.floor(Math.random() * 9999)}.jpg`;
+        const url = await uploadToStorage(blob, path);
+        window._v38.photos.push(url);
+        okCount++;
+        renderPhotoGrid();
+      } catch (e) {
+        console.error('[v38 photo upload]', e);
+        toast('Erreur upload : ' + (e.message || e), 'err', 5000);
+      }
+    }
+
+    if (okCount > 0) {
+      await writePhotosToDB(productId, window._v38.photos);
+      toast(okCount + ' photo' + (okCount > 1 ? 's ajoutées' : ' ajoutée'), 'ok', 3000);
+      if (window._v18) window._v18.isDirty = false;  /* persistance distincte */
+    }
+
+    if (adderBtn) {
+      adderBtn.classList.remove('v38-uploading');
+      adderBtn.textContent = 'Ajouter';
+    }
+    updateTopbarBadge();
+  }
+
+  async function removePhoto(idx) {
+    const photos = window._v38.photos;
+    if (idx < 0 || idx >= photos.length) return;
+    if (!confirm('Retirer cette photo de la fiche catalogue ?')) return;
+    /* Best-effort : supprimer aussi du Storage si on peut extraire le path */
+    const url = photos[idx];
+    photos.splice(idx, 1);
+    renderPhotoGrid();
+    updateTopbarBadge();
+    const productId = window._v18 && window._v18.productId;
+    if (productId) await writePhotosToDB(productId, photos);
+    /* Tentative de suppression Storage (non bloquant) */
+    try {
+      const m = String(url).match(/\/models\/(products\/[^?]+)/);
+      if (m && sb) await sb.storage.from(BUCKET).remove([m[1]]);
+    } catch (e) { /* peu importe */ }
+    toast('Photo retirée', 'ok', 2500);
+  }
+
+  /* ───── RENDU SWATCH ───── */
+  function renderSwatchSlot() {
+    const slot = modalEl.querySelector('#v38SwatchSlot');
+    const badge = modalEl.querySelector('#v38VariantBadge');
+    if (!slot) return;
+
+    const variantName = activeVariantName();
+    if (badge) badge.textContent = 'Pour la variante : ' + variantName;
+
+    const url = readSwatchForActiveVariant();
+    slot.innerHTML = '';
+
+    const tile = document.createElement('div');
+    tile.className = 'v38-swatch-tile' + (url ? '' : ' v38-empty');
+    if (url) {
+      tile.innerHTML = `
+        <img src="${escapeAttr(url)}" alt="Swatch ${escapeAttr(variantName)}">
+        <button class="v38-swatch-remove" title="Retirer">×</button>
+      `;
+      tile.querySelector('.v38-swatch-remove').onclick = (e) => {
+        e.stopPropagation();
+        removeSwatch();
+      };
+      tile.onclick = () => swatchFileInput && swatchFileInput.click();
+    } else {
+      tile.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18"/>
+          <path d="M3 14l6-6 4 4 8-8"/>
+        </svg>
+        Ajouter
+      `;
+      tile.onclick = () => swatchFileInput && swatchFileInput.click();
+    }
+    slot.appendChild(tile);
+  }
+
+  async function handleSwatchFile(file) {
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      toast('Crée d\'abord le produit avant d\'ajouter un swatch', 'err', 4500);
+      return;
+    }
+    try {
+      const blob = await compressImage(file, MAX_SWATCH_SIZE, JPEG_QUALITY);
+      const vid = activeVariantId();
+      const path = `products/${productId}/swatches/${vid}-${Date.now()}.jpg`;
+      const url = await uploadToStorage(blob, path);
+      await writeSwatchForActiveVariant(url);
+      /* Update mirror */
+      window._v38.swatchByVariant[vid] = url;
+      renderSwatchSlot();
+      toast('Swatch enregistré pour « ' + activeVariantName() + ' »', 'ok', 3000);
+    } catch (e) {
+      console.error('[v38 swatch upload]', e);
+      toast('Erreur upload swatch : ' + (e.message || e), 'err', 5000);
+    }
+  }
+
+  async function removeSwatch() {
+    if (!confirm('Retirer le swatch de la variante « ' + activeVariantName() + ' » ?')) return;
+    try {
+      await writeSwatchForActiveVariant(null);
+      const vid = activeVariantId();
+      delete window._v38.swatchByVariant[vid];
+      renderSwatchSlot();
+      toast('Swatch retiré', 'ok', 2500);
+    } catch (e) {
+      toast('Erreur : ' + (e.message || e), 'err', 4000);
+    }
+  }
+
+  /* ═══ BOUTON DANS LA TOPBAR ═══ */
+  let tbBtn = null;
+  function injectTopbarButton() {
+    if (tbBtn) return;
+    /* On le pose dans .tb-toggles (à côté des autres icônes) */
+    const togglesZone = document.querySelector('.tb-toggles');
+    if (!togglesZone) { setTimeout(injectTopbarButton, 500); return; }
+    tbBtn = document.createElement('button');
+    tbBtn.className = 'v38-tb-btn';
+    tbBtn.type = 'button';
+    tbBtn.title = 'Photos & visuel texture du catalogue';
+    tbBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="6" width="18" height="13"/>
+        <circle cx="12" cy="12.5" r="3.5"/>
+        <path d="M9 6 l1.5 -2 h3 L15 6"/>
+      </svg>
+    `;
+    tbBtn.onclick = openModal;
+    /* Insérer en première position des toggles */
+    togglesZone.insertBefore(tbBtn, togglesZone.firstChild);
+    updateTopbarBadge();
+  }
+
+  function updateTopbarBadge() {
+    if (!tbBtn) return;
+    const n = (window._v38.photos || []).length;
+    const swatch = readSwatchForActiveVariant();
+    /* Badge avec le total photos + 1 si swatch présent */
+    const total = n + (swatch ? 1 : 0);
+    if (total > 0) tbBtn.setAttribute('data-count', total);
+    else tbBtn.removeAttribute('data-count');
+  }
+
+  /* ═══ HYDRATATION + HOOKS ═══ */
+  function hydrateFromRow() {
+    const row = window._v18 && window._v18.productRow;
+    if (!row) return false;
+    window._v38.photos = readPhotosFromRow(row).slice();
+    /* Swatches : pré-charger pour toutes les variantes connues (cache) */
+    window._v38.swatchByVariant = {};
+    if (row.studio_state && row.studio_state.textureSwatchUrl) {
+      window._v38.swatchByVariant['base'] = row.studio_state.textureSwatchUrl;
+    }
+    if (Array.isArray(row.variants)) {
+      row.variants.forEach(v => {
+        if (v.studio_state && v.studio_state.textureSwatchUrl) {
+          window._v38.swatchByVariant[v.id] = v.studio_state.textureSwatchUrl;
+        }
+      });
+    }
+    updateTopbarBadge();
+    if (window._v38.modalOpen) renderModalContent();
+    return true;
+  }
+
+  /* Polling pour hydratation initiale (le productRow arrive en async via v18) */
+  let hydrateAttempts = 0;
+  const hydrateTimer = setInterval(() => {
+    if (hydrateFromRow() || ++hydrateAttempts > 30) clearInterval(hydrateTimer);
+  }, 700);
+
+  /* Hook hookSerialize : ajouter le swatch dans le studio_state sérialisé */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) return false;
+    if (window._v18.__v38SwatchHooked) return true;
+    const orig = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = orig.apply(this, arguments) || {};
+      /* Pour la variante active : on ne touche RIEN. Le swatch est déjà écrit
+         via writeSwatchForActiveVariant qui écrit DIRECTEMENT dans la DB.
+         Mais on garde la valeur en mémoire si elle existe pour cohérence. */
+      const vid = activeVariantId();
+      const url = window._v38.swatchByVariant && window._v38.swatchByVariant[vid];
+      if (url) state.textureSwatchUrl = url;
+      return state;
+    };
+    window._v18.__v38SwatchHooked = true;
+    return true;
+  }
+  if (!hookSerialize()) {
+    const t = setInterval(() => { if (hookSerialize()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  /* Hook v25 switchToVariant : recharger swatch dans modal si ouverte */
+  function hookV25Switch() {
+    if (!window._v25 || !window._v25.switchToVariant) return false;
+    if (window._v25.__v38Hook) return true;
+    const orig = window._v25.switchToVariant;
+    window._v25.switchToVariant = async function(...args) {
+      const r = await orig.apply(this, args);
+      /* Re-render modal et badge */
+      updateTopbarBadge();
+      if (window._v38.modalOpen) renderSwatchSlot();
+      return r;
+    };
+    window._v25.__v38Hook = true;
+    return true;
+  }
+  if (!hookV25Switch()) {
+    const t = setInterval(() => { if (hookV25Switch()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  /* ═══ INIT ═══ */
+  injectTopbarButton();
+  setTimeout(injectTopbarButton, 1500);
+  setTimeout(injectTopbarButton, 3000);
+
+  /* Expose */
+  window._v38.openModal = openModal;
+  window._v38.closeModal = closeModal;
+  window._v38.hydrate = hydrateFromRow;
+
+  console.log('[studio v38] photos modèle + visuel texture par variante ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
