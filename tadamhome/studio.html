@@ -9660,10 +9660,31 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
                 || state.obj_source_url
                 || (window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url);
       if (url) state.obj_source_url = url;
+      
+      /* customLabels (renommages v24 + groupes v21) — DOUBLE-SÉCURITÉ avec le fetch interceptor */
+      if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+        state.customLabels = Object.assign({}, window._v21.customLabels);
+      }
+      
+      /* groupComposition (sous-groupes v23) — DOUBLE-SÉCURITÉ */
+      if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+        const comp = {};
+        Object.keys(window._v23.composition).forEach(k => {
+          const sgs = window._v23.composition[k];
+          if (!Array.isArray(sgs)) return;
+          comp[k] = sgs.map(sg => ({
+            originalKey: sg.originalKey,
+            label: sg.label,
+            meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+          }));
+        });
+        if (Object.keys(comp).length > 0) state.groupComposition = comp;
+      }
+      
       return state;
     };
     window._v18.__v34SerializeHooked = true;
-    console.log('[v34] serializeStudioState hooké pour obj_source_url ✓');
+    console.log('[v34] serializeStudioState hooké pour obj_source_url + customLabels + groupComposition ✓');
   }
   hookSerialize();
 
@@ -9998,58 +10019,116 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
      
      Solution chirurgicale : intercepter window.fetch pour les PATCH vers
      /rest/v1/products. Avant chaque save, on enrichit le payload avec les
-     données managées par chaque IIFE. */
+     données managées par chaque IIFE.
+     
+     IMPORTANT : Supabase JS v2 passe parfois via Request objects
+     (fetch(new Request(url, {...}))) — il faut gérer les deux cas, et
+     lire le body de manière async via .clone().text(). */
+  
+  function _v34_enrichState(s) {
+    s = s || {};
+    const enrichments = [];
+    
+    /* 6a. obj_source_url */
+    if (!s.obj_source_url) {
+      const fromV34 = window._v34 && window._v34.objSourceUrl;
+      const fromRow = window._v18 && window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url;
+      if (fromV34 || fromRow) {
+        s.obj_source_url = fromV34 || fromRow;
+        enrichments.push('obj_source_url');
+      }
+    }
+    
+    /* 6b. groupComposition depuis v23 */
+    if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+      const comp = {};
+      Object.keys(window._v23.composition).forEach(k => {
+        const sgs = window._v23.composition[k];
+        if (!Array.isArray(sgs)) return;
+        comp[k] = sgs.map(sg => ({
+          originalKey: sg.originalKey,
+          label: sg.label,
+          meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+        }));
+      });
+      if (Object.keys(comp).length > 0) {
+        s.groupComposition = comp;
+        enrichments.push('groupComposition');
+      }
+    }
+    
+    /* 6c. customLabels (renommages v24 + groupes v21) */
+    if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+      s.customLabels = Object.assign({}, window._v21.customLabels);
+      enrichments.push('customLabels');
+    }
+    
+    return { state: s, enrichments };
+  }
+  
   if (!window.__v34FetchHooked) {
     const _v34_origFetch = window.fetch.bind(window);
-    window.fetch = function(input, init) {
+    window.fetch = async function(input, init) {
       try {
-        const url = typeof input === 'string' ? input : (input && input.url);
-        const method = (init && init.method) || (input && input.method);
-        if (url && url.indexOf('/rest/v1/products') !== -1 && method === 'PATCH' && init && init.body) {
-          let body;
-          try { body = JSON.parse(init.body); } catch(e) { body = null; }
-          if (body && body.studio_state) {
-            const s = body.studio_state;
-            let enrichments = [];
-            
-            /* 6a. obj_source_url */
-            if (!s.obj_source_url) {
-              const fromV34 = window._v34 && window._v34.objSourceUrl;
-              const fromRow = window._v18 && window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url;
-              if (fromV34 || fromRow) {
-                s.obj_source_url = fromV34 || fromRow;
-                enrichments.push('obj_source_url');
+        /* Extraire URL et méthode peu importe le format de l'appel */
+        let url, method;
+        if (typeof input === 'string' || input instanceof URL) {
+          url = String(input);
+          method = (init && init.method) || 'GET';
+        } else if (input && input.url) {
+          /* Request object */
+          url = input.url;
+          method = (init && init.method) || input.method || 'GET';
+        }
+        
+        /* Cible : PATCH /rest/v1/products */
+        if (url && url.indexOf('/rest/v1/products') !== -1 && method === 'PATCH') {
+          /* Lire le body — peut venir de init.body OU du Request body */
+          let bodyText = null;
+          if (init && init.body) {
+            if (typeof init.body === 'string') {
+              bodyText = init.body;
+            } else if (init.body instanceof Blob) {
+              bodyText = await init.body.text();
+            } else if (init.body instanceof ArrayBuffer) {
+              bodyText = new TextDecoder().decode(init.body);
+            }
+          } else if (input && typeof input.clone === 'function') {
+            try {
+              const clone = input.clone();
+              bodyText = await clone.text();
+            } catch(e) { /* ignorer, fetch original prendra le relai */ }
+          }
+          
+          if (bodyText) {
+            let body;
+            try { body = JSON.parse(bodyText); } catch(e) { body = null; }
+            if (body && body.studio_state) {
+              const { state, enrichments } = _v34_enrichState(body.studio_state);
+              if (enrichments.length > 0) {
+                body.studio_state = state;
+                const newBodyText = JSON.stringify(body);
+                console.log('[v34 fetch] PATCH products enrichi :', enrichments.join(', '));
+                /* Reconstruire la requête avec le body modifié */
+                if (typeof input === 'string' || input instanceof URL) {
+                  const newInit = Object.assign({}, init, { body: newBodyText });
+                  return _v34_origFetch(input, newInit);
+                } else {
+                  /* Request object → nouvelle Request avec body remplacé */
+                  const newReq = new Request(input.url, {
+                    method: input.method,
+                    headers: input.headers,
+                    body: newBodyText,
+                    mode: input.mode,
+                    credentials: input.credentials,
+                    cache: input.cache,
+                    redirect: input.redirect,
+                    referrer: input.referrer,
+                    integrity: input.integrity,
+                  });
+                  return _v34_origFetch(newReq);
+                }
               }
-            }
-            
-            /* 6b. groupComposition depuis v23 */
-            if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
-              const comp = {};
-              Object.keys(window._v23.composition).forEach(k => {
-                const sgs = window._v23.composition[k];
-                if (!Array.isArray(sgs)) return;
-                comp[k] = sgs.map(sg => ({
-                  originalKey: sg.originalKey,
-                  label: sg.label,
-                  meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
-                }));
-              });
-              if (Object.keys(comp).length > 0) {
-                s.groupComposition = comp;
-                enrichments.push('groupComposition');
-              }
-            }
-            
-            /* 6c. customLabels (renommages v24 + groupes v21) */
-            if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
-              s.customLabels = Object.assign({}, window._v21.customLabels);
-              enrichments.push('customLabels');
-            }
-            
-            if (enrichments.length > 0) {
-              body.studio_state = s;
-              init.body = JSON.stringify(body);
-              console.log('[v34 fetch] PATCH products enrichi :', enrichments.join(', '));
             }
           }
         }
@@ -10059,7 +10138,22 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       return _v34_origFetch(input, init);
     };
     window.__v34FetchHooked = true;
-    console.log('[v34] window.fetch hooké pour enrichir PATCH products.studio_state ✓');
+    console.log('[v34] window.fetch hooké pour enrichir PATCH products.studio_state (support Request objects) ✓');
+  }
+  
+  /* 6d. Hook complémentaire sur window._v18.serializeStudioState pour
+     inclure customLabels dans l'INSERT initial de createNewProduct
+     (POST, pas PATCH — n'est pas vu par le fetch interceptor). */
+  if (window._v18 && window._v18.serializeStudioState && !window._v18.__v34CustomLabelsHooked) {
+    const _origSer = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = _origSer.call(this) || {};
+      if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+        state.customLabels = Object.assign({}, window._v21.customLabels);
+      }
+      return state;
+    };
+    window._v18.__v34CustomLabelsHooked = true;
   }
 
   /* ─── 7. Restauration customLabels au chargement (avant render) ─── */
