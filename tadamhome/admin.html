@@ -1741,14 +1741,23 @@ function injectMaterialModal(){
         <p id="matMsg" style="font-family:var(--sans);font-size:12px;margin-top:14px"></p>
         </div><!-- /mat-col-left -->
 
-        <!-- ─── COLONNE DROITE : configurateur PBR live ─── -->
+        <!-- ─── COLONNE DROITE : aperçu sphère + sliders PBR ─── -->
         <div class="mat-col-right">
           <div class="modal-section">
-            <div class="modal-section-title">Aperçu PBR temps réel</div>
-            <div class="mat-preview-canvas-wrap">
-              <div id="matPreviewCanvas"></div>
-              <div class="mat-preview-hint">Glisse pour tourner · Double-clic pour auto-rotate</div>
+            <div class="modal-section-title">Aperçu sphère</div>
+            <div class="mat-sphere-preview-wrap">
+              <img id="matSpherePreview" alt="Aperçu sphère" style="display:none">
+              <div class="mat-sphere-preview-empty" id="matSpherePreviewEmpty">
+                Sélectionne au moins l'Albedo pour voir l'aperçu
+              </div>
+              <div class="mat-sphere-preview-spinner" id="matSpherePreviewSpinner">
+                <div class="mat-sphere-spinner-dot"></div>
+                <div class="mat-sphere-spinner-label">Génération…</div>
+              </div>
             </div>
+            <p class="mat-pbr-info" style="margin-top:8px">
+              Cet aperçu se met à jour quand tu changes les maps ou les paramètres PBR.
+            </p>
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Paramètres PBR</div>
@@ -1836,34 +1845,65 @@ function injectMaterialModal(){
         position: sticky;
         top: 0;
       }
-      .mat-preview-canvas-wrap {
+      .mat-sphere-preview-wrap {
         position: relative;
         width: 100%;
         background: #2A2620;
         aspect-ratio: 1;
-        max-height: 360px;
-        /* isolation: isolate force un nouveau stacking context, empêchant
-           le backdrop-filter du .modal-bg parent d'affecter le canvas */
-        isolation: isolate;
+        max-height: 380px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
       }
-      #matPreviewCanvas {
-        width: 100%; height: 100%;
+      #matSpherePreview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         display: block;
       }
-      /* Hint sans backdrop-filter (qui re-rasterisait le canvas) */
-      .mat-preview-hint {
+      .mat-sphere-preview-empty {
         position: absolute;
-        top: 8px; left: 10px;
-        background: rgba(28,27,24,.85);
-        /* PAS de backdrop-filter ici : il interférait avec le rendu WebGL */
-        color: rgba(255,255,255,.85);
-        font-size: 9px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 4px 10px;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,.4);
         font-family: var(--sans);
+        font-size: 11px;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 20px;
         pointer-events: none;
       }
+      .mat-sphere-preview-spinner {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(42,38,32,.7);
+        pointer-events: none;
+      }
+      .mat-sphere-preview-spinner.show { display: flex; }
+      .mat-sphere-spinner-dot {
+        width: 30px; height: 30px;
+        border: 2px solid rgba(184,150,90,.25);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: matSpinnerRot 0.8s linear infinite;
+      }
+      .mat-sphere-spinner-label {
+        font-family: var(--sans);
+        font-size: 10px;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.75);
+      }
+      @keyframes matSpinnerRot { to { transform: rotate(360deg); } }
       .mat-preview-hint {
         position: absolute;
         bottom: 8px; left: 0; right: 0;
@@ -2083,6 +2123,13 @@ async function uploadMaterialAsset(blob, materialId, mapKey){
    600ms après le dernier upload avant de générer (économie CPU).
    ══════════════════════════════════════════════════════════════════ */
 async function regenerateLiveSphere(){
+  /* v56 rev8 — affichage simultané dans 2 endroits :
+     - #matThumbnailSlot (vignette catalogue, comportement v53)
+     - #matSpherePreview (grande preview de droite, nouveau) */
+  const previewImg     = document.getElementById('matSpherePreview');
+  const previewEmpty   = document.getElementById('matSpherePreviewEmpty');
+  const previewSpinner = document.getElementById('matSpherePreviewSpinner');
+
   if (_matVignetteManuallySet) {
     console.log('[v53 live sphere] skip : vignette uploadée manuellement');
     return null;
@@ -2125,10 +2172,14 @@ async function regenerateLiveSphere(){
   /* Pas d'albedo → impossible de générer une sphère utile */
   if (!maps.albedo) {
     objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+    /* v56 rev8 — montrer le placeholder dans la grande preview */
+    if (previewImg)     previewImg.style.display = 'none';
+    if (previewEmpty)   previewEmpty.style.display = 'flex';
+    if (previewSpinner) previewSpinner.classList.remove('show');
     return null;
   }
 
-  /* Afficher un spinner dans le slot Vignette catalogue */
+  /* Afficher un spinner dans le slot Vignette catalogue + dans la grande preview */
   const thumbSlot = document.getElementById('matThumbnailSlot');
   const slot = thumbSlot?.firstElementChild;
   if (slot) {
@@ -2139,18 +2190,36 @@ async function regenerateLiveSphere(){
       status.textContent = 'Génération sphère…';
     }
   }
+  /* v56 rev8 — Spinner sur la grande preview */
+  if (previewSpinner) previewSpinner.classList.add('show');
 
   try {
     const blob = await window.generateSphereThumbnail(maps, _matPbrParams);
     objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     if (!blob || blob.size < 1024) {
       console.warn('[v53 live sphere] sphère générée vide');
+      if (previewSpinner) previewSpinner.classList.remove('show');
       return null;
     }
 
     /* Stocker dans _matPendingFiles : le save existant l'utilisera tel quel,
        sans avoir besoin de re-générer. Note : .name est utile pour le upload */
     _matPendingFiles['thumbnail_url'] = new File([blob], 'sphere_thumb_live.png', { type: 'image/png' });
+
+    /* v56 rev8 — Afficher dans la GRANDE preview (le focus visuel principal) */
+    const bigUrl = URL.createObjectURL(blob);
+    if (previewImg) {
+      /* Revoke l'ancien blob URL si présent */
+      const oldSrc = previewImg.dataset.blobUrl;
+      previewImg.src = bigUrl;
+      previewImg.dataset.blobUrl = bigUrl;
+      previewImg.style.display = 'block';
+      if (oldSrc) {
+        setTimeout(() => { try { URL.revokeObjectURL(oldSrc); } catch(_){} }, 200);
+      }
+    }
+    if (previewEmpty)   previewEmpty.style.display = 'none';
+    if (previewSpinner) previewSpinner.classList.remove('show');
 
     /* Afficher la sphère dans le slot Vignette */
     if (slot) {
@@ -2200,14 +2269,15 @@ async function regenerateLiveSphere(){
         status.style.color = 'var(--red)';
       }
     }
+    /* v56 rev8 — cacher le spinner de la grande preview */
+    if (previewSpinner) previewSpinner.classList.remove('show');
     return null;
   }
 }
 
 function scheduleLiveSphere(delay){
-  /* v56 — refresh aussi le viewer 3D en live (instantané, indépendant du debounce
-     de la génération sphère). */
-  refreshPreviewMaps();
+  /* v56 rev8 — Le viewer 3D a été retiré (toujours flou via Chrome).
+     La grande preview affiche directement le résultat de regenerateLiveSphere. */
   if (_matLivePreviewTimer) clearTimeout(_matLivePreviewTimer);
   _matLivePreviewTimer = setTimeout(() => {
     if (_matLivePreviewBusy) {
@@ -2253,51 +2323,48 @@ function _matBuildMapsForPreview(objectUrlsBag){
   return maps;
 }
 
-/* Démarre le viewer dans le slot #matPreviewCanvas avec les maps courantes
-   et les params courants. Appelé à l'ouverture de la modal. */
+/* v56 rev8 — Plus de viewer 3D live (Chrome rasterisait toujours flou).
+   À la place : on affiche la vignette catalogue en grand, et chaque
+   changement de map/slider déclenche une régen via generateSphereThumbnail
+   qui produit un PNG net affiché dans #matSpherePreview. */
 function startMaterialPreviewViewer(){
-  if (typeof window.startMaterialPreview !== 'function') {
-    console.warn('[v56] startMaterialPreview pas encore prêt');
-    return;
+  const previewImg = document.getElementById('matSpherePreview');
+  const emptyDiv  = document.getElementById('matSpherePreviewEmpty');
+  const spinner   = document.getElementById('matSpherePreviewSpinner');
+  if (!previewImg || !emptyDiv) return;
+
+  /* Reset spinner */
+  if (spinner) spinner.classList.remove('show');
+
+  /* Afficher la thumbnail existante immédiatement si dispo (en édition) */
+  const editingMat = editingMaterialId
+    ? (allMaterials || []).find(x => x.id === editingMaterialId)
+    : null;
+  if (editingMat && editingMat.thumbnail_url) {
+    previewImg.src = editingMat.thumbnail_url;
+    previewImg.style.display = 'block';
+    emptyDiv.style.display = 'none';
+  } else {
+    previewImg.style.display = 'none';
+    previewImg.removeAttribute('src');
+    emptyDiv.style.display = 'flex';
   }
-  /* Nettoyer le viewer précédent */
-  stopMaterialPreviewViewer();
-  const container = document.getElementById('matPreviewCanvas');
-  if (!container) return;
-  const objectUrlsBag = [];
-  const maps = _matBuildMapsForPreview(objectUrlsBag);
-  try {
-    _matPreviewViewer = window.startMaterialPreview(container, maps, _matPbrParams);
-  } catch (e) {
-    console.error('[v56 start preview]', e);
-    return;
-  }
-  /* Object URLs : on peut les revoquer après que le viewer ait chargé.
-     Three.js fait son load asynchrone donc on attend un peu. */
-  setTimeout(() => objectUrlsBag.forEach(u => URL.revokeObjectURL(u)), 5000);
+
+  /* Lancer une regen propre avec les params actuels (si albedo disponible) */
+  scheduleLiveSphere(150);
 }
 
 function stopMaterialPreviewViewer(){
-  if (_matPreviewViewer) {
-    try { _matPreviewViewer.dispose(); } catch(_){}
-    _matPreviewViewer = null;
-  }
+  /* v56 rev8 — plus de viewer 3D à arrêter */
 }
 
-/* À appeler quand les maps changent (pending file ajouté/retiré) */
+/* À appeler quand les maps changent — alias pour scheduleLiveSphere */
 function refreshPreviewMaps(){
-  if (!_matPreviewViewer) return;
-  const objectUrlsBag = [];
-  const maps = _matBuildMapsForPreview(objectUrlsBag);
-  try {
-    _matPreviewViewer.updateMaps(maps);
-    setTimeout(() => objectUrlsBag.forEach(u => URL.revokeObjectURL(u)), 5000);
-  } catch(e) {
-    console.error('[v56 refresh maps]', e);
-  }
+  /* v56 rev8 — délégué à scheduleLiveSphere directement */
+  scheduleLiveSphere(50);
 }
 
-/* Wire les sliders + color picker → update _matPbrParams + viewer */
+/* Wire les sliders + color picker → update _matPbrParams + regen vignette */
 function wirePbrControls(){
   const controls = [
     { id: 'matPbrColor',       valId: 'matPbrColorVal',       param: 'color',       fmt: v => v },
@@ -2314,16 +2381,16 @@ function wirePbrControls(){
     /* Set valeur initiale depuis _matPbrParams */
     inp.value = _matPbrParams[c.param];
     if (val) val.textContent = c.fmt(_matPbrParams[c.param]);
-    /* Handler */
+    /* Handler — au lieu d'updater le viewer 3D (qui était flou),
+       on régénère la vignette PNG nette en arrière-plan (debounced) */
     inp.oninput = () => {
       const v = c.param === 'color' ? inp.value : parseFloat(inp.value);
       _matPbrParams[c.param] = v;
       if (val) val.textContent = c.fmt(v);
-      if (_matPreviewViewer) {
-        const upd = {};
-        upd[c.param] = v;
-        _matPreviewViewer.updateParams(upd);
-      }
+      /* L'user a modifié un slider → reprend le contrôle sur la vignette
+         (même si une image avait été uploadée manuellement) */
+      _matVignetteManuallySet = false;
+      scheduleLiveSphere(400);
     };
   });
   /* Boutons reset (par param) */
@@ -2337,10 +2404,8 @@ function wirePbrControls(){
       const val = document.getElementById('matPbr' + p.charAt(0).toUpperCase() + p.slice(1) + 'Val');
       if (inp) inp.value = def;
       if (val) val.textContent = (typeof def === 'number') ? def.toFixed(2) : def;
-      if (_matPreviewViewer) {
-        const upd = {}; upd[p] = def;
-        _matPreviewViewer.updateParams(upd);
-      }
+      _matVignetteManuallySet = false;
+      scheduleLiveSphere(100);
     };
   });
 }
