@@ -1374,6 +1374,9 @@ function openNewMaterial(presetCategory){
 let editingMaterialId = null;     /* null = mode création */
 let _matPendingFiles = {};        /* en attente avant ID (mode création) */
 let _matInheritedUrls = {};       /* mode duplication : URLs héritées du source */
+let _matVignetteManuallySet = false;  /* l'user a uploadé une vignette manuelle → pas d'auto-gen */
+let _matLivePreviewTimer = null;  /* debounce timer pour la génération live */
+let _matLivePreviewBusy = false;  /* en cours de génération */
 
 const MAT_MAP_FIELDS = [
   { key: 'albedo_url',    label: 'Albedo (couleur diffuse)', required: true,  maxSize: 1024 },
@@ -1606,6 +1609,153 @@ async function uploadMaterialAsset(blob, materialId, mapKey){
   return data.publicUrl + '?v=' + Date.now();
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   v53 — GÉNÉRATION LIVE DE LA SPHÈRE PBR
+   ──────────────────────────────────────────────────────────────────
+   À chaque upload d'une map PBR (albedo, normal, etc.), on regénère
+   en arrière-plan une sphère PBR thumbnail avec toutes les maps
+   disponibles à l'instant T (pending files locaux + URLs héritées +
+   URLs DB en édition). La sphère est placée dans le slot Vignette
+   catalogue → au moment du save, plus besoin de la regénérer.
+   
+   Debounce 600ms : si l'user uploade 3 maps en 2 secondes, on attend
+   600ms après le dernier upload avant de générer (économie CPU).
+   ══════════════════════════════════════════════════════════════════ */
+async function regenerateLiveSphere(){
+  if (_matVignetteManuallySet) {
+    console.log('[v53 live sphere] skip : vignette uploadée manuellement');
+    return null;
+  }
+  if (typeof window.generateSphereThumbnail !== 'function') {
+    console.log('[v53 live sphere] skip : module Three pas prêt');
+    return null;
+  }
+
+  /* Collecter les maps disponibles à l'instant T.
+     Priorité : pending file local > URL héritée (dup) > URL DB (édition) */
+  const mapping = {
+    albedo:    'albedo_url',
+    normal:    'normal_url',
+    roughness: 'roughness_url',
+    metallic:  'metallic_url',
+    ao:        'ao_url',
+  };
+  const maps = {};
+  const objectUrlsToRevoke = [];
+
+  /* En édition : récupérer aussi les URLs déjà en DB */
+  const editingMat = editingMaterialId
+    ? (allMaterials || []).find(x => x.id === editingMaterialId)
+    : null;
+
+  for (const localKey of Object.keys(mapping)) {
+    const dbKey = mapping[localKey];
+    if (_matPendingFiles[dbKey]) {
+      const objUrl = URL.createObjectURL(_matPendingFiles[dbKey]);
+      maps[localKey] = objUrl;
+      objectUrlsToRevoke.push(objUrl);
+    } else if (_matInheritedUrls[dbKey]) {
+      maps[localKey] = _matInheritedUrls[dbKey];
+    } else if (editingMat && editingMat[dbKey]) {
+      maps[localKey] = editingMat[dbKey];
+    }
+  }
+
+  /* Pas d'albedo → impossible de générer une sphère utile */
+  if (!maps.albedo) {
+    objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+    return null;
+  }
+
+  /* Afficher un spinner dans le slot Vignette catalogue */
+  const thumbSlot = document.getElementById('matThumbnailSlot');
+  const slot = thumbSlot?.firstElementChild;
+  if (slot) {
+    const status = slot.querySelector('.mat-map-status');
+    if (status) {
+      status.classList.add('uploading');
+      status.classList.remove('empty');
+      status.textContent = 'Génération sphère…';
+    }
+  }
+
+  try {
+    const blob = await window.generateSphereThumbnail(maps);
+    objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+    if (!blob || blob.size < 1024) {
+      console.warn('[v53 live sphere] sphère générée vide');
+      return null;
+    }
+
+    /* Stocker dans _matPendingFiles : le save existant l'utilisera tel quel,
+       sans avoir besoin de re-générer. Note : .name est utile pour le upload */
+    _matPendingFiles['thumbnail_url'] = new File([blob], 'sphere_thumb_live.png', { type: 'image/png' });
+
+    /* Afficher la sphère dans le slot Vignette */
+    if (slot) {
+      const previewUrl = URL.createObjectURL(blob);
+      const thumb = slot.querySelector('.mat-map-thumb');
+      const status = slot.querySelector('.mat-map-status');
+      if (thumb) {
+        thumb.classList.remove('empty');
+        thumb.style.backgroundImage = `url(${previewUrl})`;
+        thumb.textContent = '';
+      }
+      if (status) {
+        status.classList.remove('empty', 'uploading');
+        status.textContent = 'Sphère prête ✓';
+      }
+      /* Ajouter la croix de retrait si pas présente */
+      if (!slot.querySelector('.mat-map-remove')) {
+        const rm = document.createElement('button');
+        rm.className = 'mat-map-remove';
+        rm.title = 'Retirer (régénérera automatiquement)';
+        rm.textContent = '×';
+        rm.onclick = (e) => {
+          e.stopPropagation();
+          delete _matPendingFiles['thumbnail_url'];
+          slot.replaceWith(buildMapSlot(
+            { key:'thumbnail_url', label:'Vignette (carrée 400×400)', required:false, maxSize:800 },
+            ''
+          ));
+          /* Re-générer immédiatement pour ne pas laisser le slot vide */
+          scheduleLiveSphere(50);
+        };
+        slot.appendChild(rm);
+      }
+    }
+    console.log('[v53 live sphere] sphère générée (' + Math.round(blob.size/1024) + ' KB) avec ' +
+                Object.keys(maps).join(', '));
+    return blob;
+  } catch (e) {
+    console.error('[v53 live sphere]', e);
+    objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+    /* Restaurer l'état du slot Vignette */
+    if (slot) {
+      const status = slot.querySelector('.mat-map-status');
+      if (status) {
+        status.classList.remove('uploading');
+        status.textContent = 'Échec génération';
+        status.style.color = 'var(--red)';
+      }
+    }
+    return null;
+  }
+}
+
+function scheduleLiveSphere(delay){
+  if (_matLivePreviewTimer) clearTimeout(_matLivePreviewTimer);
+  _matLivePreviewTimer = setTimeout(() => {
+    if (_matLivePreviewBusy) {
+      /* Déjà en cours → reprogrammer après */
+      scheduleLiveSphere(800);
+      return;
+    }
+    _matLivePreviewBusy = true;
+    regenerateLiveSphere().finally(() => { _matLivePreviewBusy = false; });
+  }, delay !== undefined ? delay : 600);
+}
+
 async function handleMapFile(field, file, slotDiv){
   const matId = document.getElementById('matId').value;
   
@@ -1633,8 +1783,17 @@ async function handleMapFile(field, file, slotDiv){
           e.stopPropagation();
           delete _matPendingFiles[field.key];
           slotDiv.replaceWith(buildMapSlot(field, ''));
+          /* Re-générer la sphère sans cette map */
+          if (field.key !== 'thumbnail_url') scheduleLiveSphere();
         };
         slotDiv.appendChild(rm);
+      }
+      /* v53 — Déclencher la génération live de sphère
+         (sauf si c'est le slot Vignette catalogue lui-même qu'on vient d'uploader) */
+      if (field.key === 'thumbnail_url') {
+        _matVignetteManuallySet = true;  /* l'user a uploadé manuellement, ne plus auto-gen */
+      } else {
+        scheduleLiveSphere();  /* régen après 600ms */
       }
     } catch(e){
       toast('Erreur compression : '+ e.message, 'err');
@@ -1675,6 +1834,12 @@ async function handleMapFile(field, file, slotDiv){
       slotDiv.appendChild(rm);
     }
     toast('Map enregistrée','ok');
+    /* v53 — Régen live de la sphère (édition aussi) */
+    if (field.key === 'thumbnail_url') {
+      _matVignetteManuallySet = true;
+    } else {
+      scheduleLiveSphere();
+    }
   } catch(e){
     console.error('[mat upload]', e);
     status.classList.remove('uploading');
@@ -1717,6 +1882,7 @@ function openMaterialModal(materialId, presetCategory, duplicateMode){
   if (duplicateMode && source) {
     editingMaterialId = null;
     _matPendingFiles = {};
+    _matVignetteManuallySet = false;
     _matInheritedUrls = {
       albedo_url:    source.albedo_url    || null,
       normal_url:    source.normal_url    || null,
@@ -1774,6 +1940,8 @@ function openMaterialModal(materialId, presetCategory, duplicateMode){
   editingMaterialId = materialId || null;
   _matPendingFiles = {};
   _matInheritedUrls = {};  /* reset important */
+  _matVignetteManuallySet = false;  /* v53 : reset flag vignette manuelle */
+  if (_matLivePreviewTimer) { clearTimeout(_matLivePreviewTimer); _matLivePreviewTimer = null; }
 
   const m = source;
   document.getElementById('matModalTitle').textContent = materialId ? 'Éditer le matériau' : 'Nouveau matériau';
