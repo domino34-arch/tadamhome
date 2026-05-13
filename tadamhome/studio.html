@@ -14100,6 +14100,282 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v46 — FIX RENFORCÉ de la persistance des dossiers hiérarchiques
+   ─────────────────────────────────────────────────────────────────────────
+   Le précédent fix v44 push hierarchy en DB quand v36 change, mais ne se
+   protégeait pas contre `doSave` (closure interne) qui re-écrit ensuite
+   studio_state SANS la clé hierarchy → écrasement silencieux.
+   
+   Fix v46 : un watcher 3s qui SELECT studio_state ET compare avec la
+   mémoire v36. Si la mémoire a une hiérarchie ET que la DB ne l'a pas
+   (ou est différente) → on re-push. Comme ça, même si doSave écrase,
+   v46 rattrape dans les 3s suivantes.
+   
+   En plus : on patche window._v36.createWrapper et dissolveWrapper pour
+   déclencher un push immédiat (300ms après), histoire de ne pas attendre
+   la prochaine fenêtre de polling.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v46HierarchyDriftSync() {
+  if (window.__v46Init) return;
+  window.__v46Init = true;
+
+  window._v46 = { lastPushAt: 0, syncing: false };
+
+  function memHierarchy() {
+    return (window._v36 && window._v36.hierarchy) || {};
+  }
+
+  function serializeMem() {
+    const h = memHierarchy();
+    const out = {};
+    Object.keys(h).forEach(k => {
+      const w = h[k];
+      out[k] = {
+        label: w.label || 'Dossier',
+        childrenKeys: Array.isArray(w.childrenKeys) ? w.childrenKeys.slice() : [],
+        position: {
+          x: Number(w.position?.x || 0),
+          y: Number(w.position?.y || 0),
+          z: Number(w.position?.z || 0),
+        },
+        rotation: {
+          x: Number(w.rotation?.x || 0),
+          y: Number(w.rotation?.y || 0),
+          z: Number(w.rotation?.z || 0),
+        },
+        expanded: w.expanded !== false,
+      };
+    });
+    return out;
+  }
+
+  async function pushNow(productId, reason) {
+    if (window._v46.syncing) return false;
+    if (!productId) return false;
+    if (typeof sb === 'undefined') return false;
+    window._v46.syncing = true;
+    try {
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      const mem = serializeMem();
+      const isEmpty = Object.keys(mem).length === 0;
+
+      if (isEmpty) {
+        if (state.hierarchy) {
+          delete state.hierarchy;
+        } else {
+          window._v46.syncing = false;
+          return true;
+        }
+      } else {
+        state.hierarchy = mem;
+      }
+
+      const { error: e2 } = await sb.from('products')
+        .update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = state;
+      }
+      window._v46.lastPushAt = Date.now();
+      console.log('[v46] hierarchy push (' + reason + ') · ' + (isEmpty ? '0' : Object.keys(mem).length) + ' dossier(s)');
+      return true;
+    } catch (e) {
+      console.error('[v46 push]', e);
+      return false;
+    } finally {
+      window._v46.syncing = false;
+    }
+  }
+
+  /* ───── DRIFT-DETECTION WATCHER (3s) ─────
+     Compare DB vs mémoire et re-push si la DB a perdu la hierarchy. */
+  async function driftCheck() {
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) return;
+    if (window._v18 && window._v18.restoring) return;
+    if (window._v46.syncing) return;
+    if (Date.now() - window._v46.lastPushAt < 1500) return;
+
+    const mem = memHierarchy();
+    const memKeys = Object.keys(mem);
+    if (memKeys.length === 0) return;  /* rien à pousser */
+
+    try {
+      const { data: row, error } = await sb.from('products')
+        .select('studio_state').eq('id', productId).single();
+      if (error || !row) return;
+      const dbHier = (row.studio_state && row.studio_state.hierarchy) || {};
+      const dbKeys = Object.keys(dbHier);
+
+      /* Cas 1 : DB n'a plus la hierarchy → doSave a écrasé → re-push */
+      if (dbKeys.length === 0 && memKeys.length > 0) {
+        await pushNow(productId, 'drift: DB perdue');
+        return;
+      }
+      /* Cas 2 : DB et mémoire ont des entrées mais différentes → re-push */
+      if (dbKeys.length > 0) {
+        const memStr = JSON.stringify(serializeMem());
+        const dbStr = JSON.stringify(dbHier);
+        if (memStr !== dbStr) {
+          await pushNow(productId, 'drift: DB ≠ mémoire');
+        }
+      }
+    } catch (e) {
+      console.error('[v46 drift]', e);
+    }
+  }
+
+  setInterval(driftCheck, 3000);
+  setTimeout(driftCheck, 6500);  /* premier check après boot */
+
+  /* ───── PATCH v36 : push immédiat sur création/dissolution ───── */
+  function patchV36() {
+    if (!window._v36) return false;
+    if (window._v36.__v46Patched) return true;
+
+    const origCreate = window._v36.createWrapper;
+    if (typeof origCreate === 'function') {
+      window._v36.createWrapper = function(...args) {
+        const r = origCreate.apply(this, args);
+        setTimeout(() => {
+          const productId = window._v18 && window._v18.productId;
+          if (productId) pushNow(productId, 'createWrapper');
+        }, 350);
+        return r;
+      };
+    }
+    const origDissolve = window._v36.dissolveWrapper;
+    if (typeof origDissolve === 'function') {
+      window._v36.dissolveWrapper = function(...args) {
+        const r = origDissolve.apply(this, args);
+        setTimeout(() => {
+          const productId = window._v18 && window._v18.productId;
+          if (productId) pushNow(productId, 'dissolveWrapper');
+        }, 350);
+        return r;
+      };
+    }
+    window._v36.__v46Patched = true;
+    return true;
+  }
+  if (!patchV36()) {
+    const t = setInterval(() => { if (patchV36()) clearInterval(t); }, 400);
+    setTimeout(() => clearInterval(t), 25000);
+  }
+
+  /* ───── Backfill : si DB a hierarchy au boot mais v36 ne l'a pas restauré ───── */
+  let attempts = 0;
+  const backfill = setInterval(() => {
+    if (++attempts > 60) { clearInterval(backfill); return; }
+    const row = window._v18 && window._v18.productRow;
+    if (!row) return;
+    const dbHier = row.studio_state && row.studio_state.hierarchy;
+    if (!dbHier || Object.keys(dbHier).length === 0) {
+      clearInterval(backfill); return;
+    }
+    if (!window._v36) return;
+    const treeReady = !!document.querySelector('#tree .tree-row, #tree .tree-parent');
+    if (treeReady && Object.keys(window._v36.hierarchy || {}).length === 0) {
+      console.log('[v46] backfill : DB a ' + Object.keys(dbHier).length + ' dossier(s) → restauration directe');
+      window._v36.hierarchy = JSON.parse(JSON.stringify(dbHier));
+      if (typeof window._v36.injectWrappers === 'function') {
+        window._v36.injectWrappers();
+      }
+      if (typeof window._v36.applyTransform === 'function') {
+        setTimeout(() => {
+          Object.keys(window._v36.hierarchy).forEach(k => window._v36.applyTransform(k));
+        }, 500);
+      }
+      clearInterval(backfill);
+    }
+  }, 700);
+
+  /* Expose pour debug */
+  window._v46.forcePush = () => {
+    const productId = window._v18 && window._v18.productId;
+    if (productId) pushNow(productId, 'manual');
+  };
+
+  console.log('[studio v46] drift-sync renforcé pour hierarchy + patch v36 ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v47 — STYLE : noms en doré (teinte ARBORESCENCE) + cohérence onglets
+   ─────────────────────────────────────────────────────────────────────────
+   Les noms principaux (modèle, dossiers wrappers, matériau actif) passent
+   en couleur dorée comme le label "ARBORESCENCE", avec letter-spacing et
+   poids similaires aux onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE. Plus de divergence
+   visuelle avec le reste de l'UI.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v47NameStyling() {
+  if (window.__v47Init) return;
+  window.__v47Init = true;
+
+  const css = `
+    /* Nom du modèle dans la topbar : doré, Jost, letter-spacing onglets */
+    .tb-name-input {
+      color: var(--gold, var(--accent, #B8965A)) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.04em !important;
+      font-size: 14px !important;
+    }
+    .tb-name-input::placeholder {
+      color: var(--gold, #B8965A) !important;
+      opacity: 0.55 !important;
+    }
+    /* Marque dans la topbar : même typo, couleur secondaire */
+    .tb-marque-input {
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      letter-spacing: 0.03em !important;
+    }
+    /* Nom de dossier hiérarchique v36 : doré */
+    .v36-wrapper-name {
+      color: var(--gold, #B8965A) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.04em !important;
+      font-size: 13px !important;
+    }
+    /* Nom du matériau actif (rightpanel) : doré */
+    .mat-active-name,
+    .rp-active-mat-name,
+    [class*="active-name"] {
+      color: var(--gold, #B8965A) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.03em !important;
+    }
+    /* Titles modales : doré */
+    .v38-modal-title,
+    .v37-as-title {
+      color: var(--gold, #B8965A) !important;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.04em !important;
+    }
+  `;
+
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v47', 'name-styling');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  console.log('[studio v47] noms en doré (cohérence onglets/ARBORESCENCE) ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
