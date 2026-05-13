@@ -12871,6 +12871,213 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v39 — POST-CREATE FLOW : Auto-ouvrir la Fiche Catalogue
+   ─────────────────────────────────────────────────────────────────────────
+   - Après création d'une variante (v25)  → modal v38 en mode "swatch focus"
+     (section Photos cachée, intro contextuelle "Définis le tissu de [nom]")
+   - Après création du produit Base (v26) → modal v38 en mode complet
+     (photos + swatch, intro "Ton produit est prêt — ajoute ses visuels")
+   
+   Utilise un watcher (polling 800ms) sur productId et variants.length plutôt
+   que des overrides directs, pour rester robuste face aux overrides multiples
+   déjà en place sur v25 et v26.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v39PostCreateFlow() {
+  if (window.__v39Init) return;
+  window.__v39Init = true;
+
+  window._v39 = window._v39 || {
+    pendingFocus: null,
+    lastProductId: null,
+    lastVariantCount: 0,
+    booted: false,
+  };
+
+  /* ───── CSS pour l'intro contextuelle ───── */
+  const css = `
+    .v39-intro {
+      background: rgba(184, 150, 90, 0.10);
+      border-left: 3px solid var(--gold, #B8965A);
+      padding: 12px 16px;
+      margin-bottom: 22px;
+      font-size: 12px;
+      color: var(--ink, #2A2620);
+      line-height: 1.55;
+      font-family: 'Jost', sans-serif;
+    }
+    .v39-intro strong {
+      font-weight: 500;
+      color: var(--gold-dark, #8a7041);
+    }
+    .v39-skip-row {
+      display: flex; justify-content: flex-end;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .v39-skip-btn {
+      background: transparent;
+      border: none;
+      color: var(--ink-muted, #6E6660);
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      padding: 6px 12px;
+      transition: color 0.15s;
+    }
+    .v39-skip-btn:hover { color: var(--ink, #2A2620); }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ Patch openModal pour accepter un paramètre focus ═══ */
+  function patchOpenModal() {
+    if (!window._v38 || !window._v38.openModal) return false;
+    if (window._v38.__v39Patched) return true;
+    const orig = window._v38.openModal;
+    window._v38.openModal = function(focus) {
+      window._v39.pendingFocus = focus || 'all';
+      orig.call(this);
+      /* Appliquer le focus après que la modal soit rendue */
+      setTimeout(() => applyModalFocus(window._v39.pendingFocus), 60);
+    };
+    window._v38.__v39Patched = true;
+    return true;
+  }
+  if (!patchOpenModal()) {
+    const t = setInterval(() => { if (patchOpenModal()) clearInterval(t); }, 400);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+
+  /* ═══ Modifier l'apparence de la modal selon le focus ═══ */
+  function applyModalFocus(focus) {
+    const modal = document.querySelector('.v38-modal');
+    if (!modal) return;
+    const sections = modal.querySelectorAll('.v38-section');
+    const photoSection  = sections[0];
+    const swatchSection = sections[1];
+    const titleEl = modal.querySelector('.v38-modal-title');
+    const body = modal.querySelector('.v38-modal-body');
+
+    /* Reset visuel : retirer toute intro v39 + réafficher les sections */
+    modal.querySelectorAll('.v39-intro, .v39-skip-row').forEach(el => el.remove());
+    if (photoSection)  photoSection.style.display = '';
+    if (swatchSection) swatchSection.style.display = '';
+    if (titleEl)       titleEl.textContent = 'Fiche catalogue';
+
+    if (focus === 'swatch') {
+      /* Mode swatch focus : on cache les photos */
+      if (photoSection) photoSection.style.display = 'none';
+      if (titleEl) titleEl.textContent = 'Visuel texture de la variante';
+      const variantName = (window._v38 && typeof window._v38.activeVariantName === 'function')
+        ? window._v38.activeVariantName()
+        : 'la nouvelle variante';
+      const activeName = (window._v25 && window._v25.activeVariantId !== 'base')
+        ? (window._v25.variants.find(v => v.id === window._v25.activeVariantId)?.name || 'Variante')
+        : 'Base';
+
+      if (body) {
+        const intro = document.createElement('div');
+        intro.className = 'v39-intro';
+        intro.innerHTML = `
+          ✨ Tu viens de créer la variante <strong>« ${escapeHtml(activeName)} »</strong>.
+          Ajoute son <strong>visuel texture</strong> (image macro du tissu, cuir, bois…)
+          qui apparaîtra dans la fiche catalogue à côté de ce nom. 
+          <br>Optionnel : tu peux le faire plus tard via le bouton 📸 de la topbar.
+        `;
+        body.insertBefore(intro, body.firstChild);
+
+        addSkipButton(body);
+      }
+    } else if (focus === 'all-after-create') {
+      /* Mode complet après création du produit */
+      if (titleEl) titleEl.textContent = 'Compléter ta fiche catalogue';
+      if (body) {
+        const intro = document.createElement('div');
+        intro.className = 'v39-intro';
+        intro.innerHTML = `
+          🎉 Ton produit est enregistré.
+          Pour qu'il s'affiche au mieux dans le catalogue, ajoute maintenant
+          <strong>les photos du modèle</strong> (galerie) et son
+          <strong>visuel texture</strong> (matériau principal).
+          <br>Optionnel : tu peux le faire plus tard via le bouton 📸 de la topbar.
+        `;
+        body.insertBefore(intro, body.firstChild);
+        addSkipButton(body);
+      }
+    }
+    /* focus === 'all' (manuel) : aucune intro, comportement v38 par défaut */
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function addSkipButton(body) {
+    const row = document.createElement('div');
+    row.className = 'v39-skip-row';
+    row.innerHTML = `<button class="v39-skip-btn">Plus tard →</button>`;
+    body.appendChild(row);
+    row.querySelector('button').onclick = () => {
+      if (window._v38 && window._v38.closeModal) window._v38.closeModal();
+    };
+  }
+
+  /* ═══ WATCHER : détecter création de produit ou de variante ═══ */
+  function startWatcher() {
+    /* Boot : on capture l'état actuel pour ne pas tirer un faux positif */
+    setTimeout(() => {
+      window._v39.lastProductId = (window._v18 && window._v18.productId) || null;
+      window._v39.lastVariantCount = ((window._v25 && window._v25.variants) || []).length;
+      window._v39.booted = true;
+      console.log('[v39] watcher démarré · productId=' + (window._v39.lastProductId || 'null') + ' · variants=' + window._v39.lastVariantCount);
+    }, 3500);
+
+    setInterval(() => {
+      if (!window._v39.booted) return;
+      if (!window._v38 || !window._v38.openModal) return;
+
+      /* 1. Nouvelle création de PRODUIT (la sandbox → lié) */
+      const curProductId = (window._v18 && window._v18.productId) || null;
+      if (!window._v39.lastProductId && curProductId) {
+        window._v39.lastProductId = curProductId;
+        /* Délai un peu plus long pour laisser le pipeline v34 (upload OBJ + GLB + USDZ)
+           commencer en arrière-plan, sans bloquer */
+        setTimeout(() => {
+          if (window._v38 && window._v38.openModal) {
+            window._v38.openModal('all-after-create');
+          }
+        }, 1500);
+      } else if (curProductId !== window._v39.lastProductId) {
+        window._v39.lastProductId = curProductId;
+      }
+
+      /* 2. Nouvelle VARIANTE ajoutée */
+      const variants = (window._v25 && window._v25.variants) || [];
+      if (variants.length > window._v39.lastVariantCount) {
+        window._v39.lastVariantCount = variants.length;
+        /* Laisser v25 finir sa bascule sur la nouvelle variante (~200ms) */
+        setTimeout(() => {
+          if (window._v38 && window._v38.openModal) {
+            window._v38.openModal('swatch');
+          }
+        }, 500);
+      } else if (variants.length < window._v39.lastVariantCount) {
+        /* Suppression : juste mettre à jour la baseline */
+        window._v39.lastVariantCount = variants.length;
+      }
+    }, 800);
+  }
+  startWatcher();
+
+  console.log('[studio v39] post-create flow : auto-fiche catalogue après création produit/variante ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
