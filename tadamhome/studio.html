@@ -10400,6 +10400,427 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════
+   V35 — Onglet GÉOMÉTRIE : Position / Rotation / Actions rapides
+   ════════════════════════════════════════════════════════════════════ */
+(function v35GeometryPanel() {
+  
+  /* ─── 0. CSS injecté dans le head ─── */
+  const css = `
+    .rp-geom-panel {
+      padding: 24px;
+      font-family: 'Jost', sans-serif;
+      color: var(--ink);
+    }
+    .geom-section { margin-bottom: 28px; }
+    .geom-section:last-child { margin-bottom: 0; }
+    .geom-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .geom-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .geom-input-row {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.4);
+    }
+    .geom-axis-tag {
+      width: 32px;
+      text-align: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 700;
+      font-style: italic;
+      padding: 8px 0;
+      border-right: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .geom-axis-tag.x { color: #c25a5a; }
+    .geom-axis-tag.y { color: #4a9d5b; }
+    .geom-axis-tag.z { color: #5577b8; }
+    .geom-input-row input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      color: var(--ink);
+      outline: none;
+      width: 100%;
+    }
+    .geom-input-row input:focus { background: rgba(184,150,90,0.05); }
+    .geom-input-suffix {
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      color: var(--ink-muted);
+      border-left: 1px solid var(--line);
+    }
+    .geom-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .geom-buttons:last-child { margin-bottom: 0; }
+    .geom-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 4px;
+      cursor: pointer;
+      transition: all 0.18s;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .geom-btn:hover {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border-color: var(--gold, #B8965A);
+    }
+    .geom-btn:active { transform: scale(0.97); }
+    .geom-hint {
+      font-size: 10px;
+      color: var(--ink-muted);
+      font-style: italic;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ─── 1. Construction du panel HTML ─── */
+  let geomPanel = null;
+  let matHead = null;
+  let matBody = null;
+  
+  function buildGeomPanel() {
+    if (geomPanel) return geomPanel;
+    geomPanel = document.createElement('div');
+    geomPanel.className = 'rp-geom-panel';
+    geomPanel.id = 'rpGeomPanel';
+    geomPanel.style.display = 'none';
+    geomPanel.innerHTML = `
+      <div class="geom-section">
+        <div class="geom-label">Position</div>
+        <div class="geom-grid">
+          <div class="geom-input-row">
+            <span class="geom-axis-tag x">X</span>
+            <input type="number" step="0.5" id="geomPosX" placeholder="0">
+            <span class="geom-input-suffix">cm</span>
+          </div>
+          <div class="geom-input-row">
+            <span class="geom-axis-tag y">Y</span>
+            <input type="number" step="0.5" id="geomPosY" placeholder="0">
+            <span class="geom-input-suffix">cm</span>
+          </div>
+          <div class="geom-input-row">
+            <span class="geom-axis-tag z">Z</span>
+            <input type="number" step="0.5" id="geomPosZ" placeholder="0">
+            <span class="geom-input-suffix">cm</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="geom-section">
+        <div class="geom-label">Rotation</div>
+        <div class="geom-grid">
+          <div class="geom-input-row">
+            <span class="geom-axis-tag x">X</span>
+            <input type="number" step="5" id="geomRotX" placeholder="0">
+            <span class="geom-input-suffix">°</span>
+          </div>
+          <div class="geom-input-row">
+            <span class="geom-axis-tag y">Y</span>
+            <input type="number" step="5" id="geomRotY" placeholder="0">
+            <span class="geom-input-suffix">°</span>
+          </div>
+          <div class="geom-input-row">
+            <span class="geom-axis-tag z">Z</span>
+            <input type="number" step="5" id="geomRotZ" placeholder="0">
+            <span class="geom-input-suffix">°</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="geom-section">
+        <div class="geom-label">Actions</div>
+        <div class="geom-buttons">
+          <button class="geom-btn" id="geomBtnGround">⊥ Poser sol</button>
+          <button class="geom-btn" id="geomBtnCenter">⊙ Centrer</button>
+          <button class="geom-btn" id="geomBtnReset">↩ Reset</button>
+        </div>
+        <div class="geom-buttons">
+          <button class="geom-btn" id="geomBtnRot90X">+90° X</button>
+          <button class="geom-btn" id="geomBtnRot90Y">+90° Y</button>
+          <button class="geom-btn" id="geomBtnRot90Z">+90° Z</button>
+        </div>
+        <div class="geom-hint">
+          Pour les modèles importés depuis Blender (Z-up), tente <b>+90° X</b>.
+          Pour les modèles couchés, utilise <b>+90° Y</b>.
+        </div>
+      </div>
+    `;
+    
+    /* Insertion dans le DOM */
+    matHead = document.querySelector('.rp-view-edit .mat-head');
+    matBody = document.querySelector('.rp-view-edit .mat-body');
+    if (matHead && matHead.parentNode) {
+      /* On insère juste après mat-tabs, donc juste avant mat-head */
+      matHead.parentNode.insertBefore(geomPanel, matHead);
+    } else {
+      console.warn('[v35] mat-head introuvable, panel attaché au rp-view-edit');
+      const rpEdit = document.querySelector('.rp-view-edit');
+      if (rpEdit) rpEdit.appendChild(geomPanel);
+    }
+    
+    /* Wire inputs */
+    ['X', 'Y', 'Z'].forEach(axis => {
+      const posInput = document.getElementById('geomPos' + axis);
+      const rotInput = document.getElementById('geomRot' + axis);
+      if (posInput) {
+        posInput.addEventListener('input', applyTransformFromInputs);
+        posInput.addEventListener('change', applyTransformFromInputs);
+      }
+      if (rotInput) {
+        rotInput.addEventListener('input', applyTransformFromInputs);
+        rotInput.addEventListener('change', applyTransformFromInputs);
+      }
+    });
+    
+    /* Wire boutons */
+    document.getElementById('geomBtnGround').addEventListener('click', actionGroundLevel);
+    document.getElementById('geomBtnCenter').addEventListener('click', actionCenter);
+    document.getElementById('geomBtnReset').addEventListener('click', actionReset);
+    document.getElementById('geomBtnRot90X').addEventListener('click', () => actionRotate90('x'));
+    document.getElementById('geomBtnRot90Y').addEventListener('click', () => actionRotate90('y'));
+    document.getElementById('geomBtnRot90Z').addEventListener('click', () => actionRotate90('z'));
+    
+    return geomPanel;
+  }
+  
+  /* ─── 2. Switcher entre onglets Matériau / Géométrie / Scène ─── */
+  function ensurePanelsRefs() {
+    if (!matHead) matHead = document.querySelector('.rp-view-edit .mat-head');
+    if (!matBody) matBody = document.querySelector('.rp-view-edit .mat-body');
+  }
+  
+  function showMaterialView() {
+    ensurePanelsRefs();
+    if (geomPanel) geomPanel.style.display = 'none';
+    if (matHead) matHead.style.display = '';
+    if (matBody) matBody.style.display = '';
+  }
+  
+  function showGeomView() {
+    ensurePanelsRefs();
+    buildGeomPanel();
+    if (matHead) matHead.style.display = 'none';
+    if (matBody) matBody.style.display = 'none';
+    geomPanel.style.display = 'block';
+    syncInputsFromObject();
+  }
+  
+  /* Pour Scène, on garde le comportement actuel (rien de spécial) */
+  function showSceneView() {
+    ensurePanelsRefs();
+    if (geomPanel) geomPanel.style.display = 'none';
+    if (matHead) matHead.style.display = '';
+    if (matBody) matBody.style.display = '';
+  }
+  
+  /* Wire les onglets — on étend le comportement existant */
+  function wireTabs() {
+    const tabsContainer = document.querySelector('.tb-mat-zone .mat-tabs') 
+                       || document.querySelector('.rp-view-edit .mat-tabs');
+    if (!tabsContainer) {
+      setTimeout(wireTabs, 500);
+      return;
+    }
+    const tabs = tabsContainer.querySelectorAll('.mat-tab');
+    if (tabs.length < 3) {
+      setTimeout(wireTabs, 500);
+      return;
+    }
+    tabs.forEach((tab, idx) => {
+      tab.addEventListener('click', () => {
+        if (idx === 0) showMaterialView();
+        else if (idx === 1) showGeomView();
+        else if (idx === 2) showSceneView();
+      });
+    });
+    console.log('[studio v35] onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE câblés ✓');
+  }
+  wireTabs();
+
+  /* ─── 3. Synchroniser inputs ↔ currentObject ─── */
+  function syncInputsFromObject() {
+    if (!currentObject) return;
+    const pX = document.getElementById('geomPosX');
+    const pY = document.getElementById('geomPosY');
+    const pZ = document.getElementById('geomPosZ');
+    const rX = document.getElementById('geomRotX');
+    const rY = document.getElementById('geomRotY');
+    const rZ = document.getElementById('geomRotZ');
+    if (pX) pX.value = (currentObject.position.x * 100).toFixed(1);
+    if (pY) pY.value = (currentObject.position.y * 100).toFixed(1);
+    if (pZ) pZ.value = (currentObject.position.z * 100).toFixed(1);
+    if (rX) rX.value = THREE.MathUtils.radToDeg(currentObject.rotation.x).toFixed(1);
+    if (rY) rY.value = THREE.MathUtils.radToDeg(currentObject.rotation.y).toFixed(1);
+    if (rZ) rZ.value = THREE.MathUtils.radToDeg(currentObject.rotation.z).toFixed(1);
+  }
+  
+  function applyTransformFromInputs() {
+    if (!currentObject) return;
+    const pX = parseFloat(document.getElementById('geomPosX')?.value) || 0;
+    const pY = parseFloat(document.getElementById('geomPosY')?.value) || 0;
+    const pZ = parseFloat(document.getElementById('geomPosZ')?.value) || 0;
+    const rX = parseFloat(document.getElementById('geomRotX')?.value) || 0;
+    const rY = parseFloat(document.getElementById('geomRotY')?.value) || 0;
+    const rZ = parseFloat(document.getElementById('geomRotZ')?.value) || 0;
+    currentObject.position.set(pX / 100, pY / 100, pZ / 100);
+    currentObject.rotation.set(
+      THREE.MathUtils.degToRad(rX),
+      THREE.MathUtils.degToRad(rY),
+      THREE.MathUtils.degToRad(rZ)
+    );
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+  }
+  
+  /* ─── 4. Actions rapides ─── */
+  function actionGroundLevel() {
+    if (!currentObject) return;
+    /* Recalculer la bbox actuelle (avec position/rotation appliquées) */
+    const box = new THREE.Box3().setFromObject(currentObject);
+    const dy = -box.min.y;
+    currentObject.position.y += dy;
+    syncInputsFromObject();
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    if (typeof toast === 'function') toast('Modèle posé au sol ✓', 'ok', 2000);
+  }
+  
+  function actionCenter() {
+    if (!currentObject) return;
+    const box = new THREE.Box3().setFromObject(currentObject);
+    const center = box.getCenter(new THREE.Vector3());
+    currentObject.position.x -= center.x;
+    currentObject.position.z -= center.z;
+    syncInputsFromObject();
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    if (typeof toast === 'function') toast('Modèle centré sur XZ ✓', 'ok', 2000);
+  }
+  
+  function actionReset() {
+    if (!currentObject) return;
+    currentObject.position.set(0, 0, 0);
+    currentObject.rotation.set(0, 0, 0);
+    syncInputsFromObject();
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    if (typeof toast === 'function') toast('Position et rotation réinitialisées', 'info', 2000);
+  }
+  
+  function actionRotate90(axis) {
+    if (!currentObject) return;
+    currentObject.rotation[axis] += Math.PI / 2;
+    syncInputsFromObject();
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+  }
+  
+  /* ─── 5. Persistance dans studio_state.transform ─── */
+  /* Hook serializeStudioState pour ajouter transform au state */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) {
+      setTimeout(hookSerialize, 500);
+      return;
+    }
+    if (window._v18.__v35TransformHooked) return;
+    const _origSer = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = _origSer.call(this) || {};
+      if (currentObject) {
+        const t = {
+          position: {
+            x: +(currentObject.position.x * 100).toFixed(2),
+            y: +(currentObject.position.y * 100).toFixed(2),
+            z: +(currentObject.position.z * 100).toFixed(2),
+          },
+          rotation: {
+            x: +THREE.MathUtils.radToDeg(currentObject.rotation.x).toFixed(2),
+            y: +THREE.MathUtils.radToDeg(currentObject.rotation.y).toFixed(2),
+            z: +THREE.MathUtils.radToDeg(currentObject.rotation.z).toFixed(2),
+          },
+        };
+        /* Persister seulement si non-trivial */
+        const isNonZero = Object.values(t.position).some(v => v !== 0)
+                       || Object.values(t.rotation).some(v => v !== 0);
+        if (isNonZero) state.transform = t;
+      }
+      return state;
+    };
+    window._v18.__v35TransformHooked = true;
+    console.log('[studio v35] serializeStudioState hooké pour transform ✓');
+  }
+  hookSerialize();
+  
+  /* Hook le sync 5s de v34 : enrichit aussi le PATCH avec transform */
+  /* Comme v34_enrichState() n'est pas exposée, on s'appuie sur le
+     hook serializeStudioState ci-dessus + le sync 5s qui passera
+     par window._v18.serializeStudioState pour son enrichissement. */
+  
+  /* ─── 6. Restauration au load ─── */
+  let _v35_transformApplied = false;
+  setInterval(() => {
+    if (_v35_transformApplied) return;
+    if (!currentObject) return;
+    const row = window._v18 && window._v18.productRow;
+    if (!row || !row.studio_state) return;
+    const t = row.studio_state.transform;
+    if (!t) {
+      /* Pas de transform en base → on considère que c'est appliqué (zéros par défaut) */
+      _v35_transformApplied = true;
+      return;
+    }
+    
+    if (t.position) {
+      currentObject.position.set(
+        (t.position.x || 0) / 100,
+        (t.position.y || 0) / 100,
+        (t.position.z || 0) / 100
+      );
+    }
+    if (t.rotation) {
+      currentObject.rotation.set(
+        THREE.MathUtils.degToRad(t.rotation.x || 0),
+        THREE.MathUtils.degToRad(t.rotation.y || 0),
+        THREE.MathUtils.degToRad(t.rotation.z || 0)
+      );
+    }
+    syncInputsFromObject();
+    console.log('[v35] transform restauré depuis studio_state :', t);
+    _v35_transformApplied = true;
+  }, 700);
+
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
