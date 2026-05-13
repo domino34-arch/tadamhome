@@ -25,20 +25,72 @@
 }
 body{background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:220px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;overflow:hidden}
-.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
-.sidebar-logo img{height:22px;object-fit:contain;display:block}
-.sidebar-section{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:20px 20px 8px;font-family:var(--sans)}
-.nav-btn{width:100%;padding:10px 20px;background:transparent;border:none;color:rgba(255,255,255,.5);font-family:var(--sans);font-size:12px;font-weight:300;text-align:left;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;letter-spacing:.02em}
-.nav-btn:hover{color:var(--white);background:rgba(255,255,255,.04)}
-.nav-btn.active{color:var(--accent);background:rgba(184,152,106,.08)}
-.nav-btn .ico{font-size:14px;width:18px;text-align:center}
-.sidebar-badge{background:var(--accent);color:var(--white);font-size:9px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:auto}
-.sidebar-divider{height:1px;background:rgba(255,255,255,.06);margin:8px 20px}
-.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.06)}
-.sidebar-user{font-size:11px;color:rgba(255,255,255,.3);margin-bottom:8px;font-family:var(--sans)}
-.sidebar-logout{background:none;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all .2s;width:100%}
-.sidebar-logout:hover{border-color:rgba(184,152,106,.3);color:var(--accent)}
+
+/* ════ NAV RAIL — style identique au studio (cohérence visuelle) ════ */
+.nav-rail{
+  width:56px;flex-shrink:0;
+  background:#1C1B18;
+  color:#F5F2EC;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 0;
+  border-right:1px solid #000;
+  overflow:hidden;
+}
+.nav-burger{
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--accent);
+}
+.nav-burger svg{width:18px;height:18px}
+.nav-brand{
+  margin-top:24px;margin-bottom:24px;
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:14px;color:var(--accent);
+  writing-mode:vertical-rl;transform:rotate(180deg);
+  letter-spacing:0.2em;opacity:0.55;
+}
+.nav-icons{
+  display:flex;flex-direction:column;gap:6px;
+  margin-top:auto;margin-bottom:auto;
+}
+.nav-icon{
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  color:#6B6358;cursor:pointer;position:relative;
+  transition:color 0.15s;background:transparent;border:none;
+}
+.nav-icon:hover{color:#C7A872}
+.nav-icon.active{color:var(--accent)}
+.nav-icon.active::before{
+  content:'';position:absolute;
+  left:0;top:6px;bottom:6px;
+  width:2px;background:var(--accent);
+}
+.nav-icon svg{width:16px;height:16px}
+.nav-icon-badge{
+  position:absolute;top:2px;right:2px;
+  background:var(--accent);color:#fff;
+  font-size:8px;font-weight:600;
+  padding:0 4px;min-width:14px;height:14px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:7px;font-family:var(--sans);
+  pointer-events:none;
+}
+.nav-footer{
+  margin-top:auto;display:flex;flex-direction:column;
+  gap:6px;padding-bottom:8px;
+}
+/* Tooltip au hover */
+.nav-icon[data-tooltip]:hover::after{
+  content:attr(data-tooltip);
+  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:#000;color:#F5F2EC;
+  font-family:var(--sans);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:5px 9px;white-space:nowrap;
+  z-index:1000;pointer-events:none;
+  border-left:2px solid var(--accent);
+}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{height:52px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
 .topbar-title{font-family:var(--serif);font-size:22px;font-weight:300}
@@ -356,26 +408,48 @@ tr:hover td{background:rgba(184,152,106,.03)}
 
 <!-- APP -->
 <div class="app" id="app" style="display:none">
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <img src="logo_blanc.png" alt="TadamHome" style="height:20px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=\'font-family:serif;color:#B8986A;font-size:16px\'>TadamHome</span>'"/>
+  <aside class="nav-rail">
+    <div class="nav-burger" data-tooltip="Verrouiller" onclick="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </div>
-    <div class="sidebar-section">Gestion</div>
-    <button class="nav-btn active" onclick="showPanel('overview')"><span class="ico">◈</span>Vue d'ensemble</button>
-    <button class="nav-btn" onclick="showPanel('upload')"><span class="ico">↑</span>Ajouter un modèle</button>
-    <button class="nav-btn" onclick="showPanel('meshy')"><span class="ico">✦</span>Générer avec IA</button>
-    <button class="nav-btn" onclick="showPanel('catalogue')"><span class="ico">▦</span>Catalogue<span class="sidebar-badge" id="navBadge">0</span></button>
-    <button class="nav-btn" onclick="showPanel('icones')"><span class="ico">✦</span>Icônes<span class="sidebar-badge" id="navBadgeIcones">0</span></button>
-    <button class="nav-btn" onclick="showPanel('sols')"><span class="ico">▭</span>Sols<span class="sidebar-badge" id="navBadgeSols">0</span></button>
-    <button class="nav-btn" onclick="showPanel('materiaux')"><span class="ico">◊</span>Matériaux<span class="sidebar-badge" id="navBadgeMateriaux">0</span></button>
-    <button class="nav-btn" onclick="showPanel('texture')"><span class="ico">◫</span>Studio Texture</button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">Liens</div>
-    <button class="nav-btn" onclick="window.open('catalogue.html','_blank')"><span class="ico">←</span>Retour au site</button>
-    <button class="nav-btn" onclick="window.open('dashboard.html','_blank')"><span class="ico">◉</span>Dashboard</button>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">Administrateur</div>
-      <button class="sidebar-logout" onclick="logout()">← Verrouiller</button>
+    <div class="nav-brand">TADAMHOME</div>
+    <div class="nav-icons">
+      <button class="nav-icon active" data-tooltip="Vue d'ensemble" data-panel="overview" onclick="showPanel('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="5"/><rect x="13" y="10" width="8" height="11"/><rect x="3" y="13" width="8" height="8"/></svg>
+      </button>
+      <button class="nav-icon" data-tooltip="Ajouter un modèle" data-panel="upload" onclick="showPanel('upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16 V4 M6 10 L12 4 L18 10"/><path d="M4 20 H20"/></svg>
+      </button>
+      <button class="nav-icon" data-tooltip="Générer avec IA" data-panel="meshy" onclick="showPanel('meshy')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L13.5 8.5 L20 10 L13.5 11.5 L12 18 L10.5 11.5 L4 10 L10.5 8.5 Z"/><circle cx="19" cy="5" r="1.2"/><circle cx="5" cy="19" r="1"/></svg>
+      </button>
+      <button class="nav-icon" data-tooltip="Catalogue" data-panel="catalogue" onclick="showPanel('catalogue')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="nav-icon-badge" id="navBadge">0</span>
+      </button>
+      <button class="nav-icon" data-tooltip="Icônes" data-panel="icones" onclick="showPanel('icones')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 15,10 23,10 17,15 19,23 12,18 5,23 7,15 1,10 9,10"/></svg>
+        <span class="nav-icon-badge" id="navBadgeIcones">0</span>
+      </button>
+      <button class="nav-icon" data-tooltip="Sols" data-panel="sols" onclick="showPanel('sols')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20 L12 4 L21 20 Z"/></svg>
+        <span class="nav-icon-badge" id="navBadgeSols">0</span>
+      </button>
+      <button class="nav-icon" data-tooltip="Matériaux" data-panel="materiaux" onclick="showPanel('materiaux')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3 v18 M3 12 h18"/></svg>
+        <span class="nav-icon-badge" id="navBadgeMateriaux">0</span>
+      </button>
+      <button class="nav-icon" data-tooltip="Studio Texture" data-panel="texture" onclick="showPanel('texture')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </button>
+    </div>
+    <div class="nav-footer">
+      <button class="nav-icon" data-tooltip="Retour au site" onclick="window.open('catalogue.html','_blank')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12 H5 M12 5 L5 12 L12 19"/></svg>
+      </button>
+      <button class="nav-icon" data-tooltip="Dashboard" onclick="window.open('dashboard.html','_blank')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 12 L12 4 M12 12 L17 17"/></svg>
+      </button>
     </div>
   </aside>
 
@@ -593,11 +667,6 @@ tr:hover td{background:rgba(184,152,106,.03)}
       <!-- STUDIO TEXTURE (hosted via iframe → studio.html v33) -->
       <div class="panel" id="panelTexture">
         <div class="ts-iframe-wrap">
-          <div class="ts-iframe-head">
-            <h3>Studio Texture</h3>
-            <span class="ts-iframe-sub">Éditeur PBR avancé · v33</span>
-            <a href="studio.html" target="_blank" id="tsOpenNewTab">↗ Ouvrir en plein écran</a>
-          </div>
           <iframe src="studio.html" class="ts-iframe" id="tsIframe" title="Studio Texture"></iframe>
         </div>
       </div>
@@ -693,16 +762,15 @@ const panelActions={
 };
 function showPanel(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-icon').forEach(b=>b.classList.remove('active'));
   const p=document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1));
   if(p) p.classList.add('active');
   document.getElementById('topbarTitle').innerHTML=panelTitles[name]||name;
   document.getElementById('topbarActions').innerHTML=panelActions[name]||panelActions.default;
   document.querySelector('.content').scrollTop=0;
-  const map={overview:'ensemble',upload:'ajouter',meshy:'ia',catalogue:'modèles',icones:'icônes',sols:'sols',materiaux:'matériaux',texture:'texture'};
-  document.querySelectorAll('.nav-btn').forEach(b=>{
-    if(b.textContent.toLowerCase().includes(map[name]||'__')) b.classList.add('active');
-  });
+  /* Active state sur l'icône du rail (via data-panel) */
+  const activeIcon=document.querySelector('.nav-icon[data-panel="'+name+'"]');
+  if(activeIcon) activeIcon.classList.add('active');
   /* Deep-link support : ?panel=catalogue */
   if(history.replaceState){
     const url=new URL(location.href);
