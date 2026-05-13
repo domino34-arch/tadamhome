@@ -1358,6 +1358,7 @@ function renderMaterialsGrid(){
       +'</div>'
       +'<div class="mat-card-actions" onclick="event.stopPropagation()">'
       +'<button class="row-btn" onclick="openMaterialModal(\''+m.id+'\')" title="Éditer">✎</button>'
+      +'<button class="row-btn" onclick="openMaterialModal(\''+m.id+'\', null, true)" title="Dupliquer (garde les maps PBR)">⎘</button>'
       +'<button class="row-btn del" onclick="askDelete(\''+m.id+'\',\''+safeName+'\',\'material\')" title="Supprimer">✕</button>'
       +'</div></div>';
   }).join('');
@@ -1372,6 +1373,7 @@ function openNewMaterial(presetCategory){
    ══════════════════════════════════════════════════════════════════ */
 let editingMaterialId = null;     /* null = mode création */
 let _matPendingFiles = {};        /* en attente avant ID (mode création) */
+let _matInheritedUrls = {};       /* mode duplication : URLs héritées du source */
 
 const MAT_MAP_FIELDS = [
   { key: 'albedo_url',    label: 'Albedo (couleur diffuse)', required: true,  maxSize: 1024 },
@@ -1705,12 +1707,75 @@ async function removeMap(mapKey, slotDiv){
   toast('Map retirée','ok');
 }
 
-function openMaterialModal(materialId, presetCategory){
+function openMaterialModal(materialId, presetCategory, duplicateMode){
   injectMaterialModal();
+  /* En mode duplication : on est en CRÉATION mais on hérite des URLs et
+     des méta du matériau source. _matInheritedUrls sert au save pour 
+     attribuer les URLs au nouveau matériau pour les maps non remplacées. */
+  const source = materialId ? (allMaterials || []).find(x => x.id === materialId) : null;
+
+  if (duplicateMode && source) {
+    editingMaterialId = null;
+    _matPendingFiles = {};
+    _matInheritedUrls = {
+      albedo_url:    source.albedo_url    || null,
+      normal_url:    source.normal_url    || null,
+      roughness_url: source.roughness_url || null,
+      metallic_url:  source.metallic_url  || null,
+      ao_url:        source.ao_url        || null,
+    };
+
+    document.getElementById('matModalTitle').textContent = 'Dupliquer le matériau';
+    document.getElementById('matId').value = '';
+    document.getElementById('matName').value = (source.name || 'Matériau') + ' (copie)';
+    document.getElementById('matCategory').value = source.category || '';
+    document.getElementById('matSubcategory').value = source.subcategory || '';
+    document.getElementById('matRefCode').value = '';  /* ref_code doit être unique */
+
+    document.querySelectorAll('input[name="matStatus"]').forEach(r => {
+      r.checked = (r.value === 'true');
+    });
+
+    /* Slot Vignette : vide — sera régénérée à partir des nouvelles maps */
+    const thumbSlot = document.getElementById('matThumbnailSlot');
+    thumbSlot.innerHTML = '';
+    thumbSlot.appendChild(buildMapSlot(
+      { key:'thumbnail_url', label:'Vignette (carrée 400×400)', required:false, maxSize:800 },
+      ''
+    ));
+
+    /* Slots PBR : affichage de la preview héritée. Si l'user ne touche pas
+       au slot, l'URL héritée sera utilisée au save. S'il sélectionne un
+       nouveau fichier, le pending file remplace l'URL héritée. */
+    const grid = document.getElementById('matMapsGrid');
+    grid.innerHTML = '';
+    MAT_MAP_FIELDS.forEach(field => {
+      const inheritedUrl = source[field.key] || '';
+      grid.appendChild(buildMapSlot(field, inheritedUrl));
+    });
+
+    /* Cacher le bouton "Régénérer la sphère" (pas pertinent en duplication) */
+    const regenBtn = document.getElementById('matRegenSphereBtn');
+    if (regenBtn) regenBtn.style.display = 'none';
+
+    /* Message indicatif */
+    const msg = document.getElementById('matMsg');
+    msg.style.color = 'var(--accent)';
+    msg.innerHTML = '<small><b>Mode duplication</b> · Maps héritées de « ' +
+      (source.name || 'matériau source') + ' ». Modifie celles que tu veux remplacer (typiquement l\'albedo pour changer la couleur).</small>';
+
+    document.getElementById('materialModal').classList.add('show');
+    /* Focus sur le nom pour qu'il puisse l'éditer tout de suite */
+    setTimeout(() => document.getElementById('matName').focus(), 100);
+    return;
+  }
+
+  /* === Mode normal : création ou édition === */
   editingMaterialId = materialId || null;
   _matPendingFiles = {};
-  
-  const m = materialId ? (allMaterials || []).find(x => x.id === materialId) : null;
+  _matInheritedUrls = {};  /* reset important */
+
+  const m = source;
   document.getElementById('matModalTitle').textContent = materialId ? 'Éditer le matériau' : 'Nouveau matériau';
   document.getElementById('matId').value = materialId || '';
   document.getElementById('matName').value = m?.name || '';
@@ -1851,7 +1916,7 @@ async function saveMaterial(){
           return;
         }
       }
-      if(!_matPendingFiles['albedo_url']){
+      if(!_matPendingFiles['albedo_url'] && !_matInheritedUrls['albedo_url']){
         msg.textContent = '⚠ L\'Albedo (couleur) est obligatoire'; msg.style.color = 'var(--red)';
         btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Enregistrer';
         return;
@@ -1898,6 +1963,20 @@ async function saveMaterial(){
           msg.textContent = '⚠ Map "'+key+'" non uploadée : '+e.message;
           msg.style.color = 'var(--accent)';
         }
+      }
+      /* v52 — Pour les maps NON remplacées en mode duplication, on utilise
+         les URLs héritées du matériau source. Le nouveau matériau partage
+         les fichiers Storage avec l'original (économe en stockage). */
+      const inheritedKeys = Object.keys(_matInheritedUrls);
+      let inheritedCount = 0;
+      for (const key of inheritedKeys) {
+        if (!updatePayload[key] && _matInheritedUrls[key]) {
+          updatePayload[key] = _matInheritedUrls[key];
+          inheritedCount++;
+        }
+      }
+      if (inheritedCount > 0) {
+        console.log('[mat create dup] ' + inheritedCount + ' map(s) héritée(s) du matériau source');
       }
       /* Si pas de thumbnail explicite mais un albedo : générer une sphère PBR
          côté client (v51) pour cohérence visuelle du catalogue. Fallback sur
