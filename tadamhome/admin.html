@@ -883,6 +883,7 @@ function renderTable(products,id){
       +'<td><span class="td-badge '+(p.model_usdz_url?'ok':'')+'">'+(p.model_usdz_url?'✓ USDZ':'—')+'</span></td>'
       +'<td><div class="row-actions">'
       +'<button class="row-btn" style="color:var(--accent)" onclick="openInStudio(\''+p.id+'\')">⚡ Studio</button>'
+      +'<button class="row-btn" onclick="openEditModal(\''+p.id+'\')" title="Éditer les informations produit">✎ Éditer</button>'
       +'<button class="row-btn" onclick="window.open(\''+BASE_URL+'?id='+p.id+'\',\'_blank\')">AR</button>'
       +'<button class="row-btn del" onclick="askDelete(\''+p.id+'\',\''+nm+'\',\'product\')">✕</button>'
       +'</div></td>'
@@ -1233,6 +1234,265 @@ document.addEventListener('DOMContentLoaded',()=>{
   m.className='modal-bg'; m.id='confirmModal';
   m.innerHTML='<div class="modal" style="max-width:400px"><div class="modal-head"><h3>Confirmer</h3><button class="modal-close" onclick="closeConfirm()">✕</button></div><div class="modal-body"><p style="font-family:var(--sans);font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:16px" id="confirmTxt"></p><div style="display:flex;gap:8px"><button class="btn-primary" style="background:var(--red)" onclick="confirmDelete()">Supprimer</button><button class="btn-secondary" onclick="closeConfirm()">Annuler</button></div></div></div>';
   document.body.appendChild(m);
+
+  /* ══ EDIT PRODUCT MODAL injection ══ */
+  if(document.getElementById('editProductModal')) return;
+  const em=document.createElement('div');
+  em.className='modal-bg'; em.id='editProductModal';
+  em.innerHTML=`
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <h3>Éditer le produit</h3>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edProductId" value="">
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Identité</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nom *</label>
+              <input type="text" id="edName" placeholder="ex. Note M-4060">
+            </div>
+            <div class="field">
+              <label>Marque / Enseigne</label>
+              <input type="text" id="edBrand" placeholder="ex. PAGED, ARPER…">
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Classification & prix</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Catégorie</label>
+              <select id="edCategory">
+                <option value="">Choisir…</option>
+                <option>Sofa</option>
+                <option>Canapé</option>
+                <option>Fauteuil</option>
+                <option>Chaise</option>
+                <option>Table basse</option>
+                <option>Table à manger</option>
+                <option>Bureau</option>
+                <option>Luminaire</option>
+                <option>Rangement</option>
+                <option>Lit</option>
+                <option>Autre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Prix (€)</label>
+              <input type="number" id="edPrice" placeholder="ex. 450" min="0" step="1">
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Dimensions (cm)</div>
+          <div class="form-grid-3">
+            <div class="field">
+              <label>Largeur (L)</label>
+              <input type="number" id="edDimL" placeholder="—" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label>Hauteur (H)</label>
+              <input type="number" id="edDimH" placeholder="—" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label>Profondeur (P)</label>
+              <input type="number" id="edDimP" placeholder="—" min="0" step="0.1">
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Statut de publication</div>
+          <div style="display:flex;gap:18px;font-family:var(--sans);font-size:13px;color:var(--ink)">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="edStatus" value="publie"> Publié
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="edStatus" value="brouillon"> Brouillon
+            </label>
+          </div>
+          <p style="font-family:var(--sans);font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px;font-style:italic">
+            Pour modifier les matériaux, la géométrie 3D ou les variantes, utilise le bouton <strong style="color:var(--accent);font-style:normal">⚡ Studio</strong>.
+          </p>
+        </div>
+        
+        <p id="edMsg" style="font-family:var(--sans);font-size:12px;margin-top:14px"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeEditModal()">Annuler</button>
+        <button class="btn-primary" id="edSaveBtn" onclick="saveEditedProduct()">Enregistrer</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(em);
+});
+
+/* ══ EDIT PRODUCT — open / close / save ══ */
+let editingId = null;
+function openEditModal(id){
+  const p = (allProducts||[]).find(x => x.id === id);
+  if(!p){ toast('Produit introuvable','err'); return; }
+  editingId = id;
+  
+  document.getElementById('edProductId').value = id;
+  document.getElementById('edName').value      = p.name || '';
+  document.getElementById('edBrand').value     = p.enseigne_name || p.brand || p.marque || '';
+  
+  /* Catégorie : sélectionner la valeur correspondante */
+  const cat = p.category || p.categorie || '';
+  const catSel = document.getElementById('edCategory');
+  let matched = false;
+  [...catSel.options].forEach(o => {
+    if(o.value === cat || o.textContent === cat){ catSel.value = o.value || o.textContent; matched = true; }
+  });
+  if(!matched && cat) catSel.value = '';
+  
+  document.getElementById('edPrice').value = (typeof p.price === 'number') ? p.price : '';
+  
+  /* Dimensions : essayer d'abord les colonnes scalaires, puis l'objet dimensions */
+  const dims = p.dimensions || {};
+  const L = dims.L ?? dims.length ?? dims.l ?? null;
+  const H = p.height ?? dims.H ?? dims.height ?? dims.h ?? null;
+  const P = p.depth  ?? dims.P ?? dims.depth  ?? dims.p ?? null;
+  document.getElementById('edDimL').value = (L != null) ? L : '';
+  document.getElementById('edDimH').value = (H != null) ? H : '';
+  document.getElementById('edDimP').value = (P != null) ? P : '';
+  
+  /* Statut */
+  const status = p.status || 'brouillon';
+  document.querySelectorAll('input[name="edStatus"]').forEach(r => {
+    r.checked = (r.value === status);
+  });
+  
+  document.getElementById('edMsg').textContent = '';
+  document.getElementById('edMsg').className = 'form-msg';
+  document.getElementById('editProductModal').classList.add('show');
+}
+
+function closeEditModal(){
+  document.getElementById('editProductModal').classList.remove('show');
+  editingId = null;
+}
+
+async function saveEditedProduct(){
+  if(!editingId){ closeEditModal(); return; }
+  
+  const name = (document.getElementById('edName').value || '').trim();
+  if(!name){
+    const msg = document.getElementById('edMsg');
+    msg.textContent = '⚠ Le nom est obligatoire';
+    msg.style.color = 'var(--red)';
+    document.getElementById('edName').focus();
+    return;
+  }
+  
+  const brand    = (document.getElementById('edBrand').value || '').trim() || null;
+  const category = document.getElementById('edCategory').value || null;
+  const priceRaw = document.getElementById('edPrice').value;
+  const price    = priceRaw === '' ? null : parseFloat(priceRaw);
+  
+  const dimL = parseFloat(document.getElementById('edDimL').value);
+  const dimH = parseFloat(document.getElementById('edDimH').value);
+  const dimP = parseFloat(document.getElementById('edDimP').value);
+  
+  const status = document.querySelector('input[name="edStatus"]:checked')?.value || 'brouillon';
+  
+  /* Construire le payload */
+  const payload = {
+    name,
+    enseigne_name: brand,
+    status,
+  };
+  if(category){
+    payload.category = category;
+    payload.categorie = category;   /* dual-write FR */
+  }
+  if(price !== null && !isNaN(price)) payload.price = price;
+  else payload.price = null;
+  
+  /* Dimensions */
+  const dimsJson = {};
+  if(!isNaN(dimL) && dimL > 0) dimsJson.L = dimL;
+  if(!isNaN(dimH) && dimH > 0){ dimsJson.H = dimH; payload.height = dimH; }
+  if(!isNaN(dimP) && dimP > 0){ dimsJson.P = dimP; payload.depth  = dimP; }
+  if(Object.keys(dimsJson).length > 0) payload.dimensions = dimsJson;
+  
+  /* Si on publie, ajouter published_at */
+  if(status === 'publie'){
+    const existing = (allProducts||[]).find(p => p.id === editingId);
+    if(!existing || existing.status !== 'publie') payload.published_at = new Date().toISOString();
+  }
+  
+  const btn = document.getElementById('edSaveBtn');
+  btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Enregistrement…';
+  const msg = document.getElementById('edMsg');
+  msg.textContent = '';
+  
+  try {
+    const { error } = await sb.from('products').update(payload).eq('id', editingId);
+    if(error) throw error;
+    
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✓ Enregistré';
+    toast('Produit mis à jour','ok');
+    
+    /* Refresh tableau */
+    await loadProducts();
+    
+    /* Fermer la modal après un court délai */
+    setTimeout(closeEditModal, 600);
+  } catch(e) {
+    console.error('[edit save]', e);
+    /* Fallback : retry sans les colonnes susceptibles d'être absentes */
+    let retried = false;
+    if(/column.*does not exist|schema cache/i.test(e.message || '')){
+      try {
+        /* Tentative minimale : juste name + enseigne_name + status + price */
+        const minPayload = {
+          name: payload.name,
+          enseigne_name: payload.enseigne_name,
+          status: payload.status,
+          price: payload.price,
+        };
+        if(payload.category) minPayload.category = payload.category;
+        if(payload.categorie) minPayload.categorie = payload.categorie;
+        const { error: e2 } = await sb.from('products').update(minPayload).eq('id', editingId);
+        if(!e2){
+          retried = true;
+          msg.style.color = 'var(--accent)';
+          msg.textContent = '⚠ Enregistré (certaines colonnes ignorées)';
+          toast('Produit mis à jour (partiel)','ok');
+          await loadProducts();
+          setTimeout(closeEditModal, 900);
+        } else {
+          throw e2;
+        }
+      } catch(e3) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = '✗ ' + (e3.message || e3);
+      }
+    }
+    if(!retried){
+      msg.style.color = 'var(--red)';
+      msg.textContent = '✗ ' + (e.message || e);
+    }
+  } finally {
+    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Enregistrer';
+  }
+}
+
+/* Esc pour fermer la modal d'édition */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    const em = document.getElementById('editProductModal');
+    if(em && em.classList.contains('show')) closeEditModal();
+  }
 });
 </script>
 
