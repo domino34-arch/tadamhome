@@ -9436,23 +9436,41 @@ console.log('[studio v29] refactor IA du burger panel + carte éditable + sync c
 
     /* V33 — Avant de publier, on RE-exporte GLB + USDZ vers Supabase Storage
        pour que le catalogue/AR ait toujours la version la plus récente
-       des matériaux et de la géométrie. */
-    if (window._v19 && typeof window._v19.runExport === 'function') {
+       des matériaux et de la géométrie.
+       
+       V34 patch — Skip le re-export si les fichiers existent déjà :
+       le pipeline v34 les a uploadés à la création, et le user n'a peut-être
+       rien modifié depuis. Évite les 400 Bad Request en cascade et permet
+       de publier même si le re-export bug. Si le user veut forcer un
+       re-export, il peut le faire via les boutons Export du burger. */
+    const row = window._v18 && window._v18.productRow;
+    const stExp = (row && row.studio_state && row.studio_state.exports) || {};
+    const hasGlb = !!(row && row.model_glb_url) || !!stExp.glb;
+    const hasUsdz = !!(row && row.model_usdz_url) || !!stExp.usdz;
+    
+    if (hasGlb && hasUsdz) {
+      console.log('[v30] GLB + USDZ déjà présents en base — skip re-export, publication directe');
+      toast('Fichiers AR déjà à jour ✓', 'info', 2500);
+    } else if (window._v19 && typeof window._v19.runExport === 'function') {
       window._v18.setBadge && window._v18.setBadge('saving', 'Export GLB…');
       toast('Génération des fichiers AR pour le catalogue…', 'info', 3500);
-      let glbOk = false, usdzOk = false;
-      try {
-        await window._v19.runExport('glb');
-        glbOk = !!(window._v19.exports && window._v19.exports.glb);
-      } catch (e) {
-        console.error('[v33 export GLB]', e);
+      let glbOk = !!hasGlb, usdzOk = !!hasUsdz;
+      if (!hasGlb) {
+        try {
+          await window._v19.runExport('glb');
+          glbOk = !!(window._v19.exports && window._v19.exports.glb);
+        } catch (e) {
+          console.error('[v33 export GLB]', e);
+        }
       }
       window._v18.setBadge && window._v18.setBadge('saving', 'Export USDZ…');
-      try {
-        await window._v19.runExport('usdz');
-        usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
-      } catch (e) {
-        console.error('[v33 export USDZ]', e);
+      if (!hasUsdz) {
+        try {
+          await window._v19.runExport('usdz');
+          usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
+        } catch (e) {
+          console.error('[v33 export USDZ]', e);
+        }
       }
       /* Si AUCUN export n'a marché, on abort — pas d'AR possible */
       if (!glbOk && !usdzOk) {
