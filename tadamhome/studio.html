@@ -13379,6 +13379,41 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v41 — RETIRER LE BOUTON 📸 DE LA TOPBAR
+   ─────────────────────────────────────────────────────────────────────────
+   Décision UX : les auto-prompts v39 (à la création produit + à la création
+   variante) suffisent. Le bouton dans la topbar était source de confusion
+   (placé près des toggles tree/fiche).
+   
+   La modal v38 et tous les uploads restent fonctionnels — ils sont juste
+   appelés uniquement via les auto-prompts maintenant. Pour re-éditer photos
+   ou swatch après création : recréer la variante (impose de refaire les
+   matériaux), ou réactiver ce v41 en mettant ENABLE_PURGE à false.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v41RemoveCatalogButton() {
+  if (window.__v41Init) return;
+  window.__v41Init = true;
+  const ENABLE_PURGE = true;
+  if (!ENABLE_PURGE) return;
+
+  function purge() {
+    document.querySelectorAll('.v38-tb-btn').forEach(b => b.remove());
+  }
+  /* Purge initial + retries (le bouton est injecté en async par v38) */
+  purge();
+  [200, 800, 2000, 4000].forEach(d => setTimeout(purge, d));
+
+  /* MutationObserver : retire immédiatement si v38 ré-injecte */
+  const obs = new MutationObserver(() => {
+    if (document.querySelector('.v38-tb-btn')) purge();
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+
+  console.log('[studio v41] bouton 📸 topbar retiré — modal accessible uniquement via auto-prompts à la création');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
