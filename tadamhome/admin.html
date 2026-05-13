@@ -864,6 +864,7 @@ h1, h2, h3, h4,
         <div class="search-bar" style="margin-top:2px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="matSearch" placeholder="Rechercher un matériau…" oninput="filterMaterialsBySearch()"/>
+          <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="regenerateAllSpheres()" title="Régénère les vignettes sphère PBR pour tous les matériaux qui ont un albedo">⟳ Régen. sphères</button>
           <button class="topbar-btn ghost" style="padding:6px 14px;font-size:10px" onclick="loadMaterials()">↺ Actualiser</button>
           <button class="topbar-btn" style="padding:6px 14px;font-size:10px" onclick="openNewMaterial()">+ Nouveau matériau</button>
         </div>
@@ -916,7 +917,7 @@ h1, h2, h3, h4,
     renderer.toneMappingExposure = 1.05;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1B1814);  /* fond ink-deep type studio */
+    scene.background = new THREE.Color(0x2A2620);  /* matche var(--sidebar) admin */
 
     const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
     /* Distance choisie pour que la sphère occupe ~70% du cadre (cohérence
@@ -2043,6 +2044,111 @@ async function regenerateSphereThumb(){
     btn.disabled = false;
     btn.textContent = origText;
   }
+}
+
+/* v54 — Régénère les sphères PBR pour TOUS les matériaux qui ont un albedo.
+   Utile pour harmoniser visuellement le catalogue (taille, fond, lumières)
+   après une mise à jour du module de génération ou un import manuel. */
+async function regenerateAllSpheres(){
+  if (typeof window.generateSphereThumbnail !== 'function') {
+    toast('Module de génération non prêt', 'err');
+    return;
+  }
+  const eligible = (allMaterials || []).filter(m => m.albedo_url);
+  if (eligible.length === 0) {
+    toast('Aucun matériau avec albedo', 'info');
+    return;
+  }
+  const estSec = Math.ceil(eligible.length * 2.5);
+  if (!confirm(
+    'Régénérer les sphères PBR pour ' + eligible.length + ' matériau(x) ?\n\n' +
+    'Durée estimée : ~' + estSec + 's.\n' +
+    'Les vignettes actuelles seront remplacées.'
+  )) return;
+
+  /* Créer un overlay de progression */
+  let overlay = document.getElementById('regenAllOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'regenAllOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,27,24,0.78);z-index:99999;' +
+      'display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);' +
+      '-webkit-backdrop-filter:blur(6px)';
+    overlay.innerHTML = `
+      <div style="background:var(--bg);padding:36px 44px;max-width:500px;width:90vw;text-align:center;
+                  box-shadow:0 20px 50px rgba(0,0,0,0.35)">
+        <div style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:0.22em;
+                    text-transform:uppercase;color:var(--accent);margin-bottom:14px">
+          Régénération des sphères
+        </div>
+        <div id="regenAllTitle" style="font-family:var(--sans);font-size:11px;font-weight:600;
+                                       letter-spacing:0.20em;text-transform:uppercase;
+                                       color:var(--muted);margin-bottom:8px;min-height:16px">
+          Préparation…
+        </div>
+        <div id="regenAllSub" style="font-family:var(--sans);font-size:13px;color:var(--ink);
+                                     margin-bottom:22px;min-height:20px">
+          —
+        </div>
+        <div style="height:4px;background:rgba(184,150,90,0.15);position:relative;overflow:hidden;margin-bottom:18px">
+          <div id="regenAllFill" style="position:absolute;top:0;left:0;bottom:0;background:var(--accent);
+                                        width:0%;transition:width 0.4s cubic-bezier(.4,.2,.2,1)"></div>
+        </div>
+        <div style="font-family:var(--sans);font-size:11px;font-style:italic;
+                    color:var(--muted);opacity:0.7;line-height:1.5">
+          Ne ferme pas la page · environ 2-3s par matériau.
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = 'flex';
+  }
+  const titleEl = document.getElementById('regenAllTitle');
+  const subEl   = document.getElementById('regenAllSub');
+  const fillEl  = document.getElementById('regenAllFill');
+
+  let success = 0, failed = 0, skipped = 0;
+  for (let i = 0; i < eligible.length; i++) {
+    const m = eligible[i];
+    const ratio = i / eligible.length;
+    titleEl.textContent = (i+1) + '/' + eligible.length + ' · ' + (m.category || 'matériau');
+    subEl.textContent = m.name || '—';
+    fillEl.style.width = Math.round(ratio * 100) + '%';
+
+    try {
+      const blob = await window.generateSphereThumbnail({
+        albedo:    m.albedo_url,
+        normal:    m.normal_url,
+        roughness: m.roughness_url,
+        metallic:  m.metallic_url,
+        ao:        m.ao_url,
+      });
+      if (!blob || blob.size < 1024) { skipped++; continue; }
+      const file = new File([blob], 'sphere_thumb_regen.png', { type: 'image/png' });
+      const newUrl = await uploadMaterialAsset(file, m.id, 'thumbnail_url');
+      const { error } = await sb.from('materials_library')
+        .update({ thumbnail_url: newUrl })
+        .eq('id', m.id);
+      if (error) throw error;
+      /* Mirror en mémoire */
+      m.thumbnail_url = newUrl;
+      success++;
+    } catch(e) {
+      console.error('[regen all] ' + (m.name || m.id), e);
+      failed++;
+    }
+  }
+
+  fillEl.style.width = '100%';
+  titleEl.textContent = 'Terminé';
+  subEl.textContent = success + ' ok · ' + failed + ' échec(s) · ' + skipped + ' ignoré(s)';
+  await new Promise(r => setTimeout(r, 1500));
+  overlay.style.display = 'none';
+
+  toast('✓ ' + success + ' sphère(s) régénérée(s)' + (failed ? ' · ' + failed + ' échec(s)' : ''),
+        failed ? 'info' : 'ok', 5000);
+  await loadMaterials();
 }
 
 function closeMaterialModal(){
