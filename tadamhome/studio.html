@@ -9438,49 +9438,57 @@ console.log('[studio v29] refactor IA du burger panel + carte éditable + sync c
        pour que le catalogue/AR ait toujours la version la plus récente
        des matériaux et de la géométrie.
        
-       V34 patch — Skip le re-export si les fichiers existent déjà :
-       le pipeline v34 les a uploadés à la création, et le user n'a peut-être
-       rien modifié depuis. Évite les 400 Bad Request en cascade et permet
-       de publier même si le re-export bug. Si le user veut forcer un
-       re-export, il peut le faire via les boutons Export du burger. */
+       V34.2 — On TOUJOURS tenter le re-export, mais avec fallback intelligent :
+       - Si le re-export réussit → les nouveaux URLs remplaceront les anciens
+         (via le sync 5s qui pousse studio_state.exports vers les colonnes scalaires)
+       - Si le re-export échoue MAIS des fichiers existent déjà en base
+         → on continue la publication avec un warning (anciens fichiers utilisés)
+       - Si re-export échoue ET aucun fichier en base → on abort comme avant */
     const row = window._v18 && window._v18.productRow;
     const stExp = (row && row.studio_state && row.studio_state.exports) || {};
-    const hasGlb = !!(row && row.model_glb_url) || !!stExp.glb;
-    const hasUsdz = !!(row && row.model_usdz_url) || !!stExp.usdz;
+    const hadGlb = !!(row && row.model_glb_url) || !!stExp.glb;
+    const hadUsdz = !!(row && row.model_usdz_url) || !!stExp.usdz;
     
-    if (hasGlb && hasUsdz) {
-      console.log('[v30] GLB + USDZ déjà présents en base — skip re-export, publication directe');
-      toast('Fichiers AR déjà à jour ✓', 'info', 2500);
-    } else if (window._v19 && typeof window._v19.runExport === 'function') {
+    if (window._v19 && typeof window._v19.runExport === 'function') {
       window._v18.setBadge && window._v18.setBadge('saving', 'Export GLB…');
-      toast('Génération des fichiers AR pour le catalogue…', 'info', 3500);
-      let glbOk = !!hasGlb, usdzOk = !!hasUsdz;
-      if (!hasGlb) {
-        try {
-          await window._v19.runExport('glb');
-          glbOk = !!(window._v19.exports && window._v19.exports.glb);
-        } catch (e) {
-          console.error('[v33 export GLB]', e);
-        }
+      toast('Régénération des fichiers AR avec les modifs récentes…', 'info', 3500);
+      let glbOk = false, usdzOk = false;
+      try {
+        await window._v19.runExport('glb');
+        glbOk = !!(window._v19.exports && window._v19.exports.glb);
+      } catch (e) {
+        console.error('[v33 export GLB]', e);
       }
       window._v18.setBadge && window._v18.setBadge('saving', 'Export USDZ…');
-      if (!hasUsdz) {
-        try {
-          await window._v19.runExport('usdz');
-          usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
-        } catch (e) {
-          console.error('[v33 export USDZ]', e);
-        }
+      try {
+        await window._v19.runExport('usdz');
+        usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
+      } catch (e) {
+        console.error('[v33 export USDZ]', e);
       }
-      /* Si AUCUN export n'a marché, on abort — pas d'AR possible */
-      if (!glbOk && !usdzOk) {
+      
+      /* Fallback intelligent : si re-export a échoué mais fichiers existent → on continue */
+      const finalGlbOk = glbOk || hadGlb;
+      const finalUsdzOk = usdzOk || hadUsdz;
+      
+      if (!finalGlbOk && !finalUsdzOk) {
         window._v18.setBadge && window._v18.setBadge('error', 'Exports échoués');
-        toast('Les deux exports AR ont échoué — publication annulée', 'err', 6000);
+        toast('Aucun fichier AR disponible — publication annulée', 'err', 6000);
         return;
       }
-      /* Si un seul a échoué : on continue mais on prévient */
-      if (!glbOk)  toast('⚠ GLB non exporté — Android AR ne fonctionnera pas', 'info', 5000);
-      if (!usdzOk) toast('⚠ USDZ non exporté — iOS AR ne fonctionnera pas', 'info', 5000);
+      
+      /* Warnings sur ce qui n'a pas pu être régénéré */
+      if (!glbOk && hadGlb) {
+        toast('⚠ GLB non régénéré (modifs récentes non répercutées) — ancien fichier conservé', 'info', 5500);
+      } else if (!glbOk && !hadGlb) {
+        toast('⚠ GLB indisponible — Android AR ne fonctionnera pas', 'info', 5000);
+      }
+      if (!usdzOk && hadUsdz) {
+        toast('⚠ USDZ non régénéré — ancien fichier conservé', 'info', 5500);
+      } else if (!usdzOk && !hadUsdz) {
+        toast('⚠ USDZ indisponible — iOS AR ne fonctionnera pas', 'info', 5000);
+      }
+      
       /* Re-save pour propager les URLs d'exports dans studio_state */
       if (typeof window.forceStudioSave === 'function') {
         try { await window.forceStudioSave(); } catch (e) { /* nope */ }
