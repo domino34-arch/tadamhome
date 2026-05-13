@@ -13848,6 +13848,258 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v44 — FIX persistance des DOSSIERS HIÉRARCHIQUES (v36)
+   ─────────────────────────────────────────────────────────────────────────
+   Bug constaté : les dossiers créés via "Grouper en dossier" disparaissent
+   à la réouverture du produit.
+   
+   Cause : v36 hook serializeStudioState pour ajouter `state.hierarchy`, mais
+   `doSave` interne du studio appelle la version closure ORIGINALE de
+   serializeStudioState — pas l'override de window._v18. Donc state.hierarchy
+   n'est jamais écrit en DB (même pattern que le bug v34 résolu par sync 5s).
+   
+   Fix : sync direct DB qui détecte les changements de window._v36.hierarchy
+   et écrit en SELECT + merge + UPDATE indépendamment de doSave.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v44HierarchyDirectSync() {
+  if (window.__v44Init) return;
+  window.__v44Init = true;
+
+  window._v44 = {
+    lastSyncedHash: null,
+    lastSyncAt: 0,
+    syncing: false,
+    booted: false,
+  };
+
+  function hashHierarchy() {
+    const h = window._v36 && window._v36.hierarchy;
+    if (!h || Object.keys(h).length === 0) return '__empty__';
+    return Object.keys(h).sort().map(k => {
+      const w = h[k];
+      return k + ':' + (w.label || '') + ':' + (w.childrenKeys || []).join(',') +
+             ':' + Math.round(((w.position?.x || 0) + (w.position?.y || 0) + (w.position?.z || 0)) * 100) +
+             ':' + Math.round(((w.rotation?.x || 0) + (w.rotation?.y || 0) + (w.rotation?.z || 0)) * 100);
+    }).join('|');
+  }
+
+  function serializeForDB() {
+    const h = window._v36 && window._v36.hierarchy;
+    if (!h) return null;
+    const out = {};
+    Object.keys(h).forEach(k => {
+      const w = h[k];
+      out[k] = {
+        label: w.label || 'Dossier',
+        childrenKeys: Array.isArray(w.childrenKeys) ? w.childrenKeys.slice() : [],
+        position: {
+          x: Number(w.position?.x || 0),
+          y: Number(w.position?.y || 0),
+          z: Number(w.position?.z || 0),
+        },
+        rotation: {
+          x: Number(w.rotation?.x || 0),
+          y: Number(w.rotation?.y || 0),
+          z: Number(w.rotation?.z || 0),
+        },
+        expanded: w.expanded !== false,
+      };
+    });
+    return out;
+  }
+
+  async function pushToDB(productId) {
+    if (!productId || window._v44.syncing) return false;
+    if (typeof sb === 'undefined') return false;
+    window._v44.syncing = true;
+    try {
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      const hier = serializeForDB();
+      const isEmpty = !hier || Object.keys(hier).length === 0;
+
+      if (isEmpty) {
+        if (state.hierarchy) delete state.hierarchy;
+        else { window._v44.syncing = false; return true; }
+      } else {
+        state.hierarchy = hier;
+      }
+
+      const { error: e2 } = await sb.from('products')
+        .update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+
+      /* Mirror sur la row en mémoire */
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = state;
+      }
+      window._v44.lastSyncAt = Date.now();
+      console.log('[v44] hiérarchie sync DB · ' + (isEmpty ? '0' : Object.keys(hier).length) + ' dossier(s)');
+      return true;
+    } catch (e) {
+      console.error('[v44 push]', e);
+      return false;
+    } finally {
+      window._v44.syncing = false;
+    }
+  }
+
+  /* ───── WATCHER polling 2s ───── */
+  function startWatcher() {
+    /* Boot delay : laisser v36 finir sa restoration avant de capturer le baseline */
+    setTimeout(() => {
+      window._v44.lastSyncedHash = hashHierarchy();
+      window._v44.booted = true;
+      console.log('[v44] watcher démarré · hash initial=' + window._v44.lastSyncedHash.slice(0, 60));
+    }, 5000);
+
+    setInterval(() => {
+      if (!window._v44.booted) return;
+      const productId = window._v18 && window._v18.productId;
+      if (!productId) return;
+      if (window._v18 && window._v18.restoring) return;
+
+      const currentHash = hashHierarchy();
+      if (currentHash !== window._v44.lastSyncedHash) {
+        if (Date.now() - window._v44.lastSyncAt < 1500) return;  /* debounce */
+        window._v44.lastSyncedHash = currentHash;
+        pushToDB(productId);
+      }
+    }, 2000);
+  }
+  startWatcher();
+
+  /* ───── Backfill au boot : si DB a hierarchy mais v36 ne l'a pas restauré ───── */
+  let attempts = 0;
+  const backfill = setInterval(() => {
+    if (++attempts > 40) { clearInterval(backfill); return; }
+    const row = window._v18 && window._v18.productRow;
+    if (!row) return;
+    const dbHier = row.studio_state && row.studio_state.hierarchy;
+    if (!dbHier || Object.keys(dbHier).length === 0) {
+      clearInterval(backfill); return;
+    }
+    if (!window._v36) return;
+    const treeReady = !!document.querySelector('#tree .tree-row, #tree .tree-parent');
+    if (treeReady && Object.keys(window._v36.hierarchy || {}).length === 0) {
+      console.log('[v44] backfill : DB a ' + Object.keys(dbHier).length + ' dossier(s) → restauration directe');
+      window._v36.hierarchy = JSON.parse(JSON.stringify(dbHier));
+      if (typeof window._v36.injectWrappers === 'function') {
+        window._v36.injectWrappers();
+      }
+      if (typeof window._v36.applyTransform === 'function') {
+        setTimeout(() => {
+          Object.keys(window._v36.hierarchy).forEach(k => window._v36.applyTransform(k));
+        }, 500);
+      }
+      clearInterval(backfill);
+    }
+  }, 700);
+
+  /* Expose pour debug */
+  window._v44.push = () => {
+    const productId = window._v18 && window._v18.productId;
+    if (productId) pushToDB(productId);
+  };
+  window._v44.hash = hashHierarchy;
+
+  console.log('[studio v44] sync DB direct pour dossiers hiérarchiques (fix bug persistance) ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v45 — TYPO UNIFIÉE (Jost partout, plus de serif)
+   ─────────────────────────────────────────────────────────────────────────
+   Choix UX : on bascule de Cormorant Garamond + Jost vers Jost seul.
+   Le serif éditorial était joli mais peu adapté à un outil de production.
+   
+   Méthode : @font-face redirige Cormorant Garamond / EB Garamond vers Jost
+   directement → catch-all pour toutes les classes qui utilisent ces fonts,
+   sans avoir à les modifier individuellement.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v45UnifiedTypography() {
+  if (window.__v45Init) return;
+  window.__v45Init = true;
+
+  const css = `
+    /* ─── Redirection @font-face : Cormorant/Garamond → Jost ───
+       Ces règles doivent être chargées APRÈS les <link> Google Fonts pour
+       prendre le pas. L'IIFE injecte le style en fin de <head>. */
+    @font-face {
+      font-family: 'Cormorant Garamond';
+      src: local('Jost'), local('-apple-system'), local('system-ui');
+      font-style: normal;
+      font-weight: 300 400 500 600 700;
+    }
+    @font-face {
+      font-family: 'Cormorant Garamond';
+      src: local('Jost'), local('-apple-system'), local('system-ui');
+      font-style: italic;
+      font-weight: 300 400 500 600 700;
+    }
+    @font-face {
+      font-family: 'EB Garamond';
+      src: local('Jost'), local('-apple-system'), local('system-ui');
+      font-style: normal;
+      font-weight: 300 400 500 600 700;
+    }
+    @font-face {
+      font-family: 'EB Garamond';
+      src: local('Jost'), local('-apple-system'), local('system-ui');
+      font-style: italic;
+      font-weight: 300 400 500 600 700;
+    }
+
+    /* ─── Normalisation des éléments précédemment en serif ─── */
+    /* Les valeurs italiques (noms de matériaux, dossiers, etc.) deviennent
+       droites pour cohérence avec le reste de l'UI tool. */
+    .tb-name-input, .tb-marque-input,
+    .v36-wrapper-name,
+    .v38-modal-title, .v37-as-title, .v38-swatch-info-title,
+    .mat-card-name,
+    .mat-card-head h3,
+    [class*="-title"], [class*="-name"] {
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+    }
+    /* Titles & headings dans l'admin */
+    h1, h2, h3, h4,
+    .topbar-title em,
+    .form-card-head h3 {
+      font-family: 'Jost', -apple-system, system-ui, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 500 !important;
+    }
+    /* Ré-équilibrer les tailles : Cormorant était souvent plus grand pour
+       compenser sa densité. Jost étant plus condensé, on garde mais on
+       resserre légèrement le letter-spacing. */
+    .tb-name-input {
+      letter-spacing: 0.005em;
+      font-weight: 500;
+    }
+    .v36-wrapper-name {
+      letter-spacing: 0.005em;
+      font-weight: 500;
+    }
+    .v38-modal-title, .v37-as-title {
+      letter-spacing: 0.005em;
+      font-weight: 500;
+    }
+  `;
+
+  /* Injecter en TOUT DERNIER du <head> pour passer après Google Fonts */
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v45', 'unified-typography');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  console.log('[studio v45] typo unifiée Jost (Cormorant/Garamond redirigés) ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
