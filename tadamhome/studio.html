@@ -14488,6 +14488,492 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v49 — PIPELINE MULTI-VARIANTES (GLB + USDZ par variante)
+   ─────────────────────────────────────────────────────────────────────────
+   À chaque publication d'un produit qui a des variantes :
+   - Pour chaque variante (Base + N) :
+       * Switch vers la variante
+       * Attendre 1.5s pour que les matériaux 3D soient appliqués
+       * Calculer un hash de ses matériaux
+       * Si hash identique au précédent export → SKIP (économie 30s)
+       * Sinon : exporter GLB + USDZ → uploader avec path spécifique
+   - Stocker URLs et hash dans chaque slot variante
+   - Restaurer la variante d'origine
+   - Trigger v42 pour synchroniser products.colors avec les URLs spécifiques
+   
+   Storage paths :
+   - Base       : products/{id}/model.glb          + model.usdz
+   - Variante   : products/{id}/variants/{vId}.glb + {vId}.usdz
+   
+   DB structure :
+   - Base       : studio_state.exports.{glb, usdz, materialsHash}
+                  + model_glb_url + model_usdz_url (colonnes scalaires)
+   - Variante   : variants[i].studio_state.exports.{glb, usdz, materialsHash}
+   
+   Overlay : plein écran avec progress bar, intuitif et clair.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v49MultiVariantPipeline() {
+  if (window.__v49Init) return;
+  window.__v49Init = true;
+
+  window._v49 = { isExporting: false };
+
+  const BUCKET = 'models';
+
+  /* ═══ CSS de l'overlay ═══ */
+  const css = `
+    .v49-overlay {
+      position: fixed; inset: 0;
+      background: rgba(27, 24, 20, 0.78);
+      z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .v49-overlay.v49-visible {
+      opacity: 1; pointer-events: auto;
+    }
+    .v49-card {
+      background: var(--cream, #EDEAE4);
+      padding: 36px 44px;
+      max-width: 520px;
+      width: 90vw;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      text-align: center;
+    }
+    .v49-eyebrow {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold, #B8965A);
+      margin-bottom: 14px;
+    }
+    .v49-title {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 8px;
+      min-height: 16px;
+    }
+    .v49-sub {
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      color: var(--ink, #2A2620);
+      margin-bottom: 22px;
+      min-height: 20px;
+    }
+    .v49-progress {
+      height: 4px;
+      background: rgba(184, 150, 90, 0.15);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .v49-progress-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      background: var(--gold, #B8965A);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(.4,.2,.2,1);
+    }
+    .v49-overlay.v49-error .v49-progress-fill {
+      background: var(--danger, #B5483A);
+    }
+    .v49-overlay.v49-error .v49-eyebrow {
+      color: var(--danger, #B5483A);
+    }
+    .v49-hint {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.7;
+      line-height: 1.5;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v49', 'multi-variant-pipeline');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ Overlay UI helpers ═══ */
+  let overlayEl = null;
+  function buildOverlay() {
+    if (overlayEl) return overlayEl;
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'v49-overlay';
+    overlayEl.innerHTML = `
+      <div class="v49-card">
+        <div class="v49-eyebrow">Génération AR multi-variantes</div>
+        <div class="v49-title" id="v49Title">Préparation…</div>
+        <div class="v49-sub" id="v49Sub">Initialisation du pipeline</div>
+        <div class="v49-progress"><div class="v49-progress-fill" id="v49Fill"></div></div>
+        <div class="v49-hint">Cette opération exporte un modèle 3D par variante.<br>Ne ferme pas la page · environ 30s par variante.</div>
+      </div>
+    `;
+    document.body.appendChild(overlayEl);
+    return overlayEl;
+  }
+  function showOverlay() {
+    buildOverlay();
+    overlayEl.classList.remove('v49-error');
+    overlayEl.classList.add('v49-visible');
+  }
+  function updateOverlay(title, sub, ratio, isError) {
+    if (!overlayEl) return;
+    if (title !== undefined) overlayEl.querySelector('#v49Title').textContent = title;
+    if (sub !== undefined) overlayEl.querySelector('#v49Sub').textContent = sub;
+    if (typeof ratio === 'number') {
+      const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+      overlayEl.querySelector('#v49Fill').style.width = pct + '%';
+    }
+    if (isError) overlayEl.classList.add('v49-error');
+  }
+  function hideOverlay() {
+    if (overlayEl) overlayEl.classList.remove('v49-visible');
+  }
+
+  /* ═══ Helpers ═══ */
+  /* Hash FNV-1a 32-bit sur la sérialisation des parts (matériaux) */
+  function hashMaterials(state) {
+    if (!state || !state.parts) return '';
+    let json;
+    try { json = JSON.stringify(state.parts); }
+    catch (e) { return ''; }
+    let h = 2166136261;
+    for (let i = 0; i < json.length; i++) {
+      h ^= json.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+  }
+
+  /* Upload Supabase avec path custom */
+  async function uploadAtPath(blob, path, mime) {
+    if (typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible');
+    const { error } = await sb.storage.from(BUCKET).upload(path, blob, {
+      contentType: mime, upsert: true, cacheControl: '3600',
+    });
+    if (error) throw error;
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!data?.publicUrl) throw new Error('Pas d\'URL publique');
+    return data.publicUrl + '?v=' + Date.now();
+  }
+
+  /* Génération du blob — utilise les exporters Three.js dynamiquement */
+  let _exp = {};
+  async function getExp(format) {
+    if (_exp[format]) return _exp[format];
+    if (format === 'glb') {
+      const mod = await import('three/addons/exporters/GLTFExporter.js');
+      _exp.glb = new mod.GLTFExporter();
+    } else if (format === 'usdz') {
+      const mod = await import('three/addons/exporters/USDZExporter.js');
+      _exp.usdz = new mod.USDZExporter();
+    } else {
+      throw new Error('Format inconnu: ' + format);
+    }
+    return _exp[format];
+  }
+
+  async function genBlob(format) {
+    /* `currentObject` est en closure du module → accessible ici */
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      throw new Error('Aucun modèle 3D chargé');
+    }
+    const target = currentObject;
+
+    if (format === 'glb') {
+      const exporter = await getExp('glb');
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        exporter.parse(
+          target,
+          (result) => resolve(result),
+          (error) => reject(error),
+          { binary: true, embedImages: true, onlyVisible: true }
+        );
+      });
+      return { blob: new Blob([arrayBuffer], { type: 'model/gltf-binary' }), mime: 'model/gltf-binary' };
+    }
+    if (format === 'usdz') {
+      const exporter = await getExp('usdz');
+      const u8 = await exporter.parse(target);
+      return { blob: new Blob([u8], { type: 'model/vnd.usdz+zip' }), mime: 'model/vnd.usdz+zip' };
+    }
+    throw new Error('Format non supporté: ' + format);
+  }
+
+  /* ═══ PIPELINE PRINCIPAL ═══ */
+  async function exportAllVariants(productId) {
+    if (window._v49.isExporting) {
+      console.log('[v49] export déjà en cours, abort');
+      return null;
+    }
+    if (!productId) throw new Error('Pas de productId');
+    if (typeof sb === 'undefined') throw new Error('Supabase indisponible');
+
+    window._v49.isExporting = true;
+    showOverlay();
+
+    try {
+      /* 1. État initial */
+      const originalVariantId = (window._v25 && window._v25.activeVariantId) || 'base';
+      const variants = (window._v25 && window._v25.variants) || [];
+      const list = ['base'].concat(variants.map(v => v.id));
+      console.log('[v49] export pipeline · ' + list.length + ' variante(s) : ' + list.join(', '));
+
+      /* 2. Lire hash existants en DB */
+      updateOverlay('Préparation', 'Lecture des exports précédents…', 0.02);
+      const { data: row, error: rErr } = await sb.from('products')
+        .select('studio_state, variants').eq('id', productId).single();
+      if (rErr) throw rErr;
+      const existing = { base: row.studio_state?.exports || {} };
+      (row.variants || []).forEach(v => { existing[v.id] = v.studio_state?.exports || {}; });
+
+      /* 3. Boucle d'export */
+      const results = {};
+      for (let i = 0; i < list.length; i++) {
+        const vId = list[i];
+        const vName = vId === 'base' ? 'Base' :
+          (variants.find(v => v.id === vId)?.name || 'Variante');
+        const baseRatio = i / list.length;
+
+        /* Switch vers cette variante si nécessaire */
+        const currentActive = (window._v25 && window._v25.activeVariantId) || 'base';
+        if (vId !== currentActive) {
+          updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Application des matériaux…', baseRatio + 0.02);
+          await window._v25.switchToVariant(vId);
+          /* Wait pour rendering / matériaux 3D */
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        /* Hash matériaux actuel */
+        let currentState;
+        if (vId === 'base') {
+          /* Sérialiser le state courant pour avoir le hash le plus à jour possible */
+          currentState = window._v18?.serializeStudioState?.() || row.studio_state || {};
+        } else {
+          /* Pour les variantes, leur state est stocké dans v25.variants */
+          currentState = variants.find(v => v.id === vId)?.studio_state || {};
+        }
+        const currentHash = hashMaterials(currentState);
+
+        /* SKIP si hash identique ET fichiers existants */
+        const exi = existing[vId] || {};
+        if (currentHash && currentHash === exi.materialsHash && exi.glb && exi.usdz) {
+          console.log('[v49] skip ' + vName + ' (hash identique, fichiers présents)');
+          results[vId] = { glb: exi.glb, usdz: exi.usdz, hash: currentHash, skipped: true };
+          updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Inchangée — skip', baseRatio + (1/list.length));
+          await new Promise(r => setTimeout(r, 300));  /* petite pause visuelle */
+          continue;
+        }
+
+        /* Export GLB */
+        updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Export GLB…', baseRatio + 0.20/list.length);
+        const glbResult = await genBlob('glb');
+        const glbPath = vId === 'base'
+          ? `${productId}/model.glb`
+          : `${productId}/variants/${vId}.glb`;
+        updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Upload GLB…', baseRatio + 0.40/list.length);
+        const glbUrl = await uploadAtPath(glbResult.blob, glbPath, glbResult.mime);
+        console.log('[v49] ' + vName + ' · GLB uploadé · ' + Math.round(glbResult.blob.size / 1024) + ' KB');
+
+        /* Export USDZ */
+        updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Export USDZ…', baseRatio + 0.60/list.length);
+        const usdzResult = await genBlob('usdz');
+        const usdzPath = vId === 'base'
+          ? `${productId}/model.usdz`
+          : `${productId}/variants/${vId}.usdz`;
+        updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, 'Upload USDZ…', baseRatio + 0.85/list.length);
+        const usdzUrl = await uploadAtPath(usdzResult.blob, usdzPath, usdzResult.mime);
+        console.log('[v49] ' + vName + ' · USDZ uploadé · ' + Math.round(usdzResult.blob.size / 1024) + ' KB');
+
+        results[vId] = { glb: glbUrl, usdz: usdzUrl, hash: currentHash, skipped: false };
+        updateOverlay(`Variante ${i+1}/${list.length} · ${vName}`, '✓ Terminée', baseRatio + (1/list.length));
+      }
+
+      /* 4. Restaurer variante d'origine */
+      updateOverlay('Finalisation', 'Restauration de la variante active…', 0.92);
+      const finalActive = (window._v25 && window._v25.activeVariantId) || 'base';
+      if (finalActive !== originalVariantId) {
+        await window._v25.switchToVariant(originalVariantId);
+        await new Promise(r => setTimeout(r, 800));
+      }
+
+      /* 5. Update DB (re-fetch fresh pour éviter d'écraser autre chose) */
+      updateOverlay('Finalisation', 'Sauvegarde des URLs…', 0.96);
+      const { data: freshRow, error: fErr } = await sb.from('products')
+        .select('studio_state, variants').eq('id', productId).single();
+      if (fErr) throw fErr;
+      const freshState = freshRow.studio_state || {};
+      const freshVariants = Array.isArray(freshRow.variants) ? freshRow.variants : [];
+
+      /* Base */
+      if (results.base) {
+        freshState.exports = {
+          ...(freshState.exports || {}),
+          glb: results.base.glb,
+          usdz: results.base.usdz,
+          materialsHash: results.base.hash,
+        };
+      }
+      /* Variantes */
+      freshVariants.forEach(v => {
+        const r = results[v.id];
+        if (r) {
+          v.studio_state = v.studio_state || {};
+          v.studio_state.exports = {
+            ...(v.studio_state.exports || {}),
+            glb: r.glb,
+            usdz: r.usdz,
+            materialsHash: r.hash,
+          };
+        }
+      });
+
+      const updatePayload = {
+        studio_state: freshState,
+        variants: freshVariants,
+      };
+      if (results.base) {
+        updatePayload.model_glb_url = results.base.glb;
+        updatePayload.model_usdz_url = results.base.usdz;
+      }
+
+      const { error: uErr } = await sb.from('products').update(updatePayload).eq('id', productId);
+      if (uErr) throw uErr;
+
+      /* Mirror en mémoire */
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = freshState;
+        window._v18.productRow.variants = freshVariants;
+      }
+      if (window._v25) window._v25.variants = freshVariants;
+      window._v19 = window._v19 || { exports: {} };
+      window._v19.exports = window._v19.exports || {};
+      if (results.base) {
+        window._v19.exports.glb = results.base.glb;
+        window._v19.exports.usdz = results.base.usdz;
+      }
+
+      /* 6. Trigger v42 pour resync colors */
+      if (window._v42 && window._v42.sync) {
+        setTimeout(() => window._v42.sync(true), 500);
+      }
+
+      /* 7. Affichage final */
+      const exported = Object.values(results).filter(r => !r.skipped).length;
+      const skipped = Object.values(results).filter(r => r.skipped).length;
+      updateOverlay('Terminé', `${exported} exporté(s) · ${skipped} inchangée(s)`, 1);
+      await new Promise(r => setTimeout(r, 1500));
+
+      toast(`✓ AR multi-variantes : ${exported} mise(s) à jour, ${skipped} inchangée(s)`, 'ok', 5000);
+
+      return results;
+    } catch (e) {
+      console.error('[v49 pipeline]', e);
+      updateOverlay('Erreur', e.message || String(e), 1, true);
+      await new Promise(r => setTimeout(r, 2500));
+      toast('Échec export variantes : ' + (e.message || e), 'err', 6000);
+      throw e;
+    } finally {
+      hideOverlay();
+      window._v49.isExporting = false;
+    }
+  }
+
+  /* ═══ HOOK v30 publishProduct ═══ */
+  function hookPublish() {
+    if (!window._v30 || typeof window._v30.publishProduct !== 'function') return false;
+    if (window._v30.__v49Hooked) return true;
+    const orig = window._v30.publishProduct;
+    window._v30.publishProduct = async function(...args) {
+      const productId = window._v18 && window._v18.productId;
+      const variants = (window._v25 && window._v25.variants) || [];
+
+      /* Pas de productId : passer au handler original (gérera l'erreur) */
+      if (!productId) {
+        return await orig.apply(this, args);
+      }
+      /* Pas de variantes : comportement normal (v30 exporte juste Base) */
+      if (variants.length === 0) {
+        return await orig.apply(this, args);
+      }
+
+      /* Avec variantes : lancer le multi-export AVANT la publication */
+      console.log('[v49] hook publish · ' + variants.length + ' variante(s) → multi-export');
+      try {
+        await exportAllVariants(productId);
+      } catch (e) {
+        console.error('[v49 hook publish]', e);
+        toast('Publication annulée : multi-export échoué', 'err', 5500);
+        return null;
+      }
+
+      /* Le multi-export a déjà fait l'export Base, donc v30 va re-vérifier
+         et trouver les fichiers présents avec hash identique → skip rapide */
+      return await orig.apply(this, args);
+    };
+    window._v30.__v49Hooked = true;
+    console.log('[v49] publish hooké pour multi-export');
+    return true;
+  }
+  if (!hookPublish()) {
+    const t = setInterval(() => { if (hookPublish()) clearInterval(t); }, 600);
+    setTimeout(() => clearInterval(t), 30000);
+  }
+
+  /* ═══ HOOK v42 buildColors pour utiliser les URLs par variante ═══ */
+  function hookV42() {
+    if (!window._v42 || typeof window._v42.buildColors !== 'function') return false;
+    if (window._v42.__v49Hooked) return true;
+    const origBuild = window._v42.buildColors;
+    window._v42.buildColors = function(row) {
+      const colors = origBuild.call(this, row);
+      if (!Array.isArray(colors) || colors.length === 0) return colors;
+      /* Override glb/usdz par les exports spécifiques si présents */
+      colors.forEach((c, idx) => {
+        if (idx === 0) {
+          /* Base : utiliser studio_state.exports si dispo */
+          const baseExp = row.studio_state?.exports;
+          if (baseExp?.glb) c.glb = baseExp.glb;
+          if (baseExp?.usdz) c.usdz = baseExp.usdz;
+        } else {
+          /* Variante : trouver par index dans variants[] */
+          const variant = (row.variants || [])[idx - 1];
+          const varExp = variant?.studio_state?.exports;
+          if (varExp?.glb) c.glb = varExp.glb;
+          if (varExp?.usdz) c.usdz = varExp.usdz;
+        }
+      });
+      return colors;
+    };
+    window._v42.__v49Hooked = true;
+    console.log('[v49] v42 buildColors hooké pour URLs par variante');
+    return true;
+  }
+  if (!hookV42()) {
+    const t = setInterval(() => { if (hookV42()) clearInterval(t); }, 600);
+    setTimeout(() => clearInterval(t), 30000);
+  }
+
+  /* ═══ EXPOSE pour debug / appel manuel ═══ */
+  window._v49.exportAllVariants = exportAllVariants;
+  window._v49.hashMaterials = hashMaterials;
+
+  console.log('[studio v49] pipeline multi-variantes (GLB + USDZ par variante) ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
