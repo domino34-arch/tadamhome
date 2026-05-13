@@ -3298,6 +3298,26 @@ input.dim-locked {
 
 </head>
 <body>
+<script>
+/* Si studio.html est embarqué en iframe (depuis admin.html),
+   on cache son nav-rail et on ajuste le grid pour éviter la double sidebar. */
+(function(){
+  try { if(window.top !== window.self){ document.documentElement.classList.add('in-iframe'); } }
+  catch(e){ document.documentElement.classList.add('in-iframe'); }
+})();
+</script>
+<style>
+/* === Mode iframe (embarqué dans admin.html) === */
+/* Le grid passe de 4 à 3 colonnes : tree | viewport | mat */
+html.in-iframe .nav-rail { display: none !important; }
+html.in-iframe .app { grid-template-columns: var(--tree-w) 1fr var(--mat-w) !important; }
+html.in-iframe .topbar     { grid-column: 1/-1 !important; }
+html.in-iframe .leftpanel  { grid-column: 1 !important; }
+html.in-iframe .viewport   { grid-column: 2 !important; }
+html.in-iframe .rightpanel { grid-column: 3 !important; }
+html.in-iframe .bottombar  { grid-column: 2 !important; }
+html.in-iframe .variantsbar{ grid-column: 2 !important; }
+</style>
 
 <div class="app" id="app">
 
