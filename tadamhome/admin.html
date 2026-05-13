@@ -886,6 +886,121 @@ h1, h2, h3, h4,
 
 <!-- Modals injectées plus bas par modals.js inline -->
 
+<!-- ════════════════════════════════════════════════════════════════════════
+     v51 — Génération de sphères PBR côté client
+     Expose window.generateSphereThumbnail(maps) qui retourne un Blob PNG
+     d'une sphère rendue avec les maps PBR fournies (albedo/normal/etc).
+     Utilisé à la création/édition d'un matériau pour garantir que toutes
+     les vignettes du catalogue affichent une vraie sphère rendue 3D plutôt
+     qu'une texture plate.
+     ═════════════════════════════════════════════════════════════════════ -->
+<script type="module">
+  import * as THREE from 'three';
+
+  window.generateSphereThumbnail = async function generateSphereThumbnail(maps) {
+    const SIZE = 512;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setSize(SIZE, SIZE);
+    renderer.setPixelRatio(1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1B1814);  /* fond ink-deep type studio */
+
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+    camera.position.set(0, 0, 4);
+    camera.lookAt(0, 0, 0);
+
+    /* Setup studio 3-points doux */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
+    key.position.set(3, 4, 5); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xB8965A, 0.5);
+    fill.position.set(-4, -1, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.3);
+    rim.position.set(-1, 3, -4); scene.add(rim);
+
+    /* Chargement textures (avec CORS, gracieux en cas de 404) */
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    const loadTex = (url, srgb) => new Promise((res) => {
+      if (!url) { res(null); return; }
+      loader.load(
+        url,
+        (tex) => {
+          tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+          tex.wrapS = THREE.RepeatWrapping;
+          tex.wrapT = THREE.RepeatWrapping;
+          tex.repeat.set(1.2, 1.2);
+          res(tex);
+        },
+        undefined,
+        (err) => {
+          console.warn('[v51 sphereThumb] échec chargement', url, err?.message || err);
+          res(null);  /* fallback gracieux */
+        }
+      );
+    });
+
+    const [albedo, normal, roughness, metallic, ao] = await Promise.all([
+      loadTex(maps.albedo, true),
+      loadTex(maps.normal, false),
+      loadTex(maps.roughness, false),
+      loadTex(maps.metallic, false),
+      loadTex(maps.ao, false),
+    ]);
+
+    /* Matériau PBR */
+    const mat = new THREE.MeshStandardMaterial({
+      map: albedo,
+      normalMap: normal,
+      roughnessMap: roughness,
+      metalnessMap: metallic,
+      aoMap: ao,
+      roughness: roughness ? 1.0 : 0.7,
+      metalness: metallic ? 1.0 : 0.0,
+      aoMapIntensity: ao ? 1.0 : 0,
+    });
+    if (normal) mat.normalScale.set(1.4, 1.4);
+
+    /* Sphère haute résolution */
+    const geo = new THREE.SphereGeometry(1, 96, 96);
+    if (ao) geo.setAttribute('uv2', geo.getAttribute('uv').clone());
+    const sphere = new THREE.Mesh(geo, mat);
+    scene.add(sphere);
+
+    /* Render */
+    renderer.render(scene, camera);
+
+    /* Capture PNG */
+    const blob = await new Promise((res) => {
+      canvas.toBlob(res, 'image/png', 0.95);
+    });
+
+    /* Cleanup */
+    renderer.dispose();
+    geo.dispose();
+    mat.dispose();
+    [albedo, normal, roughness, metallic, ao].forEach(t => t?.dispose());
+
+    return blob;
+  };
+
+  window.__sphereThumbReady = true;
+  console.log('[admin v51] generateSphereThumbnail prêt ✓');
+</script>
+
 <script>
 /* ══════════════════════════════════════════════════════════════════ */
 /* ══ CONFIG & STATE ════════════════════════════════════════════════ */
@@ -1341,6 +1456,7 @@ function injectMaterialModal(){
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeMaterialModal()">Annuler</button>
+        <button class="btn-secondary" id="matRegenSphereBtn" onclick="regenerateSphereThumb()" style="display:none">⟳ Régénérer la sphère</button>
         <button class="btn-primary" id="matSaveBtn" onclick="saveMaterial()">Enregistrer</button>
       </div>
     </div>
@@ -1621,7 +1737,77 @@ function openMaterialModal(materialId, presetCategory){
   });
   
   document.getElementById('matMsg').textContent = '';
+
+  /* Bouton "Régénérer la sphère" : visible uniquement en édition d'un matériau
+     qui a déjà un albedo (sinon rien à régénérer). */
+  const regenBtn = document.getElementById('matRegenSphereBtn');
+  if (regenBtn) {
+    regenBtn.style.display = (materialId && m?.albedo_url) ? '' : 'none';
+  }
+
   document.getElementById('materialModal').classList.add('show');
+}
+
+/* v51 — Régénère la vignette sphère pour un matériau existant.
+   Utile pour les matériaux dont la vignette actuelle est une texture plate. */
+async function regenerateSphereThumb(){
+  if (!editingMaterialId) return;
+  if (typeof window.generateSphereThumbnail !== 'function') {
+    toast('Module de génération non prêt, patiente quelques secondes', 'info', 4000);
+    return;
+  }
+  const m = (allMaterials || []).find(x => x.id === editingMaterialId);
+  if (!m || !m.albedo_url) {
+    toast('Pas d\'albedo disponible — uploade d\'abord une couleur diffuse', 'err', 4000);
+    return;
+  }
+  const btn = document.getElementById('matRegenSphereBtn');
+  const msg = document.getElementById('matMsg');
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = 'Génération…';
+  msg.style.color = 'var(--accent)';
+  msg.textContent = 'Rendu sphère PBR en cours…';
+  try {
+    const blob = await window.generateSphereThumbnail({
+      albedo:    m.albedo_url,
+      normal:    m.normal_url,
+      roughness: m.roughness_url,
+      metallic:  m.metallic_url,
+      ao:        m.ao_url,
+    });
+    if (!blob || blob.size < 1024) throw new Error('Sphère générée vide');
+    btn.textContent = 'Upload…';
+    const file = new File([blob], 'sphere_thumb_regen.png', { type: 'image/png' });
+    const newUrl = await uploadMaterialAsset(file, editingMaterialId, 'thumbnail_url');
+    /* Update DB avec la nouvelle URL */
+    const { error } = await sb.from('materials_library')
+      .update({ thumbnail_url: newUrl })
+      .eq('id', editingMaterialId);
+    if (error) throw error;
+    /* Reload du slot vignette dans la modal pour montrer le résultat */
+    const thumbSlot = document.getElementById('matThumbnailSlot');
+    if (thumbSlot) {
+      thumbSlot.innerHTML = '';
+      thumbSlot.appendChild(buildMapSlot(
+        { key:'thumbnail_url', label:'Vignette (carrée 400×400)', required:false, maxSize:800 },
+        newUrl + '?t=' + Date.now()  /* cache-bust */
+      ));
+    }
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✓ Sphère régénérée';
+    toast('Sphère régénérée pour « '+m.name+' »', 'ok');
+    /* Re-load la liste des matériaux pour rafraîchir la card */
+    await loadMaterials();
+  } catch(e) {
+    console.error('[regen sphere]', e);
+    msg.style.color = 'var(--red)';
+    msg.textContent = '✗ Échec régénération : ' + (e.message || e);
+    toast('Régénération échouée', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 function closeMaterialModal(){
@@ -1711,9 +1897,37 @@ async function saveMaterial(){
           msg.style.color = 'var(--accent)';
         }
       }
-      /* Si pas de thumbnail explicite mais un albedo : copier l'albedo en thumbnail */
+      /* Si pas de thumbnail explicite mais un albedo : générer une sphère PBR
+         côté client (v51) pour cohérence visuelle du catalogue. Fallback sur
+         l'albedo plat si la génération échoue (CORS, texture introuvable, etc.) */
       if(!updatePayload['thumbnail_url'] && updatePayload['albedo_url']){
-        updatePayload['thumbnail_url'] = updatePayload['albedo_url'];
+        if (typeof window.generateSphereThumbnail === 'function') {
+          try {
+            btn.textContent = 'Génération sphère…';
+            const sphereBlob = await window.generateSphereThumbnail({
+              albedo:    updatePayload.albedo_url,
+              normal:    updatePayload.normal_url,
+              roughness: updatePayload.roughness_url,
+              metallic:  updatePayload.metallic_url,
+              ao:        updatePayload.ao_url,
+            });
+            if (sphereBlob && sphereBlob.size > 1024) {
+              const sphereFile = new File([sphereBlob], 'sphere_thumb.png', { type: 'image/png' });
+              btn.textContent = 'Upload sphère…';
+              const sphereUrl = await uploadMaterialAsset(sphereFile, newId, 'thumbnail_url');
+              updatePayload['thumbnail_url'] = sphereUrl;
+              console.log('[mat create] sphère PBR générée et uploadée');
+            } else {
+              throw new Error('Sphère vide ou trop petite');
+            }
+          } catch(e) {
+            console.warn('[sphere thumb gen] fallback albedo →', e.message || e);
+            updatePayload['thumbnail_url'] = updatePayload['albedo_url'];
+          }
+        } else {
+          /* Module Three pas encore prêt */
+          updatePayload['thumbnail_url'] = updatePayload['albedo_url'];
+        }
       }
       /* Update DB avec les URLs */
       if(Object.keys(updatePayload).length > 0){
