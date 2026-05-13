@@ -3300,7 +3300,7 @@ input.dim-locked {
 <body>
 <script>
 /* Si studio.html est embarqué en iframe (depuis admin.html),
-   on cache son nav-rail et on ajuste le grid pour éviter la double sidebar. */
+   on cache son nav-rail et on met sa colonne à 0 pour ne pas créer de trou. */
 (function(){
   try { if(window.top !== window.self){ document.documentElement.classList.add('in-iframe'); } }
   catch(e){ document.documentElement.classList.add('in-iframe'); }
@@ -3308,15 +3308,10 @@ input.dim-locked {
 </script>
 <style>
 /* === Mode iframe (embarqué dans admin.html) === */
-/* Le grid passe de 4 à 3 colonnes : tree | viewport | mat */
+/* On masque juste le nav-rail et on met sa colonne grid à 0.
+   Le reste du layout (tree | viewport | mat) reste intact. */
+html.in-iframe { --nav-w: 0px !important; }
 html.in-iframe .nav-rail { display: none !important; }
-html.in-iframe .app { grid-template-columns: var(--tree-w) 1fr var(--mat-w) !important; }
-html.in-iframe .topbar     { grid-column: 1/-1 !important; }
-html.in-iframe .leftpanel  { grid-column: 1 !important; }
-html.in-iframe .viewport   { grid-column: 2 !important; }
-html.in-iframe .rightpanel { grid-column: 3 !important; }
-html.in-iframe .bottombar  { grid-column: 2 !important; }
-html.in-iframe .variantsbar{ grid-column: 2 !important; }
 </style>
 
 <div class="app" id="app">
