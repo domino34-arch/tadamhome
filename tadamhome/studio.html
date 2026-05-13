@@ -9707,12 +9707,35 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       console.warn('[v34] [A] ⊘ Aucun File OBJ en mémoire — produit créé sans source rechargeable');
     }
 
-    /* ─── B. Force save pour propager objSourceUrl dans studio_state ─── */
-    if (objSourceUrl && typeof window.forceStudioSave === 'function') {
-      try { 
-        console.log('[v34] [B] Force save pour propager obj_source_url…');
-        await window.forceStudioSave(); 
-      } catch (e) { console.warn('[v34] [B] forceStudioSave :', e); }
+    /* ─── B. UPDATE DIRECT de studio_state.obj_source_url ─── */
+    /* On ne peut PAS compter sur forceStudioSave + hook serialize : le code v18
+       utilise une référence interne directe à serializeStudioState (pas
+       window._v18.serializeStudioState), donc le hook est bypassé.
+       Solution : SELECT studio_state actuel → merge obj_source_url → UPDATE direct. */
+    if (objSourceUrl) {
+      try {
+        console.log('[v34] [B] UPDATE direct de studio_state.obj_source_url…');
+        const { data: row, error: getErr } = await sb
+          .from('products')
+          .select('studio_state')
+          .eq('id', productId)
+          .single();
+        if (getErr) throw getErr;
+        const updatedState = (row && row.studio_state) || {};
+        updatedState.obj_source_url = objSourceUrl;
+        const { error: updErr } = await sb
+          .from('products')
+          .update({ studio_state: updatedState })
+          .eq('id', productId);
+        if (updErr) throw updErr;
+        /* Mettre à jour la copie locale aussi */
+        if (window._v18 && window._v18.productRow) {
+          window._v18.productRow.studio_state = updatedState;
+        }
+        console.log('[v34] [B] ✓ obj_source_url injecté dans studio_state via UPDATE direct');
+      } catch (e) {
+        console.error('[v34] [B] ✗ UPDATE studio_state :', e);
+      }
     }
 
     /* ─── C. Auto-export GLB + USDZ vers Storage ─── */
@@ -9864,20 +9887,55 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   /* ─── 4. Auto-charge l'OBJ source quand on ouvre un produit existant ─── */
   /* Le studio v18 charge studio_state mais pas le maillage 3D.
      On observe window._v18.productRow et on déclenche un fetch+parse
-     dès que obj_source_url est détecté. */
+     dès que obj_source_url est détecté.
+     RETRO-COMPAT : si studio_state n'a pas obj_source_url mais que le fichier
+     existe quand même sur Storage (convention `obj-sources/{id}/source.obj`),
+     on le récupère et on backfill studio_state. */
   let _v34_loadAttempts = 0;
-  const _v34_check = setInterval(() => {
+  const _v34_check = setInterval(async () => {
     _v34_loadAttempts++;
     if (_v34_loadAttempts > 80) { clearInterval(_v34_check); return; }
     const row = window._v18 && window._v18.productRow;
     if (!row) return;
     const state = row.studio_state;
-    const objUrl = state && state.obj_source_url;
+    let objUrl = state && state.obj_source_url;
+    
+    /* Si pas d'URL dans studio_state → tenter le chemin Storage standard */
     if (!objUrl) {
-      /* Pas d'URL → on garde le comportement original (sandbox, attend drag) */
-      clearInterval(_v34_check);
-      return;
+      const productId = row.id || (window._v18 && window._v18.productId);
+      if (!productId || typeof sb === 'undefined' || !sb) {
+        clearInterval(_v34_check);
+        return;
+      }
+      const standardPath = 'obj-sources/' + productId + '/source.obj';
+      const { data: pub } = sb.storage.from('models').getPublicUrl(standardPath);
+      const candidateUrl = pub.publicUrl;
+      try {
+        const head = await fetch(candidateUrl, { method: 'HEAD' });
+        if (head.ok) {
+          console.log('[v34] 🔧 obj_source_url manquant dans studio_state, mais fichier trouvé sur Storage — backfill rétro-actif');
+          objUrl = candidateUrl;
+          /* Backfill studio_state en base */
+          try {
+            const merged = state || {};
+            merged.obj_source_url = objUrl;
+            await sb.from('products').update({ studio_state: merged }).eq('id', productId);
+            if (row) row.studio_state = merged;
+            console.log('[v34] ✓ studio_state.obj_source_url backfillé pour', productId);
+          } catch (e) {
+            console.warn('[v34] backfill studio_state a échoué (pas grave) :', e);
+          }
+        } else {
+          /* Vraiment pas d'OBJ source pour ce produit → mode normal sandbox-attendant-drag */
+          clearInterval(_v34_check);
+          return;
+        }
+      } catch (e) {
+        clearInterval(_v34_check);
+        return;
+      }
     }
+    
     /* Si le viewport drop overlay est déjà caché, c'est que l'OBJ est chargé */
     const drop = document.getElementById('vpDrop');
     if (drop && drop.classList.contains('hidden')) {
