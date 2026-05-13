@@ -11408,6 +11408,607 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v37 — OUTILS : MESH (sélection individuelle) + AUTO-SEGMENTER
+   ─────────────────────────────────────────────────────────────────────────
+   - MESH : clic sur une face dans le 3D → sélectionne ce mesh SEUL (pas son
+     groupe) → propose de l'isoler dans un nouveau groupe. Utile quand
+     l'auto-détection a mal regroupé certaines mailles.
+   - AUTO-SEGMENTER : K-means par taille (log volume bbox) et/ou hauteur Y
+     centroïde. Refait complètement le découpage en N groupes.
+   - PIPETTE : déjà câblée historiquement (ligne 4947 togglePipetteMode)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v37Tools() {
+  if (window.__v37Init) return;
+  window.__v37Init = true;
+
+  window._v37 = window._v37 || {
+    mode: 'parts',        /* 'parts' | 'mesh' */
+    selectedMesh: null,
+    autoSegmentDialog: null,
+  };
+
+  /* ───── CSS ───── */
+  const css = `
+    /* Overlay flottant en mode MESH */
+    .v37-mesh-overlay {
+      position: fixed;
+      bottom: calc(var(--bottombar-h, 56px) + 16px);
+      left: 50%; transform: translateX(-50%);
+      background: var(--ink, #2A2620);
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      z-index: 8000;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s;
+    }
+    .v37-mesh-overlay.v37-show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .v37-mesh-overlay-label {
+      font-style: italic;
+      color: rgba(255,255,255,0.7);
+      padding-right: 4px;
+    }
+    .v37-mesh-overlay-btn {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .v37-mesh-overlay-btn:hover { filter: brightness(1.15); }
+    .v37-mesh-overlay-btn.v37-cancel {
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 6px 10px;
+    }
+    .v37-mesh-overlay-btn.v37-cancel:hover {
+      color: #fff;
+      border-color: rgba(255,255,255,0.45);
+      filter: none;
+    }
+    /* Body classe en mode MESH = curseur crosshair */
+    body.v37-mesh-active canvas { cursor: crosshair !important; }
+
+    /* Dialog Auto-segmenter */
+    .v37-as-overlay {
+      position: fixed; inset: 0;
+      background: rgba(42, 38, 32, 0.55);
+      z-index: 9000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .v37-as-overlay.v37-show {
+      opacity: 1; pointer-events: auto;
+    }
+    .v37-as-dialog {
+      background: var(--cream, #EDEAE4);
+      padding: 28px 32px;
+      max-width: 400px;
+      width: 90vw;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+    }
+    .v37-as-title {
+      font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+      font-size: 24px;
+      margin: 0 0 8px 0;
+      letter-spacing: 0.01em;
+      color: var(--ink, #2A2620);
+      font-weight: 500;
+    }
+    .v37-as-desc {
+      font-size: 12px;
+      color: var(--ink-muted, #6E6660);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+    .v37-as-row {
+      display: flex; align-items: center;
+      gap: 12px; margin-bottom: 14px;
+    }
+    .v37-as-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      flex: 1;
+    }
+    .v37-as-input {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: white;
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      text-align: center;
+      color: var(--ink, #2A2620);
+    }
+    .v37-as-select {
+      padding: 6px 8px;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: white;
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      color: var(--ink, #2A2620);
+      cursor: pointer;
+    }
+    .v37-as-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+      margin-top: 18px;
+    }
+    .v37-as-btn {
+      padding: 9px 18px;
+      border: none;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .v37-as-btn.v37-primary {
+      background: var(--gold, #B8965A);
+      color: white;
+    }
+    .v37-as-btn.v37-primary:hover { filter: brightness(1.1); }
+    .v37-as-btn.v37-secondary {
+      background: transparent;
+      color: var(--ink-muted, #6E6660);
+      border: 1px solid rgba(0,0,0,0.18);
+    }
+    .v37-as-btn.v37-secondary:hover {
+      color: var(--ink, #2A2620);
+      border-color: var(--ink, #2A2620);
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ MODE MESH : sélection mesh-par-mesh ═══ */
+
+  /* Highlight visuel : sauvegarder le matériau et le remplacer par une version emissive */
+  let highlightedMesh = null;
+  let savedMaterial = null;
+
+  function highlightMesh(mesh) {
+    clearHighlight();
+    if (!mesh || !mesh.material) return;
+    savedMaterial = mesh.material;
+    const hm = mesh.material.clone();
+    hm.emissive = new THREE.Color(0xB8965A);
+    hm.emissiveIntensity = 0.55;
+    mesh.material = hm;
+    highlightedMesh = mesh;
+  }
+
+  function clearHighlight() {
+    if (highlightedMesh && savedMaterial) {
+      highlightedMesh.material = savedMaterial;
+    }
+    highlightedMesh = null;
+    savedMaterial = null;
+  }
+
+  /* Overlay flottant pour les actions */
+  let overlayEl = null;
+  function buildOverlay() {
+    if (overlayEl) return overlayEl;
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'v37-mesh-overlay';
+    overlayEl.innerHTML = `
+      <span class="v37-mesh-overlay-label">Mesh sélectionné</span>
+      <button class="v37-mesh-overlay-btn" data-act="isolate">📎 Isoler dans un groupe</button>
+      <button class="v37-mesh-overlay-btn v37-cancel" data-act="cancel">✕</button>
+    `;
+    document.body.appendChild(overlayEl);
+    overlayEl.querySelector('[data-act="isolate"]').onclick = () => isolateSelectedMesh();
+    overlayEl.querySelector('[data-act="cancel"]').onclick = () => exitMeshMode();
+    return overlayEl;
+  }
+
+  function showOverlay() {
+    buildOverlay();
+    overlayEl.classList.add('v37-show');
+  }
+  function hideOverlay() {
+    if (overlayEl) overlayEl.classList.remove('v37-show');
+  }
+
+  function enterMeshMode() {
+    /* Désactiver pipette si actif */
+    if (typeof pipetteMode !== 'undefined' && pipetteMode && typeof togglePipetteMode === 'function') {
+      togglePipetteMode(false);
+    }
+    window._v37.mode = 'mesh';
+    document.body.classList.add('v37-mesh-active');
+    document.querySelectorAll('.mode-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === 'Mesh');
+    });
+    toast('Mode Mesh : clique sur une face dans la 3D pour isoler cette maille', 'info', 4500);
+  }
+
+  function exitMeshMode() {
+    window._v37.mode = 'parts';
+    window._v37.selectedMesh = null;
+    clearHighlight();
+    hideOverlay();
+    document.body.classList.remove('v37-mesh-active');
+    document.querySelectorAll('.mode-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === 'Parties');
+    });
+  }
+
+  /* Intercept clic canvas en phase capture quand mode === 'mesh' */
+  let _mdInfo = null;
+  canvas.addEventListener('mousedown', (e) => {
+    if (window._v37.mode !== 'mesh') return;
+    _mdInfo = { x: e.clientX, y: e.clientY, t: Date.now() };
+  }, true);
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (window._v37.mode !== 'mesh') return;
+    if (!_mdInfo) return;
+    const dt = Date.now() - _mdInfo.t;
+    const dx = Math.abs(e.clientX - _mdInfo.x);
+    const dy = Math.abs(e.clientY - _mdInfo.y);
+    _mdInfo = null;
+    if (dt > 300 || dx > 4 || dy > 4) return;
+    /* C'est bien un clic court → empêcher le handler PARTIES de tourner */
+    e.stopImmediatePropagation();
+    handleMeshClick(e);
+  }, true);
+
+  function handleMeshClick(e) {
+    if (!currentObject) return;
+    const rect = canvas.getBoundingClientRect();
+    mouseNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+    mouseNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObject(currentObject, true).filter(h => h.object.visible);
+    if (hits.length === 0) return;
+    const mesh = hits[0].object;
+    window._v37.selectedMesh = mesh;
+    highlightMesh(mesh);
+    showOverlay();
+  }
+
+  function isolateSelectedMesh() {
+    const mesh = window._v37.selectedMesh;
+    if (!mesh) { exitMeshMode(); return; }
+
+    /* Trouver le groupe parent du mesh */
+    let parentKey = null;
+    for (const [k, meshes] of Object.entries(meshGroups)) {
+      if (meshes.includes(mesh)) { parentKey = k; break; }
+    }
+    if (!parentKey) {
+      toast('Mesh introuvable dans les groupes', 'err');
+      exitMeshMode();
+      return;
+    }
+
+    /* Restaurer le matériau d'origine AVANT de bouger */
+    if (savedMaterial) mesh.material = savedMaterial;
+    clearHighlight();
+
+    /* Créer un nouveau groupe et y mettre le mesh */
+    const ts = Date.now().toString(36).slice(-4);
+    const newKey = '_iso_' + ts + '_' + Math.floor(Math.random() * 99);
+
+    /* Cloner le matériau parent pour que le mesh isolé puisse être édité indépendamment */
+    const parentMat = partMaterials[parentKey];
+    let newMat;
+    if (parentMat && typeof parentMat.clone === 'function') {
+      newMat = parentMat.clone();
+    } else {
+      newMat = new THREE.MeshStandardMaterial({ color: 0xB8965A, roughness: 0.7, metalness: 0 });
+    }
+    partMaterials[newKey] = newMat;
+
+    /* Retirer le mesh du groupe parent */
+    meshGroups[parentKey] = meshGroups[parentKey].filter(m => m !== mesh);
+    /* Si parent devient vide → supprimer */
+    if (meshGroups[parentKey].length === 0) {
+      delete meshGroups[parentKey];
+      delete partMaterials[parentKey];
+      if (typeof partMaterialChoices !== 'undefined') delete partMaterialChoices[parentKey];
+      if (typeof partProjection !== 'undefined') delete partProjection[parentKey];
+      if (window._v21 && window._v21.customLabels) delete window._v21.customLabels[parentKey];
+    }
+
+    /* Inscrire le mesh dans le nouveau groupe */
+    meshGroups[newKey] = [mesh];
+    mesh.material = newMat;
+
+    /* Label : "Mesh isolé N" */
+    if (!window._v21) window._v21 = {};
+    if (!window._v21.customLabels) window._v21.customLabels = {};
+    const isoCount = Object.keys(window._v21.customLabels).filter(k =>
+      window._v21.customLabels[k] && /^Mesh isolé/.test(window._v21.customLabels[k])).length + 1;
+    window._v21.customLabels[newKey] = 'Mesh isolé ' + isoCount;
+
+    exitMeshMode();
+    triggerTreeRender();
+
+    /* Sélectionner le nouveau groupe */
+    setTimeout(() => {
+      if (window._v21 && typeof window._v21.selectPartMulti === 'function') {
+        window._v21.selectPartMulti(newKey, 'set');
+      } else if (typeof selectPartReal === 'function') {
+        selectPartReal(newKey);
+      }
+    }, 120);
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    toast('Mesh isolé dans "' + window._v21.customLabels[newKey] + '" — édite ses matériaux indépendamment', 'ok', 4500);
+  }
+
+  /* Esc sort du mode mesh */
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window._v37.mode === 'mesh') {
+      exitMeshMode();
+    }
+  });
+
+  /* ═══ AUTO-SEGMENTER ═══ */
+
+  function showAutoSegmentDialog() {
+    if (!currentObject) {
+      toast('Charge un modèle d\'abord', 'err'); return;
+    }
+    if (window._v37.autoSegmentDialog) {
+      window._v37.autoSegmentDialog.classList.add('v37-show');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'v37-as-overlay';
+    overlay.innerHTML = `
+      <div class="v37-as-dialog">
+        <h3 class="v37-as-title">Auto-segmenter</h3>
+        <p class="v37-as-desc">Regroupe les meshes du modèle par <strong>taille</strong> et/ou <strong>hauteur</strong>. Utile quand le modèle est mal segmenté à l'import (un seul groupe contenant tout, ou trop fragmenté). Ça <strong>remplace</strong> les groupes actuels.</p>
+        <div class="v37-as-row">
+          <span class="v37-as-label">Nombre de groupes</span>
+          <input type="number" class="v37-as-input" id="v37asK" min="2" max="8" value="3">
+        </div>
+        <div class="v37-as-row">
+          <span class="v37-as-label">Critère</span>
+          <select class="v37-as-select" id="v37asMode">
+            <option value="size">Taille uniquement (petit / moyen / grand)</option>
+            <option value="height">Hauteur uniquement (bas / milieu / haut)</option>
+            <option value="size+height" selected>Taille + Hauteur (recommandé)</option>
+          </select>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="run">Segmenter</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    window._v37.autoSegmentDialog = overlay;
+    setTimeout(() => overlay.classList.add('v37-show'), 10);
+
+    const close = () => overlay.classList.remove('v37-show');
+    overlay.querySelector('[data-act="cancel"]').onclick = close;
+    overlay.querySelector('[data-act="run"]').onclick = () => {
+      const k = Math.max(2, Math.min(8, parseInt(overlay.querySelector('#v37asK').value) || 3));
+      const mode = overlay.querySelector('#v37asMode').value;
+      close();
+      if (confirm('Cela va remplacer TOUS les groupes actuels par ' + k + ' nouveaux. Continuer ?')) {
+        runAutoSegment(k, mode);
+      }
+    };
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  }
+
+  /* K-means 1D simple */
+  function kmeans1D(values, k, maxIter = 30) {
+    if (values.length === 0) return [];
+    if (values.length < k) k = values.length;
+    const sorted = [...values].sort((a, b) => a - b);
+    const centroids = [];
+    for (let i = 0; i < k; i++) {
+      centroids.push(sorted[Math.floor((i + 0.5) * sorted.length / k)]);
+    }
+    const assignments = new Array(values.length).fill(0);
+    for (let it = 0; it < maxIter; it++) {
+      let changed = false;
+      for (let i = 0; i < values.length; i++) {
+        let best = 0, bestD = Infinity;
+        for (let c = 0; c < k; c++) {
+          const d = Math.abs(values[i] - centroids[c]);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        if (assignments[i] !== best) { assignments[i] = best; changed = true; }
+      }
+      if (!changed) break;
+      for (let c = 0; c < k; c++) {
+        let sum = 0, count = 0;
+        for (let i = 0; i < values.length; i++) {
+          if (assignments[i] === c) { sum += values[i]; count++; }
+        }
+        if (count > 0) centroids[c] = sum / count;
+      }
+    }
+    /* Trier les clusters par centroïde pour des labels cohérents */
+    const order = centroids.map((c, i) => ({ c, i })).sort((a, b) => a.c - b.c);
+    const remap = {};
+    order.forEach((o, idx) => { remap[o.i] = idx; });
+    return assignments.map(a => remap[a]);
+  }
+
+  function runAutoSegment(k, mode) {
+    if (!currentObject) return;
+
+    /* Collecter tous les meshes (feuilles) */
+    const meshes = [];
+    currentObject.traverse(o => {
+      if (o.isMesh && o.geometry) meshes.push(o);
+    });
+    if (meshes.length < 2) {
+      toast('Pas assez de meshes (' + meshes.length + ') pour segmenter', 'err'); return;
+    }
+
+    /* Features : volume bbox + Y centroïde monde */
+    currentObject.updateWorldMatrix(true, true);
+    const features = meshes.map(m => {
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+      const bb = m.geometry.boundingBox;
+      const dx = Math.max(0.0001, bb.max.x - bb.min.x);
+      const dy = Math.max(0.0001, bb.max.y - bb.min.y);
+      const dz = Math.max(0.0001, bb.max.z - bb.min.z);
+      const vol = dx * dy * dz;
+      /* Centroïde monde */
+      const cLocal = new THREE.Vector3(
+        (bb.min.x + bb.max.x) / 2,
+        (bb.min.y + bb.max.y) / 2,
+        (bb.min.z + bb.max.z) / 2
+      );
+      const cWorld = cLocal.applyMatrix4(m.matrixWorld);
+      return { mesh: m, volume: vol, height: cWorld.y };
+    });
+
+    /* Construire le vecteur de features selon le mode */
+    let values;
+    if (mode === 'size') {
+      values = features.map(f => Math.log(f.volume));
+    } else if (mode === 'height') {
+      values = features.map(f => f.height);
+    } else {
+      const vols = features.map(f => Math.log(f.volume));
+      const hgts = features.map(f => f.height);
+      const vMin = Math.min(...vols), vMax = Math.max(...vols);
+      const hMin = Math.min(...hgts), hMax = Math.max(...hgts);
+      const vRange = (vMax - vMin) || 1;
+      const hRange = (hMax - hMin) || 1;
+      values = features.map((f, i) =>
+        0.5 * ((vols[i] - vMin) / vRange) + 0.5 * ((hgts[i] - hMin) / hRange)
+      );
+    }
+
+    const clusters = kmeans1D(values, k);
+    const actualK = new Set(clusters).size;
+
+    /* Vider les groupes existants */
+    Object.keys(meshGroups).forEach(key => {
+      delete meshGroups[key];
+      delete partMaterials[key];
+      if (typeof partMaterialChoices !== 'undefined') delete partMaterialChoices[key];
+      if (typeof partProjection !== 'undefined') delete partProjection[key];
+    });
+    if (window._v21 && window._v21.customLabels) {
+      Object.keys(window._v21.customLabels).forEach(key => delete window._v21.customLabels[key]);
+    }
+    /* Vider aussi les wrappers v36 (les references ne sont plus valides) */
+    if (window._v36 && window._v36.hierarchy) {
+      Object.keys(window._v36.hierarchy).forEach(key => delete window._v36.hierarchy[key]);
+    }
+
+    /* Labels par mode */
+    const labelSets = {
+      size:           ['Petits', 'Moyens', 'Grands', 'Très grands', 'Énormes', 'Géants', 'Massifs', 'Hyper'],
+      height:         ['Bas', 'Bas-milieu', 'Milieu', 'Haut-milieu', 'Haut', 'Très haut', 'Sommet', 'Pic'],
+      'size+height':  ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4', 'Cluster 5', 'Cluster 6', 'Cluster 7', 'Cluster 8'],
+    };
+    const labels = labelSets[mode] || labelSets['size+height'];
+
+    const ts = Date.now().toString(36).slice(-4);
+    const groupKeys = [];
+    for (let c = 0; c < actualK; c++) {
+      const key = '_seg_' + ts + '_' + c;
+      groupKeys.push(key);
+      meshGroups[key] = [];
+      partMaterials[key] = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(c / actualK, 0.42, 0.55),
+        roughness: 0.7,
+        metalness: 0,
+      });
+      if (!window._v21) window._v21 = {};
+      if (!window._v21.customLabels) window._v21.customLabels = {};
+      window._v21.customLabels[key] = labels[c] || ('Groupe ' + (c + 1));
+    }
+
+    /* Distribuer */
+    features.forEach((f, i) => {
+      const c = clusters[i];
+      const key = groupKeys[c];
+      meshGroups[key].push(f.mesh);
+      f.mesh.material = partMaterials[key];
+    });
+
+    triggerTreeRender();
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    toast(`Auto-segmenté : ${actualK} groupes · ${meshes.length} mailles distribuées`, 'ok', 5000);
+  }
+
+  /* ═══ WIRE LES BOUTONS ═══ */
+  /* Le wiring d'origine (ligne 4956+) gère déjà Pipette/Parties. On étend
+     ce comportement : la fonction d'origine sur Mesh affichait juste un toast
+     "à venir" — on la remplace par notre logique. On hook aussi Parties et
+     Pipette pour qu'ils sortent du mode Mesh si activé. */
+  function wireButtons() {
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      const txt = btn.textContent.trim();
+      if (txt === 'Mesh') {
+        btn.onclick = (ev) => {
+          ev && ev.preventDefault && ev.preventDefault();
+          if (window._v37.mode === 'mesh') exitMeshMode();
+          else enterMeshMode();
+        };
+      } else if (txt === 'Parties' || txt === 'Pipette') {
+        const _orig = btn.onclick;
+        btn.onclick = (ev) => {
+          if (window._v37.mode === 'mesh') exitMeshMode();
+          if (typeof _orig === 'function') _orig.call(btn, ev);
+        };
+      }
+    });
+
+    /* Auto-segmenter */
+    const asBtn = document.querySelector('.btn-secondary-bottom');
+    if (asBtn && /auto-?segment/i.test(asBtn.textContent || '')) {
+      asBtn.onclick = (e) => {
+        e && e.preventDefault && e.preventDefault();
+        showAutoSegmentDialog();
+      };
+    }
+  }
+  /* Retry car les boutons existent mais le wiring d'origine se fait aussi
+     en async (ligne 4956). On doit s'exécuter APRÈS pour le supplanter. */
+  setTimeout(wireButtons, 1500);
+  setTimeout(wireButtons, 3500);
+
+  /* ═══ EXPOSE ═══ */
+  window._v37.enterMeshMode = enterMeshMode;
+  window._v37.exitMeshMode = exitMeshMode;
+  window._v37.runAutoSegment = runAutoSegment;
+  window._v37.showAutoSegmentDialog = showAutoSegmentDialog;
+  window._v37.isolateSelectedMesh = isolateSelectedMesh;
+
+  console.log('[studio v37] outils MESH (isolation) + AUTO-SEGMENTER (K-means) câblés ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
