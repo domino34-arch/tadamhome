@@ -9597,6 +9597,223 @@ console.log('[studio v29] refactor IA du burger panel + carte éditable + sync c
 console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓');
 
 
+/* ════════════════════════════════════════════════════════════════════
+   V34 — Persistance OBJ source + auto-export GLB/USDZ à la CRÉATION
+   ════════════════════════════════════════════════════════════════════
+   Fix 2 bugs :
+   1. Le studio ne pouvait pas recharger un produit existant car l'OBJ
+      source n'était pas conservé. Maintenant on l'upload à la création
+      et on le re-fetch quand on ouvre le produit via ?id=
+   2. Les exports GLB/USDZ ne se faisaient qu'à la PUBLICATION. Maintenant
+      ils se font aussi à la CRÉATION pour avoir un produit utilisable
+      même en brouillon (catalogue admin, AR test, etc.)
+*/
+(function applyV34(){
+  window._v34 = window._v34 || { lastObjFile: null, objSourceUrl: null, loadedFromUrl: false };
+
+  /* ─── 1. Hook loadOBJFromFile : capturer le File pour upload ultérieur ─── */
+  if (typeof window.loadOBJFromFile === 'function') {
+    const _origLoadObj = window.loadOBJFromFile;
+    window.loadOBJFromFile = function(file) {
+      /* On ne mémorise QUE si c'est un upload utilisateur (pas un re-fetch v34) */
+      if (!window._v34.loadedFromUrl) {
+        window._v34.lastObjFile = file;
+        console.log('[v34] File OBJ source capturé :', file.name, '(' + (file.size/1024).toFixed(1) + ' KB)');
+      }
+      window._v34.loadedFromUrl = false;
+      return _origLoadObj.call(this, file);
+    };
+  } else {
+    console.warn('[v34] window.loadOBJFromFile introuvable — capture du File désactivée');
+  }
+
+  /* ─── 2. Override serializeStudioState pour inclure obj_source_url ─── */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) {
+      setTimeout(hookSerialize, 500); return;
+    }
+    if (window._v18.__v34SerializeHooked) return;
+    const _origSerialize = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = _origSerialize.call(this) || {};
+      /* Injecter obj_source_url si on l'a en mémoire (créé dans cette session
+         ou chargé depuis un produit existant) */
+      const url = window._v34.objSourceUrl
+                || state.obj_source_url
+                || (window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url);
+      if (url) state.obj_source_url = url;
+      return state;
+    };
+    window._v18.__v34SerializeHooked = true;
+    console.log('[v34] serializeStudioState hooké pour obj_source_url ✓');
+  }
+  hookSerialize();
+
+  /* ─── 3. Override createNewProduct : upload OBJ + auto-export GLB/USDZ ─── */
+  function hookCreate() {
+    if (!window._v26 || typeof window._v26.createNewProduct !== 'function') {
+      setTimeout(hookCreate, 500); return;
+    }
+    if (window._v26.__v34CreateHooked) return;
+    const _origCreate = window._v26.createNewProduct;
+    window._v26.createNewProduct = async function() {
+      /* Garder une référence au File AVANT que l'override appelle l'original
+         (au cas où l'original réinitialise des variables) */
+      const objFile = window._v34.lastObjFile;
+
+      /* Exécute la création originale (INSERT product + hydrate window._v18.productId) */
+      await _origCreate.apply(this, arguments);
+
+      /* Si l'INSERT a échoué, productId n'est pas set — on s'arrête */
+      const productId = window._v18 && window._v18.productId;
+      if (!productId) {
+        console.warn('[v34] productId absent après _origCreate — abort uploads');
+        return;
+      }
+
+      /* ─── 3a. Upload OBJ source vers Supabase Storage ─── */
+      let objSourceUrl = null;
+      if (objFile && typeof sb !== 'undefined' && sb) {
+        try {
+          if (window._v18.setBadge) window._v18.setBadge('saving', 'Upload OBJ source…');
+          if (typeof toast === 'function') toast('Archivage du fichier OBJ source…', 'info', 2500);
+          const path = 'obj-sources/' + productId + '/source.obj';
+          /* Note : bucket "models" est celui utilisé par v19 pour GLB/USDZ */
+          const { error: upErr } = await sb.storage.from('models').upload(path, objFile, {
+            upsert: true,
+            contentType: 'model/obj'
+          });
+          if (upErr) throw upErr;
+          const { data: pub } = sb.storage.from('models').getPublicUrl(path);
+          objSourceUrl = pub.publicUrl;
+          window._v34.objSourceUrl = objSourceUrl;
+          console.log('[v34] OBJ source uploadé :', objSourceUrl);
+          if (typeof toast === 'function') toast('OBJ source archivé ✓', 'ok', 2500);
+        } catch (e) {
+          console.error('[v34 upload OBJ]', e);
+          if (typeof toast === 'function') toast('Upload OBJ échoué : ' + (e.message || '').slice(0, 50), 'err', 5000);
+        }
+      } else if (!objFile) {
+        console.warn('[v34] Aucun File OBJ en mémoire — le produit sera créé sans source rechargeable');
+        if (typeof toast === 'function') toast('Astuce : drag l\'OBJ avant Créer pour pouvoir rééditer plus tard', 'info', 5000);
+      }
+
+      /* Persister l'URL dans studio_state via un force save */
+      if (objSourceUrl && typeof window.forceStudioSave === 'function') {
+        try { await window.forceStudioSave(); } catch (e) { /* on continue */ }
+      }
+
+      /* ─── 3b. Auto-export GLB + USDZ vers Storage ─── */
+      let glbOk = false, usdzOk = false;
+      if (window._v19 && typeof window._v19.runExport === 'function') {
+        try {
+          if (window._v18.setBadge) window._v18.setBadge('saving', 'Export GLB…');
+          if (typeof toast === 'function') toast('Génération GLB pour AR Android…', 'info', 2500);
+          await window._v19.runExport('glb');
+          glbOk = !!(window._v19.exports && window._v19.exports.glb);
+        } catch (e) {
+          console.error('[v34 export GLB]', e);
+        }
+        try {
+          if (window._v18.setBadge) window._v18.setBadge('saving', 'Export USDZ…');
+          if (typeof toast === 'function') toast('Génération USDZ pour AR iOS…', 'info', 2500);
+          await window._v19.runExport('usdz');
+          usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
+        } catch (e) {
+          console.error('[v34 export USDZ]', e);
+        }
+        if (typeof window.forceStudioSave === 'function') {
+          try { await window.forceStudioSave(); } catch (e) {}
+        }
+      } else {
+        console.warn('[v34] window._v19.runExport indisponible — exports GLB/USDZ skip');
+      }
+
+      /* ─── 3c. UPDATE colonnes scalaires products.model_glb_url + model_usdz_url ─── */
+      try {
+        const glbUrl  = window._v19 && window._v19.exports && window._v19.exports.glb  || null;
+        const usdzUrl = window._v19 && window._v19.exports && window._v19.exports.usdz || null;
+        if (glbUrl || usdzUrl) {
+          const updatePayload = {};
+          if (glbUrl)  updatePayload.model_glb_url  = glbUrl;
+          if (usdzUrl) updatePayload.model_usdz_url = usdzUrl;
+          const { error: updErr } = await sb.from('products').update(updatePayload).eq('id', productId);
+          if (updErr) {
+            console.warn('[v34] update model_*_url échec :', updErr.message);
+          } else {
+            console.log('[v34] model_glb_url / model_usdz_url mis à jour dans products');
+          }
+        }
+      } catch (e) {
+        console.warn('[v34 update urls scalaires]', e);
+      }
+
+      /* Toast récap */
+      if (window._v18.setBadge) window._v18.setBadge('saved');
+      const parts = [];
+      if (objSourceUrl) parts.push('OBJ source');
+      if (glbOk)        parts.push('GLB');
+      if (usdzOk)       parts.push('USDZ');
+      if (parts.length && typeof toast === 'function') {
+        toast('✓ Produit prêt : ' + parts.join(' + ') + ' archivés', 'ok', 5000);
+      }
+    };
+    window._v26.__v34CreateHooked = true;
+    console.log('[v34] createNewProduct hooké pour upload OBJ + auto-export ✓');
+  }
+  hookCreate();
+
+  /* ─── 4. Auto-charge l'OBJ source quand on ouvre un produit existant ─── */
+  /* Le studio v18 charge studio_state mais pas le maillage 3D.
+     On observe window._v18.productRow et on déclenche un fetch+parse
+     dès que obj_source_url est détecté. */
+  let _v34_loadAttempts = 0;
+  const _v34_check = setInterval(() => {
+    _v34_loadAttempts++;
+    if (_v34_loadAttempts > 80) { clearInterval(_v34_check); return; }
+    const row = window._v18 && window._v18.productRow;
+    if (!row) return;
+    const state = row.studio_state;
+    const objUrl = state && state.obj_source_url;
+    if (!objUrl) {
+      /* Pas d'URL → on garde le comportement original (sandbox, attend drag) */
+      clearInterval(_v34_check);
+      return;
+    }
+    /* Si le viewport drop overlay est déjà caché, c'est que l'OBJ est chargé */
+    const drop = document.getElementById('vpDrop');
+    if (drop && drop.classList.contains('hidden')) {
+      clearInterval(_v34_check);
+      return;
+    }
+    clearInterval(_v34_check);
+    console.log('[v34] OBJ source détecté, chargement depuis', objUrl);
+    if (typeof toast === 'function') toast('Téléchargement du modèle 3D…', 'info', 3000);
+    fetch(objUrl)
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(text => {
+        const blob = new Blob([text], { type: 'model/obj' });
+        const file = new File([blob], 'source.obj', { type: 'model/obj' });
+        window._v34.loadedFromUrl = true; /* flag pour ne pas réécraser lastObjFile */
+        window._v34.objSourceUrl = objUrl;
+        if (typeof window.loadOBJFromFile === 'function') {
+          window.loadOBJFromFile(file);
+        } else {
+          console.error('[v34] window.loadOBJFromFile introuvable');
+        }
+      })
+      .catch(e => {
+        console.error('[v34 fetch OBJ]', e);
+        if (typeof toast === 'function') toast('Impossible de charger l\'OBJ source : ' + e.message, 'err', 6000);
+      });
+  }, 400);
+
+  console.log('[studio v34] OBJ source persisté + auto-export GLB/USDZ à la création ✓');
+})();
+
 
 console.log('[studio v3] prêt');
 
