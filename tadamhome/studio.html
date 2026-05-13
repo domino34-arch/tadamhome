@@ -9667,7 +9667,122 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   }
   hookSerialize();
 
-  /* ─── 3. Override createNewProduct : upload OBJ + auto-export GLB/USDZ ─── */
+  /* ─── 3. Pipeline V34 : upload OBJ + auto-export GLB/USDZ ─── */
+  /* Extrait dans une fonction réutilisable pour être appelable :
+     - depuis l'override de createNewProduct
+     - depuis un watcher fallback si l'override échoue */
+  window._v34.processedIds = window._v34.processedIds || new Set();
+  
+  async function runV34Pipeline(productId, objFile, source) {
+    console.log('[v34] ▶ runV34Pipeline démarré — productId:', productId, 'source:', source, 'objFile:', objFile?.name || 'aucun');
+    if (window._v34.processedIds.has(productId)) {
+      console.log('[v34] ⊘ productId déjà traité, skip');
+      return;
+    }
+    window._v34.processedIds.add(productId);
+
+    /* ─── A. Upload OBJ source vers Supabase Storage ─── */
+    let objSourceUrl = null;
+    if (objFile && typeof sb !== 'undefined' && sb) {
+      try {
+        console.log('[v34] [A] Upload OBJ source en cours…');
+        if (window._v18 && window._v18.setBadge) window._v18.setBadge('saving', 'Upload OBJ source…');
+        if (typeof toast === 'function') toast('Archivage du fichier OBJ source…', 'info', 2500);
+        const path = 'obj-sources/' + productId + '/source.obj';
+        const { error: upErr } = await sb.storage.from('models').upload(path, objFile, {
+          upsert: true,
+          contentType: 'model/obj'
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = sb.storage.from('models').getPublicUrl(path);
+        objSourceUrl = pub.publicUrl;
+        window._v34.objSourceUrl = objSourceUrl;
+        console.log('[v34] [A] ✓ OBJ source uploadé :', objSourceUrl);
+        if (typeof toast === 'function') toast('OBJ source archivé ✓', 'ok', 2500);
+      } catch (e) {
+        console.error('[v34] [A] ✗ upload OBJ source :', e);
+        if (typeof toast === 'function') toast('Upload OBJ échoué : ' + (e.message || '').slice(0, 50), 'err', 5000);
+      }
+    } else if (!objFile) {
+      console.warn('[v34] [A] ⊘ Aucun File OBJ en mémoire — produit créé sans source rechargeable');
+    }
+
+    /* ─── B. Force save pour propager objSourceUrl dans studio_state ─── */
+    if (objSourceUrl && typeof window.forceStudioSave === 'function') {
+      try { 
+        console.log('[v34] [B] Force save pour propager obj_source_url…');
+        await window.forceStudioSave(); 
+      } catch (e) { console.warn('[v34] [B] forceStudioSave :', e); }
+    }
+
+    /* ─── C. Auto-export GLB + USDZ vers Storage ─── */
+    let glbOk = false, usdzOk = false;
+    if (window._v19 && typeof window._v19.runExport === 'function') {
+      try {
+        console.log('[v34] [C1] Export GLB en cours…');
+        if (window._v18 && window._v18.setBadge) window._v18.setBadge('saving', 'Export GLB…');
+        if (typeof toast === 'function') toast('Génération GLB pour AR Android…', 'info', 2500);
+        await window._v19.runExport('glb');
+        glbOk = !!(window._v19.exports && window._v19.exports.glb);
+        console.log('[v34] [C1] ' + (glbOk ? '✓' : '✗') + ' Export GLB — exports.glb =', window._v19.exports?.glb);
+      } catch (e) {
+        console.error('[v34] [C1] ✗ Export GLB :', e);
+      }
+      try {
+        console.log('[v34] [C2] Export USDZ en cours…');
+        if (window._v18 && window._v18.setBadge) window._v18.setBadge('saving', 'Export USDZ…');
+        if (typeof toast === 'function') toast('Génération USDZ pour AR iOS…', 'info', 2500);
+        await window._v19.runExport('usdz');
+        usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
+        console.log('[v34] [C2] ' + (usdzOk ? '✓' : '✗') + ' Export USDZ — exports.usdz =', window._v19.exports?.usdz);
+      } catch (e) {
+        console.error('[v34] [C2] ✗ Export USDZ :', e);
+      }
+      if (typeof window.forceStudioSave === 'function') {
+        try { await window.forceStudioSave(); } catch (e) {}
+      }
+    } else {
+      console.warn('[v34] [C] ⊘ window._v19.runExport indisponible — exports GLB/USDZ skip');
+    }
+
+    /* ─── D. UPDATE colonnes scalaires products.model_glb_url + model_usdz_url ─── */
+    try {
+      const glbUrl  = (window._v19 && window._v19.exports && window._v19.exports.glb)  || null;
+      const usdzUrl = (window._v19 && window._v19.exports && window._v19.exports.usdz) || null;
+      console.log('[v34] [D] Préparation UPDATE — glbUrl:', !!glbUrl, ' usdzUrl:', !!usdzUrl);
+      if (glbUrl || usdzUrl) {
+        const updatePayload = {};
+        if (glbUrl)  updatePayload.model_glb_url  = glbUrl;
+        if (usdzUrl) updatePayload.model_usdz_url = usdzUrl;
+        console.log('[v34] [D] UPDATE products SET', updatePayload, 'WHERE id =', productId);
+        const { error: updErr } = await sb.from('products').update(updatePayload).eq('id', productId);
+        if (updErr) {
+          console.error('[v34] [D] ✗ UPDATE échec :', updErr.message, updErr);
+          if (typeof toast === 'function') toast('UPDATE URL échec : ' + updErr.message.slice(0, 60), 'err', 6000);
+        } else {
+          console.log('[v34] [D] ✓ model_glb_url / model_usdz_url mis à jour dans products');
+        }
+      } else {
+        console.warn('[v34] [D] ⊘ Aucune URL d\'export disponible — UPDATE skip');
+      }
+    } catch (e) {
+      console.error('[v34] [D] exception :', e);
+    }
+
+    /* ─── E. Toast récap ─── */
+    if (window._v18 && window._v18.setBadge) window._v18.setBadge('saved');
+    const parts = [];
+    if (objSourceUrl) parts.push('OBJ source');
+    if (glbOk)        parts.push('GLB');
+    if (usdzOk)       parts.push('USDZ');
+    if (parts.length && typeof toast === 'function') {
+      toast('✓ Produit prêt : ' + parts.join(' + ') + ' archivés', 'ok', 5000);
+    }
+    console.log('[v34] ◼ Pipeline terminé — résultat :', parts);
+  }
+  window._v34.runPipeline = runV34Pipeline; /* exposé pour debug manuel */
+
+  /* ─── 4. Override createNewProduct (canal principal) ─── */
   function hookCreate() {
     if (!window._v26 || typeof window._v26.createNewProduct !== 'function') {
       setTimeout(hookCreate, 500); return;
@@ -9675,111 +9790,70 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     if (window._v26.__v34CreateHooked) return;
     const _origCreate = window._v26.createNewProduct;
     window._v26.createNewProduct = async function() {
-      /* Garder une référence au File AVANT que l'override appelle l'original
-         (au cas où l'original réinitialise des variables) */
+      console.log('[v34] ⚡ createNewProduct override INVOQUÉ');
       const objFile = window._v34.lastObjFile;
-
-      /* Exécute la création originale (INSERT product + hydrate window._v18.productId) */
-      await _origCreate.apply(this, arguments);
-
-      /* Si l'INSERT a échoué, productId n'est pas set — on s'arrête */
-      const productId = window._v18 && window._v18.productId;
-      if (!productId) {
-        console.warn('[v34] productId absent après _origCreate — abort uploads');
+      console.log('[v34] objFile en mémoire :', objFile?.name || 'AUCUN');
+      
+      try {
+        await _origCreate.apply(this, arguments);
+      } catch (e) {
+        console.error('[v34] _origCreate a échoué :', e);
         return;
       }
-
-      /* ─── 3a. Upload OBJ source vers Supabase Storage ─── */
-      let objSourceUrl = null;
-      if (objFile && typeof sb !== 'undefined' && sb) {
-        try {
-          if (window._v18.setBadge) window._v18.setBadge('saving', 'Upload OBJ source…');
-          if (typeof toast === 'function') toast('Archivage du fichier OBJ source…', 'info', 2500);
-          const path = 'obj-sources/' + productId + '/source.obj';
-          /* Note : bucket "models" est celui utilisé par v19 pour GLB/USDZ */
-          const { error: upErr } = await sb.storage.from('models').upload(path, objFile, {
-            upsert: true,
-            contentType: 'model/obj'
-          });
-          if (upErr) throw upErr;
-          const { data: pub } = sb.storage.from('models').getPublicUrl(path);
-          objSourceUrl = pub.publicUrl;
-          window._v34.objSourceUrl = objSourceUrl;
-          console.log('[v34] OBJ source uploadé :', objSourceUrl);
-          if (typeof toast === 'function') toast('OBJ source archivé ✓', 'ok', 2500);
-        } catch (e) {
-          console.error('[v34 upload OBJ]', e);
-          if (typeof toast === 'function') toast('Upload OBJ échoué : ' + (e.message || '').slice(0, 50), 'err', 5000);
-        }
-      } else if (!objFile) {
-        console.warn('[v34] Aucun File OBJ en mémoire — le produit sera créé sans source rechargeable');
-        if (typeof toast === 'function') toast('Astuce : drag l\'OBJ avant Créer pour pouvoir rééditer plus tard', 'info', 5000);
+      
+      const productId = window._v18 && window._v18.productId;
+      if (!productId) {
+        console.warn('[v34] productId absent après _origCreate — abort pipeline');
+        return;
       }
-
-      /* Persister l'URL dans studio_state via un force save */
-      if (objSourceUrl && typeof window.forceStudioSave === 'function') {
-        try { await window.forceStudioSave(); } catch (e) { /* on continue */ }
-      }
-
-      /* ─── 3b. Auto-export GLB + USDZ vers Storage ─── */
-      let glbOk = false, usdzOk = false;
-      if (window._v19 && typeof window._v19.runExport === 'function') {
-        try {
-          if (window._v18.setBadge) window._v18.setBadge('saving', 'Export GLB…');
-          if (typeof toast === 'function') toast('Génération GLB pour AR Android…', 'info', 2500);
-          await window._v19.runExport('glb');
-          glbOk = !!(window._v19.exports && window._v19.exports.glb);
-        } catch (e) {
-          console.error('[v34 export GLB]', e);
-        }
-        try {
-          if (window._v18.setBadge) window._v18.setBadge('saving', 'Export USDZ…');
-          if (typeof toast === 'function') toast('Génération USDZ pour AR iOS…', 'info', 2500);
-          await window._v19.runExport('usdz');
-          usdzOk = !!(window._v19.exports && window._v19.exports.usdz);
-        } catch (e) {
-          console.error('[v34 export USDZ]', e);
-        }
-        if (typeof window.forceStudioSave === 'function') {
-          try { await window.forceStudioSave(); } catch (e) {}
-        }
-      } else {
-        console.warn('[v34] window._v19.runExport indisponible — exports GLB/USDZ skip');
-      }
-
-      /* ─── 3c. UPDATE colonnes scalaires products.model_glb_url + model_usdz_url ─── */
+      
+      /* Délai pour laisser le DOM/state se stabiliser */
+      await new Promise(r => setTimeout(r, 200));
+      
       try {
-        const glbUrl  = window._v19 && window._v19.exports && window._v19.exports.glb  || null;
-        const usdzUrl = window._v19 && window._v19.exports && window._v19.exports.usdz || null;
-        if (glbUrl || usdzUrl) {
-          const updatePayload = {};
-          if (glbUrl)  updatePayload.model_glb_url  = glbUrl;
-          if (usdzUrl) updatePayload.model_usdz_url = usdzUrl;
-          const { error: updErr } = await sb.from('products').update(updatePayload).eq('id', productId);
-          if (updErr) {
-            console.warn('[v34] update model_*_url échec :', updErr.message);
-          } else {
-            console.log('[v34] model_glb_url / model_usdz_url mis à jour dans products');
-          }
-        }
+        await runV34Pipeline(productId, objFile, 'createNewProduct-override');
       } catch (e) {
-        console.warn('[v34 update urls scalaires]', e);
-      }
-
-      /* Toast récap */
-      if (window._v18.setBadge) window._v18.setBadge('saved');
-      const parts = [];
-      if (objSourceUrl) parts.push('OBJ source');
-      if (glbOk)        parts.push('GLB');
-      if (usdzOk)       parts.push('USDZ');
-      if (parts.length && typeof toast === 'function') {
-        toast('✓ Produit prêt : ' + parts.join(' + ') + ' archivés', 'ok', 5000);
+        console.error('[v34] runV34Pipeline a explosé :', e);
       }
     };
     window._v26.__v34CreateHooked = true;
     console.log('[v34] createNewProduct hooké pour upload OBJ + auto-export ✓');
   }
   hookCreate();
+
+  /* ─── 5. Watcher fallback : si productId change et n'a pas été traité, déclencher pipeline ─── */
+  /* Ce filet de sécurité capture le cas où l'override createNewProduct
+     n'a pas tourné (timing, re-override par une autre IIFE, etc.) */
+  let _v34_lastSeenId = null;
+  const _v34_watcher = setInterval(async () => {
+    const id = window._v18 && window._v18.productId;
+    if (!id || id === _v34_lastSeenId) return;
+    _v34_lastSeenId = id;
+    
+    /* Si déjà traité par l'override → ignorer */
+    if (window._v34.processedIds.has(id)) {
+      console.log('[v34 watcher] productId déjà traité par override, OK');
+      return;
+    }
+    
+    /* Si on vient de loader un produit existant via ?id= → ignorer (pas une création) */
+    const params = new URLSearchParams(location.search);
+    if (params.get('id') === id) {
+      console.log('[v34 watcher] productId vient de l\'URL (ouverture existant), pas une création, skip');
+      window._v34.processedIds.add(id); /* marquer pour ne pas re-vérifier */
+      return;
+    }
+    
+    /* Sinon : c'est une création récente que l'override a manquée → on rattrape */
+    console.log('[v34 watcher] 🚨 Nouveau productId détecté SANS traitement override —', id, '— déclenchement pipeline fallback');
+    /* Attendre un peu que _origCreate finisse complètement */
+    await new Promise(r => setTimeout(r, 1500));
+    try {
+      await runV34Pipeline(id, window._v34.lastObjFile, 'watcher-fallback');
+    } catch (e) {
+      console.error('[v34 watcher] pipeline a explosé :', e);
+    }
+  }, 1000);
 
   /* ─── 4. Auto-charge l'OBJ source quand on ouvre un produit existant ─── */
   /* Le studio v18 charge studio_state mais pas le maillage 3D.
