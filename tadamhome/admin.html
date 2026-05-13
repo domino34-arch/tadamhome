@@ -898,7 +898,7 @@ h1, h2, h3, h4,
 <script type="module">
   import * as THREE from 'three';
 
-  window.generateSphereThumbnail = async function generateSphereThumbnail(maps) {
+  window.generateSphereThumbnail = async function generateSphereThumbnail(maps, params) {
     const SIZE = 512;
 
     const canvas = document.createElement('canvas');
@@ -964,18 +964,31 @@ h1, h2, h3, h4,
       loadTex(maps.ao, false),
     ]);
 
-    /* Matériau PBR */
+    /* Matériau PBR — applique les paramètres `params` si fournis */
+    const p = params || {};
     const mat = new THREE.MeshStandardMaterial({
       map: albedo,
       normalMap: normal,
       roughnessMap: roughness,
       metalnessMap: metallic,
       aoMap: ao,
-      roughness: roughness ? 1.0 : 0.7,
-      metalness: metallic ? 1.0 : 0.0,
-      aoMapIntensity: ao ? 1.0 : 0,
+      roughness: roughness ? (p.roughness ?? 1.0) : (p.roughness ?? 0.7),
+      metalness: metallic ? (p.metalness ?? 1.0) : (p.metalness ?? 0.0),
+      aoMapIntensity: ao ? (p.aoIntensity ?? 1.0) : 0,
+      color: p.color ? new THREE.Color(p.color) : 0xffffff,
     });
-    if (normal) mat.normalScale.set(1.4, 1.4);
+    const normalScale = p.normalScale ?? 1.4;
+    if (normal) mat.normalScale.set(normalScale, normalScale);
+    /* UV repeat sur toutes les maps */
+    const uvRepeat = p.uvRepeat ?? 1.2;
+    [albedo, normal, roughness, metallic, ao].forEach(t => {
+      if (t) {
+        t.repeat.set(uvRepeat, uvRepeat);
+        t.wrapS = THREE.RepeatWrapping;
+        t.wrapT = THREE.RepeatWrapping;
+        t.needsUpdate = true;
+      }
+    });
 
     /* Sphère haute résolution */
     const geo = new THREE.SphereGeometry(1, 96, 96);
@@ -1002,6 +1015,197 @@ h1, h2, h3, h4,
 
   window.__sphereThumbReady = true;
   console.log('[admin v51] generateSphereThumbnail prêt ✓');
+
+  /* ═══════════════════════════════════════════════════════════════════
+     v56 — VIEWER PBR LIVE pour le configurateur de matériaux
+     Expose window.startMaterialPreview(container, maps, params) qui
+     crée un viewer 3D rotatif dans le container. Retourne un objet :
+     - updateMaps(maps)      : recharge les textures (rare)
+     - updateParams(params)  : update roughness/metalness/etc. en live (rapide)
+     - dispose()             : cleanup quand la modal se ferme
+     ══════════════════════════════════════════════════════════════════ */
+  window.startMaterialPreview = function startMaterialPreview(container, initialMaps, initialParams) {
+    if (!container) throw new Error('startMaterialPreview: container requis');
+
+    /* Setup renderer + scene + camera */
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 300;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x2A2620);  /* aligné sidebar admin */
+
+    const camera = new THREE.PerspectiveCamera(30, w / h, 0.1, 100);
+    camera.position.set(0, 0, 4.5);
+    camera.lookAt(0, 0, 0);
+
+    /* Lumières studio 3-points */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
+    key.position.set(3, 4, 5); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xB8965A, 0.5);
+    fill.position.set(-4, -1, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.3);
+    rim.position.set(-1, 3, -4); scene.add(rim);
+
+    /* Matériau initial (vide, sera peuplé par updateMaps + updateParams) */
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xcccccc, roughness: 0.7, metalness: 0,
+    });
+    const geo = new THREE.SphereGeometry(1, 96, 96);
+    geo.setAttribute('uv2', geo.getAttribute('uv').clone());  /* nécessaire pour aoMap */
+    const sphere = new THREE.Mesh(geo, mat);
+    scene.add(sphere);
+
+    /* État courant */
+    const state = {
+      textures: { albedo: null, normal: null, roughness: null, metallic: null, ao: null },
+      params: { color:'#ffffff', roughness:1.0, metalness:1.0, normalScale:1.0, aoIntensity:1.0, uvRepeat:1.0 },
+      autoRotate: true,
+      disposed: false,
+    };
+
+    /* Drag souris pour tourner manuellement (auto-rotate stop quand on drag) */
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let rotY = 0, rotX = 0;
+    const dom = renderer.domElement;
+    dom.style.cursor = 'grab';
+    dom.addEventListener('pointerdown', (e) => {
+      isDragging = true; state.autoRotate = false;
+      prevX = e.clientX; prevY = e.clientY;
+      dom.style.cursor = 'grabbing';
+      dom.setPointerCapture(e.pointerId);
+    });
+    dom.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      rotY += dx * 0.01;
+      rotX = Math.max(-1.2, Math.min(1.2, rotX + dy * 0.01));
+      sphere.rotation.set(rotX, rotY, 0);
+      prevX = e.clientX; prevY = e.clientY;
+    });
+    dom.addEventListener('pointerup', (e) => {
+      isDragging = false;
+      dom.style.cursor = 'grab';
+      try { dom.releasePointerCapture(e.pointerId); } catch(_){}
+    });
+    dom.addEventListener('pointercancel', () => { isDragging = false; dom.style.cursor = 'grab'; });
+    /* Double-clic → reset rotation + auto-rotate on */
+    dom.addEventListener('dblclick', () => {
+      rotX = 0; rotY = 0;
+      sphere.rotation.set(0, 0, 0);
+      state.autoRotate = true;
+    });
+
+    /* Boucle d'animation */
+    let rafId = 0;
+    function animate() {
+      if (state.disposed) return;
+      if (state.autoRotate) {
+        rotY += 0.005;
+        sphere.rotation.y = rotY;
+      }
+      renderer.render(scene, camera);
+      rafId = requestAnimationFrame(animate);
+    }
+    animate();
+
+    /* Helper : charge une texture */
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    function loadTex(url, srgb) {
+      return new Promise((res) => {
+        if (!url) { res(null); return; }
+        loader.load(url,
+          (tex) => {
+            tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            res(tex);
+          },
+          undefined,
+          () => res(null)
+        );
+      });
+    }
+
+    /* updateMaps : recharge les textures (asynchrone) */
+    async function updateMaps(maps) {
+      maps = maps || {};
+      /* Dispose les anciennes textures qui changent */
+      const oldKeys = Object.keys(state.textures);
+      oldKeys.forEach(k => {
+        if (state.textures[k]) {
+          state.textures[k].dispose();
+          state.textures[k] = null;
+        }
+      });
+      /* Charger les nouvelles */
+      const [albedo, normal, roughness, metallic, ao] = await Promise.all([
+        loadTex(maps.albedo, true),
+        loadTex(maps.normal, false),
+        loadTex(maps.roughness, false),
+        loadTex(maps.metallic, false),
+        loadTex(maps.ao, false),
+      ]);
+      state.textures = { albedo, normal, roughness, metallic, ao };
+      mat.map = albedo;
+      mat.normalMap = normal;
+      mat.roughnessMap = roughness;
+      mat.metalnessMap = metallic;
+      mat.aoMap = ao;
+      mat.needsUpdate = true;
+      /* Réappliquer les params (au cas où) */
+      updateParams(state.params);
+    }
+
+    /* updateParams : modifie roughness/metalness/etc. en live (rapide) */
+    function updateParams(params) {
+      if (params) Object.assign(state.params, params);
+      const p = state.params;
+      mat.roughness = p.roughness;
+      mat.metalness = p.metalness;
+      mat.aoMapIntensity = state.textures.ao ? p.aoIntensity : 0;
+      mat.normalScale.set(p.normalScale, p.normalScale);
+      mat.color.set(p.color || '#ffffff');
+      /* UV repeat sur toutes les maps */
+      const uv = p.uvRepeat;
+      Object.values(state.textures).forEach(t => {
+        if (t) { t.repeat.set(uv, uv); t.needsUpdate = true; }
+      });
+      mat.needsUpdate = true;
+    }
+
+    /* dispose : cleanup mémoire/GPU */
+    function dispose() {
+      state.disposed = true;
+      cancelAnimationFrame(rafId);
+      renderer.dispose();
+      geo.dispose();
+      mat.dispose();
+      Object.values(state.textures).forEach(t => t?.dispose());
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+    }
+
+    /* Init avec maps + params fournis */
+    if (initialMaps) updateMaps(initialMaps);
+    if (initialParams) updateParams(initialParams);
+
+    return { updateMaps, updateParams, dispose, getState: () => state };
+  };
+
+  console.log('[admin v56] startMaterialPreview prêt ✓');
 </script>
 
 <script>
@@ -1378,6 +1582,20 @@ let _matInheritedUrls = {};       /* mode duplication : URLs héritées du sourc
 let _matVignetteManuallySet = false;  /* l'user a uploadé une vignette manuelle → pas d'auto-gen */
 let _matLivePreviewTimer = null;  /* debounce timer pour la génération live */
 let _matLivePreviewBusy = false;  /* en cours de génération */
+/* v56 — Configurateur PBR live */
+let _matPreviewViewer = null;     /* instance retournée par startMaterialPreview */
+let _matPbrParams = {              /* params PBR courants (synchro avec sliders) */
+  color: '#ffffff',
+  roughness: 1.0,
+  metalness: 1.0,
+  normalScale: 1.0,
+  aoIntensity: 1.0,
+  uvRepeat: 1.0,
+};
+const _MAT_PBR_DEFAULTS = {
+  color: '#ffffff', roughness: 1.0, metalness: 1.0,
+  normalScale: 1.0, aoIntensity: 1.0, uvRepeat: 1.0,
+};
 
 const MAT_MAP_FIELDS = [
   { key: 'albedo_url',    label: 'Albedo (couleur diffuse)', required: true,  maxSize: 1024 },
@@ -1397,8 +1615,11 @@ function injectMaterialModal(){
         <h3 id="matModalTitle">Nouveau matériau</h3>
         <button class="modal-close" onclick="closeMaterialModal()">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body mat-modal-2col">
         <input type="hidden" id="matId" value="">
+
+        <!-- ─── COLONNE GAUCHE : identité + maps ─── -->
+        <div class="mat-col-left">
         
         <div class="modal-section">
           <div class="modal-section-title">Identité</div>
@@ -1461,6 +1682,72 @@ function injectMaterialModal(){
         </div>
         
         <p id="matMsg" style="font-family:var(--sans);font-size:12px;margin-top:14px"></p>
+        </div><!-- /mat-col-left -->
+
+        <!-- ─── COLONNE DROITE : configurateur PBR live ─── -->
+        <div class="mat-col-right">
+          <div class="modal-section">
+            <div class="modal-section-title">Aperçu PBR temps réel</div>
+            <div class="mat-preview-canvas-wrap">
+              <div id="matPreviewCanvas"></div>
+              <div class="mat-preview-hint">Glisse pour tourner · Double-clic pour auto-rotate</div>
+            </div>
+          </div>
+          <div class="modal-section">
+            <div class="modal-section-title">Paramètres PBR</div>
+            <div class="mat-pbr-controls">
+              <div class="mat-pbr-row">
+                <label>Teinte</label>
+                <div class="mat-pbr-color-wrap">
+                  <input type="color" id="matPbrColor" value="#ffffff">
+                  <span id="matPbrColorVal" class="mat-pbr-val">#ffffff</span>
+                  <button type="button" class="mat-pbr-reset" data-param="color" title="Reset">↺</button>
+                </div>
+              </div>
+              <div class="mat-pbr-row">
+                <label>Roughness</label>
+                <div class="mat-pbr-slider-wrap">
+                  <input type="range" id="matPbrRoughness" min="0" max="2" step="0.05" value="1">
+                  <span id="matPbrRoughnessVal" class="mat-pbr-val">1.00</span>
+                  <button type="button" class="mat-pbr-reset" data-param="roughness" title="Reset">↺</button>
+                </div>
+              </div>
+              <div class="mat-pbr-row">
+                <label>Metalness</label>
+                <div class="mat-pbr-slider-wrap">
+                  <input type="range" id="matPbrMetalness" min="0" max="2" step="0.05" value="1">
+                  <span id="matPbrMetalnessVal" class="mat-pbr-val">1.00</span>
+                  <button type="button" class="mat-pbr-reset" data-param="metalness" title="Reset">↺</button>
+                </div>
+              </div>
+              <div class="mat-pbr-row">
+                <label>Normal scale</label>
+                <div class="mat-pbr-slider-wrap">
+                  <input type="range" id="matPbrNormalScale" min="0" max="3" step="0.1" value="1">
+                  <span id="matPbrNormalScaleVal" class="mat-pbr-val">1.00</span>
+                  <button type="button" class="mat-pbr-reset" data-param="normalScale" title="Reset">↺</button>
+                </div>
+              </div>
+              <div class="mat-pbr-row">
+                <label>AO intensity</label>
+                <div class="mat-pbr-slider-wrap">
+                  <input type="range" id="matPbrAoIntensity" min="0" max="2" step="0.05" value="1">
+                  <span id="matPbrAoIntensityVal" class="mat-pbr-val">1.00</span>
+                  <button type="button" class="mat-pbr-reset" data-param="aoIntensity" title="Reset">↺</button>
+                </div>
+              </div>
+              <div class="mat-pbr-row">
+                <label>UV repeat</label>
+                <div class="mat-pbr-slider-wrap">
+                  <input type="range" id="matPbrUvRepeat" min="0.25" max="4" step="0.05" value="1">
+                  <span id="matPbrUvRepeatVal" class="mat-pbr-val">1.00</span>
+                  <button type="button" class="mat-pbr-reset" data-param="uvRepeat" title="Reset">↺</button>
+                </div>
+              </div>
+            </div>
+            <p class="mat-pbr-info">Ces valeurs sont utilisées comme defaults dans le studio quand un user applique ce matériau.</p>
+          </div>
+        </div><!-- /mat-col-right -->
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeMaterialModal()">Annuler</button>
@@ -1476,6 +1763,109 @@ function injectMaterialModal(){
     const s = document.createElement('style');
     s.id = 'matModalStyles';
     s.textContent = `
+      /* v56 — Modal en 2 colonnes : maps à gauche, configurateur à droite */
+      .modal.modal-lg { max-width: 1100px; width: 95vw; }
+      .mat-modal-2col {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 28px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .mat-modal-2col { grid-template-columns: 1fr; }
+        .mat-col-right { order: 2; position: static !important; }
+      }
+      .mat-col-right {
+        position: sticky;
+        top: 0;
+      }
+      .mat-preview-canvas-wrap {
+        position: relative;
+        width: 100%;
+        background: #2A2620;
+        aspect-ratio: 1;
+        max-height: 320px;
+      }
+      #matPreviewCanvas {
+        width: 100%; height: 100%;
+      }
+      #matPreviewCanvas canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .mat-preview-hint {
+        position: absolute;
+        bottom: 8px; left: 0; right: 0;
+        text-align: center;
+        font-family: var(--sans);
+        font-size: 10px;
+        font-style: italic;
+        color: rgba(255,255,255,0.4);
+        pointer-events: none;
+      }
+      .mat-pbr-controls {
+        display: flex; flex-direction: column;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .mat-pbr-row {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        align-items: center;
+        gap: 12px;
+      }
+      .mat-pbr-row label {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.10em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .mat-pbr-slider-wrap,
+      .mat-pbr-color-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mat-pbr-slider-wrap input[type="range"] {
+        flex: 1; min-width: 0;
+        accent-color: var(--accent, #B8965A);
+        height: 4px;
+      }
+      .mat-pbr-color-wrap input[type="color"] {
+        width: 36px; height: 28px;
+        padding: 0; border: 1px solid var(--border);
+        cursor: pointer;
+      }
+      .mat-pbr-val {
+        font-family: var(--sans);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink);
+        min-width: 46px;
+        text-align: right;
+      }
+      .mat-pbr-reset {
+        background: transparent;
+        border: 1px solid var(--border);
+        width: 22px; height: 22px;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 0;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .mat-pbr-reset:hover { color: var(--accent); border-color: var(--accent); }
+      .mat-pbr-info {
+        font-family: var(--sans);
+        font-size: 10px;
+        color: var(--muted);
+        font-style: italic;
+        margin-top: 12px;
+        line-height: 1.4;
+      }
       .mat-map-slot {
         display: flex; align-items: stretch;
         gap: 10px;
@@ -1681,7 +2071,7 @@ async function regenerateLiveSphere(){
   }
 
   try {
-    const blob = await window.generateSphereThumbnail(maps);
+    const blob = await window.generateSphereThumbnail(maps, _matPbrParams);
     objectUrlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     if (!blob || blob.size < 1024) {
       console.warn('[v53 live sphere] sphère générée vide');
@@ -1745,6 +2135,9 @@ async function regenerateLiveSphere(){
 }
 
 function scheduleLiveSphere(delay){
+  /* v56 — refresh aussi le viewer 3D en live (instantané, indépendant du debounce
+     de la génération sphère). */
+  refreshPreviewMaps();
   if (_matLivePreviewTimer) clearTimeout(_matLivePreviewTimer);
   _matLivePreviewTimer = setTimeout(() => {
     if (_matLivePreviewBusy) {
@@ -1755,6 +2148,131 @@ function scheduleLiveSphere(delay){
     _matLivePreviewBusy = true;
     regenerateLiveSphere().finally(() => { _matLivePreviewBusy = false; });
   }, delay !== undefined ? delay : 600);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   v56 — CONFIGURATEUR PBR LIVE
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Construit l'objet maps pour le viewer à partir de l'état courant.
+   Convertit les pending files (Blob) en object URLs. */
+function _matBuildMapsForPreview(objectUrlsBag){
+  const mapping = {
+    albedo: 'albedo_url',
+    normal: 'normal_url',
+    roughness: 'roughness_url',
+    metallic: 'metallic_url',
+    ao: 'ao_url',
+  };
+  const maps = {};
+  const editingMat = editingMaterialId
+    ? (allMaterials || []).find(x => x.id === editingMaterialId)
+    : null;
+  for (const localKey of Object.keys(mapping)) {
+    const dbKey = mapping[localKey];
+    if (_matPendingFiles[dbKey]) {
+      const u = URL.createObjectURL(_matPendingFiles[dbKey]);
+      maps[localKey] = u;
+      objectUrlsBag.push(u);
+    } else if (_matInheritedUrls[dbKey]) {
+      maps[localKey] = _matInheritedUrls[dbKey];
+    } else if (editingMat && editingMat[dbKey]) {
+      maps[localKey] = editingMat[dbKey];
+    }
+  }
+  return maps;
+}
+
+/* Démarre le viewer dans le slot #matPreviewCanvas avec les maps courantes
+   et les params courants. Appelé à l'ouverture de la modal. */
+function startMaterialPreviewViewer(){
+  if (typeof window.startMaterialPreview !== 'function') {
+    console.warn('[v56] startMaterialPreview pas encore prêt');
+    return;
+  }
+  /* Nettoyer le viewer précédent */
+  stopMaterialPreviewViewer();
+  const container = document.getElementById('matPreviewCanvas');
+  if (!container) return;
+  const objectUrlsBag = [];
+  const maps = _matBuildMapsForPreview(objectUrlsBag);
+  try {
+    _matPreviewViewer = window.startMaterialPreview(container, maps, _matPbrParams);
+  } catch (e) {
+    console.error('[v56 start preview]', e);
+    return;
+  }
+  /* Object URLs : on peut les revoquer après que le viewer ait chargé.
+     Three.js fait son load asynchrone donc on attend un peu. */
+  setTimeout(() => objectUrlsBag.forEach(u => URL.revokeObjectURL(u)), 5000);
+}
+
+function stopMaterialPreviewViewer(){
+  if (_matPreviewViewer) {
+    try { _matPreviewViewer.dispose(); } catch(_){}
+    _matPreviewViewer = null;
+  }
+}
+
+/* À appeler quand les maps changent (pending file ajouté/retiré) */
+function refreshPreviewMaps(){
+  if (!_matPreviewViewer) return;
+  const objectUrlsBag = [];
+  const maps = _matBuildMapsForPreview(objectUrlsBag);
+  try {
+    _matPreviewViewer.updateMaps(maps);
+    setTimeout(() => objectUrlsBag.forEach(u => URL.revokeObjectURL(u)), 5000);
+  } catch(e) {
+    console.error('[v56 refresh maps]', e);
+  }
+}
+
+/* Wire les sliders + color picker → update _matPbrParams + viewer */
+function wirePbrControls(){
+  const controls = [
+    { id: 'matPbrColor',       valId: 'matPbrColorVal',       param: 'color',       fmt: v => v },
+    { id: 'matPbrRoughness',   valId: 'matPbrRoughnessVal',   param: 'roughness',   fmt: v => Number(v).toFixed(2) },
+    { id: 'matPbrMetalness',   valId: 'matPbrMetalnessVal',   param: 'metalness',   fmt: v => Number(v).toFixed(2) },
+    { id: 'matPbrNormalScale', valId: 'matPbrNormalScaleVal', param: 'normalScale', fmt: v => Number(v).toFixed(2) },
+    { id: 'matPbrAoIntensity', valId: 'matPbrAoIntensityVal', param: 'aoIntensity', fmt: v => Number(v).toFixed(2) },
+    { id: 'matPbrUvRepeat',    valId: 'matPbrUvRepeatVal',    param: 'uvRepeat',    fmt: v => Number(v).toFixed(2) },
+  ];
+  controls.forEach(c => {
+    const inp = document.getElementById(c.id);
+    const val = document.getElementById(c.valId);
+    if (!inp) return;
+    /* Set valeur initiale depuis _matPbrParams */
+    inp.value = _matPbrParams[c.param];
+    if (val) val.textContent = c.fmt(_matPbrParams[c.param]);
+    /* Handler */
+    inp.oninput = () => {
+      const v = c.param === 'color' ? inp.value : parseFloat(inp.value);
+      _matPbrParams[c.param] = v;
+      if (val) val.textContent = c.fmt(v);
+      if (_matPreviewViewer) {
+        const upd = {};
+        upd[c.param] = v;
+        _matPreviewViewer.updateParams(upd);
+      }
+    };
+  });
+  /* Boutons reset (par param) */
+  document.querySelectorAll('.mat-pbr-reset').forEach(btn => {
+    btn.onclick = () => {
+      const p = btn.dataset.param;
+      if (!p) return;
+      const def = _MAT_PBR_DEFAULTS[p];
+      _matPbrParams[p] = def;
+      const inp = document.getElementById('matPbr' + p.charAt(0).toUpperCase() + p.slice(1));
+      const val = document.getElementById('matPbr' + p.charAt(0).toUpperCase() + p.slice(1) + 'Val');
+      if (inp) inp.value = def;
+      if (val) val.textContent = (typeof def === 'number') ? def.toFixed(2) : def;
+      if (_matPreviewViewer) {
+        const upd = {}; upd[p] = def;
+        _matPreviewViewer.updateParams(upd);
+      }
+    };
+  });
 }
 
 async function handleMapFile(field, file, slotDiv){
@@ -1948,6 +2466,17 @@ function openMaterialModal(materialId, presetCategory, duplicateMode){
       (source.name || 'matériau source') + ' ». Modifie celles que tu veux remplacer (typiquement l\'albedo pour changer la couleur).</small>';
 
     document.getElementById('materialModal').classList.add('show');
+    /* v56 — Démarrer le viewer PBR live + wire les sliders. Params : defaults
+       (en duplication on repart des defaults, l'user peut copier les params
+       du source via les sliders s'il veut). */
+    Object.assign(_matPbrParams, _MAT_PBR_DEFAULTS);
+    if (source.default_color_tint)    _matPbrParams.color       = source.default_color_tint;
+    if (source.default_roughness    != null) _matPbrParams.roughness    = Number(source.default_roughness);
+    if (source.default_metalness    != null) _matPbrParams.metalness    = Number(source.default_metalness);
+    if (source.default_normal_scale != null) _matPbrParams.normalScale  = Number(source.default_normal_scale);
+    if (source.default_ao_intensity != null) _matPbrParams.aoIntensity  = Number(source.default_ao_intensity);
+    if (source.default_uv_repeat    != null) _matPbrParams.uvRepeat     = Number(source.default_uv_repeat);
+    setTimeout(() => { wirePbrControls(); startMaterialPreviewViewer(); }, 100);
     /* Focus sur le nom pour qu'il puisse l'éditer tout de suite */
     setTimeout(() => document.getElementById('matName').focus(), 100);
     return;
@@ -1998,6 +2527,19 @@ function openMaterialModal(materialId, presetCategory, duplicateMode){
   }
 
   document.getElementById('materialModal').classList.add('show');
+
+  /* v56 — Init des params PBR depuis la DB (édition) ou defaults (création) */
+  Object.assign(_matPbrParams, _MAT_PBR_DEFAULTS);
+  if (m) {
+    if (m.default_color_tint)    _matPbrParams.color       = m.default_color_tint;
+    if (m.default_roughness    != null) _matPbrParams.roughness    = Number(m.default_roughness);
+    if (m.default_metalness    != null) _matPbrParams.metalness    = Number(m.default_metalness);
+    if (m.default_normal_scale != null) _matPbrParams.normalScale  = Number(m.default_normal_scale);
+    if (m.default_ao_intensity != null) _matPbrParams.aoIntensity  = Number(m.default_ao_intensity);
+    if (m.default_uv_repeat    != null) _matPbrParams.uvRepeat     = Number(m.default_uv_repeat);
+  }
+  /* Démarrer viewer + wire sliders après que la modal soit visible */
+  setTimeout(() => { wirePbrControls(); startMaterialPreviewViewer(); }, 100);
 }
 
 /* v51 — Régénère la vignette sphère pour un matériau existant.
@@ -2027,7 +2569,7 @@ async function regenerateSphereThumb(){
       roughness: m.roughness_url,
       metallic:  m.metallic_url,
       ao:        m.ao_url,
-    });
+    }, _matPbrParams);
     if (!blob || blob.size < 1024) throw new Error('Sphère générée vide');
     btn.textContent = 'Upload…';
     const file = new File([blob], 'sphere_thumb_regen.png', { type: 'image/png' });
@@ -2133,13 +2675,22 @@ async function regenerateAllSpheres(){
     fillEl.style.width = Math.round(ratio * 100) + '%';
 
     try {
+      /* v56 — Utilise les params PBR stockés dans la DB pour chaque matériau */
+      const params = {
+        color:       m.default_color_tint || '#ffffff',
+        roughness:   m.default_roughness    != null ? Number(m.default_roughness)    : 1.0,
+        metalness:   m.default_metalness    != null ? Number(m.default_metalness)    : 1.0,
+        normalScale: m.default_normal_scale != null ? Number(m.default_normal_scale) : 1.0,
+        aoIntensity: m.default_ao_intensity != null ? Number(m.default_ao_intensity) : 1.0,
+        uvRepeat:    m.default_uv_repeat    != null ? Number(m.default_uv_repeat)    : 1.0,
+      };
       const blob = await window.generateSphereThumbnail({
         albedo:    m.albedo_url,
         normal:    m.normal_url,
         roughness: m.roughness_url,
         metallic:  m.metallic_url,
         ao:        m.ao_url,
-      });
+      }, params);
       if (!blob || blob.size < 1024) { skipped++; continue; }
       const file = new File([blob], 'sphere_thumb_regen.png', { type: 'image/png' });
       const newUrl = await uploadMaterialAsset(file, m.id, 'thumbnail_url');
@@ -2171,6 +2722,8 @@ function closeMaterialModal(){
   document.getElementById('materialModal')?.classList.remove('show');
   editingMaterialId = null;
   _matPendingFiles = {};
+  /* v56 — Cleanup du viewer Three.js (très important pour ne pas leak la GPU) */
+  stopMaterialPreviewViewer();
 }
 
 async function saveMaterial(){
@@ -2217,6 +2770,13 @@ async function saveMaterial(){
         name, category, subcategory, ref_code: refCode,
         is_active: isActive,
         sort_order: (allMaterials.length || 0) + 1,
+        /* v56 — Paramètres PBR par défaut (configurateur) */
+        default_color_tint:   _matPbrParams.color === '#ffffff' ? null : _matPbrParams.color,
+        default_roughness:    _matPbrParams.roughness,
+        default_metalness:    _matPbrParams.metalness,
+        default_normal_scale: _matPbrParams.normalScale,
+        default_ao_intensity: _matPbrParams.aoIntensity,
+        default_uv_repeat:    _matPbrParams.uvRepeat,
       };
       btn.textContent = 'Création…';
       let inserted, e1;
@@ -2281,7 +2841,7 @@ async function saveMaterial(){
               roughness: updatePayload.roughness_url,
               metallic:  updatePayload.metallic_url,
               ao:        updatePayload.ao_url,
-            });
+            }, _matPbrParams);
             if (sphereBlob && sphereBlob.size > 1024) {
               const sphereFile = new File([sphereBlob], 'sphere_thumb.png', { type: 'image/png' });
               btn.textContent = 'Upload sphère…';
@@ -2337,9 +2897,16 @@ async function saveMaterial(){
     } else {
       /* === ÉDITION === */
       /* Maps : déjà uploadées au fil de l'eau via handleMapFile.
-         Ici on update juste les méta. */
+         Ici on update les méta + les params PBR du configurateur. */
       const updatePayload = {
         name, category, subcategory, ref_code: refCode, is_active: isActive,
+        /* v56 — Paramètres PBR */
+        default_color_tint:   _matPbrParams.color === '#ffffff' ? null : _matPbrParams.color,
+        default_roughness:    _matPbrParams.roughness,
+        default_metalness:    _matPbrParams.metalness,
+        default_normal_scale: _matPbrParams.normalScale,
+        default_ao_intensity: _matPbrParams.aoIntensity,
+        default_uv_repeat:    _matPbrParams.uvRepeat,
       };
       let { error } = await sb.from('materials_library').update(updatePayload).eq('id', editingMaterialId);
 
