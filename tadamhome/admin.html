@@ -258,7 +258,7 @@ tr:hover td{background:rgba(184,152,106,.03)}
 .photo-add-txt{font-size:10px;color:var(--muted);font-family:var(--sans);text-align:center}
 
 /* Modals */
-.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(28,27,24,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(28,27,24,.7);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg.show{display:flex}
 .modal{background:var(--white);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:popIn .25s ease}
 .modal-lg{max-width:720px}
@@ -1042,21 +1042,34 @@ h1, h2, h3, h4,
     container.appendChild(renderer.domElement);
 
     /* ─── Resize avec super-sampling forcé ───
-       On force le rendering à au moins MIN_RENDER de résolution physique,
-       même si le container est plus petit. Three downsize ensuite au CSS.
-       Cela garantit une netteté maximale sans dépendre de devicePixelRatio. */
-    const MIN_RENDER = 1024;  /* résolution physique minimale en pixels */
+       PixelRatio ENTIER (pas fractionnaire) pour éviter le scaling subpixel
+       qui peut causer du flou sur certains browsers. */
+    const MIN_RENDER = 1024;
     function applyResize(){
       const cw = container.clientWidth  || 320;
       const ch = container.clientHeight || 320;
       const dpr = window.devicePixelRatio || 1;
-      /* PixelRatio dynamique : max entre le DPR natif et ce qu'il faut pour
-         atteindre MIN_RENDER sur la plus petite dimension */
-      const ratio = Math.max(dpr, MIN_RENDER / Math.min(cw, ch));
+      /* Ratio entier : on prend le MIN nécessaire pour atteindre MIN_RENDER,
+         arrondi vers le haut. Garantit un scaling pixel-perfect par le browser. */
+      const ratio = Math.max(
+        Math.ceil(dpr),
+        Math.ceil(MIN_RENDER / Math.min(cw, ch))
+      );
       renderer.setPixelRatio(ratio);
       renderer.setSize(cw, ch, false);
       camera.aspect = cw / ch;
       camera.updateProjectionMatrix();
+      /* DEBUG (à retirer plus tard) : log les vraies dimensions */
+      if (!window.__v56DebugLogged) {
+        console.log('[v56 debug] viewer resize', {
+          containerCSS: cw + '×' + ch,
+          canvasPhysical: renderer.domElement.width + '×' + renderer.domElement.height,
+          canvasStyle: renderer.domElement.style.width + ' × ' + renderer.domElement.style.height,
+          pixelRatio: ratio,
+          devicePixelRatio: dpr,
+        });
+        window.__v56DebugLogged = true;
+      }
     }
 
     const scene = new THREE.Scene();
@@ -1833,11 +1846,9 @@ function injectMaterialModal(){
         background: #2A2620;
         aspect-ratio: 1;
         max-height: 360px;
-        /* CRITICAL pour la netteté : isolation: isolate force un nouveau
-           stacking context, empêchant le backdrop-filter du .modal-bg parent
-           de rasterizer le contenu WebGL (bug Chrome connu). */
+        /* isolation: isolate force un nouveau stacking context, empêchant
+           le backdrop-filter du .modal-bg parent d'affecter le canvas */
         isolation: isolate;
-        transform: translateZ(0);  /* force GPU layer dédié */
       }
       #matPreviewCanvas {
         width: 100%; height: 100%;
