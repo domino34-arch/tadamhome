@@ -9821,35 +9821,41 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   }
   hookCreate();
 
-  /* ─── 5. Watcher fallback : si productId change et n'a pas été traité, déclencher pipeline ─── */
-  /* Ce filet de sécurité capture le cas où l'override createNewProduct
-     n'a pas tourné (timing, re-override par une autre IIFE, etc.) */
-  let _v34_lastSeenId = null;
+  /* ─── 5. Watcher fallback : DÉTECTION FIABLE création vs ouverture ─── */
+  /* Au boot v34, on mémorise l'?id= initial. Toute apparition d'un productId
+     DIFFÉRENT de celui-là (ou apparition tout court si on était en sandbox)
+     est une création — peu importe que createNewProduct ait modifié l'URL
+     via history.replaceState après l'INSERT. */
+  window._v34.initialUrlId = new URLSearchParams(location.search).get('id') || null;
+  console.log('[v34 watcher] Boot — initialUrlId =', window._v34.initialUrlId || '(aucun, mode sandbox)');
+  
+  /* Si on a chargé un produit existant, on le marque déjà processed pour
+     ne pas re-trigger le pipeline dessus */
+  if (window._v34.initialUrlId) {
+    window._v34.processedIds.add(window._v34.initialUrlId);
+  }
+  
+  let _v34_lastSeenId = window._v34.initialUrlId;
   const _v34_watcher = setInterval(async () => {
     const id = window._v18 && window._v18.productId;
     if (!id || id === _v34_lastSeenId) return;
     _v34_lastSeenId = id;
     
-    /* Si déjà traité par l'override → ignorer */
+    /* Si déjà traité (override ou ouverture) → ignorer */
     if (window._v34.processedIds.has(id)) {
-      console.log('[v34 watcher] productId déjà traité par override, OK');
+      console.log('[v34 watcher] productId déjà traité, skip :', id);
       return;
     }
     
-    /* Si on vient de loader un produit existant via ?id= → ignorer (pas une création) */
-    const params = new URLSearchParams(location.search);
-    if (params.get('id') === id) {
-      console.log('[v34 watcher] productId vient de l\'URL (ouverture existant), pas une création, skip');
-      window._v34.processedIds.add(id); /* marquer pour ne pas re-vérifier */
-      return;
-    }
+    /* C'est un NOUVEAU productId qui apparaît APRÈS le boot → forcément création */
+    console.log('[v34 watcher] 🚨 Nouveau productId détecté (création) →', id);
+    console.log('[v34 watcher] objFile capturé :', window._v34.lastObjFile?.name || 'AUCUN');
     
-    /* Sinon : c'est une création récente que l'override a manquée → on rattrape */
-    console.log('[v34 watcher] 🚨 Nouveau productId détecté SANS traitement override —', id, '— déclenchement pipeline fallback');
-    /* Attendre un peu que _origCreate finisse complètement */
+    /* Attendre un peu que _origCreate finisse complètement (toast, closeAdminPanel) */
     await new Promise(r => setTimeout(r, 1500));
+    
     try {
-      await runV34Pipeline(id, window._v34.lastObjFile, 'watcher-fallback');
+      await runV34Pipeline(id, window._v34.lastObjFile, 'watcher');
     } catch (e) {
       console.error('[v34 watcher] pipeline a explosé :', e);
     }
