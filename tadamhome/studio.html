@@ -10291,6 +10291,31 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         if (window._v18.productRow) window._v18.productRow.studio_state = s;
         console.log('[v34 sync 5s] state enrichi en base :', updates.join(', '));
       }
+      
+      /* ─── Sync des colonnes scalaires model_glb_url / model_usdz_url ─── */
+      /* Quand le user re-exporte GLB ou USDZ depuis le burger, v19 met à jour
+         studio_state.exports.glb/usdz, mais PAS les colonnes scalaires
+         products.model_glb_url / products.model_usdz_url (que lit le catalogue
+         admin). Ici on détecte ce désync et on corrige. */
+      const exp = s.exports || {};
+      const scalarUpdates = {};
+      const scalarLabels = [];
+      if (exp.glb && row.model_glb_url !== exp.glb) {
+        scalarUpdates.model_glb_url = exp.glb;
+        scalarLabels.push('model_glb_url');
+      }
+      if (exp.usdz && row.model_usdz_url !== exp.usdz) {
+        scalarUpdates.model_usdz_url = exp.usdz;
+        scalarLabels.push('model_usdz_url');
+      }
+      if (scalarLabels.length > 0) {
+        const { error: serr } = await sb.from('products').update(scalarUpdates).eq('id', pid);
+        if (serr) throw serr;
+        if (window._v18.productRow) {
+          Object.assign(window._v18.productRow, scalarUpdates);
+        }
+        console.log('[v34 sync 5s] colonnes scalaires synchronisées :', scalarLabels.join(', '));
+      }
     } catch (e) {
       console.warn('[v34 sync 5s] échec :', e && e.message);
     }
