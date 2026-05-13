@@ -10829,6 +10829,585 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v36 — DOSSIERS HIÉRARCHIQUES (préservent les matériaux)
+   ─────────────────────────────────────────────────────────────────────────
+   Concept : à la différence du "Grouper" classique (v21) qui fusionne les
+   matériaux, un "dossier" est un WRAPPER hiérarchique qui :
+   - Préserve les matériaux de chaque sous-groupe (Pietement reste bois,
+     Assise reste tissu)
+   - Sert d'enveloppe sélectionnable et renommable (ex : "Fauteuil")
+   - Peut être déplacé en bloc via le panneau Géométrie
+   
+   Architecture :
+   - Pas de meshGroups[wrapperKey] ni partMaterials[wrapperKey]
+   - Les sous-groupes restent intacts dans meshGroups + partMaterials
+   - window._v36.hierarchy[wKey] = { label, childrenKeys, position, rotation }
+   - Affichage par injection DOM (MutationObserver sur #tree)
+   - Transforms via listeners en phase capture sur les inputs geom v35
+   ════════════════════════════════════════════════════════════════════════ */
+(function v36HierarchicalWrappers() {
+  if (window.__v36HierarchyInit) return;
+  window.__v36HierarchyInit = true;
+
+  window._v36 = window._v36 || {};
+  window._v36.hierarchy = window._v36.hierarchy || {};
+  window._v36.originalPositions = window._v36.originalPositions || new WeakMap();
+  window._v36.originalRotations = window._v36.originalRotations || new WeakMap();
+  window._v36.activeWrapper = null;
+
+  /* ───── CSS ───── */
+  const css = `
+    .v36-wrapper-container {
+      margin: 4px 0 6px 0;
+      border-radius: 0;
+    }
+    .v36-wrapper-header {
+      display: flex; align-items: center;
+      padding: 9px 12px;
+      background: rgba(184, 150, 90, 0.08);
+      border-left: 2px solid var(--gold, #B8965A);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+      gap: 8px;
+    }
+    .v36-wrapper-header:hover { background: rgba(184, 150, 90, 0.14); }
+    .v36-wrapper-header.v36-active {
+      background: rgba(184, 150, 90, 0.22);
+      border-left-color: var(--gold-dark, #8a7041);
+    }
+    .v36-wrapper-chevron {
+      font-size: 9px;
+      color: var(--gold, #B8965A);
+      transform: rotate(90deg);
+      transition: transform 0.18s;
+      width: 10px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .v36-wrapper-container.v36-collapsed .v36-wrapper-chevron { transform: rotate(0deg); }
+    .v36-wrapper-container.v36-collapsed .v36-wrapper-children { display: none; }
+    .v36-wrapper-folder-icon {
+      font-size: 14px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .v36-wrapper-name {
+      flex: 1;
+      font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+      font-size: 15px;
+      letter-spacing: 0.01em;
+      color: var(--ink, #2A2620);
+      font-style: italic;
+      outline: none;
+    }
+    .v36-wrapper-name[contenteditable="true"] {
+      background: white;
+      padding: 1px 6px;
+      border-radius: 2px;
+      box-shadow: inset 0 0 0 1px var(--gold, #B8965A);
+      font-style: normal;
+    }
+    .v36-wrapper-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      background: rgba(184, 150, 90, 0.85);
+      color: white;
+      letter-spacing: 0.08em;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .v36-wrapper-dissolve {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--ink-muted, #888);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .v36-wrapper-header:hover .v36-wrapper-dissolve { opacity: 1; }
+    .v36-wrapper-dissolve:hover { color: var(--danger, #B85450); }
+    .v36-wrapper-children {
+      padding-left: 14px;
+      margin-left: 16px;
+      border-left: 1px dashed rgba(184, 150, 90, 0.35);
+      margin-top: 2px;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ───── HELPERS ───── */
+  function newWrapperKey() {
+    const ts = Date.now().toString(36).slice(-4);
+    let n = Object.keys(window._v36.hierarchy).length + 1;
+    let k;
+    do { k = '_wrap_' + ts + '_' + n; n++; } while (window._v36.hierarchy[k]);
+    return k;
+  }
+
+  function getWrapperOfChild(childKey) {
+    for (const wKey in window._v36.hierarchy) {
+      if (window._v36.hierarchy[wKey].childrenKeys.includes(childKey)) return wKey;
+    }
+    return null;
+  }
+
+  function getAllChildrenMeshes(wrapperKey) {
+    const wrap = window._v36.hierarchy[wrapperKey];
+    if (!wrap) return [];
+    const out = [];
+    wrap.childrenKeys.forEach(ck => {
+      if (window._v36.hierarchy[ck]) {
+        out.push(...getAllChildrenMeshes(ck));
+      } else if (meshGroups[ck]) {
+        out.push(...meshGroups[ck]);
+      }
+    });
+    return out;
+  }
+
+  function getAllLeafChildren(wrapperKey) {
+    const wrap = window._v36.hierarchy[wrapperKey];
+    if (!wrap) return [];
+    const out = [];
+    wrap.childrenKeys.forEach(ck => {
+      if (window._v36.hierarchy[ck]) out.push(...getAllLeafChildren(ck));
+      else out.push(ck);
+    });
+    return out;
+  }
+
+  /* ───── ACTION : créer un wrapper depuis la sélection ───── */
+  function createWrapperFromSelection() {
+    const sel = window._v21 && window._v21.selectedParts;
+    if (!sel || sel.size < 1) {
+      toast('Sélectionne au moins 1 groupe (cmd/shift-click pour plusieurs)', 'err');
+      return;
+    }
+    const childrenKeys = [];
+    [...sel].forEach(k => {
+      /* Si k est déjà dans un wrapper, l'en retirer */
+      const oldWrap = getWrapperOfChild(k);
+      if (oldWrap) {
+        window._v36.hierarchy[oldWrap].childrenKeys =
+          window._v36.hierarchy[oldWrap].childrenKeys.filter(x => x !== k);
+        if (window._v36.hierarchy[oldWrap].childrenKeys.length === 0) {
+          delete window._v36.hierarchy[oldWrap];
+        }
+      }
+      childrenKeys.push(k);
+    });
+
+    if (childrenKeys.length === 0) {
+      toast('Aucun groupe à grouper', 'err'); return;
+    }
+
+    const wKey = newWrapperKey();
+    window._v36.hierarchy[wKey] = {
+      label: childrenKeys.length === 2 ? 'Fauteuil' : 'Dossier',
+      childrenKeys,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      expanded: true,
+    };
+
+    /* Re-injecter l'arbre */
+    injectWrappers();
+
+    /* Démarrer le renommage immédiatement */
+    setTimeout(() => {
+      const headerName = document.querySelector(`[data-wrapper-key="${wKey}"] .v36-wrapper-name`);
+      if (headerName) startRename(headerName, wKey);
+    }, 60);
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    toast('📁 Dossier créé — matériaux préservés · double-clic pour renommer', 'ok', 4000);
+  }
+
+  /* ───── ACTION : dissoudre un wrapper ───── */
+  function dissolveWrapper(wKey) {
+    const wrap = window._v36.hierarchy[wKey];
+    if (!wrap) return;
+    /* Reset transforms sur les meshes */
+    const meshes = getAllChildrenMeshes(wKey);
+    meshes.forEach(m => {
+      if (window._v36.originalPositions.has(m)) {
+        m.position.copy(window._v36.originalPositions.get(m));
+        window._v36.originalPositions.delete(m);
+      }
+      if (window._v36.originalRotations.has(m)) {
+        m.rotation.copy(window._v36.originalRotations.get(m));
+        window._v36.originalRotations.delete(m);
+      }
+    });
+    delete window._v36.hierarchy[wKey];
+    if (window._v36.activeWrapper === wKey) window._v36.activeWrapper = null;
+    injectWrappers();
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    toast('Dossier dissout — sous-groupes conservés', 'ok', 3000);
+  }
+
+  /* ───── RENDU : injection après renderTree ───── */
+  function injectWrappers() {
+    const tree = document.getElementById('tree');
+    if (!tree) return;
+
+    /* Marquer qu'on est en train d'injecter (pour éviter la boucle MutationObserver) */
+    window._v36._injecting = true;
+    try {
+      /* 1. Sortir les rows enfants de tous les anciens wrappers existants et les remettre au tree */
+      tree.querySelectorAll('.v36-wrapper-container').forEach(c => {
+        const childrenRows = [...c.querySelectorAll(':scope > .v36-wrapper-children > *')];
+        childrenRows.forEach(r => tree.insertBefore(r, c));
+        c.remove();
+      });
+
+      /* 2. Pour chaque wrapper actif, regrouper les rows enfants */
+      Object.keys(window._v36.hierarchy).forEach(wKey => {
+        const wrap = window._v36.hierarchy[wKey];
+        const childRows = [];
+        wrap.childrenKeys.forEach(ck => {
+          const row = tree.querySelector(`.tree-row[data-key="${ck}"], .tree-parent[data-key="${ck}"]`);
+          if (row) childRows.push(row);
+        });
+        if (childRows.length === 0) return;
+
+        const container = document.createElement('div');
+        container.className = 'v36-wrapper-container' + (wrap.expanded ? '' : ' v36-collapsed');
+        container.dataset.wrapperKey = wKey;
+
+        const header = document.createElement('div');
+        header.className = 'v36-wrapper-header';
+        if (window._v36.activeWrapper === wKey) header.classList.add('v36-active');
+        header.innerHTML = `
+          <span class="v36-wrapper-chevron">▶</span>
+          <span class="v36-wrapper-folder-icon">📁</span>
+          <span class="v36-wrapper-name">${escapeHtml(wrap.label)}</span>
+          <span class="v36-wrapper-badge">${wrap.childrenKeys.length}</span>
+          <button class="v36-wrapper-dissolve" title="Dissoudre le dossier">×</button>
+        `;
+
+        const childrenBox = document.createElement('div');
+        childrenBox.className = 'v36-wrapper-children';
+
+        container.appendChild(header);
+        container.appendChild(childrenBox);
+
+        /* Insérer le container à la position de la 1ère row enfant */
+        tree.insertBefore(container, childRows[0]);
+        /* Déplacer les rows enfants */
+        childRows.forEach(r => childrenBox.appendChild(r));
+
+        wireWrapperEvents(container, wKey);
+      });
+    } finally {
+      setTimeout(() => { window._v36._injecting = false; }, 30);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function wireWrapperEvents(container, wKey) {
+    const wrap = window._v36.hierarchy[wKey];
+    const header = container.querySelector('.v36-wrapper-header');
+    const chevron = container.querySelector('.v36-wrapper-chevron');
+    const nameEl = container.querySelector('.v36-wrapper-name');
+    const dissolveBtn = container.querySelector('.v36-wrapper-dissolve');
+
+    /* Chevron : toggle expand */
+    chevron.onclick = (e) => {
+      e.stopPropagation();
+      wrap.expanded = !wrap.expanded;
+      container.classList.toggle('v36-collapsed', !wrap.expanded);
+      if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    };
+
+    /* Dissolve */
+    dissolveBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('Dissoudre le dossier "' + wrap.label + '" ? Les sous-groupes seront conservés.')) {
+        dissolveWrapper(wKey);
+      }
+    };
+
+    /* Double-clic sur le nom : renommer */
+    nameEl.ondblclick = (e) => {
+      e.stopPropagation();
+      startRename(nameEl, wKey);
+    };
+
+    /* Clic sur le header : sélectionner le wrapper (= ses enfants) */
+    header.onclick = (e) => {
+      if (e.target === chevron || e.target === dissolveBtn) return;
+      if (nameEl.getAttribute('contenteditable') === 'true') return;
+      
+      /* Sélectionner tous les enfants feuilles via _v21 */
+      const leaves = getAllLeafChildren(wKey);
+      if (leaves.length > 0 && window._v21 && window._v21.selectPartMulti) {
+        window._v21.selectPartMulti(leaves[0], 'set');
+        leaves.slice(1).forEach(k => {
+          try { window._v21.selectPartMulti(k, 'add'); } catch (err) {}
+        });
+      }
+      
+      /* Marquer ce wrapper comme actif (pour les transforms) */
+      window._v36.activeWrapper = wKey;
+      document.querySelectorAll('.v36-wrapper-header.v36-active').forEach(h => h.classList.remove('v36-active'));
+      header.classList.add('v36-active');
+      
+      /* Mettre à jour les inputs du panel Géométrie avec les valeurs du wrapper */
+      syncGeomInputsFromWrapper(wKey);
+    };
+  }
+
+  function startRename(nameEl, wKey) {
+    nameEl.contentEditable = 'true';
+    nameEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(nameEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const finish = (save) => {
+      nameEl.contentEditable = 'false';
+      nameEl.onblur = null;
+      nameEl.onkeydown = null;
+      const newLabel = (nameEl.textContent || '').trim() || 'Sans nom';
+      if (save && window._v36.hierarchy[wKey]) {
+        window._v36.hierarchy[wKey].label = newLabel;
+        if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+      } else if (window._v36.hierarchy[wKey]) {
+        nameEl.textContent = window._v36.hierarchy[wKey].label;
+      }
+    };
+
+    nameEl.onblur = () => finish(true);
+    nameEl.onkeydown = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); nameEl.blur(); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); nameEl.blur(); }
+    };
+  }
+
+  /* ───── TRANSFORMS : appliquer aux meshes du wrapper ───── */
+  function applyWrapperTransform(wKey) {
+    const wrap = window._v36.hierarchy[wKey];
+    if (!wrap) return;
+    const meshes = getAllChildrenMeshes(wKey);
+    /* Stocker les originals au premier appel */
+    meshes.forEach(m => {
+      if (!window._v36.originalPositions.has(m)) {
+        window._v36.originalPositions.set(m, m.position.clone());
+      }
+      if (!window._v36.originalRotations.has(m)) {
+        window._v36.originalRotations.set(m, m.rotation.clone());
+      }
+    });
+    const px = (wrap.position.x || 0) / 100;
+    const py = (wrap.position.y || 0) / 100;
+    const pz = (wrap.position.z || 0) / 100;
+    const rx = THREE.MathUtils.degToRad(wrap.rotation.x || 0);
+    const ry = THREE.MathUtils.degToRad(wrap.rotation.y || 0);
+    const rz = THREE.MathUtils.degToRad(wrap.rotation.z || 0);
+    meshes.forEach(m => {
+      const oP = window._v36.originalPositions.get(m);
+      const oR = window._v36.originalRotations.get(m);
+      m.position.set(oP.x + px, oP.y + py, oP.z + pz);
+      m.rotation.set(oR.x + rx, oR.y + ry, oR.z + rz);
+    });
+  }
+
+  function syncGeomInputsFromWrapper(wKey) {
+    const wrap = window._v36.hierarchy[wKey];
+    if (!wrap) return;
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = (+v).toFixed(1); };
+    setVal('geomPosX', wrap.position.x || 0);
+    setVal('geomPosY', wrap.position.y || 0);
+    setVal('geomPosZ', wrap.position.z || 0);
+    setVal('geomRotX', wrap.rotation.x || 0);
+    setVal('geomRotY', wrap.rotation.y || 0);
+    setVal('geomRotZ', wrap.rotation.z || 0);
+  }
+
+  /* Hook capture-phase sur les inputs : si activeWrapper, transformer le wrapper au lieu du root */
+  function hookGeomInputs() {
+    const ids = ['geomPosX', 'geomPosY', 'geomPosZ', 'geomRotX', 'geomRotY', 'geomRotZ'];
+    let hookedCount = 0;
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.v36Hook === '1') return;
+      el.dataset.v36Hook = '1';
+      hookedCount++;
+      const handler = (e) => {
+        const wKey = window._v36.activeWrapper;
+        if (!wKey || !window._v36.hierarchy[wKey]) return;
+        e.stopImmediatePropagation();
+        const wrap = window._v36.hierarchy[wKey];
+        const v = parseFloat(el.value) || 0;
+        if (id === 'geomPosX') wrap.position.x = v;
+        if (id === 'geomPosY') wrap.position.y = v;
+        if (id === 'geomPosZ') wrap.position.z = v;
+        if (id === 'geomRotX') wrap.rotation.x = v;
+        if (id === 'geomRotY') wrap.rotation.y = v;
+        if (id === 'geomRotZ') wrap.rotation.z = v;
+        applyWrapperTransform(wKey);
+        if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+      };
+      el.addEventListener('input', handler, true);  /* capture phase */
+      el.addEventListener('change', handler, true);
+    });
+    return hookedCount;
+  }
+  /* Retry-loop : les inputs n'existent que quand v35 a buildé le panel */
+  const hookTimer = setInterval(() => {
+    if (hookGeomInputs() > 0) {
+      /* On peut s'arrêter dès qu'on a hooké les 6 */
+      const allHooked = ['geomPosX','geomPosY','geomPosZ','geomRotX','geomRotY','geomRotZ']
+        .every(id => document.getElementById(id)?.dataset.v36Hook === '1');
+      if (allHooked) clearInterval(hookTimer);
+    }
+  }, 500);
+  setTimeout(() => clearInterval(hookTimer), 30000);
+
+  /* Quand l'user clique sur une row (pas wrapper) → désactiver le wrapper actif */
+  document.addEventListener('click', (e) => {
+    const treeRow = e.target.closest('.tree-row, .tree-parent');
+    const wHeader = e.target.closest('.v36-wrapper-header');
+    if (treeRow && !wHeader) {
+      window._v36.activeWrapper = null;
+      document.querySelectorAll('.v36-wrapper-header.v36-active').forEach(h => h.classList.remove('v36-active'));
+    }
+  });
+
+  /* ───── MUTATIONOBSERVER : re-injecter après renderTree ───── */
+  function attachTreeObserver() {
+    const tree = document.getElementById('tree');
+    if (!tree) { setTimeout(attachTreeObserver, 500); return; }
+    if (tree.dataset.v36Obs === '1') return;
+    tree.dataset.v36Obs = '1';
+
+    const observer = new MutationObserver((muts) => {
+      if (window._v36._injecting) return;
+      /* On ne réagit que si renderTree a fait un innerHTML = '' (= toutes les rows recréées) */
+      const hasRemovedRows = muts.some(m => m.removedNodes.length > 0 && [...m.removedNodes].some(n =>
+        n.classList && (n.classList.contains('tree-row') || n.classList.contains('tree-parent'))));
+      const hasAddedRows = muts.some(m => m.addedNodes.length > 0 && [...m.addedNodes].some(n =>
+        n.classList && (n.classList.contains('tree-row') || n.classList.contains('tree-parent'))));
+      if (hasAddedRows || hasRemovedRows) {
+        injectWrappers();
+      }
+    });
+    observer.observe(tree, { childList: true });
+  }
+  attachTreeObserver();
+
+  /* ───── MENU CONTEXTUEL : ajouter "Grouper en dossier" ───── */
+  function patchContextMenu() {
+    const menu = document.getElementById('ctxMenu');
+    if (!menu) { setTimeout(patchContextMenu, 500); return; }
+    if (menu.dataset.v36 === '1') return;
+    menu.dataset.v36 = '1';
+
+    /* Trouver l'item "Grouper" classique */
+    const items = [...menu.querySelectorAll('.ctx-item')];
+    const mergeItem = items.find(it => /^Grouper/.test(it.textContent) && !it.textContent.includes('dossier'));
+    const newItem = document.createElement('div');
+    newItem.className = 'ctx-item';
+    newItem.innerHTML = '📁 Grouper en dossier<span class="ctx-shortcut">conserve matériaux</span>';
+    newItem.onclick = () => {
+      createWrapperFromSelection();
+      menu.classList.remove('open');
+    };
+    if (mergeItem && mergeItem.nextSibling) {
+      mergeItem.parentNode.insertBefore(newItem, mergeItem.nextSibling);
+    } else {
+      menu.appendChild(newItem);
+    }
+
+    /* Légère adaptation du label "Grouper" pour clarifier la différence */
+    if (mergeItem) {
+      mergeItem.innerHTML = 'Grouper (fusion matériaux)<span class="ctx-shortcut">requis : 2+</span>';
+    }
+  }
+  patchContextMenu();
+
+  /* ───── SÉRIALISATION dans studio_state.hierarchy ───── */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) return false;
+    if (window._v18.__v36HierarchyHooked) return true;
+    const orig = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = orig.apply(this, arguments) || {};
+      const hier = window._v36.hierarchy;
+      if (hier && Object.keys(hier).length > 0) {
+        state.hierarchy = {};
+        Object.keys(hier).forEach(k => {
+          const w = hier[k];
+          state.hierarchy[k] = {
+            label: w.label,
+            childrenKeys: w.childrenKeys.slice(),
+            position: { x: w.position.x || 0, y: w.position.y || 0, z: w.position.z || 0 },
+            rotation: { x: w.rotation.x || 0, y: w.rotation.y || 0, z: w.rotation.z || 0 },
+            expanded: !!w.expanded,
+          };
+        });
+      }
+      return state;
+    };
+    window._v18.__v36HierarchyHooked = true;
+    return true;
+  }
+  if (!hookSerialize()) {
+    const tInt = setInterval(() => { if (hookSerialize()) clearInterval(tInt); }, 500);
+    setTimeout(() => clearInterval(tInt), 15000);
+  }
+
+  /* ───── RESTAURATION au boot ───── */
+  let _v36_restored = false;
+  const restoreTimer = setInterval(() => {
+    if (_v36_restored) { clearInterval(restoreTimer); return; }
+    const row = window._v18 && window._v18.productRow;
+    const hier = row && row.studio_state && row.studio_state.hierarchy;
+    if (!hier || Object.keys(hier).length === 0) return;
+    if (Object.keys(window._v36.hierarchy).length > 0) { _v36_restored = true; return; }
+    /* Attendre que l'arbre soit peuplé */
+    if (!document.querySelector('#tree .tree-row, #tree .tree-parent')) return;
+    /* Restaurer */
+    window._v36.hierarchy = JSON.parse(JSON.stringify(hier));
+    injectWrappers();
+    /* Re-appliquer les transforms après que le modèle soit chargé */
+    setTimeout(() => {
+      Object.keys(window._v36.hierarchy).forEach(wKey => {
+        applyWrapperTransform(wKey);
+      });
+      console.log('[v36] hiérarchie restaurée :', Object.keys(window._v36.hierarchy).length, 'dossier(s)');
+    }, 800);
+    _v36_restored = true;
+    clearInterval(restoreTimer);
+  }, 700);
+  setTimeout(() => clearInterval(restoreTimer), 60000);
+
+  /* ───── EXPOSE ───── */
+  window._v36.createWrapper = createWrapperFromSelection;
+  window._v36.dissolveWrapper = dissolveWrapper;
+  window._v36.injectWrappers = injectWrappers;
+  window._v36.applyTransform = applyWrapperTransform;
+
+  console.log('[studio v36] dossiers hiérarchiques (préservent matériaux + transformables) ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
