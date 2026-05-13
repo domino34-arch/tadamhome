@@ -9611,20 +9611,38 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 (function applyV34(){
   window._v34 = window._v34 || { lastObjFile: null, objSourceUrl: null, loadedFromUrl: false };
 
-  /* ─── 1. Hook loadOBJFromFile : capturer le File pour upload ultérieur ─── */
-  if (typeof window.loadOBJFromFile === 'function') {
-    const _origLoadObj = window.loadOBJFromFile;
-    window.loadOBJFromFile = function(file) {
-      /* On ne mémorise QUE si c'est un upload utilisateur (pas un re-fetch v34) */
-      if (!window._v34.loadedFromUrl) {
-        window._v34.lastObjFile = file;
-        console.log('[v34] File OBJ source capturé :', file.name, '(' + (file.size/1024).toFixed(1) + ' KB)');
+  /* ─── 1. Capturer le File OBJ via listeners en phase capture ─── */
+  /* L'approche "hook window.loadOBJFromFile" échoue car la fonction est dans
+     un module ES6 (pas exposée sur window). Solution : listeners document
+     en phase capture pour intercepter les drops/changes AVANT le module. */
+  document.addEventListener('drop', (e) => {
+    try {
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      const objFile = [...files].find(f => /\.obj$/i.test(f.name));
+      if (objFile && !window._v34.loadedFromUrl) {
+        window._v34.lastObjFile = objFile;
+        console.log('[v34] File OBJ capturé via drop :', objFile.name, '(' + (objFile.size/1024).toFixed(1) + ' KB)');
       }
       window._v34.loadedFromUrl = false;
-      return _origLoadObj.call(this, file);
-    };
-  } else {
-    console.warn('[v34] window.loadOBJFromFile introuvable — capture du File désactivée');
+    } catch (err) { console.warn('[v34 drop capture]', err); }
+  }, true); /* capture phase = intercepte avant les listeners normaux */
+
+  document.addEventListener('change', (e) => {
+    try {
+      const t = e.target;
+      if (t && (t.id === 'objInput' || (t.type === 'file' && t.accept && t.accept.includes('.obj')))) {
+        if (t.files && t.files[0]) {
+          window._v34.lastObjFile = t.files[0];
+          console.log('[v34] File OBJ capturé via input change :', t.files[0].name);
+        }
+      }
+    } catch (err) { console.warn('[v34 change capture]', err); }
+  }, true);
+
+  /* Exposer loadOBJFromFile via une fonction de recherche si jamais nécessaire (best effort) */
+  if (typeof window.loadOBJFromFile !== 'function') {
+    console.log('[v34] window.loadOBJFromFile non exposée (normal si module ES6) — capture File via document events ✓');
   }
 
   /* ─── 2. Override serializeStudioState pour inclure obj_source_url ─── */
@@ -9799,10 +9817,32 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         const file = new File([blob], 'source.obj', { type: 'model/obj' });
         window._v34.loadedFromUrl = true; /* flag pour ne pas réécraser lastObjFile */
         window._v34.objSourceUrl = objUrl;
-        if (typeof window.loadOBJFromFile === 'function') {
-          window.loadOBJFromFile(file);
+        /* On utilise le file input du studio (input[type=file] accepte .obj)
+           pour déclencher le chargement comme un drop normal —
+           car window.loadOBJFromFile n'est pas exposée (module ES6). */
+        const objInput = document.querySelector('input[type="file"][accept*="obj"]') 
+                       || document.querySelector('#objInput')
+                       || document.querySelector('input[type="file"]');
+        if (objInput) {
+          try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            objInput.files = dt.files;
+            objInput.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('[v34] OBJ source injecté via input file change');
+          } catch (e) {
+            console.error('[v34] DataTransfer impossible :', e);
+            /* Fallback : simuler un drop event sur #vpDrop */
+            const dropZone = document.getElementById('vpDrop');
+            if (dropZone) {
+              const dt2 = new DataTransfer();
+              dt2.items.add(file);
+              const dropEvent = new DragEvent('drop', { bubbles:true, cancelable:true, dataTransfer:dt2 });
+              dropZone.dispatchEvent(dropEvent);
+            }
+          }
         } else {
-          console.error('[v34] window.loadOBJFromFile introuvable');
+          console.error('[v34] Aucun input[type=file] trouvé pour injecter l\'OBJ');
         }
       })
       .catch(e => {
