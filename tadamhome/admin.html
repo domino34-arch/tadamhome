@@ -919,7 +919,9 @@ h1, h2, h3, h4,
     scene.background = new THREE.Color(0x1B1814);  /* fond ink-deep type studio */
 
     const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-    camera.position.set(0, 0, 4);
+    /* Distance choisie pour que la sphère occupe ~70% du cadre (cohérence
+       avec les autres vignettes du catalogue qui ont de l'air autour) */
+    camera.position.set(0, 0, 5.4);
     camera.lookAt(0, 0, 0);
 
     /* Setup studio 3-points doux */
