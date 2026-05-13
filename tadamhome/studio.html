@@ -10081,6 +10081,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
           method = (init && init.method) || input.method || 'GET';
         }
         
+        /* DEBUG : tracer toute requête Supabase pour identifier le bon point d'interception */
+        if (url && url.indexOf('supabase.co') !== -1) {
+          console.log('[v34 fetch DEBUG]', method, url.slice(-100), '| input type:', typeof input === 'string' ? 'string' : (input && input.constructor && input.constructor.name));
+        }
+        
         /* Cible : PATCH /rest/v1/products */
         if (url && url.indexOf('/rest/v1/products') !== -1 && method === 'PATCH') {
           /* Lire le body — peut venir de init.body OU du Request body */
@@ -10194,6 +10199,85 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   setInterval(() => {
     if (window._v18 && window._v18.restoring) _v34_clearPendingSave();
   }, 500);
+
+  /* ─── 9. Filet de sécurité : sync 5s du state en base ─── */
+  /* Le hook fetch peut rater certains PATCH selon comment Supabase JS
+     appelle window.fetch. Ce filet garantit la persistance des
+     enrichissements (customLabels, groupComposition, obj_source_url)
+     en faisant un SELECT puis UPDATE direct toutes les 5s. */
+  async function _v34_syncMissingState() {
+    if (!window._v18 || !window._v18.productId) return;
+    if (typeof sb === 'undefined' || !sb) return;
+    if (window._v18.restoring) return; /* pas pendant la restoration */
+    const pid = window._v18.productId;
+    try {
+      const { data, error } = await sb.from('products').select('studio_state').eq('id', pid).single();
+      if (error || !data) return;
+      const s = data.studio_state || {};
+      let changed = false;
+      const updates = [];
+      
+      /* customLabels : merge si différents */
+      const localLabels = window._v21 && window._v21.customLabels;
+      if (localLabels && Object.keys(localLabels).length > 0) {
+        const existing = s.customLabels || {};
+        Object.keys(localLabels).forEach(k => {
+          if (existing[k] !== localLabels[k]) {
+            existing[k] = localLabels[k];
+            changed = true;
+          }
+        });
+        if (changed) {
+          s.customLabels = existing;
+          updates.push('customLabels');
+        }
+      }
+      
+      /* obj_source_url */
+      if (!s.obj_source_url) {
+        const fromV34 = window._v34 && window._v34.objSourceUrl;
+        const fromRow = window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url;
+        const url = fromV34 || fromRow;
+        if (url) {
+          s.obj_source_url = url;
+          changed = true;
+          updates.push('obj_source_url');
+        }
+      }
+      
+      /* groupComposition */
+      if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+        const comp = {};
+        Object.keys(window._v23.composition).forEach(k => {
+          const sgs = window._v23.composition[k];
+          if (!Array.isArray(sgs)) return;
+          comp[k] = sgs.map(sg => ({
+            originalKey: sg.originalKey,
+            label: sg.label,
+            meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+          }));
+        });
+        if (Object.keys(comp).length > 0) {
+          const existing = JSON.stringify(s.groupComposition || {});
+          if (existing !== JSON.stringify(comp)) {
+            s.groupComposition = comp;
+            changed = true;
+            updates.push('groupComposition');
+          }
+        }
+      }
+      
+      if (changed) {
+        const { error: uerr } = await sb.from('products').update({ studio_state: s }).eq('id', pid);
+        if (uerr) throw uerr;
+        if (window._v18.productRow) window._v18.productRow.studio_state = s;
+        console.log('[v34 sync 5s] state enrichi en base :', updates.join(', '));
+      }
+    } catch (e) {
+      console.warn('[v34 sync 5s] échec :', e && e.message);
+    }
+  }
+  setInterval(_v34_syncMissingState, 5000);
 
   console.log('[studio v34] OBJ source + groupComposition + customLabels persistés ; auto-export GLB/USDZ à la création ✓');
 })();
