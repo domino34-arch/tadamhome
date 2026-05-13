@@ -12755,6 +12755,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   /* ═══ BOUTON DANS LA TOPBAR ═══ */
   let tbBtn = null;
   function injectTopbarButton() {
+    /* DÉSACTIVÉ (v41 décision UX) — les auto-prompts v39 à la création
+       de produit et de variante sont le seul point d'entrée à la modal.
+       Pour réactiver : retirer ce return et supprimer aussi le bloc v41. */
+    return;
+    /* eslint-disable-next-line no-unreachable */
     if (tbBtn) return;
     /* On le pose dans .tb-toggles (à côté des autres icônes) */
     const togglesZone = document.querySelector('.tb-toggles');
@@ -13092,183 +13097,167 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window.__v40Init = true;
 
   const css = `
-  /* ═══ TACTILE GLOBAL (iPad, iPhone, surface) ═══ */
-  @media (hover: none) and (pointer: coarse) {
+  /* ═══════════════════════════════════════════════════════════════════
+     v40 (rev2) — Responsive iPad propre
+     Toutes les règles sont gated par (pointer: coarse) pour ne pas
+     affecter les laptops/desktop avec petits écrans (MacBook 13").
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* ═══ TACTILE GLOBAL : hit areas + anti-zoom iOS ═══ */
+  @media (pointer: coarse) {
     /* Tous les boutons d'action min 36 px de hauteur cliquable */
     .mode-btn, .var-chip, .var-add, .btn-secondary-bottom,
     .tree-icon, .panel-action, .vp-handle,
     .mat-tab, .v36-wrapper-dissolve,
-    .v37-as-btn, .v38-modal-close, .v38-tb-btn,
+    .v37-as-btn, .v38-modal-close,
     .ctx-item, .v39-skip-btn {
       min-height: 36px;
     }
     .tree-icon { width: 32px; height: 32px; }
-    .v38-tb-btn { width: 34px; height: 34px; }
-    .v38-tb-btn svg { width: 16px; height: 16px; }
-    /* Padding plus généreux sur les rows arbre */
+    /* Padding rows arbre */
     .tree-row, .tree-parent { padding-top: 9px; padding-bottom: 9px; }
-    /* Inputs dimensions/nom + lisibles */
-    .tb-name-input, .tb-marque-input,
-    .tb-dims input, .field input, .field select {
+    /* Inputs */
+    .field input, .field select {
       min-height: 36px;
-      font-size: 14px;
     }
-    /* Sliders dans le panneau matériau : handles plus gros */
-    .slider-handle, .ds-handle {
-      width: 18px; height: 18px;
-    }
-    .slider-track, .ds-track {
-      height: 8px;
-    }
-    /* Croix sur photos toujours visible (pas de :hover sur touch) */
+    /* Sliders : handles plus gros */
+    .slider-handle, .ds-handle { width: 18px; height: 18px; }
+    .slider-track, .ds-track { height: 8px; }
+    /* Croix toujours visible (pas de :hover) */
     .v38-photo-remove, .v38-swatch-remove {
       display: flex !important;
       opacity: 0.85;
       background: rgba(42, 38, 32, 0.85);
     }
-    .v38-photo-tile, .v38-swatch-tile {
-      transform: none !important;   /* pas de zoom hover qui floute la croix */
-    }
-    /* Toggles topbar plus gros */
-    .tb-toggles button {
-      width: 32px; height: 32px;
-      padding: 0;
-    }
-    .tb-toggles button svg { width: 16px; height: 16px; }
-    /* var-chip plus aérée */
-    .var-chip, .var-add {
-      padding: 0 14px;
-    }
-    /* Onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE plus tappables */
-    .mat-tab {
-      padding: 12px 18px;
-      font-size: 11px;
-    }
-    /* Empêcher le tap-highlight bleu iOS */
+    /* Tap-highlight bleu iOS off */
     button, .mode-btn, .tree-row, .tree-parent,
     .var-chip, .ctx-item, .mat-tab, .v36-wrapper-header,
     .v38-photo-tile, .v38-swatch-tile {
       -webkit-tap-highlight-color: transparent;
     }
-    /* Panneau matériau : sliders en colonne plus aérés */
-    .rp-row { padding: 9px 14px; }
+    /* Onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE */
+    .mat-tab { padding: 11px 16px; }
+    /* Toggles topbar */
+    .tb-toggles button {
+      width: 34px; height: 34px;
+      padding: 0;
+    }
+    .tb-toggles button svg { width: 16px; height: 16px; }
+    /* Variantes */
+    .var-chip, .var-add { padding: 0 14px; }
+    /* Anti-zoom iOS : tous les inputs ≥ 16px de font */
+    input[type="text"], input[type="number"],
+    input[type="email"], select, textarea {
+      font-size: 16px !important;
+    }
+    .tb-dims input {
+      font-size: 14px !important;  /* compromis : reste ≥ 14px pour éviter zoom mais cellule étroite */
+      padding: 4px 4px;
+    }
+    .tb-name-input, .tb-marque-input {
+      font-size: 15px !important;
+    }
   }
 
-  /* ═══ iPad PAYSAGE (1180-1366 px) ═══ */
-  @media (min-width: 1101px) and (max-width: 1366px) {
+  /* ═══ iPad PAYSAGE (1101-1366 px ET tactile) ═══
+     Tout tient encore en grille 4 colonnes, on resserre juste les panels */
+  @media (pointer: coarse) and (min-width: 1101px) and (max-width: 1366px) {
     .app:not(.user-override) {
       --tree-w: 260px;
       --mat-w: 290px;
     }
-    /* La topbar pourrait déborder : on resserre certains éléments */
-    .tb-dims input { width: 38px; }
+    .tb-dims input { width: 36px; }
     .tb-name-input { max-width: 200px; }
-    .tb-marque-input { max-width: 140px; }
+    .tb-marque-input { max-width: 130px; }
   }
 
-  /* ═══ iPad MINI / iPad PORTRAIT (≤ 1100 px) ═══
-     Le responsive existant cache déjà le panneau matériau à 1100.
-     On améliore :
-     - les panels deviennent des overlays au-dessus du viewer (pas dans la grid)
-     - le viewer prend toute la largeur quand panels fermés
-     - hit areas tactiles agrandies */
-  @media (max-width: 1100px) and (orientation: portrait), 
-         (max-width: 1024px) {
-    /* La topbar passe en mode dual-row si trop serrée */
-    .topbar {
-      flex-wrap: wrap;
-      min-height: var(--topbar-h, 58px);
-      height: auto !important;
-      padding: 6px 12px !important;
+  /* ═══ iPad PORTRAIT / petite tablette (≤ 1100 px ET tactile) ═══
+     Tree et mat panel deviennent des drawers fixed (overlay au-dessus du viewer).
+     La GRILLE reste 4 colonnes mais col 2 et col 4 passent à 0.
+     IMPORTANT : pas de flex-wrap sur la topbar — sinon les éléments se chevauchent. */
+  @media (pointer: coarse) and (max-width: 1100px) {
+    .app:not(.user-override) {
+      --tree-w: 0px;
+      --mat-w: 0px;
     }
-    .tb-cat-info {
-      font-size: 13px;
+    /* La topbar et ses sous-zones gardent leur flex horizontal NOWRAP */
+    .topbar { flex-wrap: nowrap; }
+    .tb-viewer-zone,
+    .tb-vz-left,
+    .tb-vz-right {
+      flex-wrap: nowrap !important;
     }
-    .tb-viewer-zone {
-      flex-wrap: wrap;
-      gap: 8px;
+    /* tb-tree-zone et tb-mat-zone se retrouvent dans des col de width 0 → invisibles automatiquement.
+       Mais on force overflow hidden pour que leur contenu ne déborde pas. */
+    .tb-tree-zone, .tb-mat-zone {
+      overflow: hidden;
+      min-width: 0;
     }
-    .tb-vz-left, .tb-vz-right {
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    /* Le tree devient un drawer overlay */
+    .tb-cat-info { display: none; }   /* Plus de FAUTEUIL/CHAISE/CANAPÉ qui chevauche */
+
+    /* Panels deviennent des drawers en overlay au-dessus du viewer */
     .leftpanel {
       position: fixed;
       top: var(--topbar-h, 58px);
       bottom: 0;
       left: var(--nav-w, 56px);
       width: 280px;
+      max-width: 80vw;
       z-index: 800;
       background: var(--panel, #FAF8F4);
-      box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+      box-shadow: 4px 0 16px rgba(0,0,0,0.10);
       transform: translateX(-110%);
       transition: transform 0.25s cubic-bezier(.4,.2,.2,1);
       opacity: 1 !important;
       pointer-events: auto;
+      grid-column: unset;
+      grid-row: unset;
     }
-    .app.tree-overlay-open .leftpanel {
-      transform: translateX(0);
-    }
-    /* Le panneau matériau aussi en drawer overlay côté droit */
+    .app.tree-overlay-open .leftpanel { transform: translateX(0); }
+
     .rightpanel {
       position: fixed;
       top: var(--topbar-h, 58px);
       bottom: 0;
       right: 0;
       width: 320px;
-      max-width: 90vw;
+      max-width: 88vw;
       z-index: 800;
       background: var(--panel, #FAF8F4);
-      box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+      box-shadow: -4px 0 16px rgba(0,0,0,0.10);
       transform: translateX(110%);
       transition: transform 0.25s cubic-bezier(.4,.2,.2,1);
       opacity: 1 !important;
       pointer-events: auto;
+      grid-column: unset;
+      grid-row: unset;
     }
-    .app.mat-overlay-open .rightpanel {
-      transform: translateX(0);
-    }
-    /* Le viewer prend tout l'espace */
-    .app {
-      grid-template-columns: var(--nav-w, 56px) 0 1fr 0;
-    }
-    /* Les handles de toggle (boutons vp-handle) restent visibles */
-    .vp-handle.left, .vp-handle.right {
-      display: flex !important;
-      width: 36px; height: 60px;
-      z-index: 700;
-    }
+    .app.mat-overlay-open .rightpanel { transform: translateX(0); }
+
     /* Backdrop semi-transparent quand un drawer est ouvert */
     .app.tree-overlay-open::after,
     .app.mat-overlay-open::after {
       content: '';
       position: fixed;
       inset: 0;
-      background: rgba(42, 38, 32, 0.25);
+      background: rgba(42, 38, 32, 0.30);
       z-index: 750;
       pointer-events: auto;
     }
+
+    /* Le bottombar peut rester full-width sans wrap (boutons compacts) */
+    .bottombar { padding: 0 10px; }
+    .mode-btn { padding: 0 12px; font-size: 10px; }
   }
 
-  /* ═══ iPad PORTRAIT serré (≤ 820 px) ═══ */
-  @media (max-width: 820px) {
-    /* La bottombar peut overflow : on wrap */
-    .bottombar {
-      flex-wrap: wrap;
-      height: auto !important;
-      min-height: var(--bottombar-h, 56px);
-      padding: 6px 10px !important;
-      gap: 6px;
-    }
-    .bottom-spacer { display: none; }
-    .mode-group {
-      flex-wrap: wrap;
-    }
-    .var-label {
-      display: none;
-    }
-    /* Modal Fiche catalogue : plein écran sur portrait étroit */
+  /* ═══ iPad PORTRAIT vraiment étroit (≤ 820 px ET tactile) ═══ */
+  @media (pointer: coarse) and (max-width: 820px) {
+    .tb-marque-input { display: none; }
+    .tb-name-input { max-width: none; flex: 1; min-width: 100px; }
+    .tb-dims input { width: 32px; }
+    .tb-dim-key, .tb-dim-x, .tb-dim-unit { font-size: 10px; }
+    .tb-save-box { display: none; }   /* Le statut "Sauvegardé" est visible via le badge en bas */
+    /* Modal Fiche catalogue : plein écran */
     .v38-modal {
       max-width: 100vw;
       max-height: 100vh;
@@ -13276,31 +13265,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     .v38-photo-grid {
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    }
-    /* Topbar : nom + marque sur 1 ligne, dims sur la suivante */
-    .tb-name-input {
-      max-width: none !important;
-      flex: 1;
-      min-width: 140px;
-    }
-    .tb-dims {
-      flex-wrap: wrap;
-    }
-  }
-
-  /* ═══ Anti-zoom sur iOS (input.focus zoom) ═══ */
-  @media (hover: none) and (pointer: coarse) {
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    select,
-    textarea {
-      font-size: 16px !important;   /* iOS Safari ne zoome pas si ≥ 16px */
-    }
-    /* Mais on garde la taille visuelle pour les inputs très étroits via line-height */
-    .tb-dims input {
-      font-size: 16px !important;
-      padding: 4px 6px;
     }
   }
   `;
@@ -13596,6 +13560,291 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._v42.buildColors = buildColorsArray;
 
   console.log('[studio v42] bridge variants → products.colors actif (pour scan.html)');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v43 — RAFFINAGE iPad : topbar collapse, drawer width, force purge 📸
+   ─────────────────────────────────────────────────────────────────────────
+   Corrige les soucis vus sur iPad portrait :
+   - Tree drawer trop large (280→220 px) → laisse plus de place au viewer 3D
+   - Drawers chevauchent la topbar → forcer top: var(--topbar-h) avec !important
+   - Topbar conserve les zones tree/mat vides → on les cache complètement
+   - Topbar trop chargée → version compacte sur portrait
+   - Le bouton 📸 réapparaît parfois → MutationObserver dédié + purge plus agressive
+   - Auto-fermeture du drawer adverse améliorée
+   ════════════════════════════════════════════════════════════════════════ */
+(function v43iPadRefine() {
+  if (window.__v43Init) return;
+  window.__v43Init = true;
+
+  const css = `
+  /* ═══ iPad portrait + paysage étroit ═══ */
+  @media (max-width: 1100px) and (orientation: portrait),
+         (max-width: 1024px) {
+    /* Cacher les zones latérales vides de la topbar (= tree info + mat slot) */
+    .tb-tree-zone,
+    .tb-mat-zone {
+      display: none !important;
+    }
+    /* La topbar devient mono-colonne sur viewer */
+    .topbar {
+      grid-template-columns: 1fr !important;
+      padding: 6px 12px !important;
+      min-height: var(--topbar-h, 58px);
+    }
+    .tb-viewer-zone {
+      width: 100%;
+      gap: 8px;
+    }
+
+    /* La grid principale : tree et mat à 0 (drawers en overlay) */
+    .app:not(.user-override) {
+      grid-template-columns: var(--nav-w, 56px) 0 1fr 0 !important;
+    }
+
+    /* TREE DRAWER : 220 px (au lieu de 280) */
+    .leftpanel {
+      position: fixed !important;
+      top: var(--topbar-h, 58px) !important;
+      bottom: 0 !important;
+      left: var(--nav-w, 56px) !important;
+      width: 220px !important;
+      z-index: 850 !important;
+      background: var(--panel, #FAF8F4) !important;
+      box-shadow: 4px 0 18px rgba(28, 27, 24, 0.18) !important;
+      transform: translateX(-110%);
+      transition: transform 0.22s cubic-bezier(.4,.2,.2,1);
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      overflow-y: auto;
+    }
+    .app.tree-overlay-open .leftpanel {
+      transform: translateX(0);
+    }
+
+    /* RIGHT DRAWER : 290 px */
+    .rightpanel {
+      position: fixed !important;
+      top: var(--topbar-h, 58px) !important;
+      bottom: 0 !important;
+      right: 0 !important;
+      width: 290px !important;
+      max-width: 90vw !important;
+      z-index: 850 !important;
+      background: var(--panel, #FAF8F4) !important;
+      box-shadow: -4px 0 18px rgba(28, 27, 24, 0.18) !important;
+      transform: translateX(110%);
+      transition: transform 0.22s cubic-bezier(.4,.2,.2,1);
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      overflow-y: auto;
+    }
+    .app.mat-overlay-open .rightpanel {
+      transform: translateX(0);
+    }
+
+    /* Boutons de toggle (vp-handle) : visibles, plus gros */
+    .vp-handle.left,
+    .vp-handle.right {
+      display: flex !important;
+      width: 32px !important;
+      height: 64px !important;
+      z-index: 700;
+    }
+
+    /* Backdrop quand un drawer ouvert (sous la topbar, pas au-dessus) */
+    .app.tree-overlay-open::after,
+    .app.mat-overlay-open::after {
+      content: '';
+      position: fixed;
+      top: var(--topbar-h, 58px);
+      left: 0; right: 0; bottom: 0;
+      background: rgba(28, 27, 24, 0.32);
+      z-index: 800;
+      pointer-events: auto;
+    }
+
+    /* Topbar plus compacte */
+    .tb-name-input {
+      max-width: 180px;
+      font-size: 15px !important;
+    }
+    .tb-marque-input {
+      max-width: 110px;
+      font-size: 12px !important;
+    }
+    .tb-dims {
+      gap: 2px;
+    }
+    .tb-dims input {
+      width: 38px;
+      font-size: 14px !important;
+      padding: 4px 4px !important;
+    }
+    .tb-save-box {
+      font-size: 10px;
+      padding: 4px 10px;
+    }
+
+    /* La fiche topbar (Note M-4060, dims) ne doit pas déborder sous le tree drawer */
+    .topbar {
+      position: relative;
+      z-index: 900;   /* topbar au-dessus du drawer */
+    }
+  }
+
+  /* ═══ iPad portrait étroit (≤ 820 px) ═══ */
+  @media (max-width: 820px) {
+    /* Topbar : nom prend toute la largeur, dims/sauvegardé/toggles en dessous */
+    .tb-viewer-zone {
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .tb-vz-left {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+    .tb-vz-right {
+      flex: 1 1 100%;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .topbar {
+      height: auto !important;
+      min-height: var(--topbar-h, 58px);
+      padding: 6px 10px !important;
+    }
+    .tb-name-input {
+      max-width: none !important;
+      flex: 1;
+      min-width: 0;
+    }
+    .tb-marque-input {
+      flex: 0 1 auto;
+      max-width: 130px;
+    }
+
+    /* Drawer plus large sur petit écran */
+    .leftpanel {
+      width: 90vw !important;
+      max-width: 320px !important;
+    }
+    .rightpanel {
+      width: 92vw !important;
+      max-width: 340px !important;
+    }
+
+    /* Bottombar : layout adaptatif */
+    .bottombar {
+      flex-wrap: wrap;
+      height: auto !important;
+      min-height: var(--bottombar-h, 56px);
+      padding: 6px 8px !important;
+      gap: 4px;
+    }
+    .mode-btn {
+      padding: 8px 10px !important;
+      font-size: 10px !important;
+      min-width: 0;
+    }
+    .btn-secondary-bottom {
+      padding: 8px 12px !important;
+      font-size: 10px !important;
+    }
+    .var-label { display: none; }
+  }
+  `;
+
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v43', 'ipad-refine');
+  styleEl.textContent = css;
+  /* Important : injecter en DERNIER pour que les !important triomphent */
+  document.head.appendChild(styleEl);
+  /* Re-append au DOMContentLoaded au cas où */
+  if (document.readyState !== 'complete') {
+    window.addEventListener('load', () => {
+      if (!document.querySelector('[data-v43]')) document.head.appendChild(styleEl);
+    });
+  }
+
+  /* ───── WIRE AMÉLIORÉ : auto-close + meilleur détection ───── */
+  function isMobileLayout() {
+    return window.matchMedia(
+      '(max-width: 1100px) and (orientation: portrait), (max-width: 1024px)'
+    ).matches;
+  }
+
+  function rewireDrawers() {
+    const app = document.querySelector('.app');
+    if (!app) { setTimeout(rewireDrawers, 500); return; }
+
+    const handleLeft = document.querySelector('.vp-handle.left');
+    const handleRight = document.querySelector('.vp-handle.right');
+
+    if (handleLeft && !handleLeft.dataset.v43) {
+      handleLeft.dataset.v43 = '1';
+      handleLeft.addEventListener('click', (e) => {
+        if (!isMobileLayout()) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        const wasOpen = app.classList.contains('tree-overlay-open');
+        app.classList.remove('mat-overlay-open');
+        app.classList.toggle('tree-overlay-open', !wasOpen);
+      }, true);
+    }
+    if (handleRight && !handleRight.dataset.v43) {
+      handleRight.dataset.v43 = '1';
+      handleRight.addEventListener('click', (e) => {
+        if (!isMobileLayout()) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        const wasOpen = app.classList.contains('mat-overlay-open');
+        app.classList.remove('tree-overlay-open');
+        app.classList.toggle('mat-overlay-open', !wasOpen);
+      }, true);
+    }
+
+    /* Tap sur le backdrop ferme tout */
+    if (!app.dataset.v43Backdrop) {
+      app.dataset.v43Backdrop = '1';
+      app.addEventListener('click', (e) => {
+        if (!app.classList.contains('tree-overlay-open') &&
+            !app.classList.contains('mat-overlay-open')) return;
+        const t = e.target;
+        if (t.closest('.leftpanel') ||
+            t.closest('.rightpanel') ||
+            t.closest('.vp-handle') ||
+            t.closest('.topbar') ||
+            t.closest('.sidebar-nav')) return;
+        app.classList.remove('tree-overlay-open', 'mat-overlay-open');
+      }, true);
+    }
+  }
+  rewireDrawers();
+  [400, 1500, 3500].forEach(d => setTimeout(rewireDrawers, d));
+
+  /* ───── FORCE PURGE du bouton 📸 (renforce v41) ───── */
+  const purge = () => {
+    document.querySelectorAll('.v38-tb-btn').forEach(b => b.remove());
+  };
+  purge();
+  [50, 200, 500, 1500, 3500, 7000].forEach(d => setTimeout(purge, d));
+  /* MutationObserver dédié */
+  const obs43 = new MutationObserver(() => {
+    if (document.querySelector('.v38-tb-btn')) purge();
+  });
+  obs43.observe(document.body, { childList: true, subtree: true });
+
+  /* ───── Fermer les drawers si on remonte en desktop ───── */
+  window.addEventListener('resize', () => {
+    if (!isMobileLayout()) {
+      const app = document.querySelector('.app');
+      if (app) app.classList.remove('tree-overlay-open', 'mat-overlay-open');
+    }
+  });
+
+  console.log('[studio v43] iPad raffiné : topbar compacte, drawers 220/290px sous topbar, purge 📸 renforcée ✓');
 })();
 
 
