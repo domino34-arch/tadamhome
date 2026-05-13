@@ -1833,14 +1833,30 @@ function injectMaterialModal(){
         background: #2A2620;
         aspect-ratio: 1;
         max-height: 360px;
-        overflow: hidden;
+        /* CRITICAL pour la netteté : isolation: isolate force un nouveau
+           stacking context, empêchant le backdrop-filter du .modal-bg parent
+           de rasterizer le contenu WebGL (bug Chrome connu). */
+        isolation: isolate;
+        transform: translateZ(0);  /* force GPU layer dédié */
       }
       #matPreviewCanvas {
         width: 100%; height: 100%;
         display: block;
       }
-      /* Three pose le style width/height à 100% en JS (pas de override !important
-         ici, sinon le canvas s'étire au-delà de sa résolution physique → flou) */
+      /* Hint sans backdrop-filter (qui re-rasterisait le canvas) */
+      .mat-preview-hint {
+        position: absolute;
+        top: 8px; left: 10px;
+        background: rgba(28,27,24,.85);
+        /* PAS de backdrop-filter ici : il interférait avec le rendu WebGL */
+        color: rgba(255,255,255,.85);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        font-family: var(--sans);
+        pointer-events: none;
+      }
       .mat-preview-hint {
         position: absolute;
         bottom: 8px; left: 0; right: 0;
