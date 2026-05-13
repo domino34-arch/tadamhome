@@ -1816,7 +1816,23 @@ async function handleMapFile(field, file, slotDiv){
     const payload = {};
     payload[field.key] = url;
     const { error } = await sb.from('materials_library').update(payload).eq('id', matId);
-    if(error) throw error;
+    if(error) {
+      /* v55 — Détection colonne manquante en DB.
+         Le fichier est uploadé sur Storage mais la colonne n'existe pas
+         pour stocker son URL. On informe l'user clairement. */
+      if (/schema cache|column.*not.*exist/i.test(error.message || '')) {
+        status.classList.remove('uploading');
+        status.classList.add('empty');
+        status.textContent = '⚠ Colonne manquante en DB';
+        const msg = document.getElementById('matMsg');
+        msg.style.color = 'var(--red)';
+        msg.innerHTML = '⚠ La colonne <code>' + field.key + '</code> n\'existe pas en base.<br>' +
+          '<small>Lance la migration <b>v55_all_columns.sql</b> dans Supabase Studio (SQL Editor) pour ajouter toutes les colonnes attendues.</small>';
+        toast('Colonne ' + field.key + ' manquante en DB — voir le message', 'err', 6000);
+        return;
+      }
+      throw error;
+    }
     /* Mirror en mémoire */
     const m = allMaterials.find(x => x.id === matId);
     if(m) m[field.key] = url;
@@ -2286,8 +2302,31 @@ async function saveMaterial(){
       }
       /* Update DB avec les URLs */
       if(Object.keys(updatePayload).length > 0){
-        const { error: e2 } = await sb.from('materials_library').update(updatePayload).eq('id', newId);
-        if(e2) console.warn('[mat update urls]', e2);
+        let { error: e2 } = await sb.from('materials_library').update(updatePayload).eq('id', newId);
+        /* v55 — Si une colonne manque, identifier laquelle, la retirer du payload
+           et retry. On accumule les colonnes manquantes pour informer l'user. */
+        const missingCols = [];
+        let retries = 0;
+        while (e2 && /schema cache|column.*not.*exist/i.test(e2.message || '') && retries < 8) {
+          const match = (e2.message || '').match(/'(\w+)'.*column|column '(\w+)'/i);
+          const col = match ? (match[1] || match[2]) : null;
+          if (!col || !updatePayload[col]) break;
+          missingCols.push(col);
+          delete updatePayload[col];
+          retries++;
+          if (Object.keys(updatePayload).length === 0) { e2 = null; break; }
+          ({ error: e2 } = await sb.from('materials_library').update(updatePayload).eq('id', newId));
+        }
+        if (e2) {
+          console.warn('[mat update urls]', e2);
+        }
+        if (missingCols.length > 0) {
+          console.warn('[mat update urls] colonnes manquantes ignorées :', missingCols);
+          msg.style.color = 'var(--accent)';
+          msg.innerHTML = '⚠ Matériau créé mais ' + missingCols.length + ' map(s) non liée(s) en DB :<br>' +
+            '<small><code>' + missingCols.join('</code>, <code>') + '</code></small><br>' +
+            '<small>Lance la migration <b>v55_all_columns.sql</b> dans Supabase Studio pour activer ces colonnes.</small>';
+        }
       }
       
       msg.style.color = 'var(--green)';
