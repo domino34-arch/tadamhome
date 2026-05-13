@@ -13414,6 +13414,191 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v42 — BRIDGE variants → products.colors  (pour scan.html)
+   ─────────────────────────────────────────────────────────────────────────
+   scan.html attend `product.colors` (jsonb array) avec ce format par item :
+     { name, mat, hex?, texture, glb, usdz }
+   
+   Le studio stocke les variantes dans `products.variants` (format interne v25 :
+   {id, name, studio_state{...}}). On fait le bridge : à chaque save de variante
+   ou de swatch, on régénère products.colors et on le pousse.
+   
+   IMPORTANT — Limitation temporaire :
+   Pour l'instant TOUTES les variantes pointent vers le MÊME glb/usdz (= ceux
+   du produit Base). Le picker dans scan.html change donc le swatch visuel et
+   le label, mais le modèle 3D reste celui de la Base. Pour un vrai modèle 3D
+   par variante (AR différent par finition), il faudrait re-exporter GLB+USDZ
+   pour CHAQUE variante à la publication (pipeline plus lourd, à faire si tu
+   confirmes que c'est nécessaire).
+   
+   Migration SQL requise (1 fois sur Supabase Dashboard → SQL Editor) :
+     ALTER TABLE products ADD COLUMN IF NOT EXISTS colors jsonb DEFAULT '[]'::jsonb;
+   ════════════════════════════════════════════════════════════════════════ */
+(function v42ColorsBridge() {
+  if (window.__v42Init) return;
+  window.__v42Init = true;
+
+  window._v42 = {
+    lastSyncedHash: null,
+    lastSyncedAt: 0,
+    columnExists: null,    /* null = pas testé, true/false après 1er essai */
+    syncCount: 0,
+  };
+
+  /* Déduit le label "mat" depuis la catégorie du produit (best-effort) */
+  function deduceMatLabel(category) {
+    if (!category) return 'Finition';
+    const c = String(category).toLowerCase();
+    if (/cuir/.test(c)) return 'Cuir';
+    if (/bois|table|bureau|rangement/.test(c)) return 'Bois';
+    if (/m[ée]tal/.test(c)) return 'Métal';
+    if (/sofa|canap[ée]|fauteuil|chaise|lit/.test(c)) return 'Tissu';
+    if (/luminaire/.test(c)) return 'Finition';
+    return 'Finition';
+  }
+
+  /* Construit l'array `colors` au format scan.html depuis l'état actuel */
+  function buildColorsArray(row) {
+    if (!row) return [];
+    const colors = [];
+    const productCat = row.category || row.categorie || '';
+    const mat = deduceMatLabel(productCat);
+    const glb = row.model_glb_url || null;
+    const usdz = row.model_usdz_url || null;
+    const productName = row.name || 'Modèle';
+
+    /* Base — toujours présent en premier */
+    const baseSwatch = (row.studio_state && row.studio_state.textureSwatchUrl) || null;
+    colors.push({
+      name: 'Base',
+      mat,
+      texture: baseSwatch,
+      glb,
+      usdz,
+    });
+
+    /* Variantes additionnelles */
+    const variants = Array.isArray(row.variants) ? row.variants : [];
+    variants.forEach(v => {
+      const sw = (v.studio_state && v.studio_state.textureSwatchUrl) || null;
+      colors.push({
+        name: v.name || 'Variante',
+        mat,
+        texture: sw,
+        /* Note : glb/usdz identiques à la Base (limitation temporaire — voir
+           commentaire en tête de v42). À la publication d'un pipeline par
+           variante, ces URLs deviendront spécifiques. */
+        glb,
+        usdz,
+      });
+    });
+
+    return colors;
+  }
+
+  /* Génère un hash stable pour détecter les vrais changements */
+  function hashColors(colors) {
+    return JSON.stringify(colors.map(c => [c.name, c.texture || '', c.glb || '']));
+  }
+
+  /* Sync : lit l'état serveur, construit colors, UPDATE si différent */
+  async function syncColors(productId, forceLog) {
+    if (!productId) return false;
+    if (window._v42.columnExists === false) return false;  /* déjà su qu'absent */
+    if (typeof sb === 'undefined') return false;
+    try {
+      const { data: row, error: e1 } = await sb.from('products').select('*').eq('id', productId).single();
+      if (e1) throw e1;
+      const colors = buildColorsArray(row);
+      const hash = hashColors(colors);
+      if (hash === window._v42.lastSyncedHash && !forceLog) return false;
+
+      const { error: e2 } = await sb.from('products').update({ colors }).eq('id', productId);
+      if (e2) {
+        if (/column.*colors.*does not exist|schema cache|colors/i.test(e2.message || '')) {
+          window._v42.columnExists = false;
+          console.warn('[v42] colonne products.colors absente — migration SQL nécessaire :');
+          console.warn('     ALTER TABLE products ADD COLUMN IF NOT EXISTS colors jsonb DEFAULT \'[]\'::jsonb;');
+          return false;
+        }
+        throw e2;
+      }
+      window._v42.columnExists = true;
+      window._v42.lastSyncedHash = hash;
+      window._v42.lastSyncedAt = Date.now();
+      window._v42.syncCount++;
+      if (forceLog || window._v42.syncCount <= 3) {
+        console.log('[v42] products.colors sync — ' + colors.length + ' entries (Base + ' + (colors.length - 1) + ' variantes)');
+      }
+      return true;
+    } catch (e) {
+      console.error('[v42 sync]', e);
+      return false;
+    }
+  }
+
+  /* ───── WATCHER : déclenche sync quand variants ou swatches changent ───── */
+  function startWatcher() {
+    setInterval(() => {
+      const productId = window._v18 && window._v18.productId;
+      if (!productId) return;
+      const row = window._v18 && window._v18.productRow;
+      if (!row) return;
+      /* Hash léger basé sur l'état mémoire (pas un round-trip DB) */
+      const variants = Array.isArray(row.variants) ? row.variants : [];
+      const baseSw = row.studio_state?.textureSwatchUrl || '';
+      const varKey = variants.map(v =>
+        (v.id || '') + ':' + (v.name || '') + ':' + (v.studio_state?.textureSwatchUrl || '')
+      ).join('|');
+      const memHash = (row.model_glb_url || '') + '|' + (row.model_usdz_url || '') + '|' +
+                      baseSw + '|' + varKey;
+      if (memHash !== window._v42._lastMemHash) {
+        window._v42._lastMemHash = memHash;
+        /* Debounce : pas plus d'1 sync par 4 secondes */
+        if (Date.now() - window._v42.lastSyncedAt > 4000) {
+          syncColors(productId);
+        }
+      }
+    }, 2000);
+  }
+  /* On démarre après un délai pour laisser le boot finir */
+  setTimeout(startWatcher, 6000);
+
+  /* ───── BACKFILL au chargement : si le produit a des variants mais pas de colors ───── */
+  setTimeout(() => {
+    const row = window._v18 && window._v18.productRow;
+    const productId = window._v18 && window._v18.productId;
+    if (!productId || !row) return;
+    const hasColors = Array.isArray(row.colors) && row.colors.length > 0;
+    const hasVariantsOrSwatch = (Array.isArray(row.variants) && row.variants.length > 0) ||
+                                 (row.studio_state && row.studio_state.textureSwatchUrl);
+    if (!hasColors && hasVariantsOrSwatch) {
+      console.log('[v42] backfill : produit existant sans colors → sync initial');
+      syncColors(productId, true);
+    } else if (hasColors && hasVariantsOrSwatch) {
+      /* Re-vérifier que c'est à jour */
+      const expected = buildColorsArray(row);
+      const currentHash = hashColors(row.colors);
+      const expectedHash = hashColors(expected);
+      if (currentHash !== expectedHash) {
+        console.log('[v42] backfill : drift détecté entre variants et colors → re-sync');
+        syncColors(productId, true);
+      }
+    }
+  }, 5000);
+
+  /* Expose pour debug / force-sync manuel */
+  window._v42.sync = (forceLog) => {
+    const productId = window._v18 && window._v18.productId;
+    if (productId) syncColors(productId, forceLog !== false);
+  };
+  window._v42.buildColors = buildColorsArray;
+
+  console.log('[studio v42] bridge variants → products.colors actif (pour scan.html)');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
