@@ -1027,15 +1027,46 @@ h1, h2, h3, h4,
   window.startMaterialPreview = function startMaterialPreview(container, initialMaps, initialParams) {
     if (!container) throw new Error('startMaterialPreview: container requis');
 
-    /* Canvas physique fixe 1024×1024, CSS responsive. Le browser fait le
-       downscale. Pas de calcul dynamique = pas de risque de mauvais sizing. */
+    /* ═══════════════════════════════════════════════════════════════════
+       ARCHITECTURE rev7 : canvas OFF-SCREEN + <img> visible
+
+       Problème : Chrome compose les canvas WebGL avec un filtrage GPU
+       médiocre quand ils sont downscalés en CSS (flou Vaseline).
+       Les <img> au contraire utilisent un downscale bicubique haute qualité.
+
+       Solution : Three rend dans un canvas off-screen (jamais attaché au DOM),
+       puis à chaque frame on capture le canvas en blob PNG et on met à jour
+       le src d'un <img> visible. Le browser affiche l'img avec son bon algo
+       de downscale → NET, exactement comme la vignette catalogue.
+
+       Throttle implicit via _capturing flag : pas de nouvelle capture tant que
+       la précédente n'est pas finie. Cap naturel ~20-30fps.
+
+       Bonus : on aligne tone mapping/expo/caméra/lumières avec
+       generateSphereThumbnail pour avoir EXACTEMENT le même look entre la
+       vignette catalogue et le viewer live.
+       ═══════════════════════════════════════════════════════════════════ */
+
     const FIXED_SIZE = 1024;
+
+    /* Canvas OFF-SCREEN — JAMAIS attaché au DOM */
     const canvas = document.createElement('canvas');
     canvas.width = FIXED_SIZE;
     canvas.height = FIXED_SIZE;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
+
+    /* <img> visible dans le wrap */
+    const img = document.createElement('img');
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.display = 'block';
+    img.style.objectFit = 'cover';
+    img.style.cursor = 'grab';
+    img.style.userSelect = 'none';
+    img.style.touchAction = 'none';
+    img.draggable = false;
+
+    container.innerHTML = '';
+    container.appendChild(img);
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -1043,61 +1074,45 @@ h1, h2, h3, h4,
       alpha: false,
       powerPreference: 'high-performance',
       precision: 'highp',
+      preserveDrawingBuffer: true,  /* indispensable pour toBlob sur WebGL */
     });
-    /* setSize avec false = ne touche pas au style (déjà posé) ET met juste
-       la dimension physique. Mais comme on a déjà mis canvas.width/height,
-       ce n'est même pas nécessaire... Three va juste enregistrer la size. */
     renderer.setSize(FIXED_SIZE, FIXED_SIZE, false);
-    renderer.setPixelRatio(1);  /* le canvas est déjà à la bonne résolution physique */
+    renderer.setPixelRatio(1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    /* NoToneMapping pour test : ACES écrase les ombres et peut donner une
-       impression de flou. Plus tard on pourra remettre ACES si besoin. */
-    renderer.toneMapping = THREE.NoToneMapping;
-    renderer.toneMappingExposure = 1.3;
-    container.innerHTML = '';
-    container.appendChild(canvas);
-
-    function applyResize(){
-      /* Le canvas physique est fixe à 1024×1024 — pas besoin de resize.
-         Le CSS s'occupe de l'affichage responsive. */
-    }
+    /* Aligné generateSphereThumbnail (ACES + exposure 1.05) */
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x2A2620);
 
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-    camera.position.set(0, 0, 4.5);
+    /* Caméra alignée avec generateSphereThumbnail */
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+    camera.position.set(0, 0, 5.4);
     camera.lookAt(0, 0, 0);
 
-    /* Lumières studio 3-points renforcées pour bien voir les détails */
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 1.8);
+    /* Lumières alignées avec generateSphereThumbnail */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
     key.position.set(3, 4, 5); scene.add(key);
-    const fill = new THREE.DirectionalLight(0xB8965A, 0.7);
+    const fill = new THREE.DirectionalLight(0xB8965A, 0.5);
     fill.position.set(-4, -1, 2); scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffffff, 0.45);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.3);
     rim.position.set(-1, 3, -4); scene.add(rim);
 
-    /* Matériau initial (vide, sera peuplé par updateMaps + updateParams) */
     const mat = new THREE.MeshStandardMaterial({
       color: 0xcccccc, roughness: 0.7, metalness: 0,
     });
-    const geo = new THREE.SphereGeometry(1, 128, 128);
+    const geo = new THREE.SphereGeometry(1, 96, 96);
     geo.setAttribute('uv2', geo.getAttribute('uv').clone());
     const sphere = new THREE.Mesh(geo, mat);
     scene.add(sphere);
 
-    /* DEBUG : log la config réelle pour diagnostique */
-    console.log('[v56 viewer] init', {
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
+    console.log('[v56 viewer rev7] init — mode PNG offscreen', {
+      canvasPhysical: canvas.width + '×' + canvas.height,
       containerCSS: container.clientWidth + '×' + container.clientHeight,
-      toneMapping: renderer.toneMapping,
-      exposure: renderer.toneMappingExposure,
+      displayMode: 'offscreen canvas → toBlob → img.src',
     });
-
-    /* Premier resize immédiat */
-    applyResize();
 
     /* État courant */
     const state = {
@@ -1107,38 +1122,17 @@ h1, h2, h3, h4,
       disposed: false,
     };
 
-    /* v56 rev3 — ResizeObserver + super-sampling pour la netteté max */
-    const resizeObs = new ResizeObserver(() => {
-      if (state.disposed) return;
-      const cw = container.clientWidth;
-      const ch = container.clientHeight;
-      if (cw > 0 && ch > 0) applyResize();
-    });
-    resizeObs.observe(container);
-    /* Force des resize successifs pour rattraper toute stabilisation tardive
-       du layout CSS (modal qui ouvre, transition, etc.) */
-    [50, 200, 500, 1000].forEach(delay => {
-      setTimeout(() => {
-        if (state.disposed) return;
-        const cw = container.clientWidth;
-        const ch = container.clientHeight;
-        if (cw > 0 && ch > 0) applyResize();
-      }, delay);
-    });
-
-    /* Drag souris pour tourner manuellement (auto-rotate stop quand on drag) */
+    /* Drag souris sur l'<img> (pas le canvas qui est off-screen) */
     let isDragging = false;
     let prevX = 0, prevY = 0;
     let rotY = 0, rotX = 0;
-    const dom = renderer.domElement;
-    dom.style.cursor = 'grab';
-    dom.addEventListener('pointerdown', (e) => {
+    img.addEventListener('pointerdown', (e) => {
       isDragging = true; state.autoRotate = false;
       prevX = e.clientX; prevY = e.clientY;
-      dom.style.cursor = 'grabbing';
-      dom.setPointerCapture(e.pointerId);
+      img.style.cursor = 'grabbing';
+      try { img.setPointerCapture(e.pointerId); } catch(_){}
     });
-    dom.addEventListener('pointermove', (e) => {
+    img.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
       const dx = e.clientX - prevX;
       const dy = e.clientY - prevY;
@@ -1147,20 +1141,36 @@ h1, h2, h3, h4,
       sphere.rotation.set(rotX, rotY, 0);
       prevX = e.clientX; prevY = e.clientY;
     });
-    dom.addEventListener('pointerup', (e) => {
+    img.addEventListener('pointerup', (e) => {
       isDragging = false;
-      dom.style.cursor = 'grab';
-      try { dom.releasePointerCapture(e.pointerId); } catch(_){}
+      img.style.cursor = 'grab';
+      try { img.releasePointerCapture(e.pointerId); } catch(_){}
     });
-    dom.addEventListener('pointercancel', () => { isDragging = false; dom.style.cursor = 'grab'; });
-    /* Double-clic → reset rotation + auto-rotate on */
-    dom.addEventListener('dblclick', () => {
+    img.addEventListener('pointercancel', () => { isDragging = false; img.style.cursor = 'grab'; });
+    img.addEventListener('dblclick', () => {
       rotX = 0; rotY = 0;
       sphere.rotation.set(0, 0, 0);
       state.autoRotate = true;
     });
 
-    /* Boucle d'animation */
+    /* Capture : canvas off-screen → blob PNG → img.src */
+    let _capturing = false;
+    let _lastUrl = null;
+    function captureToImg() {
+      if (_capturing || state.disposed) return;
+      _capturing = true;
+      canvas.toBlob((blob) => {
+        _capturing = false;
+        if (state.disposed || !blob) return;
+        const url = URL.createObjectURL(blob);
+        const prev = _lastUrl;
+        img.src = url;
+        _lastUrl = url;
+        if (prev) setTimeout(() => { try { URL.revokeObjectURL(prev); } catch(_){} }, 80);
+      }, 'image/png');
+    }
+
+    /* Boucle d'animation : render + capture */
     let rafId = 0;
     function animate() {
       if (state.disposed) return;
@@ -1169,11 +1179,12 @@ h1, h2, h3, h4,
         sphere.rotation.y = rotY;
       }
       renderer.render(scene, camera);
+      captureToImg();
       rafId = requestAnimationFrame(animate);
     }
     animate();
 
-    /* Helper : charge une texture avec filtrage haute qualité */
+    /* Helper texture avec filtrage haute qualité */
     const loader = new THREE.TextureLoader();
     loader.crossOrigin = 'anonymous';
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -1185,7 +1196,7 @@ h1, h2, h3, h4,
             tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
             tex.wrapS = THREE.RepeatWrapping;
             tex.wrapT = THREE.RepeatWrapping;
-            tex.anisotropy = maxAniso;  /* netteté maximale sur surfaces obliques */
+            tex.anisotropy = maxAniso;
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.generateMipmaps = true;
@@ -1197,18 +1208,11 @@ h1, h2, h3, h4,
       });
     }
 
-    /* updateMaps : recharge les textures (asynchrone) */
     async function updateMaps(maps) {
       maps = maps || {};
-      /* Dispose les anciennes textures qui changent */
-      const oldKeys = Object.keys(state.textures);
-      oldKeys.forEach(k => {
-        if (state.textures[k]) {
-          state.textures[k].dispose();
-          state.textures[k] = null;
-        }
+      Object.keys(state.textures).forEach(k => {
+        if (state.textures[k]) { state.textures[k].dispose(); state.textures[k] = null; }
       });
-      /* Charger les nouvelles */
       const [albedo, normal, roughness, metallic, ao] = await Promise.all([
         loadTex(maps.albedo, true),
         loadTex(maps.normal, false),
@@ -1223,11 +1227,9 @@ h1, h2, h3, h4,
       mat.metalnessMap = metallic;
       mat.aoMap = ao;
       mat.needsUpdate = true;
-      /* Réappliquer les params (au cas où) */
       updateParams(state.params);
     }
 
-    /* updateParams : modifie roughness/metalness/etc. en live (rapide) */
     function updateParams(params) {
       if (params) Object.assign(state.params, params);
       const p = state.params;
@@ -1236,7 +1238,6 @@ h1, h2, h3, h4,
       mat.aoMapIntensity = state.textures.ao ? p.aoIntensity : 0;
       mat.normalScale.set(p.normalScale, p.normalScale);
       mat.color.set(p.color || '#ffffff');
-      /* UV repeat sur toutes les maps */
       const uv = p.uvRepeat;
       Object.values(state.textures).forEach(t => {
         if (t) { t.repeat.set(uv, uv); t.needsUpdate = true; }
@@ -1244,21 +1245,17 @@ h1, h2, h3, h4,
       mat.needsUpdate = true;
     }
 
-    /* dispose : cleanup mémoire/GPU */
     function dispose() {
       state.disposed = true;
       cancelAnimationFrame(rafId);
-      resizeObs.disconnect();
+      if (_lastUrl) { try { URL.revokeObjectURL(_lastUrl); } catch(_){} _lastUrl = null; }
       renderer.dispose();
       geo.dispose();
       mat.dispose();
       Object.values(state.textures).forEach(t => t?.dispose());
-      if (renderer.domElement && renderer.domElement.parentNode) {
-        renderer.domElement.parentNode.removeChild(renderer.domElement);
-      }
+      if (img.parentNode) img.parentNode.removeChild(img);
     }
 
-    /* Init avec maps + params fournis */
     if (initialMaps) updateMaps(initialMaps);
     if (initialParams) updateParams(initialParams);
 
