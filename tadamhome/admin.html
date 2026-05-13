@@ -1028,14 +1028,26 @@ h1, h2, h3, h4,
     if (!container) throw new Error('startMaterialPreview: container requis');
 
     /* Setup renderer + scene + camera */
-    const w = container.clientWidth || 300;
-    const h = container.clientHeight || 300;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const w = container.clientWidth || 320;
+    const h = container.clientHeight || 320;
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+    });
+    /* CRITICAL : pixelRatio plein Retina pour la netteté, + setSize avec
+       3ème arg false pour ne PAS toucher au style CSS du canvas (sinon
+       conflit avec width: 100%). Le CSS contrôle la taille affichée,
+       le pixelRatio + setSize internes contrôlent la résolution physique. */
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setSize(w, h, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
+    /* Style appliqué manuellement pour responsive */
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -1071,6 +1083,32 @@ h1, h2, h3, h4,
       autoRotate: true,
       disposed: false,
     };
+
+    /* v56 fix — ResizeObserver pour adapter la résolution si le container
+       change de taille (modal qui s'ouvre, fenêtre redimensionnée, etc.).
+       Maintient la netteté en réajustant setSize au bon ratio. */
+    const resizeObs = new ResizeObserver(() => {
+      if (state.disposed) return;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (cw > 0 && ch > 0) {
+        renderer.setSize(cw, ch, false);
+        camera.aspect = cw / ch;
+        camera.updateProjectionMatrix();
+      }
+    });
+    resizeObs.observe(container);
+    /* Force un resize immédiat (au cas où le container n'avait pas encore
+       sa taille finale au moment de la création du renderer) */
+    setTimeout(() => {
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (cw > 0 && ch > 0) {
+        renderer.setSize(cw, ch, false);
+        camera.aspect = cw / ch;
+        camera.updateProjectionMatrix();
+      }
+    }, 50);
 
     /* Drag souris pour tourner manuellement (auto-rotate stop quand on drag) */
     let isDragging = false;
@@ -1119,9 +1157,10 @@ h1, h2, h3, h4,
     }
     animate();
 
-    /* Helper : charge une texture */
+    /* Helper : charge une texture avec filtrage haute qualité */
     const loader = new THREE.TextureLoader();
     loader.crossOrigin = 'anonymous';
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
     function loadTex(url, srgb) {
       return new Promise((res) => {
         if (!url) { res(null); return; }
@@ -1130,6 +1169,10 @@ h1, h2, h3, h4,
             tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
             tex.wrapS = THREE.RepeatWrapping;
             tex.wrapT = THREE.RepeatWrapping;
+            tex.anisotropy = maxAniso;  /* netteté maximale sur surfaces obliques */
+            tex.minFilter = THREE.LinearMipmapLinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.generateMipmaps = true;
             res(tex);
           },
           undefined,
@@ -1189,6 +1232,7 @@ h1, h2, h3, h4,
     function dispose() {
       state.disposed = true;
       cancelAnimationFrame(rafId);
+      resizeObs.disconnect();
       renderer.dispose();
       geo.dispose();
       mat.dispose();
@@ -1784,16 +1828,15 @@ function injectMaterialModal(){
         width: 100%;
         background: #2A2620;
         aspect-ratio: 1;
-        max-height: 320px;
+        max-height: 360px;
+        overflow: hidden;
       }
       #matPreviewCanvas {
         width: 100%; height: 100%;
-      }
-      #matPreviewCanvas canvas {
         display: block;
-        width: 100% !important;
-        height: 100% !important;
       }
+      /* Three pose le style width/height à 100% en JS (pas de override !important
+         ici, sinon le canvas s'étire au-delà de sa résolution physique → flou) */
       .mat-preview-hint {
         position: absolute;
         bottom: 8px; left: 0; right: 0;
