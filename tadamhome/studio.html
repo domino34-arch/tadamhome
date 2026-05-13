@@ -9989,7 +9989,119 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       });
   }, 400);
 
-  console.log('[studio v34] OBJ source persisté + auto-export GLB/USDZ à la création ✓');
+  /* ─── 6. Enrichissement des PATCH studio_state — fix bug persistance ─── */
+  /* Le code interne v18.doSave appelle serializeStudioState() en référence
+     closure DIRECTE (pas window._v18.serializeStudioState). Donc tous les
+     hooks v23 (groupComposition), v21/v24 (customLabels), et v34 (obj_source_url)
+     placés sur window._v18.serializeStudioState sont BYPASS lors des saves
+     auto et manuels. Conséquence : chaque save écrase ces données.
+     
+     Solution chirurgicale : intercepter window.fetch pour les PATCH vers
+     /rest/v1/products. Avant chaque save, on enrichit le payload avec les
+     données managées par chaque IIFE. */
+  if (!window.__v34FetchHooked) {
+    const _v34_origFetch = window.fetch.bind(window);
+    window.fetch = function(input, init) {
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url);
+        const method = (init && init.method) || (input && input.method);
+        if (url && url.indexOf('/rest/v1/products') !== -1 && method === 'PATCH' && init && init.body) {
+          let body;
+          try { body = JSON.parse(init.body); } catch(e) { body = null; }
+          if (body && body.studio_state) {
+            const s = body.studio_state;
+            let enrichments = [];
+            
+            /* 6a. obj_source_url */
+            if (!s.obj_source_url) {
+              const fromV34 = window._v34 && window._v34.objSourceUrl;
+              const fromRow = window._v18 && window._v18.productRow && window._v18.productRow.studio_state && window._v18.productRow.studio_state.obj_source_url;
+              if (fromV34 || fromRow) {
+                s.obj_source_url = fromV34 || fromRow;
+                enrichments.push('obj_source_url');
+              }
+            }
+            
+            /* 6b. groupComposition depuis v23 */
+            if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+              const comp = {};
+              Object.keys(window._v23.composition).forEach(k => {
+                const sgs = window._v23.composition[k];
+                if (!Array.isArray(sgs)) return;
+                comp[k] = sgs.map(sg => ({
+                  originalKey: sg.originalKey,
+                  label: sg.label,
+                  meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+                }));
+              });
+              if (Object.keys(comp).length > 0) {
+                s.groupComposition = comp;
+                enrichments.push('groupComposition');
+              }
+            }
+            
+            /* 6c. customLabels (renommages v24 + groupes v21) */
+            if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+              s.customLabels = Object.assign({}, window._v21.customLabels);
+              enrichments.push('customLabels');
+            }
+            
+            if (enrichments.length > 0) {
+              body.studio_state = s;
+              init.body = JSON.stringify(body);
+              console.log('[v34 fetch] PATCH products enrichi :', enrichments.join(', '));
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('[v34] fetch enrichissement échec :', e);
+      }
+      return _v34_origFetch(input, init);
+    };
+    window.__v34FetchHooked = true;
+    console.log('[v34] window.fetch hooké pour enrichir PATCH products.studio_state ✓');
+  }
+
+  /* ─── 7. Restauration customLabels au chargement (avant render) ─── */
+  /* Hook detectParts AVANT _origDetect : copie state.customLabels vers
+     window._v21.customLabels avant que renderTree lise les labels. */
+  if (typeof detectParts === 'function' && !window.__v34DetectHooked) {
+    const _origDetectV34 = detectParts;
+    detectParts = function(obj) {
+      try {
+        const row = window._v18 && window._v18.productRow;
+        const st = row && row.studio_state;
+        if (st && st.customLabels && Object.keys(st.customLabels).length > 0) {
+          if (!window._v21) window._v21 = {};
+          window._v21.customLabels = Object.assign({}, st.customLabels);
+          console.log('[v34] customLabels restaurés depuis studio_state :', Object.keys(st.customLabels).length, 'labels');
+        }
+      } catch(e) { console.warn('[v34] restauration customLabels :', e); }
+      return _origDetectV34(obj);
+    };
+    window.__v34DetectHooked = true;
+  }
+
+  /* ─── 8. Protection saveTimer pendant la restauration ─── */
+  /* Le saveTimer est planifié à T+0 (sur n'importe quel markDirty), puis
+     window._v18.restoring=true protège pendant la phase active.
+     Mais le timer continue à tourner après. À T+10s il appelle doSave qui
+     écrase. Protection : on le clear systématiquement quand un OBJ est
+     chargé via v34 ou quand restoring devient true. */
+  const _v34_clearPendingSave = () => {
+    if (window._v18 && window._v18.saveTimer) {
+      clearTimeout(window._v18.saveTimer);
+      window._v18.saveTimer = null;
+      console.log('[v34] saveTimer en attente clearé (protection restauration)');
+    }
+  };
+  
+  /* Observer : dès que window._v18.restoring devient true → clear timer */
+  setInterval(() => {
+    if (window._v18 && window._v18.restoring) _v34_clearPendingSave();
+  }, 500);
+
+  console.log('[studio v34] OBJ source + groupComposition + customLabels persistés ; auto-export GLB/USDZ à la création ✓');
 })();
 
 
