@@ -642,6 +642,7 @@ let meshyGlbUrl=null,meshyUsdzUrl=null,meshyImgUrl=null,meshyTaskId=null;
 function unlock(){
   const pw=document.getElementById('lockPw').value.trim();
   if(pw===ADMIN_PW){
+    sessionStorage.setItem('tadam_admin_unlocked','1');
     document.getElementById('lock').style.display='none';
     document.getElementById('app').style.display='flex';
     const mk=localStorage.getItem('meshy_key');
@@ -654,6 +655,7 @@ function unlock(){
   }
 }
 function logout(){
+  sessionStorage.removeItem('tadam_admin_unlocked');
   document.getElementById('lock').style.display='flex';
   document.getElementById('app').style.display='none';
   document.getElementById('lockPw').value='';
@@ -661,6 +663,14 @@ function logout(){
 document.addEventListener('DOMContentLoaded',()=>{
   const lp=document.getElementById('lockPw');
   if(lp) lp.addEventListener('keydown',e=>{if(e.key==='Enter') unlock();});
+  /* Auto-unlock si l'utilisateur s'est déjà identifié dans cette session navigateur */
+  if(sessionStorage.getItem('tadam_admin_unlocked')==='1'){
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='flex';
+    const mk=localStorage.getItem('meshy_key');
+    if(mk) document.getElementById('meshyKey').value=mk;
+    loadProducts(); loadEditorials(); loadSols(); loadMaterials();
+  }
 });
 
 /* ══ PANELS ══ */
