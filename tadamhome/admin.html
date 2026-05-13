@@ -1177,7 +1177,7 @@ function renderMaterialsGrid(){
     const thumb=m.thumbnail_url||m.albedo_url||'';
     const inactive=(m.is_active===false)?' mat-card-inactive':'';
     const safeName=(m.name||'').replace(/'/g,"\\'");
-    return '<div class="mat-card'+inactive+'">'
+    return '<div class="mat-card'+inactive+'" onclick="openMaterialModal(\''+m.id+'\')" style="cursor:pointer" title="Cliquer pour éditer">'
       +'<div class="mat-card-thumb" style="'+(thumb?'background-image:url('+thumb+');background-size:cover;background-position:center':'background:#2a2a2a')+'">'
       +(!thumb?'<span class="mat-sphere mat-sphere-'+m.category+' mat-sphere-lg"></span>':'')
       +'</div>'
@@ -1187,11 +1187,509 @@ function renderMaterialsGrid(){
       +(m.subcategory?'<div class="mat-card-sub">'+m.subcategory+'</div>':'')
       +'</div>'
       +'<div class="mat-card-actions" onclick="event.stopPropagation()">'
-      +'<button class="row-btn del" onclick="askDelete(\''+m.id+'\',\''+safeName+'\',\'material\')">✕</button>'
+      +'<button class="row-btn" onclick="openMaterialModal(\''+m.id+'\')" title="Éditer">✎</button>'
+      +'<button class="row-btn del" onclick="askDelete(\''+m.id+'\',\''+safeName+'\',\'material\')" title="Supprimer">✕</button>'
       +'</div></div>';
   }).join('');
 }
-function openNewMaterial(presetCategory){toast('Le formulaire complet matériau sera ré-injecté dans la v34.1','ok');}
+function openNewMaterial(presetCategory){
+  openMaterialModal(null, presetCategory);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MATERIAL MODAL : création + édition complète
+   Bucket Supabase : models / path : materials-library/{id}/...
+   ══════════════════════════════════════════════════════════════════ */
+let editingMaterialId = null;     /* null = mode création */
+let _matPendingFiles = {};        /* en attente avant ID (mode création) */
+
+const MAT_MAP_FIELDS = [
+  { key: 'albedo_url',    label: 'Albedo (couleur diffuse)', required: true,  maxSize: 1024 },
+  { key: 'normal_url',    label: 'Normal map',                required: false, maxSize: 1024 },
+  { key: 'roughness_url', label: 'Roughness map',             required: false, maxSize: 1024 },
+  { key: 'metallic_url',  label: 'Metallic map',              required: false, maxSize: 1024 },
+  { key: 'ao_url',        label: 'AO (occlusion)',            required: false, maxSize: 1024 },
+];
+
+function injectMaterialModal(){
+  if(document.getElementById('materialModal')) return;
+  const m = document.createElement('div');
+  m.className = 'modal-bg'; m.id = 'materialModal';
+  m.innerHTML = `
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <h3 id="matModalTitle">Nouveau matériau</h3>
+        <button class="modal-close" onclick="closeMaterialModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="matId" value="">
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Identité</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nom *</label>
+              <input type="text" id="matName" placeholder="ex. Tissu Suède Marine">
+            </div>
+            <div class="field">
+              <label>Catégorie *</label>
+              <select id="matCategory">
+                <option value="">Choisir…</option>
+                <option value="bois">Bois</option>
+                <option value="metal">Métal</option>
+                <option value="tissu">Tissu</option>
+                <option value="pierre">Pierre</option>
+                <option value="cuir">Cuir</option>
+                <option value="verre">Verre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Sous-catégorie</label>
+              <input type="text" id="matSubcategory" placeholder="ex. Tissu brodé, Maille…">
+            </div>
+            <div class="field">
+              <label>Référence (ref_code)</label>
+              <input type="text" id="matRefCode" placeholder="ex. BCL-BN-027">
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Vignette catalogue</div>
+          <p style="font-family:var(--sans);font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic">
+            Image carrée qui représente le matériau dans la bibliothèque. Si vide, l'Albedo sera utilisé.
+          </p>
+          <div id="matThumbnailSlot" data-key="thumbnail_url"></div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Maps PBR</div>
+          <p style="font-family:var(--sans);font-size:11px;color:var(--muted);margin-bottom:14px;font-style:italic">
+            L'Albedo (couleur) est obligatoire. Les autres maps sont optionnelles mais améliorent fortement le rendu 3D.
+          </p>
+          <div class="form-grid" id="matMapsGrid">
+            <!-- injecté dynamiquement -->
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">Statut</div>
+          <div style="display:flex;gap:18px;font-family:var(--sans);font-size:13px;color:var(--ink)">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="matStatus" value="true" checked> Actif (visible dans le studio)
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="radio" name="matStatus" value="false"> Inactif (masqué)
+            </label>
+          </div>
+        </div>
+        
+        <p id="matMsg" style="font-family:var(--sans);font-size:12px;margin-top:14px"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeMaterialModal()">Annuler</button>
+        <button class="btn-primary" id="matSaveBtn" onclick="saveMaterial()">Enregistrer</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  
+  /* CSS pour les slots de maps */
+  if(!document.getElementById('matModalStyles')){
+    const s = document.createElement('style');
+    s.id = 'matModalStyles';
+    s.textContent = `
+      .mat-map-slot {
+        display: flex; align-items: stretch;
+        gap: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        padding: 0;
+        cursor: pointer;
+        transition: border-color .15s;
+        position: relative;
+        min-height: 72px;
+      }
+      .mat-map-slot:hover { border-color: var(--accent); }
+      .mat-map-thumb {
+        width: 72px; height: 72px;
+        background-size: cover; background-position: center;
+        background-color: rgba(0,0,0,0.04);
+        flex-shrink: 0;
+        position: relative;
+      }
+      .mat-map-thumb.empty {
+        display: flex; align-items: center; justify-content: center;
+        color: var(--accent);
+        font-size: 22px;
+        opacity: 0.5;
+      }
+      .mat-map-info {
+        flex: 1;
+        padding: 12px 14px;
+        display: flex; flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      .mat-map-label {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-family: var(--sans);
+        margin-bottom: 2px;
+      }
+      .mat-map-label .req { color: var(--accent); }
+      .mat-map-status {
+        font-size: 12px;
+        font-family: var(--sans);
+        color: var(--ink);
+      }
+      .mat-map-status.empty { color: var(--muted); font-style: italic; }
+      .mat-map-status.uploading { color: var(--accent); }
+      .mat-map-remove {
+        position: absolute;
+        top: 4px; right: 4px;
+        width: 22px; height: 22px;
+        background: rgba(28, 27, 24, 0.78);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        line-height: 1;
+        opacity: 0;
+        transition: opacity .15s;
+      }
+      .mat-map-slot:hover .mat-map-remove { opacity: 1; }
+      @media (hover: none) and (pointer: coarse) {
+        .mat-map-remove { opacity: 0.85; }
+      }
+      #matThumbnailSlot .mat-map-slot { max-width: 360px; }
+    `;
+    document.head.appendChild(s);
+  }
+}
+
+function buildMapSlot(field, currentUrl){
+  const div = document.createElement('div');
+  div.className = 'mat-map-slot';
+  div.dataset.key = field.key;
+  div.innerHTML = `
+    <div class="mat-map-thumb ${currentUrl ? '' : 'empty'}" style="${currentUrl ? `background-image:url(${currentUrl})` : ''}">${currentUrl ? '' : '+'}</div>
+    <div class="mat-map-info">
+      <div class="mat-map-label">${field.label}${field.required ? ' <span class="req">*</span>' : ''}</div>
+      <div class="mat-map-status ${currentUrl ? '' : 'empty'}">${currentUrl ? 'Image chargée ✓' : 'Cliquer pour ajouter'}</div>
+    </div>
+    ${currentUrl ? '<button class="mat-map-remove" title="Retirer">×</button>' : ''}
+  `;
+  div.onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = async (e) => {
+      const file = e.target.files[0];
+      if(file) await handleMapFile(field, file, div);
+    };
+    inp.click();
+  };
+  const rm = div.querySelector('.mat-map-remove');
+  if(rm) rm.onclick = (e) => {
+    e.stopPropagation();
+    if(!confirm('Retirer cette map ?')) return;
+    removeMap(field.key, div);
+  };
+  return div;
+}
+
+async function compressMaterialImage(file, maxSize){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w0 = img.naturalWidth, h0 = img.naturalHeight;
+      const ratio = Math.min(maxSize / w0, maxSize / h0, 1);
+      const w = Math.max(1, Math.round(w0 * ratio));
+      const h = Math.max(1, Math.round(h0 * ratio));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.9);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
+async function uploadMaterialAsset(blob, materialId, mapKey){
+  const path = `materials-library/${materialId}/${mapKey}-${Date.now()}.jpg`;
+  const { error } = await sb.storage.from('models').upload(path, blob, {
+    contentType: 'image/jpeg', upsert: true, cacheControl: '31536000'
+  });
+  if(error) throw error;
+  const { data } = sb.storage.from('models').getPublicUrl(path);
+  return data.publicUrl + '?v=' + Date.now();
+}
+
+async function handleMapFile(field, file, slotDiv){
+  const matId = document.getElementById('matId').value;
+  
+  /* En mode création : on stocke le blob, l'upload se fera après INSERT */
+  if(!matId){
+    const status = slotDiv.querySelector('.mat-map-status');
+    const thumb = slotDiv.querySelector('.mat-map-thumb');
+    try {
+      const blob = await compressMaterialImage(file, field.maxSize);
+      _matPendingFiles[field.key] = blob;
+      /* Preview local */
+      const previewUrl = URL.createObjectURL(blob);
+      thumb.classList.remove('empty');
+      thumb.style.backgroundImage = `url(${previewUrl})`;
+      thumb.textContent = '';
+      status.classList.remove('empty', 'uploading');
+      status.textContent = 'Prêt à uploader ✓';
+      /* Ajouter croix de retrait */
+      if(!slotDiv.querySelector('.mat-map-remove')){
+        const rm = document.createElement('button');
+        rm.className = 'mat-map-remove';
+        rm.title = 'Retirer';
+        rm.textContent = '×';
+        rm.onclick = (e) => {
+          e.stopPropagation();
+          delete _matPendingFiles[field.key];
+          slotDiv.replaceWith(buildMapSlot(field, ''));
+        };
+        slotDiv.appendChild(rm);
+      }
+    } catch(e){
+      toast('Erreur compression : '+ e.message, 'err');
+    }
+    return;
+  }
+  
+  /* En mode édition : on uploade tout de suite */
+  const status = slotDiv.querySelector('.mat-map-status');
+  const thumb = slotDiv.querySelector('.mat-map-thumb');
+  status.classList.add('uploading');
+  status.classList.remove('empty');
+  status.textContent = 'Compression…';
+  try {
+    const blob = await compressMaterialImage(file, field.maxSize);
+    status.textContent = 'Upload…';
+    const url = await uploadMaterialAsset(blob, matId, field.key);
+    /* Update DB */
+    const payload = {};
+    payload[field.key] = url;
+    const { error } = await sb.from('materials_library').update(payload).eq('id', matId);
+    if(error) throw error;
+    /* Mirror en mémoire */
+    const m = allMaterials.find(x => x.id === matId);
+    if(m) m[field.key] = url;
+    /* Visuel */
+    thumb.classList.remove('empty');
+    thumb.style.backgroundImage = `url(${url})`;
+    thumb.textContent = '';
+    status.classList.remove('uploading');
+    status.textContent = 'Image chargée ✓';
+    if(!slotDiv.querySelector('.mat-map-remove')){
+      const rm = document.createElement('button');
+      rm.className = 'mat-map-remove';
+      rm.title = 'Retirer';
+      rm.textContent = '×';
+      rm.onclick = (e) => { e.stopPropagation(); removeMap(field.key, slotDiv); };
+      slotDiv.appendChild(rm);
+    }
+    toast('Map enregistrée','ok');
+  } catch(e){
+    console.error('[mat upload]', e);
+    status.classList.remove('uploading');
+    status.classList.add('empty');
+    status.textContent = '✗ ' + (e.message || e);
+    toast('Erreur upload : '+(e.message||e), 'err', 5000);
+  }
+}
+
+async function removeMap(mapKey, slotDiv){
+  const matId = document.getElementById('matId').value;
+  if(matId){
+    /* Mode édition : update DB */
+    const payload = {}; payload[mapKey] = null;
+    try {
+      const { error } = await sb.from('materials_library').update(payload).eq('id', matId);
+      if(error) throw error;
+      const m = allMaterials.find(x => x.id === matId);
+      if(m) m[mapKey] = null;
+    } catch(e){
+      toast('Erreur : '+(e.message||e), 'err'); return;
+    }
+  } else {
+    /* Mode création : juste enlever du pending */
+    delete _matPendingFiles[mapKey];
+  }
+  /* Reset visuel */
+  const field = MAT_MAP_FIELDS.find(f => f.key === mapKey) || { key: mapKey, label: 'Vignette', required: false, maxSize: 800 };
+  slotDiv.replaceWith(buildMapSlot(field, ''));
+  toast('Map retirée','ok');
+}
+
+function openMaterialModal(materialId, presetCategory){
+  injectMaterialModal();
+  editingMaterialId = materialId || null;
+  _matPendingFiles = {};
+  
+  const m = materialId ? (allMaterials || []).find(x => x.id === materialId) : null;
+  document.getElementById('matModalTitle').textContent = materialId ? 'Éditer le matériau' : 'Nouveau matériau';
+  document.getElementById('matId').value = materialId || '';
+  document.getElementById('matName').value = m?.name || '';
+  document.getElementById('matCategory').value = m?.category || presetCategory || '';
+  document.getElementById('matSubcategory').value = m?.subcategory || '';
+  document.getElementById('matRefCode').value = m?.ref_code || '';
+  
+  const isActive = m ? (m.is_active !== false) : true;
+  document.querySelectorAll('input[name="matStatus"]').forEach(r => {
+    r.checked = (r.value === String(isActive));
+  });
+  
+  /* Construire le slot Vignette */
+  const thumbSlot = document.getElementById('matThumbnailSlot');
+  thumbSlot.innerHTML = '';
+  thumbSlot.appendChild(buildMapSlot(
+    { key:'thumbnail_url', label:'Vignette (carrée 400×400)', required:false, maxSize:800 },
+    m?.thumbnail_url || ''
+  ));
+  
+  /* Construire les 5 slots PBR */
+  const grid = document.getElementById('matMapsGrid');
+  grid.innerHTML = '';
+  MAT_MAP_FIELDS.forEach(field => {
+    grid.appendChild(buildMapSlot(field, m ? (m[field.key] || '') : ''));
+  });
+  
+  document.getElementById('matMsg').textContent = '';
+  document.getElementById('materialModal').classList.add('show');
+}
+
+function closeMaterialModal(){
+  document.getElementById('materialModal')?.classList.remove('show');
+  editingMaterialId = null;
+  _matPendingFiles = {};
+}
+
+async function saveMaterial(){
+  const name        = (document.getElementById('matName').value || '').trim();
+  const category    = document.getElementById('matCategory').value;
+  const subcategory = (document.getElementById('matSubcategory').value || '').trim() || null;
+  const refCode     = (document.getElementById('matRefCode').value || '').trim() || null;
+  const isActive    = document.querySelector('input[name="matStatus"]:checked')?.value === 'true';
+  
+  const msg = document.getElementById('matMsg');
+  msg.textContent = ''; msg.style.color = '';
+  
+  if(!name){
+    msg.textContent = '⚠ Le nom est obligatoire'; msg.style.color = 'var(--red)';
+    document.getElementById('matName').focus(); return;
+  }
+  if(!category){
+    msg.textContent = '⚠ Choisis une catégorie'; msg.style.color = 'var(--red)';
+    document.getElementById('matCategory').focus(); return;
+  }
+  
+  const btn = document.getElementById('matSaveBtn');
+  btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Enregistrement…';
+  
+  try {
+    if(!editingMaterialId){
+      /* === CRÉATION === */
+      /* Vérif : albedo obligatoire */
+      const existingMat = allMaterials.find(x => x.name === name);
+      if(existingMat){
+        if(!confirm('Un matériau "'+name+'" existe déjà. Créer quand même ?')){
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Enregistrer';
+          return;
+        }
+      }
+      if(!_matPendingFiles['albedo_url']){
+        msg.textContent = '⚠ L\'Albedo (couleur) est obligatoire'; msg.style.color = 'var(--red)';
+        btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Enregistrer';
+        return;
+      }
+      
+      /* INSERT minimal */
+      const insertPayload = {
+        name, category, subcategory, ref_code: refCode,
+        is_active: isActive,
+        sort_order: (allMaterials.length || 0) + 1,
+      };
+      btn.textContent = 'Création…';
+      const { data: inserted, error: e1 } = await sb.from('materials_library').insert(insertPayload).select().single();
+      if(e1) throw e1;
+      const newId = inserted.id;
+      
+      /* Upload tous les pending files */
+      btn.textContent = 'Upload images…';
+      const updatePayload = {};
+      const keys = Object.keys(_matPendingFiles);
+      for(let i = 0; i < keys.length; i++){
+        const key = keys[i];
+        btn.textContent = `Upload ${i+1}/${keys.length}…`;
+        try {
+          const url = await uploadMaterialAsset(_matPendingFiles[key], newId, key);
+          updatePayload[key] = url;
+        } catch(e){
+          console.error('[mat upload]', key, e);
+          msg.textContent = '⚠ Map "'+key+'" non uploadée : '+e.message;
+          msg.style.color = 'var(--accent)';
+        }
+      }
+      /* Si pas de thumbnail explicite mais un albedo : copier l'albedo en thumbnail */
+      if(!updatePayload['thumbnail_url'] && updatePayload['albedo_url']){
+        updatePayload['thumbnail_url'] = updatePayload['albedo_url'];
+      }
+      /* Update DB avec les URLs */
+      if(Object.keys(updatePayload).length > 0){
+        const { error: e2 } = await sb.from('materials_library').update(updatePayload).eq('id', newId);
+        if(e2) console.warn('[mat update urls]', e2);
+      }
+      
+      msg.style.color = 'var(--green)';
+      msg.textContent = '✓ Matériau créé';
+      toast('Matériau « '+name+' » créé','ok');
+      await loadMaterials();
+      setTimeout(closeMaterialModal, 700);
+    } else {
+      /* === ÉDITION === */
+      /* Maps : déjà uploadées au fil de l'eau via handleMapFile.
+         Ici on update juste les méta. */
+      const updatePayload = {
+        name, category, subcategory, ref_code: refCode, is_active: isActive,
+      };
+      const { error } = await sb.from('materials_library').update(updatePayload).eq('id', editingMaterialId);
+      if(error) throw error;
+      msg.style.color = 'var(--green)';
+      msg.textContent = '✓ Enregistré';
+      toast('Matériau mis à jour','ok');
+      await loadMaterials();
+      setTimeout(closeMaterialModal, 600);
+    }
+  } catch(e){
+    console.error('[mat save]', e);
+    msg.style.color = 'var(--red)';
+    msg.textContent = '✗ ' + (e.message || e);
+  } finally {
+    btn.disabled = false; btn.style.opacity = '1';
+    btn.textContent = 'Enregistrer';
+  }
+}
+
+/* Esc ferme la modal matériau */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    const mm = document.getElementById('materialModal');
+    if(mm && mm.classList.contains('show')) closeMaterialModal();
+  }
+});
 
 /* ══ UPLOAD PRODUCT (simple) ══ */
 async function uploadFile(input,type){
