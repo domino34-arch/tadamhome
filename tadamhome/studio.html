@@ -13078,6 +13078,307 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+/* ════════════════════════════════════════════════════════════════════════
+   v40 — OPTIMISATIONS iPad & TACTILE
+   ─────────────────────────────────────────────────────────────────────────
+   Cibles :
+   - iPad mini paysage  1024 px → tout visible, hit areas touch
+   - iPad 11"+ paysage  1180-1366 px → confort, panels légèrement réduits
+   - iPad portrait      768-1024 px → panels en overlay swipeable
+   - Touch (pointer:coarse) → buttons min 36 px, pas de hover-only
+   ════════════════════════════════════════════════════════════════════════ */
+(function v40TabletOptim() {
+  if (window.__v40Init) return;
+  window.__v40Init = true;
+
+  const css = `
+  /* ═══ TACTILE GLOBAL (iPad, iPhone, surface) ═══ */
+  @media (hover: none) and (pointer: coarse) {
+    /* Tous les boutons d'action min 36 px de hauteur cliquable */
+    .mode-btn, .var-chip, .var-add, .btn-secondary-bottom,
+    .tree-icon, .panel-action, .vp-handle,
+    .mat-tab, .v36-wrapper-dissolve,
+    .v37-as-btn, .v38-modal-close, .v38-tb-btn,
+    .ctx-item, .v39-skip-btn {
+      min-height: 36px;
+    }
+    .tree-icon { width: 32px; height: 32px; }
+    .v38-tb-btn { width: 34px; height: 34px; }
+    .v38-tb-btn svg { width: 16px; height: 16px; }
+    /* Padding plus généreux sur les rows arbre */
+    .tree-row, .tree-parent { padding-top: 9px; padding-bottom: 9px; }
+    /* Inputs dimensions/nom + lisibles */
+    .tb-name-input, .tb-marque-input,
+    .tb-dims input, .field input, .field select {
+      min-height: 36px;
+      font-size: 14px;
+    }
+    /* Sliders dans le panneau matériau : handles plus gros */
+    .slider-handle, .ds-handle {
+      width: 18px; height: 18px;
+    }
+    .slider-track, .ds-track {
+      height: 8px;
+    }
+    /* Croix sur photos toujours visible (pas de :hover sur touch) */
+    .v38-photo-remove, .v38-swatch-remove {
+      display: flex !important;
+      opacity: 0.85;
+      background: rgba(42, 38, 32, 0.85);
+    }
+    .v38-photo-tile, .v38-swatch-tile {
+      transform: none !important;   /* pas de zoom hover qui floute la croix */
+    }
+    /* Toggles topbar plus gros */
+    .tb-toggles button {
+      width: 32px; height: 32px;
+      padding: 0;
+    }
+    .tb-toggles button svg { width: 16px; height: 16px; }
+    /* var-chip plus aérée */
+    .var-chip, .var-add {
+      padding: 0 14px;
+    }
+    /* Onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE plus tappables */
+    .mat-tab {
+      padding: 12px 18px;
+      font-size: 11px;
+    }
+    /* Empêcher le tap-highlight bleu iOS */
+    button, .mode-btn, .tree-row, .tree-parent,
+    .var-chip, .ctx-item, .mat-tab, .v36-wrapper-header,
+    .v38-photo-tile, .v38-swatch-tile {
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Panneau matériau : sliders en colonne plus aérés */
+    .rp-row { padding: 9px 14px; }
+  }
+
+  /* ═══ iPad PAYSAGE (1180-1366 px) ═══ */
+  @media (min-width: 1101px) and (max-width: 1366px) {
+    .app:not(.user-override) {
+      --tree-w: 260px;
+      --mat-w: 290px;
+    }
+    /* La topbar pourrait déborder : on resserre certains éléments */
+    .tb-dims input { width: 38px; }
+    .tb-name-input { max-width: 200px; }
+    .tb-marque-input { max-width: 140px; }
+  }
+
+  /* ═══ iPad MINI / iPad PORTRAIT (≤ 1100 px) ═══
+     Le responsive existant cache déjà le panneau matériau à 1100.
+     On améliore :
+     - les panels deviennent des overlays au-dessus du viewer (pas dans la grid)
+     - le viewer prend toute la largeur quand panels fermés
+     - hit areas tactiles agrandies */
+  @media (max-width: 1100px) and (orientation: portrait), 
+         (max-width: 1024px) {
+    /* La topbar passe en mode dual-row si trop serrée */
+    .topbar {
+      flex-wrap: wrap;
+      min-height: var(--topbar-h, 58px);
+      height: auto !important;
+      padding: 6px 12px !important;
+    }
+    .tb-cat-info {
+      font-size: 13px;
+    }
+    .tb-viewer-zone {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tb-vz-left, .tb-vz-right {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    /* Le tree devient un drawer overlay */
+    .leftpanel {
+      position: fixed;
+      top: var(--topbar-h, 58px);
+      bottom: 0;
+      left: var(--nav-w, 56px);
+      width: 280px;
+      z-index: 800;
+      background: var(--panel, #FAF8F4);
+      box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+      transform: translateX(-110%);
+      transition: transform 0.25s cubic-bezier(.4,.2,.2,1);
+      opacity: 1 !important;
+      pointer-events: auto;
+    }
+    .app.tree-overlay-open .leftpanel {
+      transform: translateX(0);
+    }
+    /* Le panneau matériau aussi en drawer overlay côté droit */
+    .rightpanel {
+      position: fixed;
+      top: var(--topbar-h, 58px);
+      bottom: 0;
+      right: 0;
+      width: 320px;
+      max-width: 90vw;
+      z-index: 800;
+      background: var(--panel, #FAF8F4);
+      box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+      transform: translateX(110%);
+      transition: transform 0.25s cubic-bezier(.4,.2,.2,1);
+      opacity: 1 !important;
+      pointer-events: auto;
+    }
+    .app.mat-overlay-open .rightpanel {
+      transform: translateX(0);
+    }
+    /* Le viewer prend tout l'espace */
+    .app {
+      grid-template-columns: var(--nav-w, 56px) 0 1fr 0;
+    }
+    /* Les handles de toggle (boutons vp-handle) restent visibles */
+    .vp-handle.left, .vp-handle.right {
+      display: flex !important;
+      width: 36px; height: 60px;
+      z-index: 700;
+    }
+    /* Backdrop semi-transparent quand un drawer est ouvert */
+    .app.tree-overlay-open::after,
+    .app.mat-overlay-open::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(42, 38, 32, 0.25);
+      z-index: 750;
+      pointer-events: auto;
+    }
+  }
+
+  /* ═══ iPad PORTRAIT serré (≤ 820 px) ═══ */
+  @media (max-width: 820px) {
+    /* La bottombar peut overflow : on wrap */
+    .bottombar {
+      flex-wrap: wrap;
+      height: auto !important;
+      min-height: var(--bottombar-h, 56px);
+      padding: 6px 10px !important;
+      gap: 6px;
+    }
+    .bottom-spacer { display: none; }
+    .mode-group {
+      flex-wrap: wrap;
+    }
+    .var-label {
+      display: none;
+    }
+    /* Modal Fiche catalogue : plein écran sur portrait étroit */
+    .v38-modal {
+      max-width: 100vw;
+      max-height: 100vh;
+      width: 100%;
+    }
+    .v38-photo-grid {
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    /* Topbar : nom + marque sur 1 ligne, dims sur la suivante */
+    .tb-name-input {
+      max-width: none !important;
+      flex: 1;
+      min-width: 140px;
+    }
+    .tb-dims {
+      flex-wrap: wrap;
+    }
+  }
+
+  /* ═══ Anti-zoom sur iOS (input.focus zoom) ═══ */
+  @media (hover: none) and (pointer: coarse) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    select,
+    textarea {
+      font-size: 16px !important;   /* iOS Safari ne zoome pas si ≥ 16px */
+    }
+    /* Mais on garde la taille visuelle pour les inputs très étroits via line-height */
+    .tb-dims input {
+      font-size: 16px !important;
+      padding: 4px 6px;
+    }
+  }
+  `;
+
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v40', 'tablet-optim');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ─── JS minimal : wire les boutons vp-handle pour ouvrir/fermer les drawers ─── */
+  function wireDrawers() {
+    const app = document.querySelector('.app');
+    if (!app) { setTimeout(wireDrawers, 500); return; }
+
+    const handleLeft  = document.querySelector('.vp-handle.left');
+    const handleRight = document.querySelector('.vp-handle.right');
+
+    if (handleLeft && !handleLeft.dataset.v40) {
+      handleLeft.dataset.v40 = '1';
+      handleLeft.addEventListener('click', (e) => {
+        /* Sur tablette/mobile : toggle overlay */
+        if (window.matchMedia('(max-width: 1100px)').matches) {
+          e.stopImmediatePropagation();
+          app.classList.toggle('tree-overlay-open');
+          app.classList.remove('mat-overlay-open');
+        }
+      }, true);  /* capture pour passer avant togglePanel('tree') */
+    }
+    if (handleRight && !handleRight.dataset.v40) {
+      handleRight.dataset.v40 = '1';
+      handleRight.addEventListener('click', (e) => {
+        if (window.matchMedia('(max-width: 1100px)').matches) {
+          e.stopImmediatePropagation();
+          app.classList.toggle('mat-overlay-open');
+          app.classList.remove('tree-overlay-open');
+        }
+      }, true);
+    }
+
+    /* Tap sur le backdrop (zone vide entre app::after) → fermer */
+    app.addEventListener('click', (e) => {
+      if (!app.classList.contains('tree-overlay-open') &&
+          !app.classList.contains('mat-overlay-open')) return;
+      /* On regarde si le tap est en dehors des panels */
+      const target = e.target;
+      if (target.closest('.leftpanel') || target.closest('.rightpanel') ||
+          target.closest('.vp-handle')) return;
+      app.classList.remove('tree-overlay-open', 'mat-overlay-open');
+    });
+
+    /* Esc ferme aussi */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        app.classList.remove('tree-overlay-open', 'mat-overlay-open');
+      }
+    });
+  }
+  wireDrawers();
+  setTimeout(wireDrawers, 2000);
+
+  /* ─── Ré-évaluer au resize/orientation change ─── */
+  let _v40rafId = null;
+  window.addEventListener('resize', () => {
+    if (_v40rafId) cancelAnimationFrame(_v40rafId);
+    _v40rafId = requestAnimationFrame(() => {
+      const app = document.querySelector('.app');
+      if (!app) return;
+      /* Si on passe en grande largeur, retirer les overlays */
+      if (window.matchMedia('(min-width: 1101px)').matches) {
+        app.classList.remove('tree-overlay-open', 'mat-overlay-open');
+      }
+    });
+  });
+
+  console.log('[studio v40] optimisations iPad & tactile actives ✓');
+})();
+
+
 console.log('[studio v3] prêt');
 
 </script>
