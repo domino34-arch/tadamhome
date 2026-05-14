@@ -583,7 +583,9 @@
     .frame-nav .logo .logo-text { font-size: 18px; }
 
     .hero { grid-template-columns: 1fr; min-height: auto; }
-    .viewer3d { min-height: 280px; height: 280px; }
+    /* Viewer 3D agrandi sur mobile pour qu'on voie le meuble entier
+       (avant : 280px → cadre étroit qui croppait l'objet). */
+    .viewer3d { min-height: 420px; height: 420px; }
 
     .info {
       padding: 18px 20px 14px;
@@ -664,8 +666,11 @@
 
     body { padding-bottom: 170px; }
 
-    .similar { padding: 36px 20px; }
-    .similar .head h2 { font-size: 22px; }
+    .similar { padding: 22px 20px 28px; }
+    /* Head compressé : moins de margin-bottom + h2 plus petit pour gagner
+       en hauteur verticale au profit du viewer 3D. */
+    .similar .head { margin-bottom: 14px; }
+    .similar .head h2 { font-size: 20px; }
     .similar .head .seeall { font-size: 9px; padding: 9px 14px; }
     .similar .row {
       display: flex;
@@ -679,8 +684,12 @@
       padding-right: 20px;
     }
     .similar .row::-webkit-scrollbar { display: none; }
-    .similar .card { flex: 0 0 200px; }
-    .similar .card .meta .nm { font-size: 14px; }
+    /* Cards plus compactes : 200px → 150px → caroussel plus dense, hauteur
+       totale de la section réduite (image en 4/3 = ~113px au lieu de 150px). */
+    .similar .card { flex: 0 0 150px; }
+    .similar .card .meta .br { margin-top: 8px; font-size: 8px; }
+    .similar .card .meta .nm { font-size: 13px; margin-top: 2px; }
+    .similar .card .meta .pr { font-size: 10px; margin-top: 4px; }
 
     /* Hint geste : version compacte sur mobile */
     .viewer3d .gesture-hint {
@@ -691,7 +700,7 @@
   }
 
   @media (max-width: 480px) {
-    .similar .card { flex: 0 0 160px; }
+    .similar .card { flex: 0 0 140px; }
   }
 
   /* Toast */
