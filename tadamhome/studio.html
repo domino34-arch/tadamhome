@@ -17270,6 +17270,752 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v53] mesh tool v2 (multi-sélection + déplacer + frères) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v54 — DÉTECTION AUTOMATIQUE DES PARTIES (split par composants connexes)
+   ─────────────────────────────────────────────────────────────────────────
+   Résout le cas "1 seul maillage continu" typique des exports CAO :
+   - Soude les vertices proches (tolerance configurable)
+   - Construit le graphe d'adjacence triangulaire (deux triangles voisins
+     s'ils partagent une arête)
+   - BFS pour trouver les composantes connexes (les "shells")
+   - Crée un nouveau Mesh Three.js par composante
+   - Remplace le mesh d'origine dans currentObject + relance detectParts()
+   
+   Bouton "Détecter parties" injecté dans le bandeau bas, à gauche
+   d'Auto-segmenter.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v54SplitShells() {
+  if (window.__v54Init) return;
+  window.__v54Init = true;
+  window._v54 = {};
+
+  /* ───── CSS ───── */
+  const css = `
+    .v54-detect-btn {
+      background: transparent;
+      border: 1px solid var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+      padding: 0 14px;
+      height: 32px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-radius: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .v54-detect-btn:hover:not(:disabled) {
+      background: var(--gold, #B8965A);
+      color: #fff;
+    }
+    .v54-detect-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .v54-detect-btn svg { width: 13px; height: 13px; }
+    .v54-dialog .v37-as-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .v54-tol-input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      color: var(--ink, #2A2620);
+    }
+    .v54-tol-hint {
+      font-size: 10px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.7;
+      line-height: 1.5;
+    }
+    .v54-preset-row {
+      display: flex;
+      gap: 4px;
+    }
+    .v54-preset {
+      flex: 1;
+      padding: 6px 8px;
+      background: transparent;
+      border: 1px solid var(--line, #D8D2C7);
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: var(--ink, #2A2620);
+      transition: all 0.12s;
+    }
+    .v54-preset:hover {
+      border-color: var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+    }
+    .v54-preset.v54-active {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border-color: var(--gold, #B8965A);
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v54', 'split-shells');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ ALGORITHME : merge des vertices proches ═══ */
+  /* Quantifie les positions à la tolérance donnée → coordonnées entières.
+     Deux vertices avec la même clé quantifiée sont fusionnés en un seul.
+     Recalcule les normales après merge. */
+  function weldGeometry(geom, tolerance) {
+    const positions = geom.attributes.position.array;
+    const count = geom.attributes.position.count;
+    const tol = Math.max(tolerance || 1e-4, 1e-6);
+
+    const map = new Map();
+    const oldToNew = new Int32Array(count);
+    const newPositions = [];
+
+    for (let i = 0; i < count; i++) {
+      const x = positions[3 * i];
+      const y = positions[3 * i + 1];
+      const z = positions[3 * i + 2];
+      const kx = Math.round(x / tol);
+      const ky = Math.round(y / tol);
+      const kz = Math.round(z / tol);
+      const key = kx + '|' + ky + '|' + kz;
+
+      let newIdx = map.get(key);
+      if (newIdx === undefined) {
+        newIdx = newPositions.length / 3;
+        map.set(key, newIdx);
+        newPositions.push(x, y, z);
+      }
+      oldToNew[i] = newIdx;
+    }
+
+    let indices;
+    if (geom.index) {
+      const oldIdx = geom.index.array;
+      indices = new Uint32Array(oldIdx.length);
+      for (let i = 0; i < oldIdx.length; i++) indices[i] = oldToNew[oldIdx[i]];
+    } else {
+      indices = new Uint32Array(count);
+      for (let i = 0; i < count; i++) indices[i] = oldToNew[i];
+    }
+
+    /* Filtrer les triangles dégénérés (au moins 2 vertices identiques après merge) */
+    const cleanIndices = [];
+    for (let i = 0; i < indices.length; i += 3) {
+      const a = indices[i], b = indices[i + 1], c = indices[i + 2];
+      if (a !== b && b !== c && a !== c) cleanIndices.push(a, b, c);
+    }
+
+    const newGeom = new THREE.BufferGeometry();
+    newGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(newPositions), 3));
+    newGeom.setIndex(new THREE.BufferAttribute(new Uint32Array(cleanIndices), 1));
+    newGeom.computeVertexNormals();
+    return newGeom;
+  }
+
+  /* ═══ ALGORITHME : composantes connexes par adjacence d'arêtes ═══ */
+  function findConnectedComponents(geom) {
+    const idxArr = geom.index.array;
+    const triCount = idxArr.length / 3;
+
+    /* Map edge "a_b" → array of triangle ids */
+    const edgeMap = new Map();
+    function addEdge(a, b, t) {
+      const k = a < b ? a + '_' + b : b + '_' + a;
+      const arr = edgeMap.get(k);
+      if (arr) arr.push(t); else edgeMap.set(k, [t]);
+    }
+    for (let t = 0; t < triCount; t++) {
+      const a = idxArr[3 * t], b = idxArr[3 * t + 1], c = idxArr[3 * t + 2];
+      addEdge(a, b, t); addEdge(b, c, t); addEdge(c, a, t);
+    }
+
+    /* BFS */
+    const visited = new Uint8Array(triCount);
+    const components = [];
+    function pushNeighbors(a, b, self, queue) {
+      const k = a < b ? a + '_' + b : b + '_' + a;
+      const arr = edgeMap.get(k);
+      if (!arr) return;
+      for (const n of arr) {
+        if (n !== self && !visited[n]) {
+          visited[n] = 1;
+          queue.push(n);
+        }
+      }
+    }
+    for (let start = 0; start < triCount; start++) {
+      if (visited[start]) continue;
+      visited[start] = 1;
+      const comp = [start];
+      const queue = [start];
+      let head = 0;
+      while (head < queue.length) {
+        const t = queue[head++];
+        const a = idxArr[3 * t], b = idxArr[3 * t + 1], c = idxArr[3 * t + 2];
+        const beforeLen = queue.length;
+        pushNeighbors(a, b, t, queue);
+        pushNeighbors(b, c, t, queue);
+        pushNeighbors(c, a, t, queue);
+        /* Les nouveaux push sont automatiquement dans la composante */
+        for (let i = beforeLen; i < queue.length; i++) comp.push(queue[i]);
+      }
+      components.push(comp);
+    }
+    return components;
+  }
+
+  /* ═══ ALGORITHME : extraire un sous-geometry à partir d'une liste de triangles ═══ */
+  function extractSubGeometry(srcGeom, triIds) {
+    const oldIdx = srcGeom.index.array;
+    const oldPos = srcGeom.attributes.position;
+    const oldNormal = srcGeom.attributes.normal;
+    const oldUV = srcGeom.attributes.uv;
+
+    /* Vertices utilisés (Set d'IDs old) */
+    const usedSet = new Set();
+    for (const t of triIds) {
+      usedSet.add(oldIdx[3 * t]);
+      usedSet.add(oldIdx[3 * t + 1]);
+      usedSet.add(oldIdx[3 * t + 2]);
+    }
+
+    /* Remap old → new */
+    const usedArr = [...usedSet];
+    const oldToNew = new Map();
+    usedArr.forEach((v, i) => oldToNew.set(v, i));
+
+    const newPos = new Float32Array(usedArr.length * 3);
+    const newNormal = oldNormal ? new Float32Array(usedArr.length * 3) : null;
+    const newUV = oldUV ? new Float32Array(usedArr.length * 2) : null;
+    usedArr.forEach((oldIdxV, newIdxV) => {
+      newPos[3 * newIdxV]     = oldPos.array[3 * oldIdxV];
+      newPos[3 * newIdxV + 1] = oldPos.array[3 * oldIdxV + 1];
+      newPos[3 * newIdxV + 2] = oldPos.array[3 * oldIdxV + 2];
+      if (oldNormal) {
+        newNormal[3 * newIdxV]     = oldNormal.array[3 * oldIdxV];
+        newNormal[3 * newIdxV + 1] = oldNormal.array[3 * oldIdxV + 1];
+        newNormal[3 * newIdxV + 2] = oldNormal.array[3 * oldIdxV + 2];
+      }
+      if (oldUV) {
+        newUV[2 * newIdxV]     = oldUV.array[2 * oldIdxV];
+        newUV[2 * newIdxV + 1] = oldUV.array[2 * oldIdxV + 1];
+      }
+    });
+
+    const newIdx = new Uint32Array(triIds.length * 3);
+    for (let i = 0; i < triIds.length; i++) {
+      const t = triIds[i];
+      newIdx[3 * i]     = oldToNew.get(oldIdx[3 * t]);
+      newIdx[3 * i + 1] = oldToNew.get(oldIdx[3 * t + 1]);
+      newIdx[3 * i + 2] = oldToNew.get(oldIdx[3 * t + 2]);
+    }
+
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(newPos, 3));
+    if (newNormal) g.setAttribute('normal', new THREE.BufferAttribute(newNormal, 3));
+    if (newUV) g.setAttribute('uv', new THREE.BufferAttribute(newUV, 2));
+    g.setIndex(new THREE.BufferAttribute(newIdx, 1));
+    if (!newNormal) g.computeVertexNormals();
+    return g;
+  }
+
+  /* ═══ FONCTION PRINCIPALE : split d'un mesh ═══ */
+  function splitMeshByShells(mesh, tolerance) {
+    if (!mesh.isMesh || !mesh.geometry) return null;
+
+    /* Step 1: weld vertices proches (et indexer si pas encore indexé) */
+    const welded = weldGeometry(mesh.geometry, tolerance);
+    const triCount = welded.index.count / 3;
+
+    if (triCount < 2) return null;
+
+    /* Step 2: composantes connexes */
+    const components = findConnectedComponents(welded);
+
+    if (components.length < 2) {
+      return { parts: null, components: 1, originalTriCount: triCount };
+    }
+
+    /* Filtrer les micro-composantes (< 4 triangles : artefacts ou bruit) */
+    const filtered = components.filter(c => c.length >= 4);
+    if (filtered.length < 2) {
+      return { parts: null, components: components.length, originalTriCount: triCount };
+    }
+
+    /* Step 3: créer un Mesh par composante */
+    const baseName = (mesh.name || 'mesh').replace(/[^a-zA-Z0-9_]/g, '');
+    const parts = filtered.map((comp, i) => {
+      const subGeom = extractSubGeometry(welded, comp);
+      const newMesh = new THREE.Mesh(subGeom, mesh.material);
+      newMesh.name = baseName + '_part' + String(i + 1).padStart(2, '0');
+      newMesh.castShadow = mesh.castShadow;
+      newMesh.receiveShadow = mesh.receiveShadow;
+      return newMesh;
+    });
+
+    return {
+      parts,
+      components: components.length,
+      filteredOut: components.length - filtered.length,
+      originalTriCount: triCount,
+    };
+  }
+
+  /* ═══ ORCHESTRATION : split sur tous les meshes de currentObject ═══ */
+  function runDetectParts(tolerance) {
+    if (!currentObject) {
+      toast('Aucun modèle 3D chargé', 'err');
+      return;
+    }
+
+    const meshes = [];
+    currentObject.traverse(o => { if (o.isMesh && o.geometry) meshes.push(o); });
+    if (meshes.length === 0) {
+      toast('Aucun mesh à analyser', 'err');
+      return;
+    }
+
+    const overlayHide = showWorkingOverlay('Analyse du modèle…');
+    /* Petit délai pour laisser l'overlay s'afficher avant le calcul lourd */
+    setTimeout(() => {
+      try {
+        let totalBefore = meshes.length;
+        let totalAfter = 0;
+        let totalNoSplit = 0;
+
+        meshes.forEach(mesh => {
+          const result = splitMeshByShells(mesh, tolerance);
+          if (!result || !result.parts) {
+            /* Conserver le mesh tel quel */
+            totalAfter += 1;
+            totalNoSplit += 1;
+            return;
+          }
+          /* Remplacer dans la scène : retirer le mesh du parent, ajouter les parts */
+          const parent = mesh.parent;
+          if (!parent) return;
+          const matrix = mesh.matrix.clone();
+          parent.remove(mesh);
+          result.parts.forEach(p => {
+            p.applyMatrix4(matrix);
+            parent.add(p);
+            totalAfter++;
+          });
+          /* Dispose ancienne géométrie */
+          try { mesh.geometry.dispose(); } catch (_) {}
+        });
+
+        /* Vider les structures de groupes existantes */
+        Object.keys(meshGroups).forEach(k => delete meshGroups[k]);
+        Object.keys(partMaterials).forEach(k => delete partMaterials[k]);
+        if (typeof partMaterialChoices !== 'undefined') {
+          Object.keys(partMaterialChoices).forEach(k => delete partMaterialChoices[k]);
+        }
+        if (typeof partProjection !== 'undefined') {
+          Object.keys(partProjection).forEach(k => delete partProjection[k]);
+        }
+        if (window._v21?.customLabels) {
+          Object.keys(window._v21.customLabels).forEach(k => delete window._v21.customLabels[k]);
+        }
+        if (window._v36?.hierarchy) {
+          Object.keys(window._v36.hierarchy).forEach(k => delete window._v36.hierarchy[k]);
+        }
+
+        /* Re-parcourir et recréer les groupes (1 mesh = 1 groupe par défaut) */
+        if (typeof detectParts === 'function') {
+          detectParts(currentObject);
+        }
+
+        /* Re-render tree */
+        if (window._v21?.triggerTreeRender) window._v21.triggerTreeRender();
+        if (window._v18?.markDirty) window._v18.markDirty();
+
+        overlayHide();
+
+        const splitCount = totalAfter - totalNoSplit;
+        if (splitCount === totalBefore) {
+          toast(`Modèle déjà fragmenté · ${totalAfter} mailles inchangées`, 'info', 4500);
+        } else if (totalAfter <= totalBefore) {
+          toast(
+            `Le modèle est monolithique : aucune partie séparée détectée. ` +
+            `Essaie d'augmenter la tolérance, ou le modèle est vraiment un seul bloc.`,
+            'err', 7000
+          );
+        } else {
+          const newParts = totalAfter - totalBefore + (totalBefore - totalNoSplit);
+          toast(
+            `${totalAfter} mailles détectées (${totalBefore} avant). ` +
+            `Tu peux maintenant utiliser Auto-segmenter Smart.`,
+            'ok', 5500
+          );
+          /* Notification subtile : si Auto-segmenter est disponible et qu'on a au
+             moins 3 parts, on suggère de l'utiliser */
+          if (totalAfter >= 3) {
+            setTimeout(() => {
+              if (window._v52?.show) {
+                /* Discret : ne pas auto-ouvrir, mais flash le bouton Auto-segmenter */
+                const asBtn = [...document.querySelectorAll('.btn-secondary-bottom')]
+                  .find(b => /auto-?segment/i.test(b.textContent || ''));
+                if (asBtn) {
+                  asBtn.style.boxShadow = '0 0 0 2px var(--gold, #B8965A)';
+                  setTimeout(() => { asBtn.style.boxShadow = ''; }, 2200);
+                }
+              }
+            }, 800);
+          }
+        }
+      } catch (e) {
+        console.error('[v54]', e);
+        overlayHide();
+        toast('Erreur lors du split : ' + e.message, 'err', 6000);
+      }
+    }, 60);
+  }
+
+  /* ═══ Overlay travail ═══ */
+  function showWorkingOverlay(msg) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position: fixed; inset: 0;
+      background: rgba(27, 24, 20, 0.78);
+      z-index: 99000;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    `;
+    el.innerHTML = `
+      <div style="background:var(--bg,#F5F2EC);padding:32px 40px;text-align:center">
+        <div style="font-family:'Jost',sans-serif;font-size:10px;font-weight:600;
+                    letter-spacing:0.22em;text-transform:uppercase;
+                    color:var(--gold,#B8965A);margin-bottom:10px">
+          Détection des parties
+        </div>
+        <div style="font-family:'Jost',sans-serif;font-size:12px;
+                    color:var(--ink,#2A2620)">${msg}</div>
+      </div>`;
+    document.body.appendChild(el);
+    return () => el.remove();
+  }
+
+  /* ═══ DIALOG : tolérance ═══ */
+  let dialogEl = null;
+  function buildDialog() {
+    if (dialogEl) return dialogEl;
+    dialogEl = document.createElement('div');
+    dialogEl.className = 'v37-as-overlay v54-dialog';
+    dialogEl.innerHTML = `
+      <div class="v37-as-dialog" style="max-width:440px">
+        <h3 class="v37-as-title">Détecter les parties séparées</h3>
+        <p class="v37-as-desc">
+          Découpe un maillage continu en parties géométriquement disjointes
+          (typique des exports CAO en un seul bloc).<br>
+          <em style="font-size:11px;opacity:0.8">L'équivalent du "Separate by Loose Parts" de Blender.</em>
+        </p>
+        <div class="v37-as-row" style="margin-top:12px">
+          <span class="v37-as-label">Tolérance de soudure</span>
+          <div class="v54-preset-row">
+            <button class="v54-preset" data-tol="0.0001">Fine · 0.1mm</button>
+            <button class="v54-preset v54-active" data-tol="0.001">Normale · 1mm</button>
+            <button class="v54-preset" data-tol="0.005">Large · 5mm</button>
+            <button class="v54-preset" data-tol="0.01">Très large · 10mm</button>
+          </div>
+          <div class="v54-tol-hint">
+            Plus la tolérance est grande, plus les sommets proches sont fusionnés.
+            Augmente-la si le split ne donne qu'1 seule partie alors que tu sais
+            qu'il y en a plusieurs.
+          </div>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="run">Détecter</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialogEl);
+
+    dialogEl.querySelectorAll('.v54-preset').forEach(btn => {
+      btn.onclick = () => {
+        dialogEl.querySelectorAll('.v54-preset').forEach(b => b.classList.remove('v54-active'));
+        btn.classList.add('v54-active');
+      };
+    });
+    dialogEl.querySelector('[data-act="cancel"]').onclick = () => dialogEl.classList.remove('v37-show');
+    dialogEl.addEventListener('click', (e) => {
+      if (e.target === dialogEl) dialogEl.classList.remove('v37-show');
+    });
+    dialogEl.querySelector('[data-act="run"]').onclick = () => {
+      const tol = parseFloat(dialogEl.querySelector('.v54-preset.v54-active').dataset.tol);
+      dialogEl.classList.remove('v37-show');
+      runDetectParts(tol);
+    };
+    return dialogEl;
+  }
+
+  function showDialog() {
+    buildDialog();
+    dialogEl.classList.add('v37-show');
+  }
+
+  /* ═══ INJECTION du bouton dans le bandeau bas ═══ */
+  function injectButton() {
+    /* Cible : le conteneur où se trouve Auto-segmenter */
+    const asBtn = [...document.querySelectorAll('.btn-secondary-bottom')]
+      .find(b => /auto-?segment/i.test(b.textContent || ''));
+    if (!asBtn) { setTimeout(injectButton, 700); return; }
+    if (document.getElementById('v54DetectBtn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'v54DetectBtn';
+    btn.className = 'v54-detect-btn';
+    btn.type = 'button';
+    btn.title = 'Détecter les parties géométriques séparées (utile si le modèle est un seul maillage continu)';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 4 L10 4 L10 10 L4 10 Z"/>
+        <path d="M14 4 L20 4 L20 10 L14 10 Z"/>
+        <path d="M4 14 L10 14 L10 20 L4 20 Z"/>
+        <path d="M14 14 L20 14 L20 20 L14 20 Z"/>
+      </svg>
+      <span>Détecter parties</span>
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showDialog();
+    };
+    /* Insérer juste à gauche du bouton Auto-segmenter */
+    asBtn.parentNode.insertBefore(btn, asBtn);
+  }
+  injectButton();
+  [800, 2000, 4500].forEach(d => setTimeout(injectButton, d));
+
+  /* Expose */
+  window._v54.run = runDetectParts;
+  window._v54.split = splitMeshByShells;
+  window._v54.weld = weldGeometry;
+  window._v54.show = showDialog;
+
+  console.log('[studio v54] détection automatique des parties (split par composants connexes) ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v55 — SUPPORT FICHIERS .STL
+   ─────────────────────────────────────────────────────────────────────────
+   Le STL est un format mono-mesh sans matériaux. Approche : on convertit
+   le STL en OBJ texte en mémoire au moment de l'import, puis on passe au
+   pipeline OBJ existant (parsing, scaling, detectParts, etc.).
+   
+   - Étend accept="" du file input à .stl
+   - Intercepte le drag-and-drop sur vpDrop / viewportEl pour accepter .stl
+   - Conversion STL → OBJ texte → File("name.obj") → loadOBJFromFile
+   
+   Limitations : STL = mono-mesh, segmentation manuelle ou via v54 nécessaire.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v55STLSupport() {
+  if (window.__v55Init) return;
+  window.__v55Init = true;
+  window._v55 = {};
+
+  let _stlLoader = null;
+  async function getSTLLoader() {
+    if (_stlLoader) return _stlLoader;
+    const mod = await import('three/addons/loaders/STLLoader.js');
+    _stlLoader = new mod.STLLoader();
+    return _stlLoader;
+  }
+
+  /* ═══ Conversion BufferGeometry → texte OBJ ═══ */
+  function geometryToOBJText(geom, name) {
+    const lines = ['# converted from STL', 'o ' + (name || 'stl_model')];
+    const pos = geom.attributes.position;
+    const count = pos.count;
+
+    /* Vertices */
+    for (let i = 0; i < count; i++) {
+      lines.push(
+        'v ' + pos.array[3 * i].toFixed(6) +
+        ' ' + pos.array[3 * i + 1].toFixed(6) +
+        ' ' + pos.array[3 * i + 2].toFixed(6)
+      );
+    }
+
+    /* Faces : OBJ utilise un index 1-based */
+    if (geom.index) {
+      const idx = geom.index.array;
+      const tri = idx.length / 3;
+      for (let t = 0; t < tri; t++) {
+        lines.push('f ' +
+          (idx[3 * t] + 1) + ' ' +
+          (idx[3 * t + 1] + 1) + ' ' +
+          (idx[3 * t + 2] + 1));
+      }
+    } else {
+      /* STL non-indexé : chaque triplet de vertices consécutifs = 1 triangle */
+      const tri = count / 3;
+      for (let t = 0; t < tri; t++) {
+        lines.push('f ' +
+          (3 * t + 1) + ' ' +
+          (3 * t + 2) + ' ' +
+          (3 * t + 3));
+      }
+    }
+    return lines.join('\n');
+  }
+
+  /* ═══ Convertir un File STL en File OBJ ═══ */
+  async function stlFileToObjFile(stlFile) {
+    const buffer = await stlFile.arrayBuffer();
+    const loader = await getSTLLoader();
+    const geom = loader.parse(buffer);
+    if (!geom || !geom.attributes || !geom.attributes.position) {
+      throw new Error('STL invalide ou vide');
+    }
+    const baseName = stlFile.name.replace(/\.stl$/i, '');
+    const objText = geometryToOBJText(geom, baseName);
+    const objBlob = new Blob([objText], { type: 'model/obj' });
+    return new File([objBlob], baseName + '.obj', { type: 'model/obj' });
+  }
+
+  /* ═══ Hook : intercepte les fichiers via le file input et le drop ═══ */
+  /* Étendre l'attribut accept */
+  function widenAccept() {
+    const inputs = document.querySelectorAll('input[type="file"][accept*="obj"]');
+    inputs.forEach(inp => {
+      if (!inp.accept.includes('stl')) {
+        inp.accept = inp.accept + ',.stl';
+      }
+    });
+  }
+  widenAccept();
+  [500, 1500, 3500].forEach(d => setTimeout(widenAccept, d));
+
+  /* Wrap document-level change/drop events pour intercepter les .stl avant qu'ils
+     ne passent au handler OBJ. La fonction loadOBJFromFile est dans la closure
+     du module ES6 (pas exposée sur window), donc on doit intercepter PLUS HAUT
+     dans le flow : au moment où le File arrive. */
+
+  /* Pour le file input : on watch tous les inputs qui acceptent .obj et on
+     intercepte leur événement change AVANT que le handler existant ne le voie.
+     On utilise capture=true pour passer en premier. */
+  document.addEventListener('change', async (e) => {
+    const t = e.target;
+    if (!(t && t.type === 'file' && t.accept && t.accept.includes('obj'))) return;
+    const file = t.files && t.files[0];
+    if (!file) return;
+    if (!/\.stl$/i.test(file.name)) return;
+
+    e.stopImmediatePropagation();
+    e.preventDefault();
+
+    console.log('[v55] fichier STL détecté :', file.name);
+    toast('Conversion STL → OBJ en cours…', 'info', 2500);
+    try {
+      const objFile = await stlFileToObjFile(file);
+      console.log('[v55] converti en OBJ :', objFile.size, 'octets');
+      /* Remplacer le contenu du file input par le File OBJ converti, puis
+         redéclencher l'event change pour que les handlers existants traitent
+         le fichier comme un OBJ normal */
+      const dt = new DataTransfer();
+      dt.items.add(objFile);
+      t.files = dt.files;
+      /* Dispatch un nouveau event change (NON capture cette fois pour éviter récursion) */
+      const ev = new Event('change', { bubbles: true });
+      /* Marquer l'event pour ne pas re-intercepter */
+      ev._v55Processed = true;
+      t.dispatchEvent(ev);
+    } catch (err) {
+      console.error('[v55]', err);
+      toast('Erreur conversion STL : ' + err.message, 'err', 6000);
+    }
+  }, true);
+
+  /* Pour le drop : intercepter en capture sur viewportEl / vpDrop AVANT le
+     handler existant qui filtre sur /\.obj$/i */
+  function attachDropHook(target) {
+    if (!target || target.dataset.v55Hooked === '1') return;
+    target.dataset.v55Hooked = '1';
+    target.addEventListener('drop', async (e) => {
+      const files = e.dataTransfer && [...e.dataTransfer.files];
+      if (!files || files.length === 0) return;
+      const stl = files.find(f => /\.stl$/i.test(f.name));
+      if (!stl) return;  /* pas de STL : laisser le handler OBJ existant agir */
+
+      /* On a un STL : bloque le handler existant */
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      target.classList && target.classList.remove('dragover');
+
+      console.log('[v55] STL drop intercepté :', stl.name);
+      toast('Conversion STL → OBJ en cours…', 'info', 2500);
+      try {
+        const objFile = await stlFileToObjFile(stl);
+        /* Trouver le file input pour injecter le file converti et déclencher
+           change. Plus simple : utiliser le file input #objInput. */
+        const objInput = document.getElementById('objInput') ||
+                         document.querySelector('input[type="file"][accept*="obj"]');
+        if (!objInput) {
+          toast('Impossible d\'injecter le fichier converti', 'err'); return;
+        }
+        const dt = new DataTransfer();
+        dt.items.add(objFile);
+        objInput.files = dt.files;
+        const ev = new Event('change', { bubbles: true });
+        ev._v55Processed = true;
+        objInput.dispatchEvent(ev);
+      } catch (err) {
+        console.error('[v55]', err);
+        toast('Erreur conversion STL : ' + err.message, 'err', 6000);
+      }
+    }, true);  /* capture = true → on passe avant le handler existant */
+  }
+
+  function hookDropTargets() {
+    const vpDrop = document.getElementById('vpDrop');
+    const viewportEl = document.querySelector('.viewport');
+    if (vpDrop) attachDropHook(vpDrop);
+    if (viewportEl) attachDropHook(viewportEl);
+  }
+  hookDropTargets();
+  [500, 1500, 3500].forEach(d => setTimeout(hookDropTargets, d));
+
+  /* Mise à jour du texte d'invitation au drag-drop si présent */
+  function updateDropHint() {
+    const dropHint = document.querySelector('#vpDrop, .vp-drop');
+    if (!dropHint) return;
+    /* Cherche un élément texte mentionnant "OBJ" */
+    const texts = dropHint.querySelectorAll('*');
+    texts.forEach(el => {
+      if (el.children.length === 0 && el.textContent &&
+          /\.obj\b/i.test(el.textContent) && !/\.stl\b/i.test(el.textContent)) {
+        el.textContent = el.textContent.replace(/\.obj\b/gi, '.obj / .stl');
+      }
+    });
+  }
+  setTimeout(updateDropHint, 1500);
+  setTimeout(updateDropHint, 4500);
+
+  /* Expose */
+  window._v55.toObj = stlFileToObjFile;
+  window._v55.geomToObjText = geometryToOBJText;
+
+  console.log('[studio v55] support .stl via conversion → OBJ ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
