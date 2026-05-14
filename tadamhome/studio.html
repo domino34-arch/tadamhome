@@ -16013,6 +16013,1263 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v51] auto-redressement Z-up armé (heuristique bbox + bouton manuel Géométrie) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v52 — AUTO-SEGMENTER v2 ("Smart") + détection symétrie + templates
+   ─────────────────────────────────────────────────────────────────────────
+   Améliore l'auto-segmenter v37 (K-means générique) avec :
+   - Mode "Smart" : template par catégorie + symétrie + tranches hauteur
+   - 4 templates spécialisés : Chaise/Fauteuil, Canapé, Table/Bureau, Tabouret
+   - Templates secondaires : Étagère, Lit, Lampe/Luminaire
+   - Catégories non couvertes → fallback générique 3 tranches verticales
+   - Détection de symétrie miroir X / Z autour du centre du modèle pour
+     regrouper les meshes "miroirs" (les 4 pieds d'une chaise dans un seul
+     groupe Piétement, etc.)
+   - Conservation des modes legacy (Taille / Hauteur / Taille+Hauteur)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v52SmartSegment() {
+  if (window.__v52Init) return;
+  window.__v52Init = true;
+
+  window._v52 = {};
+
+  /* ───── CSS additionnel pour le nouveau dialog ───── */
+  const css = `
+    .v52-mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .v52-mode-btn {
+      padding: 10px 8px;
+      background: transparent;
+      border: 1px solid var(--line, #D8D2C7);
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+      position: relative;
+    }
+    .v52-mode-btn:hover {
+      border-color: var(--gold, #B8965A);
+      background: rgba(184, 150, 90, 0.04);
+    }
+    .v52-mode-btn.v52-selected {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border-color: var(--gold, #B8965A);
+    }
+    .v52-mode-btn-title {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .v52-mode-btn-sub {
+      display: block;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      text-transform: none;
+      opacity: 0.7;
+      line-height: 1.3;
+    }
+    .v52-mode-btn.v52-selected .v52-mode-btn-sub { opacity: 0.9; }
+    .v52-badge-cat {
+      display: inline-block;
+      padding: 2px 7px;
+      background: rgba(184, 150, 90, 0.15);
+      color: var(--gold, #B8965A);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v52', 'smart-segment');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ HELPERS GEOMÉTRIQUES ═══ */
+
+  /* Centroïde monde d'un mesh (pas local) */
+  function meshCentroidWorld(mesh) {
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox;
+    const local = new THREE.Vector3(
+      (bb.min.x + bb.max.x) / 2,
+      (bb.min.y + bb.max.y) / 2,
+      (bb.min.z + bb.max.z) / 2
+    );
+    return local.applyMatrix4(mesh.matrixWorld);
+  }
+
+  /* Taille de la bbox locale d'un mesh */
+  function meshBboxSize(mesh) {
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox;
+    return new THREE.Vector3(
+      bb.max.x - bb.min.x,
+      bb.max.y - bb.min.y,
+      bb.max.z - bb.min.z
+    );
+  }
+
+  /* Orientation dominante : "tall" / "flat" / "cube" / "thin-vertical" / "thin-horizontal" */
+  function meshOrientation(size) {
+    const sx = size.x, sy = size.y, sz = size.z;
+    const maxXZ = Math.max(sx, sz);
+    const yRatio = sy / Math.max(maxXZ, 1e-6);
+    /* thin-vertical : un mesh "plaque" debout (faible épaisseur sur X ou Z, mais grand en Y) */
+    if (yRatio > 1.5) return 'tall';
+    /* flat-horizontal : un mesh "plaque" couché (faible épaisseur sur Y) */
+    if (yRatio < 0.35) return 'flat';
+    return 'cube';
+  }
+
+  /* ═══ DÉTECTION DE SYMÉTRIE ═══ */
+  /* Construit des groupes de meshes "miroirs" autour des plans YZ (axe X) ou
+     XY (axe Z), par rapport au centre du modèle.
+     
+     Exemple : 4 pieds d'une chaise → 1 cluster (les 4 pieds sont mutuellement
+     symétriques via X et Z). */
+  function buildSymmetryGroups(meshes, modelCenter, modelSize) {
+    const tolPos = Math.max(modelSize.x, modelSize.z) * 0.04;   /* 4% de la dim horizontale */
+    const tolYRel = modelSize.y * 0.06;                          /* 6% de la hauteur */
+    const tolVol = 0.20;                                         /* 20% écart de volume max */
+
+    /* Features */
+    const F = meshes.map(m => {
+      const c = meshCentroidWorld(m);
+      const s = meshBboxSize(m);
+      return {
+        mesh: m,
+        c,
+        s,
+        vol: s.x * s.y * s.z,
+        dx: c.x - modelCenter.x,
+        dy: c.y - modelCenter.y,
+        dz: c.z - modelCenter.z,
+      };
+    });
+
+    /* Graphe d'adjacence : i lié à j si miroir */
+    const adj = F.map(() => new Set());
+    for (let i = 0; i < F.length; i++) {
+      for (let j = i + 1; j < F.length; j++) {
+        const a = F[i], b = F[j];
+        /* Volume similaire ? */
+        const dv = Math.abs(a.vol - b.vol) / Math.max(a.vol, b.vol, 1e-9);
+        if (dv > tolVol) continue;
+        /* Même tranche Y */
+        if (Math.abs(a.dy - b.dy) > tolYRel) continue;
+
+        const mirrorX = Math.abs(a.dx + b.dx) < tolPos && Math.abs(a.dz - b.dz) < tolPos;
+        const mirrorZ = Math.abs(a.dz + b.dz) < tolPos && Math.abs(a.dx - b.dx) < tolPos;
+        const mirrorXZ = Math.abs(a.dx + b.dx) < tolPos && Math.abs(a.dz + b.dz) < tolPos; /* diagonal */
+
+        if (mirrorX || mirrorZ || mirrorXZ) {
+          adj[i].add(j);
+          adj[j].add(i);
+        }
+      }
+    }
+
+    /* Composantes connexes */
+    const visited = new Set();
+    const components = [];
+    for (let i = 0; i < F.length; i++) {
+      if (visited.has(i)) continue;
+      const comp = [];
+      const stack = [i];
+      while (stack.length) {
+        const v = stack.pop();
+        if (visited.has(v)) continue;
+        visited.add(v);
+        comp.push(F[v].mesh);
+        adj[v].forEach(n => { if (!visited.has(n)) stack.push(n); });
+      }
+      components.push(comp);
+    }
+    return components;
+  }
+
+  /* ═══ TEMPLATES PAR CATÉGORIE ═══ */
+  /* Chaque template prend la liste des meshes + une fonction qui retourne
+     le ratio de hauteur Y (0=bas, 1=haut) et l'orientation.
+     Retourne un objet { labelGroup: [meshes...] }. */
+
+  function templateChaiseFauteuil(meshes, yPctOf, orientOf, sideOf, sizeRatioOf) {
+    const out = { 'Piétement': [], 'Assise': [], 'Dossier': [], 'Accoudoirs': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      const o = orientOf(m);
+      const side = sideOf(m);     /* 'center' | 'left' | 'right' */
+      const sr = sizeRatioOf(m);  /* ratio du volume par rapport au plus grand mesh */
+
+      /* Bas (0-30%) : piétement */
+      if (y < 0.30) {
+        out['Piétement'].push(m);
+      }
+      /* Milieu (30-55%) : assise (flat horizontal) ou structure */
+      else if (y < 0.55) {
+        if (o === 'flat') out['Assise'].push(m);
+        else if (side !== 'center' && sr < 0.4) out['Accoudoirs'].push(m);
+        else out['Assise'].push(m);
+      }
+      /* Haut (55%+) : dossier ou accoudoirs si latéral et petit */
+      else {
+        if (side !== 'center' && sr < 0.35) out['Accoudoirs'].push(m);
+        else out['Dossier'].push(m);
+      }
+    });
+    return out;
+  }
+
+  function templateCanape(meshes, yPctOf, orientOf, sideOf, sizeRatioOf) {
+    const out = { 'Piétement': [], 'Structure': [], 'Assise': [], 'Dossier': [], 'Accoudoirs': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      const o = orientOf(m);
+      const side = sideOf(m);
+      const sr = sizeRatioOf(m);
+
+      if (y < 0.15) {
+        out['Piétement'].push(m);
+      }
+      else if (y < 0.35) {
+        /* zone structure / assise basse */
+        if (o === 'flat') out['Assise'].push(m);
+        else out['Structure'].push(m);
+      }
+      else if (y < 0.65) {
+        /* assise + début accoudoirs */
+        if (side !== 'center' && sr < 0.45) out['Accoudoirs'].push(m);
+        else if (o === 'flat') out['Assise'].push(m);
+        else out['Assise'].push(m);
+      }
+      else {
+        /* haut : dossier ou accoudoirs hauts */
+        if (side !== 'center' && sr < 0.40) out['Accoudoirs'].push(m);
+        else out['Dossier'].push(m);
+      }
+    });
+    return out;
+  }
+
+  function templateTableBureau(meshes, yPctOf, orientOf, sideOf, sizeRatioOf) {
+    const out = { 'Plateau': [], 'Piétement': [], 'Tablette': [], 'Tiroirs': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      const o = orientOf(m);
+      const sr = sizeRatioOf(m);
+
+      /* Haut (>70%) flat horizontal : plateau */
+      if (y > 0.70 && o === 'flat') {
+        out['Plateau'].push(m);
+      }
+      /* Bas (<20%) : pieds ou base */
+      else if (y < 0.20) {
+        out['Piétement'].push(m);
+      }
+      /* Milieu, flat → tablette intermédiaire */
+      else if (o === 'flat' && y > 0.30 && y < 0.60) {
+        out['Tablette'].push(m);
+      }
+      /* Milieu, cube/épais et latéral : tiroirs (caisson) */
+      else if (o === 'cube' && y > 0.30 && y < 0.65 && sr > 0.10) {
+        out['Tiroirs'].push(m);
+      }
+      /* Reste vertical : piétement */
+      else {
+        out['Piétement'].push(m);
+      }
+    });
+    /* Si pas de Plateau trouvé mais que le mesh le plus haut est flat → l'utiliser */
+    if (out['Plateau'].length === 0) {
+      let topMesh = null, topY = -Infinity;
+      meshes.forEach(m => {
+        const y = yPctOf(m);
+        if (y > topY) { topY = y; topMesh = m; }
+      });
+      if (topMesh) {
+        /* Le retirer de son autre groupe */
+        Object.keys(out).forEach(k => { out[k] = out[k].filter(x => x !== topMesh); });
+        out['Plateau'].push(topMesh);
+      }
+    }
+    return out;
+  }
+
+  function templateTabouret(meshes, yPctOf, orientOf) {
+    const out = { 'Piétement': [], 'Assise': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      const o = orientOf(m);
+      if (y < 0.65) out['Piétement'].push(m);
+      else if (o === 'flat') out['Assise'].push(m);
+      else out['Assise'].push(m);
+    });
+    return out;
+  }
+
+  function templateEtagereBibliotheque(meshes, yPctOf, orientOf) {
+    const out = { 'Structure': [], 'Plateaux': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const o = orientOf(m);
+      if (o === 'flat') out['Plateaux'].push(m);
+      else out['Structure'].push(m);
+    });
+    return out;
+  }
+
+  function templateLit(meshes, yPctOf, orientOf, sideOf) {
+    const out = { 'Sommier': [], 'Tête de lit': [], 'Pieds': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      const o = orientOf(m);
+      if (y < 0.20) out['Pieds'].push(m);
+      else if (y > 0.55 && o === 'tall') out['Tête de lit'].push(m);
+      else out['Sommier'].push(m);
+    });
+    return out;
+  }
+
+  function templateLampe(meshes, yPctOf, sizeRatioOf) {
+    const out = { 'Socle': [], 'Pied': [], 'Abat-jour': [], 'Autres': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      if (y < 0.20) out['Socle'].push(m);
+      else if (y > 0.70) out['Abat-jour'].push(m);
+      else out['Pied'].push(m);
+    });
+    return out;
+  }
+
+  function templateGeneric(meshes, yPctOf) {
+    const out = { 'Partie basse': [], 'Partie milieu': [], 'Partie haute': [] };
+    meshes.forEach(m => {
+      const y = yPctOf(m);
+      if (y < 0.34) out['Partie basse'].push(m);
+      else if (y < 0.67) out['Partie milieu'].push(m);
+      else out['Partie haute'].push(m);
+    });
+    return out;
+  }
+
+  function pickTemplate(category) {
+    const c = String(category || '').toLowerCase();
+    if (/chaise|fauteuil/.test(c)) return { fn: templateChaiseFauteuil, name: 'Chaise / Fauteuil' };
+    if (/canap[éée]/.test(c))      return { fn: templateCanape,         name: 'Canapé' };
+    if (/table|bureau/.test(c))    return { fn: templateTableBureau,    name: 'Table / Bureau' };
+    if (/tabouret/.test(c))        return { fn: templateTabouret,       name: 'Tabouret' };
+    if (/[ée]tag[èe]re|biblio/.test(c)) return { fn: templateEtagereBibliotheque, name: 'Étagère / Bibliothèque' };
+    if (/lit/.test(c))             return { fn: templateLit,            name: 'Lit' };
+    if (/lampe|luminaire/.test(c)) return { fn: templateLampe,          name: 'Lampe / Luminaire' };
+    return { fn: templateGeneric, name: 'Générique (3 tranches)' };
+  }
+
+  /* ═══ FONCTION PRINCIPALE : Smart Segment ═══ */
+  function runSmartSegment(useSymmetryRefine) {
+    if (!currentObject) {
+      toast('Charge d\'abord un modèle 3D', 'err');
+      return null;
+    }
+
+    /* 1. Collecter meshes */
+    const meshes = [];
+    currentObject.traverse(o => { if (o.isMesh && o.geometry) meshes.push(o); });
+    if (meshes.length < 2) {
+      toast('Pas assez de meshes (' + meshes.length + ') pour segmenter', 'err');
+      return null;
+    }
+
+    /* 2. Calcul bbox globale */
+    currentObject.updateWorldMatrix(true, true);
+    const globalBox = new THREE.Box3().setFromObject(currentObject);
+    const modelSize = globalBox.getSize(new THREE.Vector3());
+    const modelCenter = globalBox.getCenter(new THREE.Vector3());
+
+    /* 3. Pré-calcul des features par mesh */
+    const minY = modelCenter.y - modelSize.y / 2;
+    const tolSide = modelSize.x * 0.10;
+
+    /* Pour size ratio relatif */
+    let maxVol = 0;
+    const volumes = new Map();
+    meshes.forEach(m => {
+      const s = meshBboxSize(m);
+      const v = s.x * s.y * s.z;
+      volumes.set(m, v);
+      if (v > maxVol) maxVol = v;
+    });
+
+    const yPctOf = (m) => {
+      const c = meshCentroidWorld(m);
+      return modelSize.y > 1e-6 ? (c.y - minY) / modelSize.y : 0.5;
+    };
+    const orientOf = (m) => meshOrientation(meshBboxSize(m));
+    const sideOf = (m) => {
+      const c = meshCentroidWorld(m);
+      const dx = c.x - modelCenter.x;
+      if (Math.abs(dx) < tolSide) return 'center';
+      return dx > 0 ? 'right' : 'left';
+    };
+    const sizeRatioOf = (m) => (volumes.get(m) || 0) / Math.max(maxVol, 1e-9);
+
+    /* 4. Récupérer la catégorie */
+    const cat = (document.querySelector('.tb-cat-info strong')?.textContent || '').trim();
+    const tpl = pickTemplate(cat);
+    console.log('[v52] template choisi:', tpl.name, '(catégorie:', cat, ')');
+
+    /* 5. Appliquer le template */
+    let groups = tpl.fn(meshes, yPctOf, orientOf, sideOf, sizeRatioOf);
+
+    /* 6. Optionnel : raffiner avec symétrie — fusionne les "vrais miroirs"
+       qui auraient été séparés par le template (peu probable mais possible) */
+    if (useSymmetryRefine) {
+      const symComps = buildSymmetryGroups(meshes, modelCenter, modelSize);
+      console.log('[v52] composantes de symétrie:', symComps.length);
+      /* Pour chaque composante symétrique : si elle est traversée par plusieurs
+         catégories du template, on regarde quelle catégorie domine (>50%) et on
+         y fait migrer le reste. */
+      symComps.forEach(comp => {
+        if (comp.length < 2) return;
+        const meshToGroup = new Map();
+        Object.entries(groups).forEach(([label, list]) => {
+          list.forEach(m => meshToGroup.set(m, label));
+        });
+        const labelCount = {};
+        comp.forEach(m => {
+          const lbl = meshToGroup.get(m);
+          if (lbl) labelCount[lbl] = (labelCount[lbl] || 0) + 1;
+        });
+        const dominant = Object.entries(labelCount).sort((a, b) => b[1] - a[1])[0];
+        if (!dominant) return;
+        if (dominant[1] / comp.length < 0.5) return;  /* ambigu, on ne fusionne pas */
+        const targetLabel = dominant[0];
+        comp.forEach(m => {
+          const lbl = meshToGroup.get(m);
+          if (lbl && lbl !== targetLabel) {
+            groups[lbl] = groups[lbl].filter(x => x !== m);
+            groups[targetLabel].push(m);
+          }
+        });
+      });
+    }
+
+    /* 7. Nettoyer les groupes vides */
+    const cleaned = {};
+    Object.entries(groups).forEach(([k, v]) => { if (v.length > 0) cleaned[k] = v; });
+
+    return { groups: cleaned, templateName: tpl.name };
+  }
+
+  /* ═══ APPLICATION : remplace les groupes courants ═══ */
+  function applyGroups(groups) {
+    /* Vider les groupes existants */
+    Object.keys(meshGroups).forEach(key => {
+      delete meshGroups[key];
+      delete partMaterials[key];
+      if (typeof partMaterialChoices !== 'undefined') delete partMaterialChoices[key];
+      if (typeof partProjection !== 'undefined') delete partProjection[key];
+    });
+    if (window._v21 && window._v21.customLabels) {
+      Object.keys(window._v21.customLabels).forEach(k => delete window._v21.customLabels[k]);
+    }
+    if (window._v36 && window._v36.hierarchy) {
+      Object.keys(window._v36.hierarchy).forEach(k => delete window._v36.hierarchy[k]);
+    }
+
+    /* Créer les nouveaux groupes */
+    const ts = Date.now().toString(36).slice(-4);
+    let totalMeshes = 0;
+    const entries = Object.entries(groups);
+    entries.forEach(([label, meshList], idx) => {
+      const key = '_seg_' + ts + '_' + idx;
+      meshGroups[key] = meshList.slice();
+      partMaterials[key] = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(idx / entries.length, 0.42, 0.55),
+        roughness: 0.7,
+        metalness: 0,
+      });
+      meshList.forEach(m => { m.material = partMaterials[key]; });
+      if (!window._v21) window._v21 = {};
+      if (!window._v21.customLabels) window._v21.customLabels = {};
+      window._v21.customLabels[key] = label;
+      totalMeshes += meshList.length;
+    });
+
+    /* Re-render tree */
+    if (window._v21 && window._v21.triggerTreeRender) {
+      window._v21.triggerTreeRender();
+    }
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    return { groupsCount: entries.length, meshesCount: totalMeshes };
+  }
+
+  /* ═══ DIALOG REPENSÉE ═══ */
+  let dialogEl = null;
+  function buildDialog() {
+    if (dialogEl) return dialogEl;
+    dialogEl = document.createElement('div');
+    dialogEl.className = 'v37-as-overlay';
+    dialogEl.innerHTML = `
+      <div class="v37-as-dialog" style="max-width:480px">
+        <h3 class="v37-as-title">Auto-segmenter</h3>
+        <p class="v37-as-desc">Découpe automatique du modèle en parties nommées.
+        <span id="v52CatBadge"></span><br>
+        <em style="font-size:11px;opacity:0.8">Remplace les groupes existants.</em></p>
+        <div class="v37-as-row" style="margin-bottom:6px">
+          <span class="v37-as-label">Mode</span>
+        </div>
+        <div class="v52-mode-grid">
+          <button class="v52-mode-btn v52-selected" data-mode="smart">
+            <span class="v52-mode-btn-title">⭐ Smart</span>
+            <span class="v52-mode-btn-sub">Template par catégorie + symétrie</span>
+          </button>
+          <button class="v52-mode-btn" data-mode="size+height">
+            <span class="v52-mode-btn-title">Taille + Hauteur</span>
+            <span class="v52-mode-btn-sub">K-means mixte (legacy)</span>
+          </button>
+          <button class="v52-mode-btn" data-mode="size">
+            <span class="v52-mode-btn-title">Taille</span>
+            <span class="v52-mode-btn-sub">Petits / Moyens / Grands</span>
+          </button>
+          <button class="v52-mode-btn" data-mode="height">
+            <span class="v52-mode-btn-title">Hauteur</span>
+            <span class="v52-mode-btn-sub">Bas / Milieu / Haut</span>
+          </button>
+        </div>
+        <div class="v37-as-row" id="v52KRow" style="display:none">
+          <span class="v37-as-label">Nombre de groupes</span>
+          <input type="number" class="v37-as-input" id="v52K" min="2" max="8" value="3">
+        </div>
+        <div class="v37-as-row">
+          <label class="v37-as-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="v52SymRefine" checked style="width:14px;height:14px;cursor:pointer">
+            <span style="text-transform:none;letter-spacing:0.02em;font-size:11px;font-weight:400">
+              Raffiner avec détection de symétrie
+              <span style="display:block;opacity:0.6;font-size:10px;font-style:italic;margin-top:2px">
+                Regroupe les éléments miroirs (pieds, accoudoirs)
+              </span>
+            </span>
+          </label>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="run">Segmenter</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialogEl);
+
+    /* Wire mode buttons */
+    dialogEl.querySelectorAll('.v52-mode-btn').forEach(btn => {
+      btn.onclick = () => {
+        dialogEl.querySelectorAll('.v52-mode-btn').forEach(b => b.classList.remove('v52-selected'));
+        btn.classList.add('v52-selected');
+        const mode = btn.dataset.mode;
+        const kRow = dialogEl.querySelector('#v52KRow');
+        const symRow = dialogEl.querySelector('#v52SymRefine').closest('.v37-as-row');
+        /* K visible seulement pour les modes legacy */
+        kRow.style.display = (mode === 'smart') ? 'none' : 'flex';
+        /* Symétrie pertinente uniquement pour Smart */
+        symRow.style.display = (mode === 'smart') ? 'flex' : 'none';
+      };
+    });
+
+    /* Cancel */
+    dialogEl.querySelector('[data-act="cancel"]').onclick = () => dialogEl.classList.remove('v37-show');
+    /* Backdrop click */
+    dialogEl.addEventListener('click', (e) => {
+      if (e.target === dialogEl) dialogEl.classList.remove('v37-show');
+    });
+    /* Run */
+    dialogEl.querySelector('[data-act="run"]').onclick = () => {
+      const mode = dialogEl.querySelector('.v52-mode-btn.v52-selected').dataset.mode;
+      dialogEl.classList.remove('v37-show');
+      executeSegmentation(mode);
+    };
+    return dialogEl;
+  }
+
+  function executeSegmentation(mode) {
+    if (mode === 'smart') {
+      const useSym = dialogEl.querySelector('#v52SymRefine').checked;
+      const r = runSmartSegment(useSym);
+      if (!r) return;
+      if (!confirm(
+        'Remplacer TOUS les groupes actuels par ' + Object.keys(r.groups).length +
+        ' nouveaux groupes (template "' + r.templateName + '") ?'
+      )) return;
+      const applied = applyGroups(r.groups);
+      toast(`Segmenté en ${applied.groupsCount} parties · ${applied.meshesCount} mailles · template "${r.templateName}"`, 'ok', 5500);
+    } else {
+      /* Modes legacy : déléguer à v37 si dispo */
+      const k = Math.max(2, Math.min(8, parseInt(dialogEl.querySelector('#v52K').value) || 3));
+      if (!confirm('Remplacer TOUS les groupes actuels par ' + k + ' clusters ?')) return;
+      if (window._v37 && typeof window._v37.runAutoSegment === 'function') {
+        window._v37.runAutoSegment(k, mode);
+      } else {
+        toast('Mode legacy indisponible — v37 manquant', 'err');
+      }
+    }
+  }
+
+  function showDialog() {
+    buildDialog();
+    /* Mettre à jour le badge catégorie */
+    const cat = (document.querySelector('.tb-cat-info strong')?.textContent || '').trim();
+    const badge = dialogEl.querySelector('#v52CatBadge');
+    if (badge) {
+      const tpl = pickTemplate(cat);
+      badge.innerHTML = `<span class="v52-badge-cat">${cat || '—'}</span>` +
+        `<span style="font-size:10px;opacity:0.7;margin-left:6px">→ ${tpl.name}</span>`;
+    }
+    dialogEl.classList.add('v37-show');
+  }
+
+  /* ═══ INSTALLATION : remplace l'onclick d'Auto-segmenter ═══ */
+  function rewireAutoSegmentButton() {
+    const btn = [...document.querySelectorAll('.btn-secondary-bottom')]
+      .find(b => /auto-?segment/i.test(b.textContent || ''));
+    if (!btn) { setTimeout(rewireAutoSegmentButton, 700); return; }
+    btn.onclick = (e) => {
+      e && e.preventDefault();
+      e && e.stopPropagation();
+      showDialog();
+    };
+  }
+  rewireAutoSegmentButton();
+  [800, 2000, 4000].forEach(d => setTimeout(rewireAutoSegmentButton, d));
+
+  /* Expose */
+  window._v52.run = runSmartSegment;
+  window._v52.apply = applyGroups;
+  window._v52.show = showDialog;
+  window._v52.pickTemplate = pickTemplate;
+
+  console.log('[studio v52] auto-segmenter v2 (Smart + templates par catégorie + symétrie) ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v53 — MESH TOOL v2 (multi-sélection + déplacer + frères de groupe)
+   ─────────────────────────────────────────────────────────────────────────
+   Améliore l'outil Mesh v37 (sélection mesh-par-mesh + isolation) avec :
+   - Multi-sélection : clic simple sélectionne, Shift+clic ajoute, Cmd+clic
+     toggle, Esc clear
+   - Compteur dans l'overlay : "3 mailles sélectionnées"
+   - Action "Isoler N mailles dans un nouveau groupe" (au lieu d'un par un)
+   - Action "Déplacer vers..." avec dropdown de tous les groupes existants
+   - Highlight visuel doré sur les meshes sélectionnés + bleu pâle sur les
+     "frères de groupe" (= autres meshes du même groupe que la dernière
+     sélection, pour comprendre le découpage actuel)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v53MeshTool() {
+  if (window.__v53Init) return;
+  window.__v53Init = true;
+  if (!window._v37) { console.warn('[v53] _v37 manquant, abort'); return; }
+
+  window._v53 = {
+    selectedMeshes: new Set(),   /* meshes actuellement sélectionnés */
+    siblingMeshes: new Set(),    /* meshes du même groupe (highlight bleu) */
+    savedMaterials: new Map(),   /* mesh -> material original */
+    siblingSavedMaterials: new Map(),
+    overlayEl: null,
+  };
+  const S = window._v53;
+
+  /* ───── CSS additionnel ───── */
+  const css = `
+    .v53-overlay {
+      min-width: 280px;
+      gap: 0 !important;
+      padding: 10px 12px !important;
+    }
+    .v53-overlay-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    .v53-overlay-counter {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 14px;
+      color: rgba(255,255,255,0.95);
+      flex: 1;
+    }
+    .v53-overlay-counter b {
+      color: var(--gold, #B8965A);
+      font-style: normal;
+      font-weight: 600;
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      margin-right: 3px;
+    }
+    .v53-overlay-hint {
+      font-size: 9px;
+      color: rgba(255,255,255,0.55);
+      font-family: 'Jost', sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      flex: 1;
+      text-align: right;
+    }
+    .v53-overlay-actions {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+    }
+    .v53-action-btn {
+      flex: 1;
+      padding: 7px 10px;
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border: none;
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+      transition: filter 0.15s;
+      white-space: nowrap;
+    }
+    .v53-action-btn:hover { filter: brightness(1.1); }
+    .v53-action-btn.v53-secondary {
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .v53-action-btn.v53-secondary:hover {
+      color: #fff;
+      border-color: rgba(255,255,255,0.5);
+      filter: none;
+    }
+    .v53-action-btn.v53-cancel {
+      flex: 0 0 30px;
+      padding: 7px 0;
+    }
+    .v53-move-menu {
+      position: fixed;
+      background: var(--ink, #2A2620);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.32);
+      padding: 4px 0;
+      min-width: 220px;
+      max-height: 360px;
+      overflow-y: auto;
+      z-index: 9999;
+      display: none;
+    }
+    .v53-move-menu.v53-show { display: block; }
+    .v53-move-item {
+      padding: 8px 14px;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      color: rgba(255,255,255,0.88);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.12s;
+    }
+    .v53-move-item:hover {
+      background: rgba(184, 150, 90, 0.20);
+      color: #fff;
+    }
+    .v53-move-item.v53-current {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .v53-move-item.v53-current:hover { background: transparent; }
+    .v53-move-sep {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 4px 0;
+    }
+    .v53-move-head {
+      padding: 6px 14px 4px;
+      font-size: 9px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+      font-weight: 600;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v53', 'mesh-tool-v2');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ HELPERS HIGHLIGHT ═══ */
+  function highlightSelected(mesh) {
+    if (!mesh || !mesh.material) return;
+    if (S.savedMaterials.has(mesh)) return;
+    S.savedMaterials.set(mesh, mesh.material);
+    const m = mesh.material.clone();
+    if (m.emissive) {
+      m.emissive = new THREE.Color(0xB8965A);
+      m.emissiveIntensity = 0.65;
+    }
+    mesh.material = m;
+  }
+  function unhighlightSelected(mesh) {
+    const orig = S.savedMaterials.get(mesh);
+    if (orig) mesh.material = orig;
+    S.savedMaterials.delete(mesh);
+  }
+  function highlightSibling(mesh) {
+    if (!mesh || !mesh.material) return;
+    if (S.siblingSavedMaterials.has(mesh)) return;
+    if (S.savedMaterials.has(mesh)) return; /* déjà sélectionné, prioritaire */
+    S.siblingSavedMaterials.set(mesh, mesh.material);
+    const m = mesh.material.clone();
+    if (m.emissive) {
+      m.emissive = new THREE.Color(0x4682CC);   /* bleu pâle */
+      m.emissiveIntensity = 0.25;
+    }
+    mesh.material = m;
+  }
+  function unhighlightSibling(mesh) {
+    const orig = S.siblingSavedMaterials.get(mesh);
+    if (orig) mesh.material = orig;
+    S.siblingSavedMaterials.delete(mesh);
+  }
+  function clearAllHighlights() {
+    S.savedMaterials.forEach((mat, mesh) => { mesh.material = mat; });
+    S.savedMaterials.clear();
+    S.siblingSavedMaterials.forEach((mat, mesh) => { mesh.material = mat; });
+    S.siblingSavedMaterials.clear();
+    S.selectedMeshes.clear();
+    S.siblingMeshes.clear();
+  }
+
+  /* Trouve le groupe parent d'un mesh */
+  function getGroupOfMesh(mesh) {
+    for (const [k, meshes] of Object.entries(meshGroups)) {
+      if (meshes.includes(mesh)) return k;
+    }
+    return null;
+  }
+
+  /* Met à jour les frères de groupe (meshes du même groupe que le dernier sélectionné) */
+  function refreshSiblings() {
+    /* Reset les frères actuels */
+    S.siblingSavedMaterials.forEach((mat, mesh) => { mesh.material = mat; });
+    S.siblingSavedMaterials.clear();
+    S.siblingMeshes.clear();
+
+    if (S.selectedMeshes.size === 0) return;
+
+    /* Prendre le dernier mesh sélectionné comme référence */
+    const last = [...S.selectedMeshes].pop();
+    const groupKey = getGroupOfMesh(last);
+    if (!groupKey) return;
+    const groupMeshes = meshGroups[groupKey] || [];
+    groupMeshes.forEach(m => {
+      if (m === last) return;
+      if (S.selectedMeshes.has(m)) return;
+      S.siblingMeshes.add(m);
+      highlightSibling(m);
+    });
+  }
+
+  /* ═══ OVERLAY UI ═══ */
+  function buildOverlay() {
+    if (S.overlayEl) return S.overlayEl;
+    S.overlayEl = document.createElement('div');
+    S.overlayEl.className = 'v37-mesh-overlay v53-overlay';
+    S.overlayEl.innerHTML = `
+      <div class="v53-overlay-top">
+        <div class="v53-overlay-counter" id="v53Counter">—</div>
+        <div class="v53-overlay-hint">Shift / ⌘ pour ajouter</div>
+      </div>
+      <div class="v53-overlay-actions">
+        <button class="v53-action-btn" data-act="isolate">📎 Isoler dans nouveau groupe</button>
+        <button class="v53-action-btn v53-secondary" data-act="move">↳ Déplacer vers…</button>
+        <button class="v53-action-btn v53-cancel" data-act="clear" title="Tout désélectionner (Esc)">✕</button>
+      </div>
+    `;
+    document.body.appendChild(S.overlayEl);
+    S.overlayEl.querySelector('[data-act="isolate"]').onclick = isolateSelection;
+    S.overlayEl.querySelector('[data-act="move"]').onclick = (e) => showMoveMenu(e.target.getBoundingClientRect());
+    S.overlayEl.querySelector('[data-act="clear"]').onclick = clearSelection;
+    return S.overlayEl;
+  }
+  function showOverlay() {
+    buildOverlay();
+    S.overlayEl.classList.add('v37-show');
+  }
+  function hideOverlay() {
+    if (S.overlayEl) S.overlayEl.classList.remove('v37-show');
+  }
+  function updateOverlay() {
+    if (!S.overlayEl) return;
+    const n = S.selectedMeshes.size;
+    const counter = S.overlayEl.querySelector('#v53Counter');
+    if (counter) {
+      if (n === 1) {
+        const m = [...S.selectedMeshes][0];
+        const meshName = (m.name || '(sans nom)').slice(0, 30);
+        const groupKey = getGroupOfMesh(m);
+        const groupLabel = groupKey
+          ? (window._v21?.customLabels?.[groupKey] || groupKey)
+          : '—';
+        counter.innerHTML = `<b>1</b> maille · "${escapeHtml(meshName)}" <span style="opacity:0.55;font-size:10px">∈ ${escapeHtml(groupLabel)}</span>`;
+      } else {
+        counter.innerHTML = `<b>${n}</b> mailles sélectionnées`;
+      }
+    }
+    /* Actions disabled selon contexte */
+    const moveBtn = S.overlayEl.querySelector('[data-act="move"]');
+    if (moveBtn) moveBtn.disabled = (n === 0);
+    const isoBtn = S.overlayEl.querySelector('[data-act="isolate"]');
+    if (isoBtn) {
+      isoBtn.disabled = (n === 0);
+      isoBtn.textContent = n > 1
+        ? `📎 Isoler ${n} mailles dans nouveau groupe`
+        : '📎 Isoler dans nouveau groupe';
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ═══ ACTIONS ═══ */
+  function clearSelection() {
+    clearAllHighlights();
+    hideOverlay();
+  }
+
+  function isolateSelection() {
+    if (S.selectedMeshes.size === 0) return;
+    const meshes = [...S.selectedMeshes];
+
+    /* Retirer les meshes de leurs groupes parents */
+    const affectedParents = new Set();
+    meshes.forEach(m => {
+      const parent = getGroupOfMesh(m);
+      if (parent) {
+        affectedParents.add(parent);
+        meshGroups[parent] = meshGroups[parent].filter(x => x !== m);
+      }
+    });
+
+    /* Supprimer les parents devenus vides */
+    affectedParents.forEach(p => {
+      if ((meshGroups[p] || []).length === 0) {
+        delete meshGroups[p];
+        delete partMaterials[p];
+        if (typeof partMaterialChoices !== 'undefined') delete partMaterialChoices[p];
+        if (typeof partProjection !== 'undefined') delete partProjection[p];
+        if (window._v21?.customLabels) delete window._v21.customLabels[p];
+      }
+    });
+
+    /* Restaurer les matériaux d'origine avant de créer le nouveau groupe */
+    meshes.forEach(m => {
+      const orig = S.savedMaterials.get(m);
+      if (orig) m.material = orig;
+    });
+    S.savedMaterials.clear();
+    S.siblingSavedMaterials.forEach((mat, m) => { m.material = mat; });
+    S.siblingSavedMaterials.clear();
+
+    /* Créer le nouveau groupe : clone le matériau du premier parent affecté */
+    const ts = Date.now().toString(36).slice(-4);
+    const newKey = '_iso_' + ts + '_' + Math.floor(Math.random() * 99);
+    const firstParent = [...affectedParents][0];
+    const sourceMat = firstParent && partMaterials[firstParent];
+    const newMat = (sourceMat && typeof sourceMat.clone === 'function')
+      ? sourceMat.clone()
+      : new THREE.MeshStandardMaterial({ color: 0xB8965A, roughness: 0.7, metalness: 0 });
+    partMaterials[newKey] = newMat;
+    meshGroups[newKey] = meshes;
+    meshes.forEach(m => { m.material = newMat; });
+
+    /* Label */
+    if (!window._v21) window._v21 = {};
+    if (!window._v21.customLabels) window._v21.customLabels = {};
+    const isoCount = Object.keys(window._v21.customLabels)
+      .filter(k => /^Mailles isolées|^Mesh isolé/.test(window._v21.customLabels[k] || ''))
+      .length + 1;
+    const label = meshes.length > 1
+      ? `Mailles isolées ${isoCount} (${meshes.length})`
+      : `Mesh isolé ${isoCount}`;
+    window._v21.customLabels[newKey] = label;
+
+    /* Clear UI */
+    S.selectedMeshes.clear();
+    S.siblingMeshes.clear();
+    hideOverlay();
+    if (window._v37 && window._v37.exitMeshMode) window._v37.exitMeshMode();
+
+    /* Re-render tree */
+    if (typeof triggerTreeRender === 'function') triggerTreeRender();
+
+    /* Sélectionner le nouveau groupe */
+    setTimeout(() => {
+      if (window._v21 && typeof window._v21.selectPartMulti === 'function') {
+        window._v21.selectPartMulti(newKey, 'set');
+      } else if (typeof selectPartReal === 'function') {
+        selectPartReal(newKey);
+      }
+    }, 120);
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    toast(`${meshes.length} maille${meshes.length > 1 ? 's' : ''} isolée${meshes.length > 1 ? 's' : ''} dans "${label}"`, 'ok', 4000);
+  }
+
+  /* ═══ MENU "DÉPLACER VERS…" ═══ */
+  let moveMenuEl = null;
+  function buildMoveMenu() {
+    if (moveMenuEl) return moveMenuEl;
+    moveMenuEl = document.createElement('div');
+    moveMenuEl.className = 'v53-move-menu';
+    document.body.appendChild(moveMenuEl);
+    document.addEventListener('click', (e) => {
+      if (!moveMenuEl.contains(e.target) &&
+          !e.target.closest('[data-act="move"]')) {
+        moveMenuEl.classList.remove('v53-show');
+      }
+    });
+    return moveMenuEl;
+  }
+
+  function showMoveMenu(anchorRect) {
+    buildMoveMenu();
+    /* Collecter les groupes existants */
+    const meshes = [...S.selectedMeshes];
+    if (meshes.length === 0) return;
+    const currentParents = new Set(meshes.map(m => getGroupOfMesh(m)).filter(Boolean));
+
+    const allKeys = Object.keys(meshGroups);
+    /* Item "Nouveau groupe" en tête */
+    let html = `<div class="v53-move-head">Destination</div>`;
+    html += `<div class="v53-move-item" data-target="__new__">+ Nouveau groupe</div>`;
+    if (allKeys.length > 0) {
+      html += `<div class="v53-move-sep"></div>`;
+      html += `<div class="v53-move-head">Groupes existants</div>`;
+      allKeys.forEach(k => {
+        const label = (window._v21?.customLabels?.[k]) ||
+                      (typeof prettyLabel === 'function' ? prettyLabel(k) : k);
+        const count = (meshGroups[k] || []).length;
+        const isCurrent = currentParents.has(k) && currentParents.size === 1;
+        html += `<div class="v53-move-item ${isCurrent ? 'v53-current' : ''}" data-target="${escapeHtml(k)}">
+          ${escapeHtml(label)} <span style="opacity:0.5;font-size:10px">· ${count}</span>
+          ${isCurrent ? '<span style="opacity:0.6;font-size:9px;margin-left:6px">(actuel)</span>' : ''}
+        </div>`;
+      });
+    }
+    moveMenuEl.innerHTML = html;
+    /* Position : au-dessus du bouton "Déplacer" */
+    const x = Math.max(8, Math.min(anchorRect.left, window.innerWidth - 240));
+    const y = anchorRect.top - 8;
+    moveMenuEl.style.left = x + 'px';
+    moveMenuEl.style.top = y + 'px';
+    moveMenuEl.style.transform = 'translateY(-100%)';
+    moveMenuEl.classList.add('v53-show');
+
+    moveMenuEl.querySelectorAll('.v53-move-item').forEach(item => {
+      if (item.classList.contains('v53-current')) return;
+      item.onclick = () => {
+        const target = item.dataset.target;
+        moveMenuEl.classList.remove('v53-show');
+        if (target === '__new__') {
+          isolateSelection();
+        } else {
+          moveToExistingGroup(target);
+        }
+      };
+    });
+  }
+
+  function moveToExistingGroup(targetKey) {
+    if (!meshGroups[targetKey]) {
+      toast('Groupe cible introuvable', 'err'); return;
+    }
+    const meshes = [...S.selectedMeshes];
+
+    /* Retirer des parents actuels */
+    const affectedParents = new Set();
+    meshes.forEach(m => {
+      const parent = getGroupOfMesh(m);
+      if (parent && parent !== targetKey) {
+        affectedParents.add(parent);
+        meshGroups[parent] = meshGroups[parent].filter(x => x !== m);
+      }
+    });
+
+    /* Supprimer parents vides */
+    affectedParents.forEach(p => {
+      if ((meshGroups[p] || []).length === 0) {
+        delete meshGroups[p];
+        delete partMaterials[p];
+        if (typeof partMaterialChoices !== 'undefined') delete partMaterialChoices[p];
+        if (typeof partProjection !== 'undefined') delete partProjection[p];
+        if (window._v21?.customLabels) delete window._v21.customLabels[p];
+      }
+    });
+
+    /* Restaurer matériaux d'origine */
+    meshes.forEach(m => {
+      const orig = S.savedMaterials.get(m);
+      if (orig) m.material = orig;
+    });
+    S.savedMaterials.clear();
+    S.siblingSavedMaterials.forEach((mat, m) => { m.material = mat; });
+    S.siblingSavedMaterials.clear();
+
+    /* Ajouter au groupe cible et appliquer son matériau */
+    meshes.forEach(m => {
+      if (!meshGroups[targetKey].includes(m)) meshGroups[targetKey].push(m);
+      m.material = partMaterials[targetKey];
+    });
+
+    /* Clear UI */
+    S.selectedMeshes.clear();
+    S.siblingMeshes.clear();
+    hideOverlay();
+    if (window._v37 && window._v37.exitMeshMode) window._v37.exitMeshMode();
+
+    if (typeof triggerTreeRender === 'function') triggerTreeRender();
+    setTimeout(() => {
+      if (window._v21 && typeof window._v21.selectPartMulti === 'function') {
+        window._v21.selectPartMulti(targetKey, 'set');
+      }
+    }, 120);
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty();
+    const targetLabel = (window._v21?.customLabels?.[targetKey]) || targetKey;
+    toast(`${meshes.length} maille${meshes.length > 1 ? 's' : ''} déplacée${meshes.length > 1 ? 's' : ''} vers "${targetLabel}"`, 'ok', 4000);
+  }
+
+  /* ═══ HANDLER CLIC EN MODE MESH ═══ */
+  /* On INTERCEPTE le clic AVANT v37 (capture phase) pour gérer la multi-sélection.
+     v37 a son propre handler qui isole un seul mesh ; ici on prend le contrôle. */
+  function handleMeshClick(e) {
+    if (!currentObject) return;
+    if (!window._v37 || window._v37.mode !== 'mesh') return;
+
+    const canvas = document.querySelector('#vpScene canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    mouseNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+    mouseNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObject(currentObject, true).filter(h => h.object.visible);
+    if (hits.length === 0) return;
+    const mesh = hits[0].object;
+
+    const isAdd = e.shiftKey;
+    const isToggle = e.metaKey || e.ctrlKey;
+
+    if (isAdd) {
+      /* Ajouter à la sélection */
+      if (!S.selectedMeshes.has(mesh)) {
+        S.selectedMeshes.add(mesh);
+        /* Retirer de sibling si c'était dedans */
+        if (S.siblingMeshes.has(mesh)) {
+          unhighlightSibling(mesh);
+          S.siblingMeshes.delete(mesh);
+        }
+        highlightSelected(mesh);
+      }
+    } else if (isToggle) {
+      /* Toggle */
+      if (S.selectedMeshes.has(mesh)) {
+        S.selectedMeshes.delete(mesh);
+        unhighlightSelected(mesh);
+      } else {
+        S.selectedMeshes.add(mesh);
+        if (S.siblingMeshes.has(mesh)) {
+          unhighlightSibling(mesh);
+          S.siblingMeshes.delete(mesh);
+        }
+        highlightSelected(mesh);
+      }
+    } else {
+      /* Sélection simple : remplace tout */
+      clearAllHighlights();
+      S.selectedMeshes.add(mesh);
+      highlightSelected(mesh);
+    }
+
+    refreshSiblings();
+    if (S.selectedMeshes.size > 0) {
+      showOverlay();
+      updateOverlay();
+    } else {
+      hideOverlay();
+    }
+  }
+
+  /* Câblage en phase capture, mousedown + mouseup pour distinguer clic du drag */
+  let mdInfo = null;
+  function attachCanvasHandlers() {
+    const canvas = document.querySelector('#vpScene canvas');
+    if (!canvas) { setTimeout(attachCanvasHandlers, 500); return; }
+    if (canvas.dataset.v53 === '1') return;
+    canvas.dataset.v53 = '1';
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (window._v37?.mode !== 'mesh') return;
+      mdInfo = { x: e.clientX, y: e.clientY, t: Date.now() };
+    }, true);
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (window._v37?.mode !== 'mesh') return;
+      if (!mdInfo) return;
+      const dt = Date.now() - mdInfo.t;
+      const dx = Math.abs(e.clientX - mdInfo.x);
+      const dy = Math.abs(e.clientY - mdInfo.y);
+      mdInfo = null;
+      if (dt > 300 || dx > 4 || dy > 4) return;
+      /* On bloque le handler v37 (qui isole tout de suite) en stoppant la
+         propagation — v53 prend la main */
+      e.stopImmediatePropagation();
+      handleMeshClick(e);
+    }, true);
+  }
+  attachCanvasHandlers();
+  [600, 1500, 3500].forEach(d => setTimeout(attachCanvasHandlers, d));
+
+  /* Quand on sort du mode Mesh, on clear tout */
+  if (window._v37 && window._v37.exitMeshMode) {
+    const orig = window._v37.exitMeshMode;
+    window._v37.exitMeshMode = function() {
+      clearAllHighlights();
+      hideOverlay();
+      return orig.apply(this, arguments);
+    };
+  }
+
+  /* Esc clear */
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window._v37?.mode === 'mesh' && S.selectedMeshes.size > 0) {
+      e.stopPropagation();
+      clearSelection();
+    }
+  }, true);
+
+  /* Expose */
+  window._v53.clearSelection = clearSelection;
+  window._v53.isolateSelection = isolateSelection;
+  window._v53.moveTo = moveToExistingGroup;
+
+  console.log('[studio v53] mesh tool v2 (multi-sélection + déplacer + frères) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
