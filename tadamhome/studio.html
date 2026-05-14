@@ -14974,6 +14974,1045 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 })();
 
 
+
+/* ════════════════════════════════════════════════════════════════════════
+   v50 — BOUTON AR LIVE (preview AR depuis le studio)
+   ─────────────────────────────────────────────────────────────────────────
+   - Détection device : iOS Quick Look, Android Scene Viewer, Desktop QR
+   - Cache par hash matériaux : skip ré-export si rien n'a changé
+   - Export ciblé : uniquement la variante actuellement visible
+   - Storage path dédié : products/{id}/preview/{vId}-{hash}.{glb,usdz}
+     (séparé des exports de publication pour ne pas écraser model.glb)
+   - 2 points d'entrée : topbar (à droite de Sauvegardé) + rightpanel (bas)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v50ARLive() {
+  if (window.__v50Init) return;
+  window.__v50Init = true;
+
+  window._v50 = {
+    cache: {},          /* "vId:hash" -> { glbUrl, usdzUrl, ts } */
+    isGenerating: false,
+    qrLib: null,        /* lazy-loaded qrcode lib */
+  };
+
+  const BUCKET = 'models';
+
+  /* ───── Détection device ───── */
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid;
+  console.log('[v50] device →', isIOS ? 'iOS' : (isAndroid ? 'Android' : 'Desktop'));
+
+  /* ───── CSS ───── */
+  const css = `
+    /* Bouton AR dans la topbar (à côté de Sauvegardé) */
+    .v50-ar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      height: 34px;
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border: 1px solid var(--gold, #B8965A);
+      cursor: pointer;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      transition: filter 0.15s, transform 0.08s, opacity 0.15s;
+      flex-shrink: 0;
+      border-radius: 0;
+      white-space: nowrap;
+    }
+    .v50-ar-btn:hover:not(:disabled) { filter: brightness(1.10); }
+    .v50-ar-btn:active:not(:disabled) { transform: scale(0.97); }
+    .v50-ar-btn:disabled {
+      background: transparent;
+      color: var(--ink-muted, #9C9388);
+      border-color: var(--line, #D8D2C7);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .v50-ar-btn svg { width: 14px; height: 14px; }
+    .v50-ar-btn-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      display: inline-block;
+    }
+
+    /* Bouton AR dans le rightpanel (en bas du panneau matériau) */
+    .v50-ar-btn-rp {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: calc(100% - 36px);
+      margin: 14px 18px 18px;
+      padding: 13px 20px;
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      transition: filter 0.15s, transform 0.08s;
+    }
+    .v50-ar-btn-rp:hover:not(:disabled) { filter: brightness(1.10); }
+    .v50-ar-btn-rp:active:not(:disabled) { transform: scale(0.99); }
+    .v50-ar-btn-rp:disabled {
+      background: transparent;
+      color: var(--ink-muted, #9C9388);
+      border: 1px dashed var(--line, #D8D2C7);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .v50-ar-btn-rp svg { width: 16px; height: 16px; }
+
+    /* Overlay loading */
+    .v50-overlay {
+      position: fixed; inset: 0;
+      background: rgba(27, 24, 20, 0.84);
+      z-index: 99500;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .v50-overlay.v50-show { opacity: 1; pointer-events: auto; }
+    .v50-card {
+      background: var(--bg, #F5F2EC);
+      padding: 40px 44px;
+      max-width: 440px;
+      width: 88vw;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    .v50-eyebrow {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold, #B8965A);
+      margin-bottom: 14px;
+    }
+    .v50-title {
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      margin-bottom: 10px;
+      min-height: 16px;
+    }
+    .v50-sub {
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 22px;
+      min-height: 18px;
+    }
+    .v50-progress {
+      height: 3px;
+      background: rgba(184, 150, 90, 0.18);
+      overflow: hidden;
+    }
+    .v50-progress-fill {
+      height: 100%;
+      background: var(--gold, #B8965A);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(.4,.2,.2,1);
+    }
+    .v50-overlay.v50-error .v50-progress-fill { background: var(--danger, #B5483A); }
+    .v50-overlay.v50-error .v50-eyebrow { color: var(--danger, #B5483A); }
+
+    /* Modal QR Code (desktop) */
+    .v50-qr-modal {
+      background: var(--bg, #F5F2EC);
+      padding: 36px 40px;
+      max-width: 380px;
+      width: 88vw;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    .v50-qr-eyebrow {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold, #B8965A);
+      margin-bottom: 10px;
+    }
+    .v50-qr-title {
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--ink, #2A2620);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .v50-qr-box {
+      display: flex;
+      justify-content: center;
+      margin: 0 auto 22px;
+    }
+    .v50-qr-box canvas, .v50-qr-box img {
+      display: block;
+      width: 240px;
+      height: 240px;
+      background: white;
+      padding: 12px;
+      box-sizing: content-box;
+    }
+    .v50-qr-hint {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.75;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .v50-qr-close {
+      background: transparent;
+      border: 1px solid var(--line, #D8D2C7);
+      color: var(--ink, #2A2620);
+      padding: 9px 22px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .v50-qr-close:hover {
+      border-color: var(--ink, #2A2620);
+      color: var(--ink, #2A2620);
+    }
+
+    /* Lien <a rel="ar"> pour iOS Quick Look — invisible */
+    .v50-ios-ar-link {
+      position: fixed;
+      bottom: -1000px;
+      left: -1000px;
+      opacity: 0;
+      pointer-events: none;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v50', 'ar-live');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ Hash matériaux — fingerprint léger, FNV-1a 32-bit ═══ */
+  function hashMaterials(state) {
+    if (!state) return '';
+    /* On hash : parts + transform + dimensions, pour capter tout ce qui
+       impacte le rendu AR (apparence + position) */
+    const data = {
+      parts: state.parts || {},
+      transform: state.transform || null,
+      dimensions: state.dimensions || null,
+      hierarchy: state.hierarchy || null,
+    };
+    let json;
+    try { json = JSON.stringify(data); }
+    catch (e) { return ''; }
+    let h = 2166136261;
+    for (let i = 0; i < json.length; i++) {
+      h ^= json.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+  }
+
+  /* ═══ Récupère l'état courant + hash ═══ */
+  function currentSnapshot() {
+    const productId = window._v18 && window._v18.productId;
+    const variantId = (window._v25 && window._v25.activeVariantId) || 'base';
+    let state;
+    if (variantId === 'base') {
+      state = (window._v18 && window._v18.serializeStudioState)
+        ? window._v18.serializeStudioState()
+        : (window._v18 && window._v18.productRow && window._v18.productRow.studio_state) || {};
+    } else {
+      const v = window._v25 && window._v25.variants &&
+                window._v25.variants.find(x => x.id === variantId);
+      state = (v && v.studio_state) || {};
+    }
+    return {
+      productId,
+      variantId,
+      hash: hashMaterials(state),
+    };
+  }
+
+  /* ═══ Overlay helpers ═══ */
+  let overlayEl = null;
+  function buildOverlay() {
+    if (overlayEl) return overlayEl;
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'v50-overlay';
+    overlayEl.innerHTML = `
+      <div class="v50-card">
+        <div class="v50-eyebrow">Réalité augmentée</div>
+        <div class="v50-title" id="v50T">Préparation</div>
+        <div class="v50-sub" id="v50S">Vérification du cache…</div>
+        <div class="v50-progress"><div class="v50-progress-fill" id="v50F"></div></div>
+      </div>
+    `;
+    document.body.appendChild(overlayEl);
+    return overlayEl;
+  }
+  function showOverlay() {
+    buildOverlay();
+    overlayEl.classList.remove('v50-error');
+    overlayEl.classList.add('v50-show');
+  }
+  function updateOverlay(title, sub, ratio, isError) {
+    if (!overlayEl) return;
+    if (title !== undefined) overlayEl.querySelector('#v50T').textContent = title;
+    if (sub !== undefined) overlayEl.querySelector('#v50S').textContent = sub;
+    if (typeof ratio === 'number') {
+      const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+      overlayEl.querySelector('#v50F').style.width = pct + '%';
+    }
+    if (isError) overlayEl.classList.add('v50-error');
+  }
+  function hideOverlay() {
+    if (overlayEl) overlayEl.classList.remove('v50-show');
+  }
+
+  /* ═══ Exporters lazy ═══ */
+  let _exp = {};
+  async function getExp(format) {
+    if (_exp[format]) return _exp[format];
+    if (format === 'glb') {
+      const mod = await import('three/addons/exporters/GLTFExporter.js');
+      _exp.glb = new mod.GLTFExporter();
+    } else if (format === 'usdz') {
+      const mod = await import('three/addons/exporters/USDZExporter.js');
+      _exp.usdz = new mod.USDZExporter();
+    } else {
+      throw new Error('Format inconnu: ' + format);
+    }
+    return _exp[format];
+  }
+
+  async function genBlob(format) {
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      throw new Error('Aucun modèle 3D chargé');
+    }
+    if (format === 'glb') {
+      const exporter = await getExp('glb');
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        exporter.parse(currentObject, resolve, reject,
+          { binary: true, embedImages: true, onlyVisible: true });
+      });
+      return { blob: new Blob([arrayBuffer], { type: 'model/gltf-binary' }), mime: 'model/gltf-binary' };
+    }
+    if (format === 'usdz') {
+      const exporter = await getExp('usdz');
+      const u8 = await exporter.parse(currentObject);
+      return { blob: new Blob([u8], { type: 'model/vnd.usdz+zip' }), mime: 'model/vnd.usdz+zip' };
+    }
+    throw new Error('Format non supporté: ' + format);
+  }
+
+  /* ═══ Upload Storage avec path dédié preview ═══ */
+  async function uploadPreview(blob, format, productId, variantId, hash) {
+    if (typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible');
+    /* Path : preview SÉPARÉ des exports de publication.
+       L'archi peut faire 50 essais AR sans toucher au model.glb publié. */
+    const path = `${productId}/preview/${variantId}-${hash}.${format}`;
+    const mime = format === 'glb' ? 'model/gltf-binary' : 'model/vnd.usdz+zip';
+    const { error } = await sb.storage.from(BUCKET).upload(path, blob, {
+      contentType: mime, upsert: true, cacheControl: '3600',
+    });
+    if (error) throw error;
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl + '?v=' + Date.now();
+  }
+
+  /* ═══ Génération + cache ═══ */
+  async function ensureExports(productId, variantId, hash) {
+    const cacheKey = `${variantId}:${hash}`;
+    const cached = window._v50.cache[cacheKey];
+    if (cached && cached.glbUrl && cached.usdzUrl) {
+      console.log('[v50] cache hit:', cacheKey);
+      return cached;
+    }
+
+    showOverlay();
+    updateOverlay('Génération AR', 'Export du modèle 3D…', 0.05);
+
+    /* Export GLB (Android) */
+    updateOverlay('Export GLB', 'Génération du fichier Android…', 0.15);
+    const glbR = await genBlob('glb');
+    updateOverlay('Upload GLB', 'Envoi sur le serveur…', 0.35);
+    const glbUrl = await uploadPreview(glbR.blob, 'glb', productId, variantId, hash);
+    console.log('[v50] GLB uploadé', Math.round(glbR.blob.size / 1024), 'KB');
+
+    /* Export USDZ (iOS) */
+    updateOverlay('Export USDZ', 'Génération du fichier iOS…', 0.55);
+    const usdzR = await genBlob('usdz');
+    updateOverlay('Upload USDZ', 'Envoi sur le serveur…', 0.85);
+    const usdzUrl = await uploadPreview(usdzR.blob, 'usdz', productId, variantId, hash);
+    console.log('[v50] USDZ uploadé', Math.round(usdzR.blob.size / 1024), 'KB');
+
+    const r = { glbUrl, usdzUrl, ts: Date.now() };
+    window._v50.cache[cacheKey] = r;
+    return r;
+  }
+
+  /* ═══ Launch AR selon device ═══ */
+  function launchIOSQuickLook(usdzUrl) {
+    /* Quick Look : balise <a rel="ar"> avec un <img> à l'intérieur, click() */
+    const a = document.createElement('a');
+    a.rel = 'ar';
+    a.href = usdzUrl;
+    a.className = 'v50-ios-ar-link';
+    /* Quick Look REQUIERT un <img> ou <picture> à l'intérieur pour fonctionner */
+    const img = document.createElement('img');
+    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>';
+    a.appendChild(img);
+    document.body.appendChild(a);
+    /* Léger délai pour s'assurer que le DOM est prêt */
+    setTimeout(() => {
+      a.click();
+      setTimeout(() => a.remove(), 1500);
+    }, 50);
+  }
+
+  function launchAndroidSceneViewer(glbUrl) {
+    /* Scene Viewer : intent URL */
+    const productName = (document.getElementById('tbName')?.value || 'Modèle').trim();
+    const intent = 'intent://arvr.google.com/scene-viewer/1.0?' +
+      'file=' + encodeURIComponent(glbUrl) +
+      '&mode=ar_preferred' +
+      '&title=' + encodeURIComponent(productName) +
+      '#Intent;scheme=https;package=com.google.android.googlequicksearchbox;' +
+      'action=android.intent.action.VIEW;' +
+      'S.browser_fallback_url=' + encodeURIComponent(
+        'https://arvr.google.com/scene-viewer?file=' + encodeURIComponent(glbUrl)
+      ) + ';end;';
+    window.location.href = intent;
+  }
+
+  function buildLaunchURL(productId, variantId, hash) {
+    /* URL relative qui pointe vers le studio avec params pour auto-launch.
+       Sur scan/load, on détecte les params et on déclenche launchAR().
+       Mais ici on n'a pas de scan dédié → on encode tout en QR. */
+    const base = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams({
+      id: productId,
+      ar: '1',
+      v: variantId,
+      h: hash,
+    });
+    return base + '?' + params.toString();
+  }
+
+  /* ═══ QR Code (desktop) ═══ */
+  async function ensureQRLib() {
+    if (window._v50.qrLib) return window._v50.qrLib;
+    /* Lazy-load qrcode.js depuis CDN */
+    return new Promise((resolve, reject) => {
+      if (window.QRCode) { window._v50.qrLib = window.QRCode; resolve(window.QRCode); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+      script.onload = () => {
+        window._v50.qrLib = window.QRCode;
+        resolve(window.QRCode);
+      };
+      script.onerror = () => reject(new Error('QR lib load failed'));
+      document.head.appendChild(script);
+    });
+  }
+
+  let qrOverlayEl = null;
+  async function showQRForURL(launchUrl) {
+    if (!qrOverlayEl) {
+      qrOverlayEl = document.createElement('div');
+      qrOverlayEl.className = 'v50-overlay';
+      qrOverlayEl.innerHTML = `
+        <div class="v50-qr-modal">
+          <div class="v50-qr-eyebrow">Réalité augmentée</div>
+          <div class="v50-qr-title">Scanne avec l'iPhone ou l'iPad du client pour voir le modèle dans son intérieur</div>
+          <div class="v50-qr-box" id="v50QR"></div>
+          <div class="v50-qr-hint">L'AR s'ouvre directement après le scan.<br>Aucune installation requise.</div>
+          <button class="v50-qr-close">Fermer</button>
+        </div>
+      `;
+      document.body.appendChild(qrOverlayEl);
+      qrOverlayEl.querySelector('.v50-qr-close').onclick = () => {
+        qrOverlayEl.classList.remove('v50-show');
+      };
+      qrOverlayEl.addEventListener('click', (e) => {
+        if (e.target === qrOverlayEl) qrOverlayEl.classList.remove('v50-show');
+      });
+    }
+    const box = qrOverlayEl.querySelector('#v50QR');
+    box.innerHTML = '';
+    try {
+      const QR = await ensureQRLib();
+      const canvas = document.createElement('canvas');
+      box.appendChild(canvas);
+      await QR.toCanvas(canvas, launchUrl, { width: 240, margin: 1, color: { dark: '#2A2620', light: '#FFFFFF' } });
+    } catch (e) {
+      console.warn('[v50] QR lib failed, fallback image API:', e);
+      const img = document.createElement('img');
+      img.src = 'https://api.qrserver.com/v1/create-qr-code/?data=' +
+                encodeURIComponent(launchUrl) + '&size=240x240&margin=2';
+      box.appendChild(img);
+    }
+    qrOverlayEl.classList.add('v50-show');
+  }
+
+  /* ═══ Auto-launch AR si URL contient ?ar=1 ═══ */
+  function checkAutoLaunch() {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('ar') !== '1') return;
+      const productId = p.get('id');
+      const variantId = p.get('v') || 'base';
+      const hash = p.get('h');
+      if (!productId || !hash) return;
+      console.log('[v50] auto-launch AR depuis URL params');
+      /* Nettoyer l'URL pour ne pas relancer si l'utilisateur ferme et revient */
+      try {
+        const cleanUrl = window.location.pathname + '?id=' + productId;
+        history.replaceState({}, '', cleanUrl);
+      } catch (_) {}
+      /* Attendre que le modèle soit chargé (v34 le fait après ~3-6s) */
+      const wait = setInterval(() => {
+        if (typeof currentObject !== 'undefined' && currentObject) {
+          clearInterval(wait);
+          /* Si on a déjà les URLs en cache du précédent export, utiliser direct */
+          const cacheKey = `${variantId}:${hash}`;
+          const cached = window._v50.cache[cacheKey];
+          if (cached) {
+            if (isIOS) launchIOSQuickLook(cached.usdzUrl);
+            else if (isAndroid) launchAndroidSceneViewer(cached.glbUrl);
+          } else {
+            /* Pas de cache local (autre device) → recalculer et relancer */
+            launchAR();
+          }
+        }
+      }, 600);
+      setTimeout(() => clearInterval(wait), 30000);
+    } catch (e) {
+      console.warn('[v50] checkAutoLaunch:', e);
+    }
+  }
+
+  /* ═══ FONCTION PRINCIPALE : launchAR() ═══ */
+  async function launchAR() {
+    if (window._v50.isGenerating) {
+      console.log('[v50] génération déjà en cours');
+      return;
+    }
+
+    /* Validation mode lié */
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      toast('Crée d\'abord le produit (panneau Catalogue → Enregistrer comme nouveau produit) avant de lancer l\'AR', 'err', 5500);
+      return;
+    }
+
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      toast('Aucun modèle 3D chargé', 'err', 4000);
+      return;
+    }
+
+    window._v50.isGenerating = true;
+    try {
+      /* 1. Snapshot état + hash */
+      const snap = currentSnapshot();
+      console.log('[v50] launch AR · variant:', snap.variantId, '· hash:', snap.hash);
+
+      /* 2. Assurer GLB + USDZ disponibles (cache ou génération) */
+      const exports = await ensureExports(snap.productId, snap.variantId, snap.hash);
+
+      /* 3. Launch selon device */
+      updateOverlay('Lancement AR', 'Ouverture du visualiseur…', 1.0);
+      await new Promise(r => setTimeout(r, 400));
+
+      if (isIOS) {
+        launchIOSQuickLook(exports.usdzUrl);
+        hideOverlay();
+      } else if (isAndroid) {
+        launchAndroidSceneViewer(exports.glbUrl);
+        hideOverlay();
+      } else {
+        /* Desktop → QR */
+        hideOverlay();
+        const url = buildLaunchURL(snap.productId, snap.variantId, snap.hash);
+        await showQRForURL(url);
+      }
+
+    } catch (e) {
+      console.error('[v50 launchAR]', e);
+      updateOverlay('Erreur', e.message || String(e), 1, true);
+      setTimeout(hideOverlay, 3500);
+      toast('Erreur AR : ' + (e.message || e), 'err', 6000);
+    } finally {
+      window._v50.isGenerating = false;
+    }
+  }
+
+  /* ═══ INJECTION des boutons UI ═══ */
+  function injectTopbarButton() {
+    /* Cherche la save-box pour la placer juste après */
+    const saveBox = document.querySelector('.tb-save-box');
+    if (!saveBox) { setTimeout(injectTopbarButton, 500); return; }
+    if (document.getElementById('v50ARBtn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'v50ARBtn';
+    btn.className = 'v50-ar-btn';
+    btn.type = 'button';
+    btn.title = 'Voir le modèle en réalité augmentée';
+    btn.innerHTML = `
+      <span class="v50-ar-btn-dot"></span>
+      <span>AR</span>
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      launchAR();
+    };
+    saveBox.parentNode.insertBefore(btn, saveBox.nextSibling);
+    updateButtonState();
+  }
+
+  function injectRightpanelButton() {
+    /* Cherche la fin du mat-body pour ajouter le bouton */
+    const matBody = document.querySelector('.rp-view-edit .mat-body');
+    if (!matBody) { setTimeout(injectRightpanelButton, 500); return; }
+    if (document.getElementById('v50ARBtnRP')) return;
+
+    /* On insère APRÈS le mat-body (donc en bas, après le scroll) */
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'flex-shrink:0; padding-top:6px; border-top:1px solid var(--line-light, #E6E1D6);';
+    const btn = document.createElement('button');
+    btn.id = 'v50ARBtnRP';
+    btn.className = 'v50-ar-btn-rp';
+    btn.type = 'button';
+    btn.title = 'Voir le modèle en réalité augmentée';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
+      </svg>
+      <span>Voir en réalité augmentée</span>
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      launchAR();
+    };
+    wrapper.appendChild(btn);
+    matBody.parentNode.insertBefore(wrapper, matBody.nextSibling);
+    updateButtonState();
+  }
+
+  function updateButtonState() {
+    const linked = !!(window._v18 && window._v18.productId);
+    const hasModel = typeof currentObject !== 'undefined' && !!currentObject;
+    const ready = linked && hasModel;
+    document.querySelectorAll('.v50-ar-btn, .v50-ar-btn-rp').forEach(b => {
+      b.disabled = !ready;
+      if (!linked) {
+        b.title = 'Crée d\'abord le produit pour lancer l\'AR';
+      } else if (!hasModel) {
+        b.title = 'Charge d\'abord un modèle 3D';
+      } else {
+        b.title = 'Voir le modèle en réalité augmentée' +
+                  (isIOS ? ' (Quick Look)' : isAndroid ? ' (Scene Viewer)' : ' (QR code)');
+      }
+    });
+  }
+
+  /* Re-évaluer le state des boutons quand le produit/modèle change */
+  setInterval(updateButtonState, 1500);
+
+  /* ═══ Init ═══ */
+  injectTopbarButton();
+  injectRightpanelButton();
+  /* Retry pour les boutons (DOM peut être pas prêt selon ordre des IIFE) */
+  [400, 1200, 2500, 5000].forEach(d => {
+    setTimeout(() => {
+      injectTopbarButton();
+      injectRightpanelButton();
+    }, d);
+  });
+
+  /* Auto-launch si on arrive sur une URL ?ar=1 (depuis scan QR desktop) */
+  setTimeout(checkAutoLaunch, 1500);
+
+  /* Expose pour debug */
+  window._v50.launch = launchAR;
+  window._v50.hash = hashMaterials;
+  window._v50.snapshot = currentSnapshot;
+
+  console.log('[studio v50] bouton AR live câblé · device:', isIOS ? 'iOS' : (isAndroid ? 'Android' : 'Desktop'));
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v51 — AUTO-REDRESSEMENT Z-UP À L'IMPORT
+   ─────────────────────────────────────────────────────────────────────────
+   Beaucoup d'OBJ exportés depuis Blender / SketchUp / CAO arrivent en Z-up
+   (convention "ingénieur" : Z vers le haut, X et Y au sol). Three.js et le
+   studio sont en Y-up (Y vers le haut, X et Z au sol). Résultat : un fauteuil
+   Z-up apparaît couché sur le côté.
+   
+   Heuristique : si la dimension Z de la bbox est nettement plus grande que
+   Y et X (typique d'un meuble "vertical" qui devrait être debout) → on
+   présume Z-up et on applique une rotation -90° autour de X au modèle.
+   
+   Persistance : studio_state.zUpFixed = true (pour ne pas redoubler le fix
+   au reload — v35 transform.rotation contient déjà la rotation à appliquer).
+   
+   Bouton manuel dans l'onglet Géométrie pour redresser/annuler à la main si
+   l'auto se trompe.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v51AutoZUp() {
+  if (window.__v51Init) return;
+  window.__v51Init = true;
+
+  window._v51 = {
+    lastCheckedObject: null,
+    pendingFromState: null,    /* zUpFixed depuis studio_state au boot */
+  };
+
+  /* ───── CSS pour le bouton dans Géométrie ───── */
+  const css = `
+    .v51-zup-section {
+      margin-top: 18px;
+      padding: 14px 0 0;
+      border-top: 1px solid rgba(184, 150, 90, 0.18);
+    }
+    .v51-zup-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted, #9C9388);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .v51-zup-btn {
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      border: 1px solid var(--line, #D8D2C7);
+      color: var(--ink, #2A2620);
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .v51-zup-btn:hover {
+      border-color: var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+      background: rgba(184, 150, 90, 0.04);
+    }
+    .v51-zup-btn.v51-active {
+      background: var(--gold, #B8965A);
+      border-color: var(--gold, #B8965A);
+      color: #fff;
+    }
+    .v51-zup-btn.v51-active:hover {
+      filter: brightness(1.08);
+      color: #fff;
+    }
+    .v51-zup-hint {
+      font-size: 10px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.75;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v51', 'auto-zup');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ Heuristique : faut-il redresser ? ═══ */
+  function shouldFixZUp(obj) {
+    if (!obj || typeof THREE === 'undefined') return false;
+    /* Calculer bbox AVANT toute transformation (en local space) */
+    const box = new THREE.Box3().setFromObject(obj);
+    const dx = box.max.x - box.min.x;
+    const dy = box.max.y - box.min.y;
+    const dz = box.max.z - box.min.z;
+
+    /* Critères :
+       1. La dimension Z est la plus grande des trois (objet "haut" en Z)
+       2. Z > Y × 1.3 (clairement plus haut en Z qu'en Y)
+       3. Z > X × 1.0 (sinon ce serait un objet plat type tapis)
+       
+       Ratios spécifiquement choisis pour les meubles "verticaux" (chaise,
+       fauteuil, lampe, table, bureau, étagère, lit, luminaire).
+       Une table basse (50cm × 50cm × 40cm) ne déclencherait pas car
+       Z ≈ X et Z ≈ Y. */
+    const zDominant = (dz > dy * 1.30) && (dz > dx * 1.00) && (dz > Math.max(dx, dy));
+    
+    /* Bonus : si la catégorie est "verticale par nature", on baisse le seuil
+       car on est plus sûr que le redressement est pertinent */
+    const cat = (document.querySelector('.tb-cat-info strong')?.textContent || '').trim();
+    const verticalCats = ['Chaise', 'Fauteuil', 'Lampe', 'Luminaire', 'Étagère', 'Bureau', 'Lit', 'Bibliothèque'];
+    if (verticalCats.includes(cat) && dz > dy * 1.15 && dz > dx) {
+      return true;
+    }
+
+    return zDominant;
+  }
+
+  /* ═══ Appliquer la rotation Z-up → Y-up sur l'objet ═══ */
+  /* Math : pour passer de Z-up à Y-up, on tourne de -90° autour de X.
+       (avant) Z monte → (après) Y monte
+       (avant) Y avance → (après) -Z avance (vers la caméra)
+       (avant) X reste X
+     Three.js : currentObject.rotation.x = -Math.PI / 2 fait l'inverse correct */
+  function applyZUpFix(obj) {
+    if (!obj) return;
+    obj.rotation.x = -Math.PI / 2;
+    obj.updateMatrixWorld(true);
+    /* Repositionner au sol après rotation (la bbox a changé) */
+    setTimeout(() => placeOnGround(obj), 50);
+  }
+
+  function unapplyZUpFix(obj) {
+    if (!obj) return;
+    obj.rotation.x = 0;
+    obj.updateMatrixWorld(true);
+    setTimeout(() => placeOnGround(obj), 50);
+  }
+
+  function placeOnGround(obj) {
+    if (!obj) return;
+    const box = new THREE.Box3().setFromObject(obj);
+    const minY = box.min.y;
+    if (Math.abs(minY) > 0.001) {
+      obj.position.y -= minY;
+    }
+    /* Recentrer la cible orbit aussi */
+    if (typeof controls !== 'undefined' && controls) {
+      const newBox = new THREE.Box3().setFromObject(obj);
+      const center = newBox.getCenter(new THREE.Vector3());
+      controls.target.set(0, center.y, 0);
+      controls.update();
+    }
+  }
+
+  /* ═══ Mark dans le state via flag dédié ═══ */
+  function setZUpFixed(value) {
+    /* On stocke dans une variable globale qui sera lue par hookSerialize */
+    window._v51.zUpFixed = !!value;
+    /* Push immédiat en DB pour ne pas dépendre du debounce v18 */
+    pushZUpFlagDirect(!!value);
+  }
+
+  async function pushZUpFlagDirect(value) {
+    const productId = window._v18 && window._v18.productId;
+    if (!productId || typeof sb === 'undefined' || !sb) return;
+    try {
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      if (value) state.zUpFixed = true;
+      else delete state.zUpFixed;
+      const { error: e2 } = await sb.from('products')
+        .update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = state;
+      }
+      console.log('[v51] zUpFixed=' + value + ' poussé en DB');
+    } catch (e) {
+      console.warn('[v51] pushZUpFlag:', e);
+    }
+  }
+
+  /* ═══ Hook serialize pour persister zUpFixed ═══ */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) return false;
+    if (window._v18.__v51Hooked) return true;
+    const orig = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = orig.apply(this, arguments) || {};
+      if (window._v51.zUpFixed) state.zUpFixed = true;
+      return state;
+    };
+    window._v18.__v51Hooked = true;
+    return true;
+  }
+  if (!hookSerialize()) {
+    const t = setInterval(() => { if (hookSerialize()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  /* ═══ WATCHER : détecte le chargement d'un OBJ et applique l'heuristique ═══ */
+  /* Approche : on observe currentObject. Quand il change (nouveau modèle),
+     on attend que les dimensions soient stables (~600ms), on applique la
+     règle. Au reload d'un produit existant, studio_state.zUpFixed est lu
+     et on respecte le choix précédent. */
+  setInterval(() => {
+    if (typeof currentObject === 'undefined' || !currentObject) return;
+    if (currentObject === window._v51.lastCheckedObject) return;
+    window._v51.lastCheckedObject = currentObject;
+
+    /* Délai pour que loadOBJ ait fini son auto-fit / autoscale */
+    setTimeout(() => {
+      if (currentObject !== window._v51.lastCheckedObject) return; /* changé entretemps */
+
+      const row = window._v18 && window._v18.productRow;
+      const stateFixed = !!(row && row.studio_state && row.studio_state.zUpFixed);
+
+      /* Cas 1 : produit existant avec zUpFixed=true en DB.
+         v35 va restaurer transform.rotation à -90° → on ne touche rien.
+         On note juste l'état pour le bouton UI. */
+      if (stateFixed) {
+        window._v51.zUpFixed = true;
+        updateGeomButton();
+        console.log('[v51] zUpFixed déjà appliqué depuis studio_state');
+        return;
+      }
+
+      /* Cas 2 : produit existant avec transform.rotation déjà set → l'utilisateur
+         a peut-être ajusté manuellement, on ne fait PAS de heuristique. */
+      const stateT = row && row.studio_state && row.studio_state.transform;
+      if (stateT && stateT.rotation && (Math.abs(stateT.rotation.x) > 1 || Math.abs(stateT.rotation.y) > 1 || Math.abs(stateT.rotation.z) > 1)) {
+        console.log('[v51] transform.rotation déjà défini, skip heuristique');
+        return;
+      }
+
+      /* Cas 3 : sandbox OU produit sans z-up-fix → heuristique */
+      if (shouldFixZUp(currentObject)) {
+        console.log('[v51] Z-up détecté → redressement auto');
+        applyZUpFix(currentObject);
+        setZUpFixed(true);
+        updateGeomButton();
+        /* Si v35 panel est ouvert, synchroniser ses inputs */
+        if (typeof window._v35_syncInputs === 'function') {
+          window._v35_syncInputs();
+        } else {
+          /* Trigger sync inputs via dispatch */
+          const evt = new CustomEvent('v51-zup-applied');
+          document.dispatchEvent(evt);
+        }
+        toast('Modèle Z-up détecté · redressé automatiquement (cliquez "Annuler redressement" si incorrect)', 'info', 5500);
+      } else {
+        console.log('[v51] modèle Y-up natif, pas de redressement');
+      }
+    }, 700);
+  }, 800);
+
+  /* ═══ Bouton manuel dans Géométrie ═══ */
+  let geomBtnEl = null;
+  function injectGeomButton() {
+    const geomPanel = document.getElementById('rpGeomPanel');
+    if (!geomPanel) { setTimeout(injectGeomButton, 700); return; }
+    if (geomPanel.querySelector('.v51-zup-section')) return;
+
+    const section = document.createElement('div');
+    section.className = 'v51-zup-section';
+    section.innerHTML = `
+      <div class="v51-zup-label">Orientation</div>
+      <button class="v51-zup-btn" id="v51ZupToggle">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 4 V20 M6 10 L12 4 L18 10"/>
+          <path d="M3 22 H21" stroke-dasharray="2 2"/>
+        </svg>
+        <span id="v51ZupLabel">Redresser depuis Z-up</span>
+      </button>
+      <div class="v51-zup-hint">Bascule manuelle si le modèle apparaît couché. Utile pour les exports Blender / SketchUp (convention Z-up).</div>
+    `;
+    geomPanel.appendChild(section);
+    geomBtnEl = section.querySelector('#v51ZupToggle');
+    geomBtnEl.onclick = () => {
+      if (window._v51.zUpFixed) {
+        unapplyZUpFix(currentObject);
+        setZUpFixed(false);
+        toast('Redressement Z-up annulé', 'info', 2500);
+      } else {
+        applyZUpFix(currentObject);
+        setZUpFixed(true);
+        toast('Modèle redressé depuis Z-up', 'ok', 2500);
+      }
+      updateGeomButton();
+      /* Re-sync les inputs v35 */
+      const evt = new CustomEvent('v51-zup-applied');
+      document.dispatchEvent(evt);
+    };
+    updateGeomButton();
+  }
+  function updateGeomButton() {
+    if (!geomBtnEl) return;
+    const label = geomBtnEl.querySelector('#v51ZupLabel');
+    if (window._v51.zUpFixed) {
+      geomBtnEl.classList.add('v51-active');
+      if (label) label.textContent = 'Annuler redressement Z-up';
+    } else {
+      geomBtnEl.classList.remove('v51-active');
+      if (label) label.textContent = 'Redresser depuis Z-up';
+    }
+  }
+
+  /* Réagir à l'ouverture du panneau Géométrie (le panel est créé à la volée
+     quand on clique sur l'onglet Géométrie pour la première fois) */
+  const obs = new MutationObserver(() => {
+    if (document.getElementById('rpGeomPanel') && !document.querySelector('.v51-zup-section')) {
+      injectGeomButton();
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(injectGeomButton, 2000);
+
+  /* ═══ Init : lire l'état au boot ═══ */
+  setTimeout(() => {
+    const row = window._v18 && window._v18.productRow;
+    if (row && row.studio_state && row.studio_state.zUpFixed) {
+      window._v51.zUpFixed = true;
+      updateGeomButton();
+    }
+  }, 3000);
+
+  /* Expose pour debug */
+  window._v51.apply = () => { applyZUpFix(currentObject); setZUpFixed(true); updateGeomButton(); };
+  window._v51.unapply = () => { unapplyZUpFix(currentObject); setZUpFixed(false); updateGeomButton(); };
+  window._v51.check = () => shouldFixZUp(currentObject);
+
+  console.log('[studio v51] auto-redressement Z-up armé (heuristique bbox + bouton manuel Géométrie) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
