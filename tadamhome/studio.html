@@ -18016,6 +18016,1526 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v55] support .stl via conversion → OBJ ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v56 — UNDO / REDO (Ctrl+Z, Ctrl+Shift+Z)
+   ─────────────────────────────────────────────────────────────────────────
+   Approche snapshot-based : à chaque modification (markDirty), on capture
+   le studio_state via serializeStudioState. Stack de 30 snapshots max.
+   La restauration utilise applyVariantState (v25) qui sait déjà appliquer
+   un state au modèle courant.
+   
+   Snapshot throttlé à 400ms pour éviter le spam pendant les sliders.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v56UndoRedo() {
+  if (window.__v56Init) return;
+  window.__v56Init = true;
+  const STACK_SIZE = 30;
+  const S = window._v56 = {
+    undoStack: [],   /* [{ json, label, ts }] */
+    redoStack: [],
+    isApplying: false,
+    lastJSON: null,
+    pendingTimer: null,
+  };
+
+  /* ───── CSS pour le badge undo (discret, en bas à droite) ───── */
+  const css = `
+    .v56-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(27, 24, 20, 0.92);
+      color: #fff;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 9px 22px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.32);
+      z-index: 99800;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .v56-toast.v56-show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    .v56-toast b {
+      color: var(--gold, #B8965A);
+      font-weight: 600;
+      margin: 0 4px;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v56', 'undo');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* Toast custom pour ne pas spammer le toast normal */
+  let toastEl = null;
+  let toastHideTimer = null;
+  function showUndoToast(html) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'v56-toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.innerHTML = html;
+    toastEl.classList.add('v56-show');
+    clearTimeout(toastHideTimer);
+    toastHideTimer = setTimeout(() => toastEl.classList.remove('v56-show'), 1500);
+  }
+
+  /* ═══ SNAPSHOT ═══ */
+  function snapshotNow(label) {
+    if (S.isApplying) return;
+    if (!window._v18 || !window._v18.serializeStudioState) return;
+    let state;
+    try { state = window._v18.serializeStudioState(); }
+    catch (e) { console.warn('[v56] serialize:', e); return; }
+    if (!state) return;
+    let json;
+    try { json = JSON.stringify(state); }
+    catch (e) { return; }
+    if (json === S.lastJSON) return;  /* pas de changement réel */
+    S.lastJSON = json;
+    S.undoStack.push({ json, label: label || '', ts: Date.now() });
+    if (S.undoStack.length > STACK_SIZE) S.undoStack.shift();
+    /* Toute nouvelle action invalide le redo stack */
+    if (S.redoStack.length > 0) S.redoStack = [];
+  }
+
+  function scheduleSnapshot(label) {
+    if (S.pendingTimer) clearTimeout(S.pendingTimer);
+    S.pendingTimer = setTimeout(() => {
+      S.pendingTimer = null;
+      snapshotNow(label);
+    }, 400);
+  }
+
+  /* ═══ APPLY ═══ */
+  async function applyJSONState(json) {
+    if (!window._v25 || !window._v25.applyVariantState) {
+      console.warn('[v56] v25.applyVariantState manquant');
+      return false;
+    }
+    let state;
+    try { state = JSON.parse(json); } catch (e) { return false; }
+    S.isApplying = true;
+    try {
+      await window._v25.applyVariantState(state);
+      S.lastJSON = json;
+    } catch (e) {
+      console.error('[v56] apply:', e);
+      return false;
+    } finally {
+      /* Petit délai pour s'assurer que tous les hooks de markDirty se sont
+         déclenchés ET ont vu isApplying=true (donc ignorés) */
+      setTimeout(() => { S.isApplying = false; }, 200);
+    }
+    return true;
+  }
+
+  async function undo() {
+    if (S.undoStack.length < 2) {
+      showUndoToast('Rien à <b>annuler</b>');
+      return;
+    }
+    /* Le top de la stack est l'état actuel ; on pop pour le mettre en redo,
+       puis on applique le précédent */
+    const current = S.undoStack.pop();
+    S.redoStack.push(current);
+    const prev = S.undoStack[S.undoStack.length - 1];
+    const ok = await applyJSONState(prev.json);
+    if (ok) {
+      showUndoToast('⤺ <b>Annulé</b>' + (current.label ? ' · ' + escapeHtml(current.label) : ''));
+    } else {
+      S.undoStack.push(S.redoStack.pop());  /* rollback */
+    }
+  }
+
+  async function redo() {
+    if (S.redoStack.length === 0) {
+      showUndoToast('Rien à <b>refaire</b>');
+      return;
+    }
+    const next = S.redoStack.pop();
+    const ok = await applyJSONState(next.json);
+    if (ok) {
+      S.undoStack.push(next);
+      showUndoToast('⤻ <b>Refait</b>' + (next.label ? ' · ' + escapeHtml(next.label) : ''));
+    } else {
+      S.redoStack.push(next);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ HOOK markDirty ═══ */
+  function hookDirty() {
+    if (!window._v18 || !window._v18.markDirty) return false;
+    if (window._v18.__v56Hooked) return true;
+    const orig = window._v18.markDirty;
+    window._v18.markDirty = function(label) {
+      const r = orig.apply(this, arguments);
+      scheduleSnapshot(typeof label === 'string' ? label : '');
+      return r;
+    };
+    window._v18.__v56Hooked = true;
+    return true;
+  }
+  hookDirty();
+  const dirtyHookIntv = setInterval(() => { if (hookDirty()) clearInterval(dirtyHookIntv); }, 500);
+  setTimeout(() => clearInterval(dirtyHookIntv), 20000);
+
+  /* ═══ Initial snapshot quand le modèle est prêt ═══ */
+  const initIntv = setInterval(() => {
+    if (typeof currentObject !== 'undefined' && currentObject &&
+        window._v18 && window._v18.serializeStudioState) {
+      snapshotNow('état initial');
+      clearInterval(initIntv);
+    }
+  }, 800);
+  setTimeout(() => clearInterval(initIntv), 30000);
+
+  /* ═══ KEYBOARD ═══ */
+  window.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    /* Ne pas interférer avec la saisie dans les inputs/textareas */
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) {
+      e.preventDefault(); undo();
+    } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+      e.preventDefault(); redo();
+    }
+  });
+
+  /* Expose */
+  S.undo = undo;
+  S.redo = redo;
+  S.snapshot = snapshotNow;
+  S.getStackInfo = () => ({ undo: S.undoStack.length, redo: S.redoStack.length });
+
+  console.log('[studio v56] undo/redo via snapshots (Ctrl+Z / Ctrl+Shift+Z) ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v57 — DIALOG "NOUVELLE VARIANTE" (au lieu de prompt natif)
+   ─────────────────────────────────────────────────────────────────────────
+   Remplace le prompt() de v25 par un dialog stylé avec :
+   - Champ nom (focus auto, sélection auto pour modification rapide)
+   - Radio "Partir de l'état actuel" (défaut) / "Partir de la base"
+   - Boutons Annuler / Créer
+   ════════════════════════════════════════════════════════════════════════ */
+(function v57VariantDialog() {
+  if (window.__v57Init) return;
+  window.__v57Init = true;
+  window._v57 = {};
+
+  const css = `
+    .v57-dialog .v37-as-dialog { max-width: 480px; }
+    .v57-row {
+      margin-bottom: 16px;
+    }
+    .v57-label {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 8px;
+    }
+    .v57-name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      color: var(--ink, #2A2620);
+      transition: border-color 0.15s;
+    }
+    .v57-name-input:focus {
+      outline: none;
+      border-color: var(--gold, #B8965A);
+    }
+    .v57-source-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .v57-source-opt {
+      padding: 14px 12px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+    }
+    .v57-source-opt:hover {
+      border-color: var(--gold, #B8965A);
+    }
+    .v57-source-opt.v57-active {
+      background: rgba(184, 150, 90, 0.08);
+      border-color: var(--gold, #B8965A);
+    }
+    .v57-source-title {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      margin-bottom: 4px;
+    }
+    .v57-source-active .v57-source-title { color: var(--gold, #B8965A); }
+    .v57-source-sub {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      line-height: 1.5;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v57', 'variant-dialog');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  let dialogEl = null;
+  function buildDialog() {
+    if (dialogEl) return dialogEl;
+    dialogEl = document.createElement('div');
+    dialogEl.className = 'v37-as-overlay v57-dialog';
+    dialogEl.innerHTML = `
+      <div class="v37-as-dialog">
+        <h3 class="v37-as-title">Nouvelle variante</h3>
+        <p class="v37-as-desc">
+          Une variante propose un jeu de matériaux distinct pour le même modèle.
+          Tu pourras les comparer ensuite côte à côte.
+        </p>
+        <div class="v57-row">
+          <label class="v57-label" for="v57Name">Nom de la variante</label>
+          <input type="text" id="v57Name" class="v57-name-input"
+                 maxlength="60" placeholder="Variante chêne foncé">
+        </div>
+        <div class="v57-row">
+          <span class="v57-label">Point de départ</span>
+          <div class="v57-source-row">
+            <button class="v57-source-opt v57-active" data-src="current" type="button">
+              <span class="v57-source-title">État actuel</span>
+              <span class="v57-source-sub">Reprend les matériaux & paramètres en cours.</span>
+            </button>
+            <button class="v57-source-opt" data-src="base" type="button">
+              <span class="v57-source-title">Base</span>
+              <span class="v57-source-sub">Repart de la version d'origine, sans personnalisation.</span>
+            </button>
+          </div>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="create">Créer la variante</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialogEl);
+
+    /* Wire source toggle */
+    dialogEl.querySelectorAll('.v57-source-opt').forEach(btn => {
+      btn.onclick = () => {
+        dialogEl.querySelectorAll('.v57-source-opt').forEach(b => b.classList.remove('v57-active'));
+        btn.classList.add('v57-active');
+      };
+    });
+
+    /* Cancel */
+    dialogEl.querySelector('[data-act="cancel"]').onclick = () => dialogEl.classList.remove('v37-show');
+    dialogEl.addEventListener('click', (e) => {
+      if (e.target === dialogEl) dialogEl.classList.remove('v37-show');
+    });
+    /* Enter dans le champ nom = créer */
+    dialogEl.querySelector('#v57Name').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        dialogEl.querySelector('[data-act="create"]').click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        dialogEl.classList.remove('v37-show');
+      }
+    });
+    /* Create */
+    dialogEl.querySelector('[data-act="create"]').onclick = async () => {
+      const name = dialogEl.querySelector('#v57Name').value.trim().slice(0, 60);
+      if (!name) { dialogEl.querySelector('#v57Name').focus(); return; }
+      const src = dialogEl.querySelector('.v57-source-opt.v57-active').dataset.src;
+      dialogEl.classList.remove('v37-show');
+      await createVariant(name, src);
+    };
+
+    return dialogEl;
+  }
+
+  async function createVariant(name, sourceMode) {
+    /* Préparation : si source = "base", on doit appliquer le state base AVANT
+       que v25 prenne son snapshot. */
+    if (sourceMode === 'base') {
+      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
+      if (!baseState) {
+        toast('Pas de state base trouvé (produit non lié ?)', 'err', 4000);
+        return;
+      }
+      if (window._v25 && window._v25.applyVariantState) {
+        await window._v25.applyVariantState(baseState);
+      }
+    }
+    /* Hook temporaire de window.prompt pour fournir notre nom à createNewVariant */
+    const origPrompt = window.prompt;
+    window.prompt = () => name;
+    try {
+      if (window._v25 && window._v25.createNewVariant) {
+        await window._v25.createNewVariant();
+      } else {
+        toast('v25 indisponible — impossible de créer la variante', 'err', 4000);
+      }
+    } finally {
+      window.prompt = origPrompt;
+    }
+  }
+
+  function showDialog() {
+    buildDialog();
+    /* Pré-remplir le nom : "Variante N+1" */
+    const n = (window._v25 && window._v25.variants ? window._v25.variants.length : 0) + 1;
+    const input = dialogEl.querySelector('#v57Name');
+    input.value = 'Variante ' + n;
+    /* Reset source à "current" */
+    dialogEl.querySelectorAll('.v57-source-opt').forEach(b => b.classList.remove('v57-active'));
+    dialogEl.querySelector('[data-src="current"]').classList.add('v57-active');
+    dialogEl.classList.add('v37-show');
+    setTimeout(() => { input.focus(); input.select(); }, 60);
+  }
+
+  /* Hook le bouton #btnNewVariant */
+  function rewireBtn() {
+    const btn = document.getElementById('btnNewVariant');
+    if (!btn) { setTimeout(rewireBtn, 600); return; }
+    if (btn.dataset.v57Hooked === '1') return;
+    btn.dataset.v57Hooked = '1';
+    /* Remplacer l'event listener existant en clonant le node */
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      /* Validations : mêmes que createNewVariant */
+      if (!window._v18 || !window._v18.productId) {
+        toast('Mode sandbox : enregistre d\'abord le produit pour créer des variantes', 'err', 4500);
+        return;
+      }
+      if (typeof currentObject === 'undefined' || !currentObject) {
+        toast('Charge d\'abord un modèle 3D', 'err', 4000);
+        return;
+      }
+      showDialog();
+    };
+  }
+  rewireBtn();
+  [800, 2000, 4500].forEach(d => setTimeout(rewireBtn, d));
+
+  window._v57.show = showDialog;
+  window._v57.create = createVariant;
+
+  console.log('[studio v57] dialog Nouvelle variante (au lieu de prompt) ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v58 — MODE COMPARAISON entre variantes (vue côte à côte)
+   ─────────────────────────────────────────────────────────────────────────
+   - Bouton "Comparer" ajouté à droite des chips de variantes
+   - Dialog pour choisir variante A (gauche) et variante B (droite)
+   - Au lancer : clone du modèle 3D, matériaux de B appliqués sur le clone,
+     positionné à droite de l'original (offset = bbox.x + 30cm)
+   - Labels flottants A / B au-dessus de chaque modèle
+   - Bouton "Fermer comparaison" pour sortir du mode
+   ════════════════════════════════════════════════════════════════════════ */
+(function v58Compare() {
+  if (window.__v58Init) return;
+  window.__v58Init = true;
+  window._v58 = {
+    active: false,
+    cloneObj: null,
+    backupCameraTarget: null,
+    backupCameraPos: null,
+    labelA: null,
+    labelB: null,
+    origActiveVariantId: null,
+  };
+  const S = window._v58;
+
+  const css = `
+    .v58-compare-btn {
+      background: transparent;
+      border: 1px solid var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+      padding: 0 12px;
+      height: 26px;
+      margin-left: 8px;
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      border-radius: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v58-compare-btn:hover { background: var(--gold, #B8965A); color: #fff; }
+    .v58-compare-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .v58-compare-btn svg { width: 11px; height: 11px; }
+
+    .v58-dialog .v37-as-dialog { max-width: 480px; }
+    .v58-pickers {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+    .v58-picker label {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 6px;
+    }
+    .v58-picker select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      color: var(--ink, #2A2620);
+      cursor: pointer;
+    }
+    .v58-vs {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 18px;
+      color: var(--gold, #B8965A);
+      padding-bottom: 8px;
+    }
+
+    /* Labels flottants A / B en mode compare */
+    .v58-floating-label {
+      position: fixed;
+      background: rgba(27, 24, 20, 0.88);
+      color: #fff;
+      padding: 6px 14px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      z-index: 9000;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.2s;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      white-space: nowrap;
+    }
+    .v58-floating-label b {
+      color: var(--gold, #B8965A);
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    /* Bar "Fermer comparaison" */
+    .v58-close-bar {
+      position: fixed;
+      top: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(27, 24, 20, 0.92);
+      color: #fff;
+      padding: 10px 18px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      z-index: 9100;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.32);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .v58-close-bar button {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border: none;
+      padding: 5px 12px;
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .v58-close-bar button:hover { filter: brightness(1.1); }
+    .v58-close-bar b { color: var(--gold, #B8965A); font-weight: 600; }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v58', 'compare');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ DIALOG ═══ */
+  let dialogEl = null;
+  function buildDialog() {
+    if (dialogEl) return dialogEl;
+    dialogEl = document.createElement('div');
+    dialogEl.className = 'v37-as-overlay v58-dialog';
+    dialogEl.innerHTML = `
+      <div class="v37-as-dialog">
+        <h3 class="v37-as-title">Comparer deux variantes</h3>
+        <p class="v37-as-desc">
+          Affiche les deux variantes côte à côte. La caméra orbite autour des deux.
+        </p>
+        <div class="v58-pickers">
+          <div class="v58-picker">
+            <label>Gauche · A</label>
+            <select id="v58SelA"></select>
+          </div>
+          <div class="v58-vs">vs</div>
+          <div class="v58-picker">
+            <label>Droite · B</label>
+            <select id="v58SelB"></select>
+          </div>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="go">Comparer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialogEl);
+    dialogEl.querySelector('[data-act="cancel"]').onclick = () => dialogEl.classList.remove('v37-show');
+    dialogEl.addEventListener('click', (e) => {
+      if (e.target === dialogEl) dialogEl.classList.remove('v37-show');
+    });
+    dialogEl.querySelector('[data-act="go"]').onclick = async () => {
+      const aId = dialogEl.querySelector('#v58SelA').value;
+      const bId = dialogEl.querySelector('#v58SelB').value;
+      if (aId === bId) { toast('Choisis deux variantes différentes', 'err'); return; }
+      dialogEl.classList.remove('v37-show');
+      await startCompare(aId, bId);
+    };
+    return dialogEl;
+  }
+
+  function getAllVariants() {
+    const variants = [{ id: 'base', name: 'Base', studio_state: window._v18?.productRow?.studio_state }];
+    if (window._v25 && window._v25.variants) {
+      window._v25.variants.forEach(v => variants.push({ id: v.id, name: v.name, studio_state: v.studio_state }));
+    }
+    return variants;
+  }
+
+  function showDialog() {
+    buildDialog();
+    const variants = getAllVariants();
+    if (variants.length < 2) {
+      toast('Crée d\'abord au moins une variante pour comparer', 'err', 4500);
+      return;
+    }
+    const optsHTML = variants.map(v => `<option value="${v.id}">${escapeHtml(v.name)}</option>`).join('');
+    dialogEl.querySelector('#v58SelA').innerHTML = optsHTML;
+    dialogEl.querySelector('#v58SelB').innerHTML = optsHTML;
+    /* Pré-sélection : A = active, B = la suivante (ou la base si on est sur une variante) */
+    const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+    dialogEl.querySelector('#v58SelA').value = activeId;
+    const others = variants.filter(v => v.id !== activeId);
+    if (others.length > 0) dialogEl.querySelector('#v58SelB').value = others[0].id;
+    dialogEl.classList.add('v37-show');
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ EXTRACTION DES MATÉRIAUX D'UNE VARIANTE ═══ */
+  /* Approche : on switch silencieusement vers la variante, on clone les
+     matériaux courants, puis on switch back. */
+  async function getMaterialsFromVariant(variantState, activeStateBackup) {
+    if (!window._v25 || !window._v25.applyVariantState) return null;
+    /* 1. Snapshot du mapping mesh → groupKey AVANT switch */
+    const meshKeyMap = new Map();
+    Object.entries(meshGroups).forEach(([key, meshes]) => {
+      meshes.forEach(m => meshKeyMap.set(m, key));
+    });
+
+    /* 2. Apply variante */
+    /* Bloque l'undo pendant qu'on switch (v56 sait via isApplying) */
+    if (window._v56) window._v56.isApplying = true;
+    try {
+      await window._v25.applyVariantState(variantState);
+    } catch (e) {
+      console.error('[v58 extract]', e);
+      if (window._v56) window._v56.isApplying = false;
+      return null;
+    }
+
+    /* 3. Cloner les matériaux par groupKey */
+    const matsByKey = {};
+    Object.entries(partMaterials).forEach(([key, mat]) => {
+      try { matsByKey[key] = mat.clone(); } catch (e) {}
+    });
+
+    /* 4. Switch back vers le state d'origine */
+    try {
+      await window._v25.applyVariantState(activeStateBackup);
+    } catch (e) {
+      console.error('[v58 restore]', e);
+    }
+    setTimeout(() => { if (window._v56) window._v56.isApplying = false; }, 250);
+
+    return { matsByKey, meshKeyMap };
+  }
+
+  /* ═══ START COMPARE ═══ */
+  async function startCompare(aId, bId) {
+    if (S.active) {
+      toast('Comparaison déjà active', 'info', 2500);
+      return;
+    }
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      toast('Aucun modèle chargé', 'err'); return;
+    }
+
+    const variants = getAllVariants();
+    const A = variants.find(v => v.id === aId);
+    const B = variants.find(v => v.id === bId);
+    if (!A || !B) { toast('Variante introuvable', 'err'); return; }
+
+    /* État courant à backup pour restaure */
+    const currentSnapshot = (window._v18 && window._v18.serializeStudioState)
+      ? window._v18.serializeStudioState() : null;
+
+    /* 1. Afficher A : si A != active, switch vers A */
+    const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+    if (activeId !== aId) {
+      if (window._v56) window._v56.isApplying = true;
+      try { await window._v25.applyVariantState(A.studio_state); }
+      catch (e) { console.error('[v58 switchA]', e); }
+      if (window._v56) setTimeout(() => { window._v56.isApplying = false; }, 250);
+    }
+
+    /* 2. Extraire les matériaux de B sans dévier la vue A */
+    const stateAforRestore = (window._v18 && window._v18.serializeStudioState)
+      ? window._v18.serializeStudioState() : currentSnapshot;
+    const matsRes = await getMaterialsFromVariant(B.studio_state, stateAforRestore);
+    if (!matsRes) {
+      toast('Impossible de récupérer les matériaux de B', 'err');
+      return;
+    }
+
+    /* 3. Cloner le modèle */
+    /* IMPORTANT : taguer chaque mesh original avec son groupKey via userData
+       AVANT le clone, pour qu'on puisse retrouver le mapping après */
+    matsRes.meshKeyMap.forEach((key, mesh) => { mesh.userData._v58GK = key; });
+    const clone = currentObject.clone(true);
+    /* Cloner aussi les géométries pour ne pas partager les buffers */
+    clone.traverse(c => {
+      if (c.isMesh && c.geometry) {
+        c.geometry = c.geometry.clone();
+      }
+    });
+
+    /* 4. Appliquer les matériaux de B sur le clone */
+    clone.traverse(c => {
+      if (!c.isMesh) return;
+      const key = c.userData && c.userData._v58GK;
+      if (key && matsRes.matsByKey[key]) {
+        c.material = matsRes.matsByKey[key];
+      }
+    });
+
+    /* 5. Positionner le clone à droite de l'original */
+    const box = new THREE.Box3().setFromObject(currentObject);
+    const size = box.getSize(new THREE.Vector3());
+    const offsetX = size.x + Math.max(0.3, size.x * 0.3);
+    clone.position.x += offsetX;
+    clone.userData._v58IsClone = true;
+
+    scene.add(clone);
+    S.cloneObj = clone;
+    S.active = true;
+    S.aName = A.name;
+    S.bName = B.name;
+
+    /* 6. Auto-fit caméra pour englober les deux */
+    fitCameraToBothModels(currentObject, clone);
+
+    /* 7. Labels flottants + bouton fermer */
+    setupLabels(currentObject, clone);
+    setupCloseBar();
+
+    toast('Comparaison : ' + A.name + ' ↔ ' + B.name, 'ok', 2500);
+  }
+
+  function fitCameraToBothModels(a, b) {
+    const boxA = new THREE.Box3().setFromObject(a);
+    const boxB = new THREE.Box3().setFromObject(b);
+    const combined = boxA.union(boxB);
+    const size = combined.getSize(new THREE.Vector3());
+    const center = combined.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (camera && controls) {
+      S.backupCameraPos = camera.position.clone();
+      S.backupCameraTarget = controls.target.clone();
+      const fov = camera.fov * Math.PI / 180;
+      const dist = (maxDim / (2 * Math.tan(fov / 2))) * 1.4;
+      const dir = new THREE.Vector3(0.5, 0.4, 1).normalize();
+      camera.position.copy(center).add(dir.multiplyScalar(dist));
+      controls.target.copy(center);
+      controls.update();
+    }
+  }
+
+  function setupLabels(a, b) {
+    S.labelA = document.createElement('div');
+    S.labelA.className = 'v58-floating-label';
+    S.labelA.innerHTML = '<b>A</b>' + escapeHtml(S.aName);
+    document.body.appendChild(S.labelA);
+
+    S.labelB = document.createElement('div');
+    S.labelB.className = 'v58-floating-label';
+    S.labelB.innerHTML = '<b>B</b>' + escapeHtml(S.bName);
+    document.body.appendChild(S.labelB);
+
+    /* Boucle de positionnement : projeter le sommet (centre Y haut) de chaque modèle */
+    function update() {
+      if (!S.active) return;
+      const canvas = document.querySelector('#vpScene canvas');
+      if (!canvas || !camera) { requestAnimationFrame(update); return; }
+      const rect = canvas.getBoundingClientRect();
+      [[a, S.labelA], [b, S.labelB]].forEach(([obj, lbl]) => {
+        if (!obj || !lbl) return;
+        const box = new THREE.Box3().setFromObject(obj);
+        const top = new THREE.Vector3(
+          (box.min.x + box.max.x) / 2,
+          box.max.y + 0.1,
+          (box.min.z + box.max.z) / 2
+        );
+        top.project(camera);
+        const x = rect.left + (top.x + 1) * 0.5 * rect.width;
+        const y = rect.top + (1 - (top.y + 1) * 0.5) * rect.height;
+        lbl.style.left = x + 'px';
+        lbl.style.top = y + 'px';
+      });
+      requestAnimationFrame(update);
+    }
+    update();
+  }
+
+  function setupCloseBar() {
+    let bar = document.getElementById('v58CloseBar');
+    if (bar) return;
+    bar = document.createElement('div');
+    bar.id = 'v58CloseBar';
+    bar.className = 'v58-close-bar';
+    bar.innerHTML = `
+      <span><b>A</b> ${escapeHtml(S.aName)} <span style="opacity:0.5;margin:0 8px">↔</span> <b>B</b> ${escapeHtml(S.bName)}</span>
+      <button id="v58CloseBtn">✕ Fermer</button>
+    `;
+    document.body.appendChild(bar);
+    document.getElementById('v58CloseBtn').onclick = stopCompare;
+  }
+
+  function stopCompare() {
+    if (!S.active) return;
+    if (S.cloneObj) {
+      scene.remove(S.cloneObj);
+      S.cloneObj.traverse(c => {
+        if (c.isMesh) {
+          try { c.geometry.dispose(); } catch (_) {}
+          try { c.material.dispose && c.material.dispose(); } catch (_) {}
+        }
+      });
+      S.cloneObj = null;
+    }
+    if (S.labelA) { S.labelA.remove(); S.labelA = null; }
+    if (S.labelB) { S.labelB.remove(); S.labelB = null; }
+    const bar = document.getElementById('v58CloseBar');
+    if (bar) bar.remove();
+    if (S.backupCameraPos && camera) camera.position.copy(S.backupCameraPos);
+    if (S.backupCameraTarget && controls) { controls.target.copy(S.backupCameraTarget); controls.update(); }
+    S.active = false;
+    /* Nettoyer les userData */
+    if (typeof currentObject !== 'undefined' && currentObject) {
+      currentObject.traverse(c => { if (c.userData && c.userData._v58GK) delete c.userData._v58GK; });
+    }
+  }
+
+  /* ═══ Injection du bouton "Comparer" à côté des chips variantes ═══ */
+  function injectBtn() {
+    const newVarBtn = document.getElementById('btnNewVariant');
+    if (!newVarBtn) { setTimeout(injectBtn, 600); return; }
+    if (document.getElementById('v58CompareBtn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'v58CompareBtn';
+    btn.className = 'v58-compare-btn';
+    btn.type = 'button';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="5" width="8" height="14"/>
+        <rect x="13" y="5" width="8" height="14"/>
+      </svg>
+      <span>Comparer</span>
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (S.active) { stopCompare(); return; }
+      showDialog();
+    };
+    newVarBtn.parentNode.insertBefore(btn, newVarBtn);
+  }
+  injectBtn();
+  [800, 2000, 4500].forEach(d => setTimeout(injectBtn, d));
+
+  window._v58.start = startCompare;
+  window._v58.stop = stopCompare;
+  window._v58.show = showDialog;
+
+  console.log('[studio v58] comparaison variantes côte à côte ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v59 — SECTION "VARIANTES & CATALOGUE" dans le burger menu
+   ─────────────────────────────────────────────────────────────────────────
+   Ajoute une admin-section dans le panneau admin (burger) qui liste les
+   variantes du produit avec un toggle de publication par variante.
+   
+   Stockage : variants[i].published = true/false dans le JSONB variants
+   de la table products. Le front catalogue filtre sur ce flag.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v59VariantsCatalogSection() {
+  if (window.__v59Init) return;
+  window.__v59Init = true;
+  window._v59 = {};
+
+  const css = `
+    .v59-section { /* hérite de .admin-section */ }
+    .v59-empty {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.75;
+      padding: 8px 0;
+    }
+    .v59-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .v59-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(184, 150, 90, 0.04);
+      border: 1px solid var(--line, #D8D2C7);
+      transition: background 0.12s;
+    }
+    .v59-row:hover { background: rgba(184, 150, 90, 0.08); }
+    .v59-row-name {
+      flex: 1;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      color: var(--ink, #2A2620);
+      font-style: italic;
+    }
+    .v59-row-badge {
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      flex-shrink: 0;
+    }
+    .v59-row-badge.v59-pub {
+      background: rgba(120, 156, 85, 0.18);
+      color: #5E7A3E;
+    }
+    .v59-row-badge.v59-draft {
+      background: rgba(155, 145, 130, 0.18);
+      color: var(--ink-soft, #6B6358);
+    }
+    .v59-toggle {
+      width: 38px;
+      height: 22px;
+      border-radius: 11px;
+      background: var(--line, #D8D2C7);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.18s;
+      border: none;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .v59-toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.18s;
+    }
+    .v59-toggle.v59-on {
+      background: var(--gold, #B8965A);
+    }
+    .v59-toggle.v59-on::after {
+      transform: translateX(16px);
+    }
+    .v59-info-line {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-style: italic;
+      color: var(--ink-soft, #6B6358);
+      opacity: 0.85;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v59', 'variants-catalog');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ Toggle published d'une variante ═══ */
+  async function toggleVariantPublished(variantId) {
+    if (!window._v18?.productId) {
+      toast('Produit non lié', 'err'); return;
+    }
+    if (!window._v25 || !window._v25.variants) {
+      toast('Variantes indisponibles', 'err'); return;
+    }
+    const variant = window._v25.variants.find(v => v.id === variantId);
+    if (!variant) return;
+    const newVal = !variant.published;
+    variant.published = newVal;
+    try {
+      const { error } = await sb
+        .from('products')
+        .update({ variants: window._v25.variants })
+        .eq('id', window._v18.productId);
+      if (error) throw error;
+      toast(`Variante « ${variant.name} » ${newVal ? 'publiée ✓' : 'dépubliée'}`, 'ok', 2500);
+      renderSection();
+    } catch (e) {
+      variant.published = !newVal;  /* rollback */
+      console.error('[v59 toggle]', e);
+      toast('Erreur : ' + (e.message || e), 'err', 4000);
+    }
+  }
+
+  /* ═══ Rendu de la section ═══ */
+  function renderSection() {
+    const sectEl = document.getElementById('v59Section');
+    if (!sectEl) return;
+
+    const linked = !!(window._v18 && window._v18.productId);
+    const variants = (window._v25 && window._v25.variants) ? window._v25.variants : [];
+
+    if (!linked) {
+      sectEl.querySelector('.v59-content').innerHTML = `
+        <div class="v59-empty">Enregistre d'abord le produit pour gérer les variantes.</div>
+      `;
+      return;
+    }
+    if (variants.length === 0) {
+      sectEl.querySelector('.v59-content').innerHTML = `
+        <div class="v59-empty">Aucune variante créée. Utilise le bouton "+ Nouvelle variante" en bas du studio.</div>
+      `;
+      return;
+    }
+
+    /* Compteur publiées */
+    const publishedCount = variants.filter(v => v.published).length;
+    const html = `
+      <div class="v59-list">
+        ${variants.map(v => `
+          <div class="v59-row">
+            <span class="v59-row-name">${escapeHtml(v.name)}</span>
+            <span class="v59-row-badge ${v.published ? 'v59-pub' : 'v59-draft'}">
+              ${v.published ? 'Publiée' : 'Brouillon'}
+            </span>
+            <button class="v59-toggle ${v.published ? 'v59-on' : ''}"
+                    data-variant-id="${escapeHtml(v.id)}"
+                    title="${v.published ? 'Retirer du catalogue' : 'Publier sur le catalogue'}"></button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="v59-info-line">
+        ${publishedCount} sur ${variants.length} variante${variants.length > 1 ? 's' : ''} publiée${publishedCount > 1 ? 's' : ''} sur le catalogue.
+      </div>
+    `;
+    sectEl.querySelector('.v59-content').innerHTML = html;
+    sectEl.querySelectorAll('.v59-toggle').forEach(btn => {
+      btn.onclick = () => toggleVariantPublished(btn.dataset.variantId);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ Injection de la section dans le panneau admin ═══ */
+  function injectSection() {
+    const panel = document.getElementById('adminPanel');
+    if (!panel) { setTimeout(injectSection, 600); return; }
+    if (document.getElementById('v59Section')) {
+      renderSection();
+      return;
+    }
+
+    const section = document.createElement('section');
+    section.id = 'v59Section';
+    section.className = 'admin-section v59-section';
+    section.innerHTML = `
+      <div class="admin-section-title">Variantes &amp; catalogue</div>
+      <div class="admin-section-sub">Publier chaque variante individuellement</div>
+      <div class="v59-content" style="margin-top:12px"></div>
+    `;
+    /* Insérer avant la section "Catalogue" si elle existe, sinon en fin */
+    const catSection = [...panel.querySelectorAll('.admin-section')]
+      .find(s => /catalogue/i.test(s.querySelector('.admin-section-title')?.textContent || ''));
+    if (catSection) {
+      catSection.parentNode.insertBefore(section, catSection);
+    } else {
+      panel.appendChild(section);
+    }
+    renderSection();
+  }
+
+  /* Re-render quand variantes changent (ajout, rename, delete) */
+  function watchVariants() {
+    let lastHash = '';
+    setInterval(() => {
+      if (!document.getElementById('v59Section')) return;
+      const variants = (window._v25 && window._v25.variants) ? window._v25.variants : [];
+      const hash = variants.map(v => v.id + ':' + v.name + ':' + (v.published ? '1' : '0')).join('|');
+      if (hash !== lastHash) {
+        lastHash = hash;
+        renderSection();
+      }
+    }, 1500);
+  }
+
+  injectSection();
+  [800, 2000, 5000].forEach(d => setTimeout(injectSection, d));
+  setTimeout(watchVariants, 2000);
+
+  /* Observer le DOM : le panneau admin est créé à la première ouverture du
+     burger menu (lazy). On surveille son apparition. */
+  const obs = new MutationObserver(() => {
+    if (document.getElementById('adminPanel') && !document.getElementById('v59Section')) {
+      injectSection();
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+
+  window._v59.toggle = toggleVariantPublished;
+  window._v59.render = renderSection;
+
+  console.log('[studio v59] section variantes & catalogue dans le burger menu ✓');
+})();
+/* ════════════════════════════════════════════════════════════════════════
+   v60 — PROJECTION AUTO (smart triplanar adaptatif par mesh)
+   ─────────────────────────────────────────────────────────────────────────
+   Résout le problème "BOÎTE qui étire bizarrement" en adaptant la
+   projection PAR MESH selon sa forme locale :
+   
+   - Mesh "tall" (ratio Y/max(X,Z) > 2.0) : pied, montant vertical, lampe
+     → Projection CYLINDRIQUE verticale (le grain remonte le long du mesh)
+   - Mesh "flat" (ratio Y/max(X,Z) < 0.35) : plateau, dessus de meuble
+     → Projection PLANAIRE Y (texture vue du dessus, sans étirement vertical)
+   - Mesh "cube" : tout le reste (assise, dossier, brides)
+     → Vraie projection BOX TRIPLANAR (UVs choisis par face selon la
+       NORMALE de chaque vertex — pas une simple projection planaire-Y
+       comme l'actuel mode BOÎTE).
+   
+   Toutes ces projections utilisent la bbox LOCALE du mesh, donc chaque
+   pied a sa propre projection cylindrique correctement centrée, et
+   non pas la bbox du groupe parent (Piétement/Dossier).
+   
+   Bouton "AUTO" ajouté dans la rangée PROJECTION.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v60AutoProjection() {
+  if (window.__v60Init) return;
+  window.__v60Init = true;
+  window._v60 = {};
+
+  /* ───── CSS pour le bouton AUTO et badge ───── */
+  const css = `
+    /* Le bouton AUTO se distingue par son style doré subtil */
+    .proj-btn.v60-auto-btn {
+      position: relative;
+    }
+    .proj-btn.v60-auto-btn.v60-active-mode {
+      background: var(--gold, #B8965A) !important;
+      color: #fff !important;
+      border-color: var(--gold, #B8965A) !important;
+    }
+    .proj-btn.v60-auto-btn::after {
+      content: '✦';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 8px;
+      color: var(--gold, #B8965A);
+      opacity: 0.6;
+    }
+    .proj-btn.v60-auto-btn.v60-active-mode::after {
+      color: #fff;
+      opacity: 0.85;
+    }
+    .v60-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      background: rgba(184, 150, 90, 0.18);
+      color: var(--gold, #B8965A);
+      font-family: 'Jost', sans-serif;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v60', 'auto-projection');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ═══ HELPERS GEOMÉTRIQUES ═══ */
+
+  /* Sauvegarder les UVs originaux (réutilise la fonction interne du studio si dispo) */
+  function backupOriginalUVs(geom) {
+    if (geom.userData._origUVsV60) return;
+    if (geom.attributes.uv) {
+      geom.userData._origUVsV60 = geom.attributes.uv.array.slice();
+    } else {
+      geom.userData._origUVsV60 = null;  /* marqueur "pas d'UV à l'origine" */
+    }
+  }
+
+  /* Assurer un attribut UV présent */
+  function ensureUVAttribute(geom, count) {
+    if (!geom.attributes.uv) {
+      geom.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(count * 2), 2));
+    }
+  }
+
+  /* Assurer les normales (nécessaire pour box triplanar) */
+  function ensureNormals(geom) {
+    if (!geom.attributes.normal) geom.computeVertexNormals();
+  }
+
+  /* ═══ PROJECTION 1 : Cylindrique verticale (autour de l'axe Y du mesh) ═══ */
+  /* Pour les pieds, montants, lampes : le grain monte le long du Y de la
+     bbox locale du mesh (pas de la bbox du groupe). */
+  function applyVerticalCylinderLocal(geom) {
+    backupOriginalUVs(geom);
+    const pos = geom.attributes.position.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const cx = (box.min.x + box.max.x) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    const sizeY = Math.max(box.max.y - box.min.y, 1e-6);
+    ensureUVAttribute(geom, count);
+    const uv = geom.attributes.uv.array;
+    for (let i = 0; i < count; i++) {
+      const x = pos[3 * i] - cx;
+      const y = pos[3 * i + 1];
+      const z = pos[3 * i + 2] - cz;
+      uv[2 * i]     = (Math.atan2(z, x) / (2 * Math.PI)) + 0.5;
+      uv[2 * i + 1] = (y - box.min.y) / sizeY;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ PROJECTION 2 : Planaire Y (top-down, pour plateaux) ═══ */
+  function applyPlanarYLocal(geom) {
+    backupOriginalUVs(geom);
+    const pos = geom.attributes.position.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const sizeX = Math.max(box.max.x - box.min.x, 1e-6);
+    const sizeZ = Math.max(box.max.z - box.min.z, 1e-6);
+    ensureUVAttribute(geom, count);
+    const uv = geom.attributes.uv.array;
+    for (let i = 0; i < count; i++) {
+      uv[2 * i]     = (pos[3 * i]     - box.min.x) / sizeX;
+      uv[2 * i + 1] = (pos[3 * i + 2] - box.min.z) / sizeZ;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ PROJECTION 3 : Vraie BOX triplanar (par normale du vertex) ═══ */
+  /* Pour chaque vertex, on regarde sa normale : on choisit la face de
+     projection dont la normale est alignée avec la normale dominante du
+     vertex. Donne un wrap propre sur des formes courbes (assise, dossier). */
+  function applyTrueBoxLocal(geom) {
+    backupOriginalUVs(geom);
+    ensureNormals(geom);
+    const pos = geom.attributes.position.array;
+    const nrm = geom.attributes.normal.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const cx = (box.min.x + box.max.x) / 2;
+    const cy = (box.min.y + box.max.y) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    const sx = Math.max(box.max.x - box.min.x, 1e-6);
+    const sy = Math.max(box.max.y - box.min.y, 1e-6);
+    const sz = Math.max(box.max.z - box.min.z, 1e-6);
+    ensureUVAttribute(geom, count);
+    const uv = geom.attributes.uv.array;
+    for (let i = 0; i < count; i++) {
+      const x = pos[3 * i],     y = pos[3 * i + 1],     z = pos[3 * i + 2];
+      const nx = Math.abs(nrm[3 * i]);
+      const ny = Math.abs(nrm[3 * i + 1]);
+      const nz = Math.abs(nrm[3 * i + 2]);
+      let u, v;
+      if (nx >= ny && nx >= nz) {
+        /* Face perpendiculaire à X → projeter sur plan YZ */
+        u = (z - box.min.z) / sz;
+        v = (y - box.min.y) / sy;
+      } else if (ny >= nz) {
+        /* Face perpendiculaire à Y → projeter sur plan XZ */
+        u = (x - box.min.x) / sx;
+        v = (z - box.min.z) / sz;
+      } else {
+        /* Face perpendiculaire à Z → projeter sur plan XY */
+        u = (x - box.min.x) / sx;
+        v = (y - box.min.y) / sy;
+      }
+      uv[2 * i]     = u;
+      uv[2 * i + 1] = v;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ CLASSIFICATION D'UN MESH PAR SA FORME ═══ */
+  function classifyMesh(geom) {
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const sx = box.max.x - box.min.x;
+    const sy = box.max.y - box.min.y;
+    const sz = box.max.z - box.min.z;
+    const maxXZ = Math.max(sx, sz, 1e-6);
+    const yRatio = sy / maxXZ;
+    if (yRatio > 2.0) return 'cylinder';   /* tall : pied, montant */
+    if (yRatio < 0.35) return 'planar';     /* flat : plateau, dessus */
+    return 'box';                           /* cube-ish : assise, dossier, brides */
+  }
+
+  /* ═══ APPLY AUTO SUR UN MESH (orchestrateur) ═══ */
+  function applyAutoToMesh(mesh) {
+    if (!mesh.geometry || !mesh.geometry.attributes.position) return null;
+    const kind = classifyMesh(mesh.geometry);
+    if (kind === 'cylinder') {
+      applyVerticalCylinderLocal(mesh.geometry);
+    } else if (kind === 'planar') {
+      applyPlanarYLocal(mesh.geometry);
+    } else {
+      applyTrueBoxLocal(mesh.geometry);
+    }
+    return kind;
+  }
+
+  /* ═══ APPLY AUTO SUR LE GROUPE ACTIF ═══ */
+  function applyAutoToActiveGroup() {
+    if (typeof activePartKey === 'undefined' || !activePartKey) {
+      toast('Sélectionne d\'abord une partie', 'err'); return;
+    }
+    if (!meshGroups[activePartKey]) {
+      toast('Groupe introuvable', 'err'); return;
+    }
+    const meshes = meshGroups[activePartKey];
+    const stats = { cylinder: 0, planar: 0, box: 0 };
+    meshes.forEach(m => {
+      const k = applyAutoToMesh(m);
+      if (k) stats[k]++;
+    });
+
+    /* Persistance dans partProjection */
+    if (typeof partProjection !== 'undefined') {
+      partProjection[activePartKey] = 'auto';
+    }
+    /* Marqueur sur le groupe pour réapplication au load */
+    if (window._v21 && !window._v21.v60AutoKeys) window._v21.v60AutoKeys = new Set();
+    if (window._v21 && window._v21.v60AutoKeys) window._v21.v60AutoKeys.add(activePartKey);
+
+    /* Marquer le UI actif */
+    document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active'));
+    const autoBtn = document.querySelector('.proj-btn.v60-auto-btn');
+    if (autoBtn) autoBtn.classList.add('active', 'v60-active-mode');
+
+    /* MarkDirty pour persistance Supabase */
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty('projection auto');
+
+    /* Toast résumé */
+    const parts = [];
+    if (stats.cylinder) parts.push(`${stats.cylinder} cylindre`);
+    if (stats.planar)   parts.push(`${stats.planar} plan`);
+    if (stats.box)      parts.push(`${stats.box} box`);
+    toast(`Projection auto · ${parts.join(' + ')} (${meshes.length} mailles)`, 'ok', 3500);
+  }
+
+  /* ═══ INJECTION DU BOUTON "AUTO" ═══ */
+  function injectAutoBtn() {
+    const projGrid = document.querySelector('.proj-grid');
+    if (!projGrid) { setTimeout(injectAutoBtn, 600); return; }
+    if (projGrid.querySelector('.v60-auto-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'proj-btn v60-auto-btn';
+    btn.type = 'button';
+    btn.title = 'Projection intelligente : choisit cylindre / plan / box selon la forme de chaque mesh';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M12 12 L20 8 M12 12 L4 8 M12 12 V20"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Auto
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyAutoToActiveGroup();
+    };
+    /* Insérer en première position (à gauche de UV) — non, plutôt en dernière
+       pour ne pas dérouter le user habitué à voir UV en premier */
+    projGrid.appendChild(btn);
+  }
+  injectAutoBtn();
+  [600, 1500, 3500].forEach(d => setTimeout(injectAutoBtn, d));
+
+  /* ═══ Réapplication automatique au changement de partie active ═══ */
+  /* Quand l'archi clique sur un autre groupe dans l'arbre, on doit mettre à
+     jour le state visuel du bouton AUTO et — si la partProjection est 'auto'
+     — restaurer le rendu correct (les UVs sont déjà persistées, mais le
+     state UI doit refléter ça). */
+  function updateAutoBtnHighlight() {
+    const autoBtn = document.querySelector('.proj-btn.v60-auto-btn');
+    if (!autoBtn) return;
+    const isAuto = (typeof activePartKey !== 'undefined' && activePartKey &&
+                    typeof partProjection !== 'undefined' &&
+                    partProjection[activePartKey] === 'auto');
+    if (isAuto) {
+      document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active'));
+      autoBtn.classList.add('active', 'v60-active-mode');
+    } else {
+      autoBtn.classList.remove('active', 'v60-active-mode');
+    }
+  }
+  /* Watcher polling léger (pas idéal mais simple) */
+  setInterval(updateAutoBtnHighlight, 800);
+
+  /* ═══ Quand on clique un autre bouton de projection, sortir du mode AUTO ═══ */
+  /* On ajoute un listener supplémentaire sur les boutons non-AUTO qui clear
+     le marqueur AUTO. Le handler natif du studio gère le reste. */
+  function hookOtherProjBtns() {
+    document.querySelectorAll('.proj-btn:not(.v60-auto-btn)').forEach(btn => {
+      if (btn.dataset.v60Hooked === '1') return;
+      btn.dataset.v60Hooked = '1';
+      btn.addEventListener('click', () => {
+        if (typeof activePartKey !== 'undefined' && activePartKey &&
+            window._v21 && window._v21.v60AutoKeys) {
+          window._v21.v60AutoKeys.delete(activePartKey);
+        }
+        const autoBtn = document.querySelector('.proj-btn.v60-auto-btn');
+        if (autoBtn) autoBtn.classList.remove('active', 'v60-active-mode');
+      }, { capture: false });
+    });
+  }
+  hookOtherProjBtns();
+  [800, 2000, 4500].forEach(d => setTimeout(hookOtherProjBtns, d));
+
+  /* ═══ Réapplication après applyVariantState (switch variante / undo) ═══ */
+  /* applyVariantState (v25) restaure le studio_state mais ne sait pas
+     ré-exécuter 'auto'. On le wrappe pour réappliquer les projections auto. */
+  function hookApplyVariantState() {
+    if (!window._v25 || !window._v25.applyVariantState) return false;
+    if (window._v25.__v60Hooked) return true;
+    const orig = window._v25.applyVariantState;
+    window._v25.applyVariantState = async function(state) {
+      const r = await orig.apply(this, arguments);
+      /* Après restauration, scanner partProjection pour les 'auto' et
+         relancer applyAutoToMesh sur chaque mesh */
+      setTimeout(() => {
+        if (typeof partProjection === 'undefined' || !partProjection) return;
+        Object.entries(partProjection).forEach(([key, mode]) => {
+          if (mode !== 'auto') return;
+          if (!meshGroups[key]) return;
+          meshGroups[key].forEach(m => applyAutoToMesh(m));
+        });
+      }, 250);
+      return r;
+    };
+    window._v25.__v60Hooked = true;
+    return true;
+  }
+  hookApplyVariantState();
+  const ahIntv = setInterval(() => { if (hookApplyVariantState()) clearInterval(ahIntv); }, 600);
+  setTimeout(() => clearInterval(ahIntv), 20000);
+
+  /* Expose */
+  window._v60.apply = applyAutoToActiveGroup;
+  window._v60.applyToMesh = applyAutoToMesh;
+  window._v60.classify = (m) => classifyMesh(m.geometry);
+  window._v60.box = applyTrueBoxLocal;
+  window._v60.cylinder = applyVerticalCylinderLocal;
+  window._v60.planar = applyPlanarYLocal;
+
+  console.log('[studio v60] projection AUTO (smart triplanar adaptatif par mesh) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
