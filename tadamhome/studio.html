@@ -22168,6 +22168,154 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._v68.exportAsObj = exportAsObjGroupedByMeshGroups;
   console.log('[studio v68.3] export OBJ fusionne meshes par groupKey ✓ (1 bloc o par groupe)');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.4 — EXPORT OBJ DANS LE FRAME DU ROOT (préserve orientation)
+   ─────────────────────────────────────────────────────────────────────────
+   v68.3 exportait les vertices en world-space via mesh.matrixWorld. Si le
+   modèle avait été redressé par v51 (+90° X pour Z-up → Y-up), cette
+   rotation était appliquée aux vertices → OBJ exporté Y-up.
+   
+   Au reload, v51 lance sa détection géométrique systématique :
+   - Si dimensions Z > Y, considère le modèle comme Z-up
+   - Applique +90° X automatiquement
+   
+   Comme mon OBJ Y-up avait une orientation bizarre après le précédent
+   redressement, v51 le re-redresse mal → modèle couché.
+   
+   FIX v68.4 :
+   Exporter les vertices dans le frame du root racine (currentObject), donc
+   SANS la rotation appliquée par v51. Mathématiquement :
+   
+     vertex_in_root_frame = inverse(root.matrixWorld) × mesh.matrixWorld × vertex_local
+   
+   Au reload, l'OBJ est dans son frame d'origine (potentiellement Z-up
+   pour un export Blender). v51 fait son redressement normal +90° X →
+   modèle debout, comme avant le save.
+   
+   Note : si root n'a aucune rotation appliquée (rootInverse = identité),
+   le comportement est strictement identique à v68.3 → pas de régression.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_4Fix() {
+  if (window.__v68_4Init) return;
+  window.__v68_4Init = true;
+
+  if (!window._v68 || !window._v68.exportAsObj) {
+    console.warn('[v68.4] _v68 ou _v68.exportAsObj introuvable');
+    return;
+  }
+  /* Fallback = export par-mesh original de v68 (si meshGroups absent) */
+  const exportAsObjFallback = window._v68.exportAsObjFallback || window._v68.exportAsObj;
+
+  function exportAsObjGroupedRootFrame(root) {
+    if (typeof meshGroups === 'undefined' || !meshGroups) {
+      console.log('[v68.4] meshGroups absent → fallback');
+      return exportAsObjFallback(root);
+    }
+    const groupKeys = Object.keys(meshGroups);
+    if (groupKeys.length === 0) {
+      console.log('[v68.4] meshGroups vide → fallback');
+      return exportAsObjFallback(root);
+    }
+
+    const lines = [];
+    lines.push('# TadamHome studio export v68.4 (merged by groupKey · root-frame)');
+    lines.push('# generated ' + new Date().toISOString());
+    lines.push('');
+
+    /* Matrice qui annule la transformation du root :
+       vertex_in_root_frame = rootInverse × vertex_world
+       → préserve le frame d'origine du modèle pour que v51 réapplique
+         le redressement Z-up automatique au reload */
+    root.updateMatrixWorld(true);
+    const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const meshToRoot = new THREE.Matrix4();
+
+    /* Log debug : indique si une rotation root est compensée */
+    const rootMat = root.matrixWorld.elements;
+    const hasRootTransform = Math.abs(rootMat[0] - 1) > 1e-6 || Math.abs(rootMat[5] - 1) > 1e-6 || Math.abs(rootMat[10] - 1) > 1e-6;
+    if (hasRootTransform) {
+      console.log('[v68.4] root a une transformation (rotation Z-up probable) → compensation appliquée à l\'export');
+    }
+
+    let vCount = 0, vnCount = 0, vtCount = 0;
+    let totalMeshes = 0, skipped = 0;
+
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      if (!meshes || meshes.length === 0) {
+        console.warn('[v68.4] groupe vide :', groupKey);
+        return;
+      }
+      lines.push('o ' + groupKey);
+
+      meshes.forEach(mesh => {
+        if (!mesh || !mesh.isMesh || !mesh.geometry) { skipped++; return; }
+        mesh.updateMatrixWorld(true);
+        const geom = mesh.geometry;
+        const posAttr = geom.attributes.position;
+        if (!posAttr) { skipped++; return; }
+        const normAttr = geom.attributes.normal;
+        const uvAttr = geom.attributes.uv;
+        const indexAttr = geom.index;
+
+        /* Matrice mesh → root-frame */
+        meshToRoot.multiplyMatrices(rootInverse, mesh.matrixWorld);
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshToRoot);
+
+        const tempV = new THREE.Vector3();
+        const tempN = new THREE.Vector3();
+
+        const startV  = vCount;
+        const startVn = vnCount;
+        const startVt = vtCount;
+
+        for (let i = 0; i < posAttr.count; i++) {
+          tempV.fromBufferAttribute(posAttr, i).applyMatrix4(meshToRoot);
+          lines.push('v ' + tempV.x.toFixed(6) + ' ' + tempV.y.toFixed(6) + ' ' + tempV.z.toFixed(6));
+          vCount++;
+        }
+        if (normAttr) {
+          for (let i = 0; i < normAttr.count; i++) {
+            tempN.fromBufferAttribute(normAttr, i).applyMatrix3(normalMatrix).normalize();
+            lines.push('vn ' + tempN.x.toFixed(6) + ' ' + tempN.y.toFixed(6) + ' ' + tempN.z.toFixed(6));
+            vnCount++;
+          }
+        }
+        if (uvAttr) {
+          for (let i = 0; i < uvAttr.count; i++) {
+            lines.push('vt ' + uvAttr.getX(i).toFixed(6) + ' ' + uvAttr.getY(i).toFixed(6));
+            vtCount++;
+          }
+        }
+
+        const fmt = (localIdx) => {
+          const v = localIdx + startV + 1;
+          if (uvAttr && normAttr) return v + '/' + (localIdx + startVt + 1) + '/' + (localIdx + startVn + 1);
+          if (normAttr)           return v + '//' + (localIdx + startVn + 1);
+          if (uvAttr)             return v + '/' + (localIdx + startVt + 1);
+          return '' + v;
+        };
+        if (indexAttr) {
+          for (let i = 0; i < indexAttr.count; i += 3) {
+            lines.push('f ' + fmt(indexAttr.getX(i)) + ' ' + fmt(indexAttr.getX(i+1)) + ' ' + fmt(indexAttr.getX(i+2)));
+          }
+        } else {
+          for (let i = 0; i < posAttr.count; i += 3) {
+            lines.push('f ' + fmt(i) + ' ' + fmt(i+1) + ' ' + fmt(i+2));
+          }
+        }
+        totalMeshes++;
+      });
+
+      lines.push('');
+    });
+
+    console.log('[v68.4] export ·', groupKeys.length, 'blocs o ·', totalMeshes, 'meshes ·', vCount, 'vertices · frame=root' + (skipped ? ' · ' + skipped + ' meshes skipped' : ''));
+    return lines.join('\n');
+  }
+
+  window._v68.exportAsObj = exportAsObjGroupedRootFrame;
+  console.log('[studio v68.4] export OBJ dans frame d\'origine du root (v51 réappliquera le redressement Z-up au reload) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
