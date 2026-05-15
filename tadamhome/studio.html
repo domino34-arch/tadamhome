@@ -20327,6 +20327,223 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v63] comparaison v2 robuste (offset garanti) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v64 — PERSISTANCE DU SPLIT v54 + RE-APPLICATION AUTO AU RELOAD
+   ─────────────────────────────────────────────────────────────────────────
+   PROBLÈME CRITIQUE : v54 (split par composants connexes) modifie la
+   structure des meshes en mémoire mais le studio ne sait pas que ce split
+   a eu lieu. Au reload :
+     1. OBJ rechargé → 1 mesh (comme à l'origine)
+     2. v18-C essaie de restaurer les 3 parts (ASSISE/DOSSIER/PIETEMENT)
+        sur des meshes "mesh_part01"..."mesh_part08" qui n'existent plus
+     3. "appliquées: 0 · ignorées: 3"
+     4. Toutes les matières et variantes deviennent inapplicables
+   
+   FIX :
+   - Hook v54.run pour marquer studio_state.shellSplitDone = true et
+     shellSplitTolerance (persisté via le hook serializeStudioState)
+   - Au reload, watcher qui détecte productRow.studio_state.shellSplitDone
+     et qui re-déclenche automatiquement v54 sur le modèle fraîchement
+     chargé, puis ré-applique le studio_state pour restaurer matériaux,
+     hiérarchie, groupes (donc aussi tous les variants).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v64ShellSplitPersist() {
+  if (window.__v64Init) return;
+  window.__v64Init = true;
+  window._v64 = {
+    shellSplitDone: false,
+    shellSplitTolerance: 0.001,
+    splitAppliedAtBoot: false,
+    bootProductId: null,
+  };
+
+  /* ═══ Hook 1 : v54.run → marque le flag + push DB ═══ */
+  function hookV54() {
+    if (!window._v54 || !window._v54.run) return false;
+    if (window._v54.__v64Hooked) return true;
+    const orig = window._v54.run;
+    window._v54.run = function(tolerance) {
+      console.log('[v64] split v54 lancé, tolérance =', tolerance);
+      const r = orig.apply(this, arguments);
+      window._v64.shellSplitDone = true;
+      window._v64.shellSplitTolerance = tolerance || 0.001;
+      /* markDirty pour persistance par le pipeline normal */
+      setTimeout(() => {
+        if (window._v18 && window._v18.markDirty) window._v18.markDirty('split shells');
+        /* Et push direct au cas où markDirty ne déclenche pas le save tout
+           de suite (ou si le user reload avant le debounce auto-save) */
+        pushFlagDirect();
+      }, 2500);
+      return r;
+    };
+    window._v54.__v64Hooked = true;
+    console.log('[v64] hook v54.run installé');
+    return true;
+  }
+  hookV54();
+  const hv = setInterval(() => { if (hookV54()) clearInterval(hv); }, 500);
+  setTimeout(() => clearInterval(hv), 20000);
+
+  /* ═══ Hook 2 : serializeStudioState → inclure shellSplitDone ═══ */
+  function hookSerialize() {
+    if (!window._v18 || !window._v18.serializeStudioState) return false;
+    if (window._v18.__v64SerHooked) return true;
+    const orig = window._v18.serializeStudioState;
+    window._v18.serializeStudioState = function() {
+      const state = orig.apply(this, arguments) || {};
+      if (window._v64.shellSplitDone) {
+        state.shellSplitDone = true;
+        state.shellSplitTolerance = window._v64.shellSplitTolerance;
+      }
+      return state;
+    };
+    window._v18.__v64SerHooked = true;
+    console.log('[v64] hook serializeStudioState installé');
+    return true;
+  }
+  hookSerialize();
+  const hs = setInterval(() => { if (hookSerialize()) clearInterval(hs); }, 500);
+  setTimeout(() => clearInterval(hs), 20000);
+
+  /* ═══ Push direct du flag en DB (sécurité, indépendant des debounces) ═══ */
+  async function pushFlagDirect() {
+    const productId = window._v18 && window._v18.productId;
+    if (!productId || typeof sb === 'undefined' || !sb) return;
+    try {
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state').eq('id', productId).single();
+      if (e1) throw e1;
+      const state = row.studio_state || {};
+      state.shellSplitDone = true;
+      state.shellSplitTolerance = window._v64.shellSplitTolerance;
+      const { error: e2 } = await sb.from('products')
+        .update({ studio_state: state }).eq('id', productId);
+      if (e2) throw e2;
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = state;
+      }
+      console.log('[v64] shellSplitDone=true poussé en DB');
+    } catch (e) {
+      console.warn('[v64] pushFlag:', e);
+    }
+  }
+
+  /* ═══ Au reload : watcher qui détecte le moment où il faut re-splitter ═══ */
+  /* Conditions à respecter :
+     - productRow.studio_state.shellSplitDone === true
+     - currentObject est chargé
+     - Le modèle a "trop peu" de meshes (< 4) — donc split pas encore refait
+     - splitAppliedAtBoot === false (on n'applique qu'une fois par session)
+  */
+  let watcher = setInterval(() => {
+    if (window._v64.splitAppliedAtBoot) { clearInterval(watcher); return; }
+
+    const row = window._v18 && window._v18.productRow;
+    if (!row || !row.studio_state) return;
+
+    /* Pas de flag → rien à faire, on désarme le watcher */
+    if (!row.studio_state.shellSplitDone) {
+      window._v64.splitAppliedAtBoot = true;
+      clearInterval(watcher);
+      return;
+    }
+
+    /* Modèle pas encore chargé */
+    if (typeof currentObject === 'undefined' || !currentObject) return;
+
+    /* Compter les meshes pour savoir si on a déjà splitté */
+    let meshCount = 0;
+    currentObject.traverse(o => { if (o.isMesh) meshCount++; });
+
+    /* Si on a déjà plein de meshes, c'est qu'on a soit déjà splitté, soit
+       l'OBJ source avait déjà plein de meshes. On ne refait pas. */
+    if (meshCount >= 4) {
+      console.log('[v64] reload : déjà', meshCount, 'meshes → split déjà fait, skip');
+      window._v64.splitAppliedAtBoot = true;
+      clearInterval(watcher);
+      return;
+    }
+
+    /* OK : on doit refaire le split */
+    window._v64.splitAppliedAtBoot = true;
+    clearInterval(watcher);
+    autoReapplySplit(row.studio_state);
+  }, 800);
+  setTimeout(() => { try { clearInterval(watcher); } catch(_){} }, 60000);
+
+  async function autoReapplySplit(savedState) {
+    if (!window._v54 || !window._v54.run) {
+      console.warn('[v64] v54.run indisponible pour re-application');
+      return;
+    }
+    const tol = savedState.shellSplitTolerance || 0.001;
+    console.log('[v64] reload : re-application auto du split v54 (tol=' + tol + 'm)');
+
+    /* Bloquer les écritures pendant le split (sinon le save automatique
+       peut écraser le studio_state avec un état intermédiaire) */
+    if (window._v18) window._v18.restoring = true;
+    if (window._v56) window._v56.isApplying = true;
+
+    /* Toast info pour l'archi */
+    if (typeof toast === 'function') {
+      toast('Restauration du modèle en cours…', 'info', 3000);
+    }
+
+    /* Lancer le split */
+    try {
+      window._v54.run(tol);
+    } catch (e) {
+      console.error('[v64] erreur split:', e);
+    }
+
+    /* Attendre que le split termine + detectParts + tree render
+       (v54 utilise un setTimeout de 60ms + un calcul, donc ~1.5s suffit
+       pour des modèles raisonnables) */
+    await new Promise(r => setTimeout(r, 2500));
+
+    /* Maintenant on a les meshes splittés. Re-appliquer le studio_state
+       complet via applyVariantState pour restaurer matériaux, hiérarchie,
+       groupes et labels. */
+    if (window._v25 && window._v25.applyVariantState) {
+      console.log('[v64] re-application du studio_state pour restaurer matériaux + hiérarchie');
+      try {
+        await window._v25.applyVariantState(savedState);
+      } catch (e) {
+        console.error('[v64] erreur applyVariantState:', e);
+      }
+    }
+
+    /* Si l'utilisateur était sur une variante avant rechargement, on
+       devrait aussi y revenir. v25 doit gérer ça via son hydratation. */
+
+    /* Débloquer les écritures */
+    setTimeout(() => {
+      if (window._v18) window._v18.restoring = false;
+      if (window._v56) window._v56.isApplying = false;
+      if (typeof toast === 'function') {
+        toast('Modèle restauré ✓', 'ok', 2500);
+      }
+      console.log('[v64] restauration terminée');
+    }, 800);
+  }
+
+  /* Expose pour debug */
+  window._v64.force = () => {
+    window._v64.splitAppliedAtBoot = false;
+    const row = window._v18 && window._v18.productRow;
+    if (row && row.studio_state) autoReapplySplit(row.studio_state);
+  };
+  window._v64.status = () => ({
+    shellSplitDone: window._v64.shellSplitDone,
+    tol: window._v64.shellSplitTolerance,
+    appliedAtBoot: window._v64.splitAppliedAtBoot,
+    inDB: window._v18 && window._v18.productRow &&
+          window._v18.productRow.studio_state &&
+          !!window._v18.productRow.studio_state.shellSplitDone,
+  });
+
+  console.log('[studio v64] persistance shell split + re-application auto au reload ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
