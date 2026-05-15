@@ -19536,6 +19536,797 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v60] projection AUTO (smart triplanar adaptatif par mesh) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v61 — PROJECTION AUTO v2 (world-space uniform + V=Y up)
+   ─────────────────────────────────────────────────────────────────────────
+   Remplace l'algorithme de v60 pour corriger 2 défauts :
+   
+   1. Pieds : direction du grain incohérente entre faces
+      → Cause : classification ratio > 2.0 trop sévère, certains pieds
+        passaient en "box" et la box v60 ne forçait pas V sur Y.
+      → Fix : seuil 1.5 + projection BOX qui force V = Y monde sur les
+        faces verticales (X ou Z dominantes en normale).
+   
+   2. Assise : densité de tissage différente entre dessus et côtés
+      → Cause : v60 utilisait des UVs normalisés 0-1 sur la bbox PAR FACE,
+        donc une face étroite (épaisseur de l'assise) recevait la même
+        plage de texture qu'une face large.
+      → Fix : échelle uniforme S = 1/maxDim(mesh) pour TOUTES les faces.
+        Les UVs sortent du range 0-1 sur les axes courts, mais la
+        densité du tissage est identique partout.
+   
+   Le bouton "AUTO" existant est re-câblé pour utiliser v61. v60 reste
+   présent comme fallback mais le clic appelle v61 désormais.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v61BoxProjectionV2() {
+  if (window.__v61Init) return;
+  window.__v61Init = true;
+  window._v61 = {};
+
+  /* ───── Helpers ───── */
+  function backupUV(geom) {
+    if (geom.userData._origUVsV61) return;
+    geom.userData._origUVsV61 = geom.attributes.uv
+      ? geom.attributes.uv.array.slice()
+      : null;
+  }
+  function ensureUV(geom, count) {
+    if (!geom.attributes.uv) {
+      geom.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(count * 2), 2));
+    }
+  }
+  function ensureNormals(geom) {
+    if (!geom.attributes.normal) geom.computeVertexNormals();
+  }
+
+  /* ═══ CLASSIFICATION v2 ═══
+     - cylinder : Y nettement dominant (seuil abaissé à 1.5)
+     - planar   : Y vraiment écrasé (< 0.15 du max horizontal)
+                  réservé aux vrais plateaux de table, pas aux coussins
+     - box      : tout le reste (assise, dossier, brides, mousse) */
+  function classify(geom) {
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const sx = box.max.x - box.min.x;
+    const sy = box.max.y - box.min.y;
+    const sz = box.max.z - box.min.z;
+    const maxXZ = Math.max(sx, sz, 1e-6);
+    const minXZ = Math.min(sx, sz, 1e-6);
+    const yRatio = sy / maxXZ;
+    /* Cylinder : Y dominant ET les 2 dimensions horizontales sont relativement
+       petites (cohérence pour un pied ou un montant). Si X est large et Z
+       petit, c'est plutôt une planche verticale → box, pas cylinder. */
+    if (yRatio > 1.5 && sy > minXZ * 2.0) return 'cylinder';
+    /* Planar : vraiment plat (plateau, dessus de table) */
+    if (yRatio < 0.15) return 'planar';
+    return 'box';
+  }
+
+  /* ═══ CYLINDRE vertical (autour de Y local du mesh) ═══ */
+  function applyCylinder(geom) {
+    backupUV(geom);
+    const pos = geom.attributes.position.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const cx = (box.min.x + box.max.x) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    /* Pour le V (vertical), on utilise une échelle uniforme avec le périmètre
+       approximatif du cylindre, pour que U et V aient la même densité (donc
+       le grain reste à proportion réaliste sur la hauteur). */
+    const radius = Math.max(box.max.x - cx, box.max.z - cz, 1e-6);
+    const circumference = 2 * Math.PI * radius;
+    const sizeY = Math.max(box.max.y - box.min.y, 1e-6);
+    /* Échelle U : 1 tour complet = circumference unités. Donc U augmente de
+       1 quand on fait le tour. V : 1 par circumference d'unités verticales
+       (même densité). */
+    ensureUV(geom, count);
+    const uv = geom.attributes.uv.array;
+    for (let i = 0; i < count; i++) {
+      const x = pos[3 * i] - cx;
+      const y = pos[3 * i + 1];
+      const z = pos[3 * i + 2] - cz;
+      uv[2 * i]     = (Math.atan2(z, x) / (2 * Math.PI)) + 0.5;
+      /* V proportionnel : 1 unité V = 1 tour de cylindre = circumference d'unités */
+      uv[2 * i + 1] = (y - box.min.y) / circumference;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ PLANAR Y (top-down sur plateau) ═══ */
+  function applyPlanar(geom) {
+    backupUV(geom);
+    const pos = geom.attributes.position.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const sx = Math.max(box.max.x - box.min.x, 1e-6);
+    const sz = Math.max(box.max.z - box.min.z, 1e-6);
+    ensureUV(geom, count);
+    const uv = geom.attributes.uv.array;
+    for (let i = 0; i < count; i++) {
+      uv[2 * i]     = (pos[3 * i]     - box.min.x) / sx;
+      uv[2 * i + 1] = (pos[3 * i + 2] - box.min.z) / sz;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ BOX TRIPLANAR v2 (échelle uniforme + V = Y monde) ═══
+     Pour chaque vertex :
+     - Si normale Y dominante (top/bottom)  → u = x/S, v = z/S
+     - Si normale X dominante (gauche/droite) → u = z/S, v = y/S
+     - Si normale Z dominante (devant/derrière) → u = x/S, v = y/S
+     S = 1 / maxDim(mesh), donc la texture a la même densité partout.
+     Sur les faces verticales, V suit toujours Y → grain vertical garanti. */
+  function applyBox(geom) {
+    backupUV(geom);
+    ensureNormals(geom);
+    const pos = geom.attributes.position.array;
+    const nrm = geom.attributes.normal.array;
+    const count = pos.length / 3;
+    const box = new THREE.Box3().setFromBufferAttribute(geom.attributes.position);
+    const cx = (box.min.x + box.max.x) / 2;
+    const cy = (box.min.y + box.max.y) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    const sx = box.max.x - box.min.x;
+    const sy = box.max.y - box.min.y;
+    const sz = box.max.z - box.min.z;
+    const maxDim = Math.max(sx, sy, sz, 1e-6);
+    const S = 1.0 / maxDim;
+    ensureUV(geom, count);
+    const uv = geom.attributes.uv.array;
+    /* Coords centrées : range typique de -0.5 à +0.5 sur la plus grande dim,
+       moins sur les autres. Offset +0.5 pour avoir centre à 0.5,0.5. */
+    for (let i = 0; i < count; i++) {
+      const x = (pos[3 * i]     - cx) * S + 0.5;
+      const y = (pos[3 * i + 1] - cy) * S + 0.5;
+      const z = (pos[3 * i + 2] - cz) * S + 0.5;
+      const nx = Math.abs(nrm[3 * i]);
+      const ny = Math.abs(nrm[3 * i + 1]);
+      const nz = Math.abs(nrm[3 * i + 2]);
+      let u, v;
+      if (ny >= nx && ny >= nz) {
+        /* Top/bottom : on garde une cohérence d'échelle (XZ) */
+        u = x;
+        v = z;
+      } else if (nx >= nz) {
+        /* Côté gauche/droite : V suit Y monde → grain vertical */
+        u = z;
+        v = y;
+      } else {
+        /* Devant/derrière : V suit Y monde → grain vertical */
+        u = x;
+        v = y;
+      }
+      uv[2 * i]     = u;
+      uv[2 * i + 1] = v;
+    }
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  /* ═══ APPLY AUTO v2 SUR UN MESH ═══ */
+  function applyAutoMesh(mesh) {
+    if (!mesh.geometry || !mesh.geometry.attributes.position) return null;
+    const kind = classify(mesh.geometry);
+    if (kind === 'cylinder') applyCylinder(mesh.geometry);
+    else if (kind === 'planar') applyPlanar(mesh.geometry);
+    else applyBox(mesh.geometry);
+    return kind;
+  }
+
+  /* ═══ APPLY AUTO SUR LE GROUPE ACTIF ═══ */
+  function applyAutoGroup() {
+    if (typeof activePartKey === 'undefined' || !activePartKey) {
+      toast('Sélectionne d\'abord une partie', 'err'); return;
+    }
+    if (!meshGroups[activePartKey]) {
+      toast('Groupe introuvable', 'err'); return;
+    }
+    const meshes = meshGroups[activePartKey];
+    const stats = { cylinder: 0, planar: 0, box: 0 };
+    meshes.forEach(m => {
+      const k = applyAutoMesh(m);
+      if (k) stats[k]++;
+    });
+    if (typeof partProjection !== 'undefined') {
+      partProjection[activePartKey] = 'auto';
+    }
+    /* Highlight UI */
+    document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active', 'v60-active-mode'));
+    const autoBtn = document.querySelector('.proj-btn.v60-auto-btn');
+    if (autoBtn) autoBtn.classList.add('active', 'v60-active-mode');
+
+    if (window._v18 && window._v18.markDirty) window._v18.markDirty('projection auto v2');
+
+    const parts = [];
+    if (stats.cylinder) parts.push(`${stats.cylinder} cylindre`);
+    if (stats.planar)   parts.push(`${stats.planar} plan`);
+    if (stats.box)      parts.push(`${stats.box} box V-up`);
+    toast(`Projection auto v2 · ${parts.join(' + ')} (${meshes.length} mailles)`, 'ok', 3500);
+  }
+
+  /* ═══ RE-CÂBLAGE du bouton AUTO existant (créé par v60) ═══ */
+  function rewireAutoBtn() {
+    const autoBtn = document.querySelector('.proj-btn.v60-auto-btn');
+    if (!autoBtn) { setTimeout(rewireAutoBtn, 500); return; }
+    if (autoBtn.dataset.v61 === '1') return;
+    /* Cloner pour retirer l'ancien handler */
+    const clone = autoBtn.cloneNode(true);
+    clone.dataset.v61 = '1';
+    autoBtn.parentNode.replaceChild(clone, autoBtn);
+    clone.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyAutoGroup();
+    };
+  }
+  rewireAutoBtn();
+  [800, 2000, 4500, 7500].forEach(d => setTimeout(rewireAutoBtn, d));
+
+  /* ═══ Hook applyVariantState pour ré-appliquer auto v2 ═══ */
+  function hookApply() {
+    if (!window._v25 || !window._v25.applyVariantState) return false;
+    if (window._v25.__v61Hooked) return true;
+    const orig = window._v25.applyVariantState;
+    window._v25.applyVariantState = async function(state) {
+      const r = await orig.apply(this, arguments);
+      setTimeout(() => {
+        if (typeof partProjection === 'undefined' || !partProjection) return;
+        Object.entries(partProjection).forEach(([key, mode]) => {
+          if (mode !== 'auto') return;
+          if (!meshGroups[key]) return;
+          meshGroups[key].forEach(m => applyAutoMesh(m));
+        });
+      }, 280);
+      return r;
+    };
+    window._v25.__v61Hooked = true;
+    return true;
+  }
+  hookApply();
+  const ahIntv = setInterval(() => { if (hookApply()) clearInterval(ahIntv); }, 600);
+  setTimeout(() => clearInterval(ahIntv), 20000);
+
+  window._v61.apply = applyAutoGroup;
+  window._v61.applyMesh = applyAutoMesh;
+  window._v61.classify = (m) => classify(m.geometry);
+  window._v61.box = applyBox;
+  window._v61.cylinder = applyCylinder;
+  window._v61.planar = applyPlanar;
+
+  console.log('[studio v61] projection AUTO v2 (world-space uniform + V=Y up) ✓');
+})();
+/* ════════════════════════════════════════════════════════════════════════
+   v62 — ROUTING SAVE VERS VARIANTE ACTIVE (intercepteur Supabase)
+   ─────────────────────────────────────────────────────────────────────────
+   PROBLÈME : v18 (et v34, v35, etc.) appellent tous
+       sb.from('products').update({ studio_state: ... })
+   sans regarder si on est sur une variante. Résultat : toute modif faite
+   en étant sur "Variante 1" pollue la base.
+   
+   FIX : on monkey-patch sb.from('products').update() pour détecter le
+   payload { studio_state: X } ET la variante active. Si activeVariantId
+   ≠ 'base', on transforme le payload en { variants: [...] } avec X poussé
+   dans le bon slot. Sinon, on laisse passer comme avant (update de la base).
+   
+   Le patch est appliqué UNE SEULE FOIS au niveau du client global, donc
+   couvre tous les appels (v18, v34, v35, v30, v45, etc.).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v62VariantSaveRouting() {
+  if (window.__v62Init) return;
+  window.__v62Init = true;
+  window._v62 = {
+    interceptedCount: 0,
+    routedToVariant: 0,
+    routedToBase: 0,
+  };
+
+  /* ───── Patcher sb.from('products') ───── */
+  function patchClient() {
+    if (typeof sb === 'undefined' || !sb || !sb.from) return false;
+    if (sb.__v62Patched) return true;
+
+    const origFrom = sb.from.bind(sb);
+    sb.from = function v62From(table) {
+      const builder = origFrom(table);
+      if (table !== 'products') return builder;
+
+      /* Wrapper update() */
+      const origUpdate = builder.update.bind(builder);
+      builder.update = function v62Update(payload) {
+        window._v62.interceptedCount++;
+        try {
+          /* Cas qui nous concerne : payload contient studio_state SEUL (pas
+             un mix studio_state + variants). On NE TOUCHE PAS aux updates
+             qui contiennent déjà 'variants' (v25, v59, etc.). */
+          if (payload &&
+              typeof payload === 'object' &&
+              'studio_state' in payload &&
+              !('variants' in payload)) {
+            const activeId = window._v25 && window._v25.activeVariantId;
+            if (activeId && activeId !== 'base') {
+              /* Trouver l'index de la variante active */
+              const variants = (window._v25 && window._v25.variants) || [];
+              const idx = variants.findIndex(v => v.id === activeId);
+              if (idx >= 0) {
+                /* Construire une copie de variants avec studio_state mis à jour
+                   pour la variante active uniquement */
+                const newVariants = variants.map((v, i) =>
+                  i === idx ? { ...v, studio_state: payload.studio_state } : v
+                );
+                /* Mettre à jour la mémoire locale aussi (window._v25.variants
+                   est la référence partagée) */
+                variants[idx].studio_state = payload.studio_state;
+
+                /* Conserver les autres champs du payload (rares mais possibles) */
+                const newPayload = { ...payload };
+                delete newPayload.studio_state;
+                newPayload.variants = newVariants;
+
+                window._v62.routedToVariant++;
+                console.log('[v62] save → variante "' + (variants[idx].name || activeId) + '" (slot ' + idx + ')');
+                return origUpdate(newPayload);
+              }
+            }
+            /* activeId === 'base' ou variante non trouvée → route normale */
+            window._v62.routedToBase++;
+          }
+        } catch (e) {
+          console.warn('[v62] routing exception:', e);
+        }
+        return origUpdate(payload);
+      };
+
+      return builder;
+    };
+    sb.__v62Patched = true;
+    console.log('[studio v62] save routing actif — updates studio_state suivent la variante active ✓');
+    return true;
+  }
+
+  /* Le client sb est disponible dès l'import script. Mais par sécurité, retry. */
+  patchClient();
+  const intv = setInterval(() => { if (patchClient()) clearInterval(intv); }, 400);
+  setTimeout(() => clearInterval(intv), 10000);
+
+  /* ───── Helper debug ───── */
+  window._v62.stats = () => ({
+    intercepted: window._v62.interceptedCount,
+    routedToVariant: window._v62.routedToVariant,
+    routedToBase: window._v62.routedToBase,
+  });
+})();
+/* ════════════════════════════════════════════════════════════════════════
+   v63 — COMPARAISON v2 (clone côte à côte robuste)
+   ─────────────────────────────────────────────────────────────────────────
+   Remplace startCompare/stopCompare de v58 par une approche plus simple :
+   
+   1. Backup de la position monde de currentObject
+   2. Décale currentObject à GAUCHE de offsetX/2 (au centre du modèle A)
+   3. Crée le clone (dans le MÊME parent que currentObject pour préserver
+      le référentiel) puis décale le clone à DROITE de offsetX/2
+   4. Pour les matériaux de B : on récupère DEPUIS le studio_state de B
+      directement (pas de switch silencieux A→B→A qui fait flasher l'UI)
+   5. Auto-fit caméra avec marge généreuse
+   6. Labels flottants A et B au-dessus des modèles
+   7. Au fermer : retire le clone + restaure la position de currentObject
+   
+   Le dialog COMPARER existant est re-câblé pour utiliser v63.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v63CompareV2() {
+  if (window.__v63Init) return;
+  window.__v63Init = true;
+  window._v63 = {
+    active: false,
+    cloneObj: null,
+    origPosition: null,
+    backupCameraPos: null,
+    backupCameraTarget: null,
+    labelA: null,
+    labelB: null,
+    aName: '',
+    bName: '',
+    closeBar: null,
+  };
+  const S = window._v63;
+
+  /* ───── Helper : récupérer toutes les variantes ───── */
+  function getAllVariants() {
+    const list = [{
+      id: 'base',
+      name: 'Base',
+      studio_state: window._v18 && window._v18.productRow && window._v18.productRow.studio_state
+    }];
+    if (window._v25 && window._v25.variants) {
+      window._v25.variants.forEach(v => list.push({
+        id: v.id, name: v.name, studio_state: v.studio_state
+      }));
+    }
+    return list;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ EXTRACTION DES MATÉRIAUX D'UNE VARIANTE (sans bouger le viewer) ═══
+     On switch silencieusement vers B, on clone les matériaux par groupKey,
+     puis on switch back. C'est plus simple que d'essayer de construire les
+     matériaux depuis le state JSON sans utiliser le studio. */
+  async function extractMaterialsOf(variantState, currentStateBackup) {
+    if (!window._v25 || !window._v25.applyVariantState) {
+      console.warn('[v63] _v25.applyVariantState manquant');
+      return null;
+    }
+
+    /* Bloque undo + autosave pendant le swap */
+    if (window._v56) window._v56.isApplying = true;
+    const wasRestoring = window._v18 && window._v18.restoring;
+    if (window._v18) window._v18.restoring = true;
+
+    try {
+      /* 1. Switch vers B silencieusement */
+      await window._v25.applyVariantState(variantState);
+      await new Promise(r => setTimeout(r, 60));
+
+      /* 2. Cloner les matériaux courants par groupKey */
+      const matsByKey = {};
+      Object.entries(partMaterials).forEach(([key, mat]) => {
+        try {
+          const cloned = mat.clone();
+          /* Forcer une référence de map propre */
+          if (mat.map && !cloned.map) cloned.map = mat.map;
+          matsByKey[key] = cloned;
+        } catch (e) {
+          console.warn('[v63] clone material err for', key, e);
+        }
+      });
+
+      /* 3. Switch back vers l'état d'origine */
+      await window._v25.applyVariantState(currentStateBackup);
+      await new Promise(r => setTimeout(r, 60));
+
+      return matsByKey;
+    } catch (e) {
+      console.error('[v63 extract]', e);
+      return null;
+    } finally {
+      setTimeout(() => {
+        if (window._v56) window._v56.isApplying = false;
+        if (window._v18) window._v18.restoring = wasRestoring;
+      }, 200);
+    }
+  }
+
+  /* ═══ START COMPARE V2 ═══ */
+  async function startCompareV2(aId, bId) {
+    if (S.active) {
+      toast('Comparaison déjà active — ferme-la d\'abord', 'info', 2500);
+      return;
+    }
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      toast('Aucun modèle chargé', 'err'); return;
+    }
+    if (aId === bId) {
+      toast('Choisis deux variantes différentes', 'err'); return;
+    }
+
+    const variants = getAllVariants();
+    const A = variants.find(v => v.id === aId);
+    const B = variants.find(v => v.id === bId);
+    if (!A || !B) { toast('Variante introuvable', 'err'); return; }
+
+    console.log('[v63] start compare A=' + A.name + ' B=' + B.name);
+
+    /* Step 1 : afficher la variante A sur le viewer */
+    const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+    if (activeId !== aId) {
+      console.log('[v63] switch vers A');
+      if (window._v56) window._v56.isApplying = true;
+      try { await window._v25.applyVariantState(A.studio_state); }
+      catch (e) { console.error('[v63 switchA]', e); }
+      setTimeout(() => { if (window._v56) window._v56.isApplying = false; }, 200);
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    /* Step 2 : tag chaque mesh original avec son groupKey via userData */
+    const meshKeyMap = new Map();
+    Object.entries(meshGroups).forEach(([key, meshes]) => {
+      meshes.forEach(m => {
+        meshKeyMap.set(m, key);
+        m.userData._v63GK = key;
+      });
+    });
+
+    /* Step 3 : extraire les matériaux de B */
+    const stateA = (window._v18 && window._v18.serializeStudioState)
+      ? window._v18.serializeStudioState() : null;
+    if (!stateA) { toast('Impossible de capturer l\'état courant', 'err'); return; }
+
+    const matsB = await extractMaterialsOf(B.studio_state, stateA);
+    if (!matsB) { toast('Impossible de récupérer les matériaux de B', 'err'); return; }
+    console.log('[v63] matériaux de B extraits :', Object.keys(matsB).length, 'groupes');
+
+    /* Step 4 : calcul de l'offset */
+    currentObject.updateWorldMatrix(true, true);
+    const box = new THREE.Box3().setFromObject(currentObject);
+    const size = box.getSize(new THREE.Vector3());
+    const offsetX = Math.max(size.x * 1.15, 0.5);
+    console.log('[v63] taille modèle X=' + size.x.toFixed(3) + ' → offset=' + offsetX.toFixed(3));
+
+    /* Step 5 : backup position originale ET parent */
+    const parent = currentObject.parent;
+    S.origPosition = currentObject.position.clone();
+    S.origParent = parent;
+    console.log('[v63] parent=' + (parent ? parent.type + (parent === scene ? '(SCENE)' : '') : 'null'));
+
+    /* Step 6 : décaler currentObject vers la GAUCHE */
+    currentObject.position.x = S.origPosition.x - offsetX / 2;
+    currentObject.updateMatrixWorld(true);
+
+    /* Step 7 : créer le clone (déstructuré pour éviter les pièges de .clone()) */
+    const clone = new THREE.Group();
+    clone.name = 'v63_clone';
+    /* Pour chaque mesh original, créer un nouveau Mesh avec la même
+       geometry (partagée, ce qui économise de la mémoire et garde les UVs
+       v60/v61) mais un matériau différent (de B) */
+    currentObject.traverse(orig => {
+      if (!orig.isMesh) return;
+      const key = orig.userData._v63GK;
+      const matB = key && matsB[key];
+      if (!matB) { console.warn('[v63] pas de matériau B pour group', key); return; }
+      const m = new THREE.Mesh(orig.geometry, matB);
+      /* Copier transform monde de orig vers m */
+      orig.updateWorldMatrix(true, true);
+      m.matrix.copy(orig.matrixWorld);
+      m.matrix.decompose(m.position, m.quaternion, m.scale);
+      m.castShadow = orig.castShadow;
+      m.receiveShadow = orig.receiveShadow;
+      m.userData._v63IsClone = true;
+      clone.add(m);
+    });
+
+    /* Step 8 : décaler le clone vers la DROITE et l'ajouter au MÊME parent */
+    /* On a recopié les transforms monde dans les meshes du clone, donc
+       le clone Group lui-même peut rester à origine, on positionne via
+       sa propre position. */
+    clone.position.x = S.origPosition.x + offsetX / 2 - S.origPosition.x;
+    /* Mais comme on a déjà transposé les matrices monde dans les meshes,
+       et que les meshes sont enfants du clone qui est à position=0...
+       On veut que les meshes du clone soient à offsetX de leur position monde
+       originale. Plus simple : décaler chaque mesh du clone directement. */
+    clone.position.set(0, 0, 0);
+    clone.traverse(c => {
+      if (c.isMesh) {
+        c.position.x += offsetX;  /* offset par rapport à la position monde de l'original */
+      }
+    });
+
+    /* Step 9 : ajouter le clone à scene (référentiel monde) */
+    scene.add(clone);
+    S.cloneObj = clone;
+    S.active = true;
+    S.aName = A.name;
+    S.bName = B.name;
+    console.log('[v63] clone ajouté à scene, scene.children.length=' + scene.children.length);
+
+    /* Step 10 : auto-fit caméra */
+    fitCameraToBoth();
+
+    /* Step 11 : UI */
+    setupLabels();
+    setupCloseBar();
+
+    /* Step 12 : nettoyer les userData _v63GK des originaux */
+    /* (laisser en place : utile si on rafraîchit la comparaison) */
+
+    toast('Comparaison : ' + A.name + ' ↔ ' + B.name, 'ok', 2500);
+  }
+
+  function fitCameraToBoth() {
+    if (!S.cloneObj || !currentObject) return;
+    const boxA = new THREE.Box3().setFromObject(currentObject);
+    const boxB = new THREE.Box3().setFromObject(S.cloneObj);
+    const combined = boxA.union(boxB);
+    const size = combined.getSize(new THREE.Vector3());
+    const center = combined.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (camera && controls) {
+      S.backupCameraPos = camera.position.clone();
+      S.backupCameraTarget = controls.target.clone();
+      const fov = camera.fov * Math.PI / 180;
+      const dist = (maxDim / (2 * Math.tan(fov / 2))) * 1.45;
+      const dir = new THREE.Vector3(0.4, 0.35, 1).normalize();
+      camera.position.copy(center).add(dir.multiplyScalar(dist));
+      controls.target.copy(center);
+      controls.update();
+    }
+  }
+
+  function setupLabels() {
+    if (S.labelA) S.labelA.remove();
+    if (S.labelB) S.labelB.remove();
+    S.labelA = document.createElement('div');
+    S.labelA.className = 'v58-floating-label';
+    S.labelA.innerHTML = '<b>A</b>' + escapeHtml(S.aName);
+    document.body.appendChild(S.labelA);
+    S.labelB = document.createElement('div');
+    S.labelB.className = 'v58-floating-label';
+    S.labelB.innerHTML = '<b>B</b>' + escapeHtml(S.bName);
+    document.body.appendChild(S.labelB);
+
+    function update() {
+      if (!S.active) return;
+      const canvas = document.querySelector('#vpScene canvas');
+      if (!canvas || !camera) { requestAnimationFrame(update); return; }
+      const rect = canvas.getBoundingClientRect();
+      [[currentObject, S.labelA], [S.cloneObj, S.labelB]].forEach(([obj, lbl]) => {
+        if (!obj || !lbl) return;
+        const box = new THREE.Box3().setFromObject(obj);
+        const top = new THREE.Vector3(
+          (box.min.x + box.max.x) / 2,
+          box.max.y + 0.1,
+          (box.min.z + box.max.z) / 2
+        );
+        top.project(camera);
+        const x = rect.left + (top.x + 1) * 0.5 * rect.width;
+        const y = rect.top + (1 - (top.y + 1) * 0.5) * rect.height;
+        lbl.style.left = x + 'px';
+        lbl.style.top = y + 'px';
+      });
+      requestAnimationFrame(update);
+    }
+    update();
+  }
+
+  function setupCloseBar() {
+    if (S.closeBar) S.closeBar.remove();
+    /* Retirer aussi l'ancienne bar v58 si présente */
+    const oldBar = document.getElementById('v58CloseBar');
+    if (oldBar) oldBar.remove();
+
+    S.closeBar = document.createElement('div');
+    S.closeBar.id = 'v63CloseBar';
+    S.closeBar.className = 'v58-close-bar';
+    S.closeBar.innerHTML = `
+      <span><b>A</b> ${escapeHtml(S.aName)} <span style="opacity:0.5;margin:0 8px">↔</span> <b>B</b> ${escapeHtml(S.bName)}</span>
+      <button>✕ Fermer</button>
+    `;
+    document.body.appendChild(S.closeBar);
+    S.closeBar.querySelector('button').onclick = stopCompareV2;
+  }
+
+  function stopCompareV2() {
+    if (!S.active) return;
+    console.log('[v63] stop compare');
+
+    if (S.cloneObj) {
+      scene.remove(S.cloneObj);
+      S.cloneObj.traverse(c => {
+        if (c.isMesh) {
+          /* Ne pas dispose la geometry car partagée avec l'original */
+          try { c.material.dispose && c.material.dispose(); } catch (_) {}
+        }
+      });
+      S.cloneObj = null;
+    }
+    /* Restaurer la position originale de currentObject */
+    if (S.origPosition && currentObject) {
+      currentObject.position.copy(S.origPosition);
+      currentObject.updateMatrixWorld(true);
+    }
+    if (S.labelA) { S.labelA.remove(); S.labelA = null; }
+    if (S.labelB) { S.labelB.remove(); S.labelB = null; }
+    if (S.closeBar) { S.closeBar.remove(); S.closeBar = null; }
+    if (S.backupCameraPos && camera) camera.position.copy(S.backupCameraPos);
+    if (S.backupCameraTarget && controls) {
+      controls.target.copy(S.backupCameraTarget);
+      controls.update();
+    }
+    /* Nettoyer userData */
+    if (currentObject) {
+      currentObject.traverse(c => {
+        if (c.userData && c.userData._v63GK) delete c.userData._v63GK;
+      });
+    }
+    S.active = false;
+  }
+
+  /* ═══ RE-CÂBLAGE du bouton Comparer existant ═══ */
+  /* Le dialog v58 existe déjà avec ses dropdowns A/B. On hook le bouton
+     "Comparer" pour qu'il appelle startCompareV2 au lieu de v58.start. */
+  function rewireCompareBtn() {
+    const compareBtn = document.getElementById('v58CompareBtn');
+    if (!compareBtn) { setTimeout(rewireCompareBtn, 500); return; }
+    if (compareBtn.dataset.v63 === '1') return;
+    const clone = compareBtn.cloneNode(true);
+    clone.dataset.v63 = '1';
+    compareBtn.parentNode.replaceChild(clone, compareBtn);
+    clone.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (S.active) { stopCompareV2(); return; }
+      showDialog();
+    };
+  }
+  rewireCompareBtn();
+  [800, 2000, 4500].forEach(d => setTimeout(rewireCompareBtn, d));
+
+  /* ═══ Dialog : on réutilise celui de v58 si possible, sinon on le crée ═══ */
+  let dialogEl = null;
+  function buildDialog() {
+    if (dialogEl) return dialogEl;
+    /* Essayer de réutiliser la dialog v58 */
+    const existingV58 = document.querySelector('.v37-as-overlay.v58-dialog');
+    if (existingV58) {
+      dialogEl = existingV58;
+      /* Re-hook le bouton "Comparer" du dialog vers v63 */
+      const goBtn = dialogEl.querySelector('[data-act="go"]');
+      if (goBtn && goBtn.dataset.v63 !== '1') {
+        const c = goBtn.cloneNode(true);
+        c.dataset.v63 = '1';
+        goBtn.parentNode.replaceChild(c, goBtn);
+        c.onclick = async () => {
+          const aId = dialogEl.querySelector('#v58SelA').value;
+          const bId = dialogEl.querySelector('#v58SelB').value;
+          dialogEl.classList.remove('v37-show');
+          await startCompareV2(aId, bId);
+        };
+      }
+      return dialogEl;
+    }
+    /* Sinon, créer une dialog from scratch (cas fallback) */
+    dialogEl = document.createElement('div');
+    dialogEl.className = 'v37-as-overlay v58-dialog';
+    dialogEl.innerHTML = `
+      <div class="v37-as-dialog">
+        <h3 class="v37-as-title">Comparer deux variantes</h3>
+        <p class="v37-as-desc">Affiche les deux variantes côte à côte.</p>
+        <div class="v58-pickers">
+          <div class="v58-picker"><label>Gauche · A</label><select id="v58SelA"></select></div>
+          <div class="v58-vs">vs</div>
+          <div class="v58-picker"><label>Droite · B</label><select id="v58SelB"></select></div>
+        </div>
+        <div class="v37-as-actions">
+          <button class="v37-as-btn v37-secondary" data-act="cancel">Annuler</button>
+          <button class="v37-as-btn v37-primary" data-act="go" data-v63="1">Comparer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialogEl);
+    dialogEl.querySelector('[data-act="cancel"]').onclick = () => dialogEl.classList.remove('v37-show');
+    dialogEl.addEventListener('click', (e) => {
+      if (e.target === dialogEl) dialogEl.classList.remove('v37-show');
+    });
+    dialogEl.querySelector('[data-act="go"]').onclick = async () => {
+      const aId = dialogEl.querySelector('#v58SelA').value;
+      const bId = dialogEl.querySelector('#v58SelB').value;
+      dialogEl.classList.remove('v37-show');
+      await startCompareV2(aId, bId);
+    };
+    return dialogEl;
+  }
+
+  function showDialog() {
+    buildDialog();
+    const variants = getAllVariants();
+    if (variants.length < 2) {
+      toast('Crée d\'abord au moins une variante pour comparer', 'err', 4500);
+      return;
+    }
+    const optsHTML = variants.map(v => `<option value="${v.id}">${escapeHtml(v.name)}</option>`).join('');
+    dialogEl.querySelector('#v58SelA').innerHTML = optsHTML;
+    dialogEl.querySelector('#v58SelB').innerHTML = optsHTML;
+    const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+    dialogEl.querySelector('#v58SelA').value = activeId;
+    const others = variants.filter(v => v.id !== activeId);
+    if (others.length > 0) dialogEl.querySelector('#v58SelB').value = others[0].id;
+    dialogEl.classList.add('v37-show');
+  }
+
+  window._v63.start = startCompareV2;
+  window._v63.stop = stopCompareV2;
+  window._v63.show = showDialog;
+
+  console.log('[studio v63] comparaison v2 robuste (offset garanti) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
