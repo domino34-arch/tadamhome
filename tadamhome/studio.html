@@ -22316,6 +22316,138 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._v68.exportAsObj = exportAsObjGroupedRootFrame;
   console.log('[studio v68.4] export OBJ dans frame d\'origine du root (v51 réappliquera le redressement Z-up au reload) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.5 — EXPORT OBJ Y-UP → Z-UP (compensation explicite v51)
+   ─────────────────────────────────────────────────────────────────────────
+   v68.4 essayait de compenser via inverse(root.matrixWorld), partant du
+   postulat que v51 applique sa rotation Z-up sur currentObject. Mais ce
+   n'est apparemment pas le cas (v51 rotate probablement un parent, ou
+   modifie les vertices in-place). Du coup rootInverse ≈ identité et ne
+   compense rien.
+   
+   Observation empirique :
+   - En mémoire, le modèle est TOUJOURS Y-up debout (v51 a fait son boulot)
+   - v51 RE-déclenche systématiquement son `rotation.x = -π/2` au reload
+   - Donc si on exporte en Y-up debout, v51 le couche
+   
+   FIX v68.5 :
+   Plutôt que deviner ce que v51 fait en interne, on ANTICIPE ce qu'il
+   refera : il va appliquer -π/2 X au reload (passage Z-up → Y-up).
+   Donc on exporte en appliquant explicitement +π/2 X (Y-up → Z-up
+   convention Blender). v51 fait son -π/2 X au reload, tombe sur Y-up
+   debout, propre.
+   
+   Bonus : l'OBJ exporté suit la convention Blender (Z-up), donc si l'user
+   le réouvre dans Blender, il sera correctement orienté.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_5Fix() {
+  if (window.__v68_5Init) return;
+  window.__v68_5Init = true;
+
+  if (!window._v68 || !window._v68.exportAsObj) {
+    console.warn('[v68.5] _v68 ou _v68.exportAsObj introuvable');
+    return;
+  }
+  const exportAsObjFallback = window._v68.exportAsObjFallback || window._v68.exportAsObj;
+
+  function exportAsObjGroupedYUpToZUp(root) {
+    if (typeof meshGroups === 'undefined' || !meshGroups) {
+      return exportAsObjFallback(root);
+    }
+    const groupKeys = Object.keys(meshGroups);
+    if (groupKeys.length === 0) {
+      return exportAsObjFallback(root);
+    }
+
+    const lines = [];
+    lines.push('# TadamHome studio export v68.5 (merged by groupKey · Y-up → Z-up)');
+    lines.push('# generated ' + new Date().toISOString());
+    lines.push('');
+
+    /* Rotation +90° autour de X : convertit Y-up (Three.js) en Z-up (Blender).
+       Au reload v51 appliquera -90° X → retour Y-up debout. */
+    const yToZ = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+    const meshToZUp = new THREE.Matrix4();
+
+    let vCount = 0, vnCount = 0, vtCount = 0;
+    let totalMeshes = 0, skipped = 0;
+
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      if (!meshes || meshes.length === 0) {
+        console.warn('[v68.5] groupe vide :', groupKey);
+        return;
+      }
+      lines.push('o ' + groupKey);
+
+      meshes.forEach(mesh => {
+        if (!mesh || !mesh.isMesh || !mesh.geometry) { skipped++; return; }
+        mesh.updateMatrixWorld(true);
+        const geom = mesh.geometry;
+        const posAttr = geom.attributes.position;
+        if (!posAttr) { skipped++; return; }
+        const normAttr = geom.attributes.normal;
+        const uvAttr = geom.attributes.uv;
+        const indexAttr = geom.index;
+
+        /* Transformation totale : vertex_local → matrixWorld → rotation Y-up→Z-up */
+        meshToZUp.multiplyMatrices(yToZ, mesh.matrixWorld);
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshToZUp);
+
+        const tempV = new THREE.Vector3();
+        const tempN = new THREE.Vector3();
+
+        const startV  = vCount;
+        const startVn = vnCount;
+        const startVt = vtCount;
+
+        for (let i = 0; i < posAttr.count; i++) {
+          tempV.fromBufferAttribute(posAttr, i).applyMatrix4(meshToZUp);
+          lines.push('v ' + tempV.x.toFixed(6) + ' ' + tempV.y.toFixed(6) + ' ' + tempV.z.toFixed(6));
+          vCount++;
+        }
+        if (normAttr) {
+          for (let i = 0; i < normAttr.count; i++) {
+            tempN.fromBufferAttribute(normAttr, i).applyMatrix3(normalMatrix).normalize();
+            lines.push('vn ' + tempN.x.toFixed(6) + ' ' + tempN.y.toFixed(6) + ' ' + tempN.z.toFixed(6));
+            vnCount++;
+          }
+        }
+        if (uvAttr) {
+          for (let i = 0; i < uvAttr.count; i++) {
+            lines.push('vt ' + uvAttr.getX(i).toFixed(6) + ' ' + uvAttr.getY(i).toFixed(6));
+            vtCount++;
+          }
+        }
+
+        const fmt = (localIdx) => {
+          const v = localIdx + startV + 1;
+          if (uvAttr && normAttr) return v + '/' + (localIdx + startVt + 1) + '/' + (localIdx + startVn + 1);
+          if (normAttr)           return v + '//' + (localIdx + startVn + 1);
+          if (uvAttr)             return v + '/' + (localIdx + startVt + 1);
+          return '' + v;
+        };
+        if (indexAttr) {
+          for (let i = 0; i < indexAttr.count; i += 3) {
+            lines.push('f ' + fmt(indexAttr.getX(i)) + ' ' + fmt(indexAttr.getX(i+1)) + ' ' + fmt(indexAttr.getX(i+2)));
+          }
+        } else {
+          for (let i = 0; i < posAttr.count; i += 3) {
+            lines.push('f ' + fmt(i) + ' ' + fmt(i+1) + ' ' + fmt(i+2));
+          }
+        }
+        totalMeshes++;
+      });
+
+      lines.push('');
+    });
+
+    console.log('[v68.5] export ·', groupKeys.length, 'blocs o ·', totalMeshes, 'meshes ·', vCount, 'vertices · convention Z-up (Blender)');
+    return lines.join('\n');
+  }
+
+  window._v68.exportAsObj = exportAsObjGroupedYUpToZUp;
+  console.log('[studio v68.5] export OBJ Y-up → Z-up (compensation explicite pour v51) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
