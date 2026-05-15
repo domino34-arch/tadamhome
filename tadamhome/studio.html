@@ -21805,6 +21805,227 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v68.1] fix bucket="models" + URL dans studio_state + hook v52 + bypass v62 ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.2 — RENOMMAGE MESHES + SYNC PARTS PAR GROUPKEY
+   ─────────────────────────────────────────────────────────────────────────
+   Le diag console a révélé la structure exacte du studio_state :
+   - parts : { meshName: { color, repeatU, ..., materialId } }
+     UNE entrée par nom-de-mesh-unique (pas par groupe sémantique)
+   - customLabels : { groupKey: 'NomAffiché' } (ex: _seg_2ven_0 → 'Assise')
+   - groupComposition : undefined (pas utilisé)
+   
+   Le studio fonctionne en regroupant les meshes par leur nom. Comme
+   Note M-40 dont l'OBJ a 2 meshes nommés `plane009` et `plane010`,
+   il faut que notre OBJ post-split ait des meshes nommés selon les
+   groupKeys de meshGroups (_seg_2ven_0, _seg_2ven_1, ...).
+   
+   v68.2 fait donc :
+   1. Lit meshGroups (en mémoire) : { _seg_2ven_0: [m1, m2], ... }
+   2. Renomme chaque mesh par sa groupKey (temporaire, pour l'export)
+   3. Exporte l'OBJ avec ces noms (plusieurs meshes peuvent partager le
+      même nom — le studio les regroupera au load)
+   4. Restaure les noms originaux en mémoire
+   5. Construit le nouveau studio_state.parts avec une entrée par
+      groupKey, extraite du material actuel du groupe
+   6. Update studio_state (parts + obj_source_url + customLabels conservé)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_2Fix() {
+  if (window.__v68_2Init) return;
+  window.__v68_2Init = true;
+
+  /* ───── Extraire un "part" depuis un mesh ───── */
+  function extractPartFromMesh(mesh) {
+    const part = {
+      color: '#cccccc',
+      repeatU: 1,
+      repeatV: 1,
+      rotation: 0,
+      metalness: 0,
+      roughness: 0.7,
+      materialId: null,
+      projection: 'uv',
+      aoIntensity: 1,
+      normalScale: 1,
+    };
+    if (!mesh) return part;
+    const mat = mesh.material;
+    if (mat) {
+      if (mat.color && mat.color.getHexString) {
+        part.color = '#' + mat.color.getHexString();
+      }
+      if (typeof mat.roughness === 'number') part.roughness = mat.roughness;
+      if (typeof mat.metalness === 'number') part.metalness = mat.metalness;
+      /* userData peut contenir materialId, aoIntensity, normalScale */
+      if (mat.userData) {
+        if (mat.userData.materialId) part.materialId = mat.userData.materialId;
+        if (typeof mat.userData.aoIntensity === 'number') part.aoIntensity = mat.userData.aoIntensity;
+        if (typeof mat.userData.normalScale === 'number') part.normalScale = mat.userData.normalScale;
+      }
+      /* Si le material a un map (texture), lire la répétition et rotation */
+      if (mat.map) {
+        if (mat.map.repeat) {
+          if (typeof mat.map.repeat.x === 'number') part.repeatU = mat.map.repeat.x;
+          if (typeof mat.map.repeat.y === 'number') part.repeatV = mat.map.repeat.y;
+        }
+        if (typeof mat.map.rotation === 'number') part.rotation = mat.map.rotation;
+      }
+    }
+    return part;
+  }
+
+  /* ───── Lire partProjection si dispo pour compléter ───── */
+  function readProjection(groupKey, partial) {
+    if (typeof partProjection === 'undefined' || !partProjection) return partial;
+    const proj = partProjection[groupKey];
+    if (!proj) return partial;
+    const out = Object.assign({}, partial);
+    if (typeof proj === 'string') out.projection = proj;
+    else if (typeof proj === 'object') {
+      if (proj.type) out.projection = proj.type;
+      if (typeof proj.repeatU === 'number') out.repeatU = proj.repeatU;
+      if (typeof proj.repeatV === 'number') out.repeatV = proj.repeatV;
+      if (typeof proj.rotation === 'number') out.rotation = proj.rotation;
+    }
+    return out;
+  }
+
+  /* ───── Override _v68.persist ───── */
+  if (!window._v68 || !window._v68.exportAsObj) {
+    console.warn('[v68.2] _v68 introuvable');
+    return;
+  }
+  const origExportAsObj = window._v68.exportAsObj;
+  const origFindObjUrl = window._v68.findObjUrl;
+  const origParseStorageUrl = window._v68.parseStorageUrl;
+
+  window._v68.persist = async function v68_2Persist(opts) {
+    opts = opts || {};
+
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      console.warn('[v68.2] currentObject absent');
+      return false;
+    }
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) { console.warn('[v68.2] productId absent'); return false; }
+    if (typeof meshGroups === 'undefined' || !meshGroups) {
+      console.warn('[v68.2] meshGroups absent');
+      return false;
+    }
+    const row = window._v18.productRow;
+    if (!row) { console.warn('[v68.2] productRow absent'); return false; }
+
+    const groupKeys = Object.keys(meshGroups);
+    if (groupKeys.length === 0) {
+      console.warn('[v68.2] meshGroups vide → pas de structure à persister');
+      return false;
+    }
+
+    /* Compter total meshes */
+    let totalMeshes = 0;
+    groupKeys.forEach(k => totalMeshes += (meshGroups[k] || []).length);
+    if (totalMeshes < 2 && !opts.force) {
+      console.log('[v68.2] pas de split à persister (' + totalMeshes + ' mesh)');
+      return false;
+    }
+
+    if (typeof toast === 'function') {
+      toast('Sauvegarde de la structure du modèle…', 'info', 3500);
+    }
+    console.log('[v68.2] persistance ·', groupKeys.length, 'groupes ·', totalMeshes, 'meshes');
+    console.log('[v68.2] groupKeys:', groupKeys);
+
+    /* 1. Renommer chaque mesh par sa groupKey (temporaire) */
+    const renames = [];
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      meshes.forEach(m => {
+        renames.push({ mesh: m, oldName: m.name });
+        m.name = groupKey;
+      });
+    });
+    console.log('[v68.2] renommé', renames.length, 'meshes selon groupKeys');
+
+    /* 2. Construire newParts (1 entrée par groupKey, depuis le premier mesh du groupe) */
+    const newParts = {};
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      const firstMesh = meshes[0];
+      let part = extractPartFromMesh(firstMesh);
+      part = readProjection(groupKey, part);
+      newParts[groupKey] = part;
+    });
+    console.log('[v68.2] nouveau parts :', Object.keys(newParts));
+
+    /* 3. Export OBJ avec les noms renommés */
+    let objContent;
+    try {
+      objContent = origExportAsObj(currentObject);
+    } catch (e) {
+      /* Restaurer noms originaux puis échec */
+      renames.forEach(({ mesh, oldName }) => { mesh.name = oldName; });
+      console.error('[v68.2] export OBJ erreur:', e);
+      if (typeof toast === 'function') toast('Échec génération OBJ', 'err', 4000);
+      return false;
+    }
+
+    /* 4. Restaurer les noms originaux en mémoire (l'OBJ exporté garde les groupKeys) */
+    renames.forEach(({ mesh, oldName }) => { mesh.name = oldName; });
+
+    const blob = new Blob([objContent], { type: 'text/plain; charset=utf-8' });
+    const sizeMo = (blob.size / 1024 / 1024).toFixed(2);
+    console.log('[v68.2] OBJ généré · ' + sizeMo + ' Mo');
+
+    /* 5. Trouver bucket + path */
+    const urlObj = origFindObjUrl(row);
+    let bucket = 'models';
+    let path = productId + '/source.obj';
+    if (urlObj) {
+      const parsed = origParseStorageUrl(urlObj);
+      if (parsed) { bucket = parsed.bucket; path = parsed.path; }
+    }
+    console.log('[v68.2] storage : bucket="' + bucket + '" path="' + path + '"');
+
+    /* 6. Upload OBJ */
+    try {
+      const { error } = await sb.storage.from(bucket).upload(path, blob, {
+        upsert: true, contentType: 'text/plain', cacheControl: '0',
+      });
+      if (error) throw error;
+      console.log('[v68.2] upload OK');
+    } catch (e) {
+      console.error('[v68.2] upload erreur:', e);
+      if (typeof toast === 'function') {
+        toast('Échec upload : ' + (e.message || JSON.stringify(e)), 'err', 5000);
+      }
+      return false;
+    }
+
+    /* 7. Update studio_state avec parts + obj_source_url */
+    try {
+      const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
+      if (!pub || !pub.publicUrl) throw new Error('publicUrl indisponible');
+      const cachedUrl = pub.publicUrl + '?v=' + Date.now();
+      const newState = Object.assign({}, row.studio_state || {}, {
+        obj_source_url: cachedUrl,
+        parts: newParts,
+      });
+      const payload = { studio_state: newState, variants: row.variants };
+      const { error } = await sb.from('products').update(payload).eq('id', productId);
+      if (error) throw error;
+      row.studio_state = newState;
+      console.log('[v68.2] studio_state mis à jour : parts=' + Object.keys(newParts).length + ', obj_source_url=splittée');
+      if (typeof toast === 'function') {
+        toast('Structure sauvegardée ✓ (' + groupKeys.length + ' groupes · ' + sizeMo + ' Mo)', 'ok', 4500);
+      }
+    } catch (e) {
+      console.error('[v68.2] DB update erreur:', e);
+      if (typeof toast === 'function') toast('OBJ uploadé mais DB pas à jour', 'err', 4000);
+      return false;
+    }
+
+    return true;
+  };
+
+  console.log('[studio v68.2] export avec noms par groupe + sync parts depuis materials ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
