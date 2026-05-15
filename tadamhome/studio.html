@@ -21614,6 +21614,197 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v68] persistance split via OBJ réécrit (remplace v64) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.1 — FIX v68 (bucket "models" + URL dans studio_state + bypass v62)
+   ─────────────────────────────────────────────────────────────────────────
+   Diag console a révélé 3 problèmes dans v68 original :
+   
+   1. obj_source_url n'est PAS au niveau de productRow — il est dans
+      productRow.studio_state.obj_source_url (clé n°9 du studio_state)
+      → v68 lisait toujours undefined → parseStorageUrl échouait → fallback
+   
+   2. Le bucket Supabase s'appelle "models" (pas "studio v33" qui était
+      le nom du projet/dashboard) → upload renvoyait 404 Bucket not found
+   
+   3. sb n'est pas exposé en global → impossible de tester côté console
+   
+   4. BONUS : v62 route les updates {studio_state:X} vers la variante
+      active. Pour update studio_state.obj_source_url sur la BASE (pas
+      sur la variante courante), on bypass v62 en incluant 'variants'
+      dans le payload (v62 ne route que si payload contient studio_state
+      SEUL sans variants).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_1Fix() {
+  if (window.__v68_1Init) return;
+  window.__v68_1Init = true;
+
+  /* ───── 1. Expose sb globalement pour debug console ───── */
+  if (typeof sb !== 'undefined' && !window.sb) {
+    window.sb = sb;
+    console.log('[v68.1] window.sb exposé pour debug');
+  }
+
+  /* ───── 2. Cherche l'URL OBJ dans tous les endroits possibles ───── */
+  function findObjUrl(row) {
+    if (!row) return null;
+    if (row.obj_source_url && typeof row.obj_source_url === 'string') return row.obj_source_url;
+    if (row.studio_state && typeof row.studio_state.obj_source_url === 'string') return row.studio_state.obj_source_url;
+    if (row.obj_url && typeof row.obj_url === 'string') return row.obj_url;
+    if (row.source_url && typeof row.source_url === 'string') return row.source_url;
+    return null;
+  }
+
+  /* ───── 3. Update obj_source_url dans studio_state (avec bypass v62) ───── */
+  async function setObjUrl(productId, row, newUrl) {
+    const current = row.studio_state || {};
+    const newState = Object.assign({}, current, { obj_source_url: newUrl });
+    /* Bypass v62 : inclure 'variants' dans le payload pour que v62 ne route
+       pas vers la variante active. v62 check `!('variants' in payload)`. */
+    const payload = { studio_state: newState, variants: row.variants };
+    const { error } = await sb.from('products').update(payload).eq('id', productId);
+    if (error) throw error;
+    /* Update local */
+    row.studio_state = newState;
+    return true;
+  }
+
+  /* ───── 4. Override _v68.persist avec les fixes ───── */
+  if (!window._v68 || !window._v68.exportAsObj) {
+    console.warn('[v68.1] _v68 introuvable — patch non appliqué');
+    return;
+  }
+  const origExportAsObj = window._v68.exportAsObj;
+  const origParseStorageUrl = window._v68.parseStorageUrl;
+
+  window._v68.persist = async function v68_1Persist(opts) {
+    opts = opts || {};
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      console.warn('[v68.1] currentObject absent');
+      return false;
+    }
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      console.warn('[v68.1] productId absent');
+      return false;
+    }
+
+    /* Compter les meshes */
+    let meshCount = 0;
+    currentObject.traverse(o => { if (o.isMesh) meshCount++; });
+    if (meshCount < 2 && !opts.force) {
+      console.log('[v68.1] pas de split à persister (' + meshCount + ' mesh)');
+      return false;
+    }
+
+    if (typeof toast === 'function') {
+      toast('Sauvegarde de la structure du modèle…', 'info', 3500);
+    }
+    console.log('[v68.1] persistance · ' + meshCount + ' meshes → OBJ');
+
+    /* 1. Générer l'OBJ */
+    const t0 = performance.now();
+    let objContent;
+    try {
+      objContent = origExportAsObj(currentObject);
+    } catch (e) {
+      console.error('[v68.1] export OBJ erreur:', e);
+      if (typeof toast === 'function') toast('Échec génération OBJ', 'err', 4000);
+      return false;
+    }
+    const blob = new Blob([objContent], { type: 'text/plain; charset=utf-8' });
+    const sizeMo = (blob.size / 1024 / 1024).toFixed(2);
+    console.log('[v68.1] OBJ généré · ' + sizeMo + ' Mo en ' + (performance.now() - t0).toFixed(0) + 'ms');
+
+    /* 2. Trouver bucket et path
+       - Si on a une URL : extraire bucket + path depuis l'URL
+       - Sinon : fallback sur bucket="models" path="<productId>/source.obj" */
+    const row = window._v18.productRow;
+    const urlObj = findObjUrl(row);
+    let bucket = 'models';  /* Bucket corrigé après diag */
+    let path = productId + '/source.obj';
+
+    if (urlObj) {
+      const parsed = origParseStorageUrl(urlObj);
+      if (parsed) {
+        bucket = parsed.bucket;
+        path = parsed.path;
+        console.log('[v68.1] storage extrait depuis URL : bucket="' + bucket + '" path="' + path + '"');
+      } else {
+        console.warn('[v68.1] URL trouvée mais parseStorageUrl échec, fallback');
+        console.log('[v68.1] URL :', urlObj.substring(0, 200));
+      }
+    } else {
+      console.log('[v68.1] pas d\'URL OBJ existante, fallback : bucket="' + bucket + '" path="' + path + '"');
+    }
+
+    /* 3. Upload */
+    try {
+      const { data, error } = await sb.storage
+        .from(bucket)
+        .upload(path, blob, {
+          upsert: true,
+          contentType: 'text/plain',
+          cacheControl: '0',
+        });
+      if (error) throw error;
+      console.log('[v68.1] upload OK :', data && data.path);
+    } catch (e) {
+      console.error('[v68.1] upload erreur:', e);
+      if (typeof toast === 'function') {
+        toast('Échec upload : ' + (e.message || JSON.stringify(e)), 'err', 5000);
+      }
+      return false;
+    }
+
+    /* 4. Update DB — écrire dans studio_state.obj_source_url, pas en top-level */
+    try {
+      const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
+      const baseUrl = pub && pub.publicUrl;
+      if (!baseUrl) throw new Error('publicUrl indisponible');
+      const cachedUrl = baseUrl + '?v=' + Date.now();
+      await setObjUrl(productId, row, cachedUrl);
+      console.log('[v68.1] studio_state.obj_source_url mis à jour vers la version splittée');
+      if (typeof toast === 'function') {
+        toast('Structure sauvegardée ✓ (' + meshCount + ' parties · ' + sizeMo + ' Mo)', 'ok', 4500);
+      }
+    } catch (e) {
+      console.error('[v68.1] DB update erreur:', e);
+      if (typeof toast === 'function') toast('OBJ uploadé mais DB pas à jour', 'err', 4000);
+      return false;
+    }
+
+    return true;
+  };
+
+  /* ───── 5. Hook v52 (auto-segmenter) pour persister aussi après segment ───── */
+  function hookV52() {
+    if (!window._v52 || !window._v52.run) return false;
+    if (window._v52.__v68_1Hooked) return true;
+    const origRun = window._v52.run;
+    window._v52.run = function v68_1V52Wrap() {
+      const r = origRun.apply(this, arguments);
+      /* Attendre 3.5s : v52 fait son template + symétrie + tree render */
+      setTimeout(() => {
+        if (window._v68 && window._v68.persist) {
+          window._v68.persist().catch(e => console.error('[v68.1] persist after v52 crash:', e));
+        }
+      }, 3500);
+      return r;
+    };
+    window._v52.__v68_1Hooked = true;
+    console.log('[v68.1] hook v52.run (auto-segmenter) installé');
+    return true;
+  }
+  hookV52();
+  const intv52 = setInterval(() => { if (hookV52()) clearInterval(intv52); }, 600);
+  setTimeout(() => clearInterval(intv52), 20000);
+
+  /* Expose helpers */
+  window._v68.findObjUrl = findObjUrl;
+  window._v68.setObjUrl = setObjUrl;
+
+  console.log('[studio v68.1] fix bucket="models" + URL dans studio_state + hook v52 + bypass v62 ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
