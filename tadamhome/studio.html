@@ -21369,6 +21369,251 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v67] optimisation export GLB (textures ≤ ' + MAX_TEXTURE_DIM + ' px) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68 — PERSISTANCE DU SPLIT VIA RÉÉCRITURE DE L'OBJ SOURCE
+   ─────────────────────────────────────────────────────────────────────────
+   APPROCHE PROPRE qui remplace l'usine à gaz v64 :
+   
+   Quand l'utilisateur clique "Détecter parties" (v54), le split est fait
+   EN MÉMOIRE. v68 prend le relais en :
+   1. Exportant la scène splittée en OBJ (writer maison, pas de dépendance)
+   2. Uploadant le nouvel OBJ en Supabase Storage (upsert sur la même clé
+      que l'original → l'original est remplacé, conformément au choix
+      explicite du user)
+   3. Mettant à jour products.obj_source_url
+   
+   Au reload suivant, le studio télécharge l'OBJ post-split qui contient
+   les meshes mesh_part01..mesh_part09 nommés et déjà séparés. v18-C
+   restoration parts applique ensuite customLabels + groupComposition pour
+   reconstituer les groupes sémantiques (ASSISE/DOSSIER/PIETEMENT).
+   
+   → Plus de patch fragile au reload.
+   → Comportement identique à un produit type Note M-40 dont l'OBJ source
+     contenait déjà plusieurs meshes pré-nommés.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68PersistSplitToObj() {
+  if (window.__v68Init) return;
+  window.__v68Init = true;
+  window._v68 = {};
+
+  /* ═══ Désactive le watcher v64 (devenu redondant) ═══ */
+  if (typeof window._v64 !== 'object' || window._v64 === null) window._v64 = {};
+  window._v64.splitAppliedAtBoot = true;
+  console.log('[v68] v64 watcher désactivé (remplacé par persistance OBJ)');
+
+  /* ═══ OBJ writer maison ═══ */
+  /* Format Wavefront OBJ minimal : o <name> + v + vn + vt + f
+     Tous les indices en world space (matrixWorld appliqué)
+     Indices 1-based comme requis par le format OBJ */
+  function exportAsObj(rootObject) {
+    const lines = ['# TadamHome studio v68 — split persistance', '# generated: ' + new Date().toISOString(), ''];
+    let vOff = 1, vnOff = 1, vtOff = 1;
+    const tmpV = new THREE.Vector3();
+    const tmpN = new THREE.Vector3();
+
+    rootObject.updateMatrixWorld(true);
+
+    rootObject.traverse(child => {
+      if (!child.isMesh || !child.geometry) return;
+      const name = String(child.name || 'mesh').replace(/[\s]+/g, '_');
+      lines.push('o ' + name);
+
+      const mw = child.matrixWorld;
+      const g = child.geometry;
+      const pos = g.attributes.position;
+      const norm = g.attributes.normal;
+      const uv = g.attributes.uv;
+      const idx = g.index;
+      if (!pos) return;
+
+      const nm = norm ? new THREE.Matrix3().getNormalMatrix(mw) : null;
+
+      /* Vertices (world space) */
+      for (let i = 0; i < pos.count; i++) {
+        tmpV.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(mw);
+        lines.push('v ' + tmpV.x.toFixed(6) + ' ' + tmpV.y.toFixed(6) + ' ' + tmpV.z.toFixed(6));
+      }
+      /* Normals (world space, normal matrix) */
+      if (norm) {
+        for (let i = 0; i < norm.count; i++) {
+          tmpN.set(norm.getX(i), norm.getY(i), norm.getZ(i)).applyMatrix3(nm).normalize();
+          lines.push('vn ' + tmpN.x.toFixed(6) + ' ' + tmpN.y.toFixed(6) + ' ' + tmpN.z.toFixed(6));
+        }
+      }
+      /* UVs */
+      if (uv) {
+        for (let i = 0; i < uv.count; i++) {
+          lines.push('vt ' + uv.getX(i).toFixed(6) + ' ' + uv.getY(i).toFixed(6));
+        }
+      }
+
+      /* Faces */
+      const fmt = (vi) => {
+        const vidx = vi + vOff;
+        const vtidx = uv ? (vi + vtOff) : '';
+        const vnidx = norm ? (vi + vnOff) : '';
+        if (vtidx !== '' && vnidx !== '') return vidx + '/' + vtidx + '/' + vnidx;
+        if (vnidx !== '') return vidx + '//' + vnidx;
+        if (vtidx !== '') return vidx + '/' + vtidx;
+        return String(vidx);
+      };
+      if (idx) {
+        for (let i = 0; i < idx.count; i += 3) {
+          lines.push('f ' + fmt(idx.getX(i)) + ' ' + fmt(idx.getX(i + 1)) + ' ' + fmt(idx.getX(i + 2)));
+        }
+      } else {
+        for (let i = 0; i < pos.count; i += 3) {
+          lines.push('f ' + fmt(i) + ' ' + fmt(i + 1) + ' ' + fmt(i + 2));
+        }
+      }
+
+      vOff += pos.count;
+      if (norm) vnOff += norm.count;
+      if (uv) vtOff += uv.count;
+      lines.push('');
+    });
+
+    return lines.join('\n');
+  }
+
+  /* ═══ Extraire bucket et path Supabase depuis l'URL stockée ═══ */
+  function parseStorageUrl(url) {
+    if (!url) return null;
+    /* Format public : .../storage/v1/object/public/<bucket>/<path>?... */
+    /* Format signed : .../storage/v1/object/sign/<bucket>/<path>?... */
+    const m = url.match(/\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+?)(?:\?|$)/);
+    if (!m) return null;
+    return {
+      bucket: decodeURIComponent(m[1]),
+      path: decodeURIComponent(m[2]),
+    };
+  }
+
+  /* ═══ Persist : upload OBJ + DB update ═══ */
+  async function persistSplitToObj(opts) {
+    opts = opts || {};
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      console.warn('[v68] currentObject absent');
+      return false;
+    }
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      console.warn('[v68] productId absent');
+      return false;
+    }
+
+    /* Compter les meshes pour confirmer qu'on a bien un split à persister */
+    let meshCount = 0;
+    currentObject.traverse(o => { if (o.isMesh) meshCount++; });
+    if (meshCount < 2 && !opts.force) {
+      console.log('[v68] pas de split à persister (' + meshCount + ' mesh)');
+      return false;
+    }
+
+    if (typeof toast === 'function') {
+      toast('Sauvegarde de la structure du modèle…', 'info', 3500);
+    }
+    console.log('[v68] persistance · ' + meshCount + ' meshes → OBJ');
+
+    /* 1. Génération OBJ */
+    const t0 = performance.now();
+    let objContent;
+    try {
+      objContent = exportAsObj(currentObject);
+    } catch (e) {
+      console.error('[v68] export OBJ erreur:', e);
+      if (typeof toast === 'function') toast('Échec génération OBJ', 'err', 4000);
+      return false;
+    }
+    const blob = new Blob([objContent], { type: 'text/plain; charset=utf-8' });
+    const sizeMo = (blob.size / 1024 / 1024).toFixed(2);
+    console.log('[v68] OBJ généré · ' + sizeMo + ' Mo en ' + (performance.now() - t0).toFixed(0) + 'ms');
+
+    /* 2. Path Storage : reprend exactement la clé de l'OBJ original */
+    const row = window._v18.productRow;
+    const urlObj = row && row.obj_source_url;
+    let bucket = 'studio v33';
+    let path = productId + '/source.obj';
+    const parsed = parseStorageUrl(urlObj);
+    if (parsed) {
+      bucket = parsed.bucket;
+      path = parsed.path;
+      console.log('[v68] storage : bucket="' + bucket + '" path="' + path + '"');
+    } else {
+      console.warn('[v68] obj_source_url illisible, fallback bucket/path :', bucket, path);
+    }
+
+    /* 3. Upload (upsert = écrase l'original, conformément au choix user) */
+    try {
+      const { data, error } = await sb.storage
+        .from(bucket)
+        .upload(path, blob, {
+          upsert: true,
+          contentType: 'text/plain',
+          cacheControl: '0',
+        });
+      if (error) throw error;
+      console.log('[v68] upload OK :', data && data.path);
+    } catch (e) {
+      console.error('[v68] upload erreur:', e);
+      if (typeof toast === 'function') toast('Échec upload OBJ : ' + (e.message || e), 'err', 5000);
+      return false;
+    }
+
+    /* 4. Mise à jour de obj_source_url avec cache-busting pour forcer
+       le re-fetch au prochain reload */
+    try {
+      const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
+      const baseUrl = pub && pub.publicUrl;
+      if (!baseUrl) throw new Error('publicUrl indisponible');
+      const cachedUrl = baseUrl + '?v=' + Date.now();
+      const { error } = await sb.from('products')
+        .update({ obj_source_url: cachedUrl })
+        .eq('id', productId);
+      if (error) throw error;
+      if (row) row.obj_source_url = cachedUrl;
+      console.log('[v68] obj_source_url mis à jour vers la version splittée');
+      if (typeof toast === 'function') {
+        toast('Structure sauvegardée ✓ (' + meshCount + ' parties · ' + sizeMo + ' Mo)', 'ok', 4000);
+      }
+    } catch (e) {
+      console.error('[v68] DB update erreur:', e);
+      if (typeof toast === 'function') toast('OBJ uploadé mais DB pas à jour', 'err', 4000);
+      return false;
+    }
+
+    return true;
+  }
+
+  /* ═══ Hook v54.run : déclenche persistSplitToObj après le split ═══ */
+  function hookV54() {
+    if (!window._v54 || !window._v54.run) return false;
+    if (window._v54.__v68Hooked) return true;
+    const orig = window._v54.run;
+    window._v54.run = function(tolerance) {
+      const r = orig.apply(this, arguments);
+      /* Attendre 2.8s : v54 utilise des setTimeout pour le calcul + render
+         de l'arbre. 2.8s suffit pour la plupart des modèles. */
+      setTimeout(() => {
+        persistSplitToObj().catch(e => console.error('[v68] persist crash:', e));
+      }, 2800);
+      return r;
+    };
+    window._v54.__v68Hooked = true;
+    console.log('[v68] hook v54.run installé');
+    return true;
+  }
+  hookV54();
+  const intv = setInterval(() => { if (hookV54()) clearInterval(intv); }, 600);
+  setTimeout(() => clearInterval(intv), 20000);
+
+  /* Expose */
+  window._v68.persist = persistSplitToObj;
+  window._v68.exportAsObj = exportAsObj;
+  window._v68.parseStorageUrl = parseStorageUrl;
+
+  console.log('[studio v68] persistance split via OBJ réécrit (remplace v64) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
