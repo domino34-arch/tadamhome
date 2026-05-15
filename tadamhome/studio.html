@@ -22026,6 +22026,148 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v68.2] export avec noms par groupe + sync parts depuis materials ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.3 — EXPORT OBJ FUSIONNÉ PAR GROUPKEY
+   ─────────────────────────────────────────────────────────────────────────
+   v68.2 écrivait un bloc `o groupKey` PAR MESH du groupe (donc plusieurs
+   blocs `o _seg_9ej6_0` consécutifs si le groupe avait 4 meshes).
+   
+   THREE.OBJLoader crée 1 mesh par bloc `o`, donc au reload :
+   - 9 meshes au lieu de 4
+   - Suffixes auto-générés par OBJLoader pour les noms en doublon
+     → `_seg_9ej6_0`, `_seg_9ej6_0001`, `_seg_9ej6_0002`...
+   - Aucun mesh ne s'appelle EXACTEMENT `_seg_9ej6_0`
+   - parts._seg_9ej6_0 → cherche un mesh nommé `_seg_9ej6_0` → 0 trouvé
+   - `[v18-C] appliquées: 0 · ignorées: 4`
+   
+   FIX v68.3 :
+   Override _v68.exportAsObj. La nouvelle version, si meshGroups est
+   disponible, écrit UN SEUL bloc `o groupKey` par groupe, en concaténant
+   les vertices/normales/UVs/faces de tous les meshes du groupe (en
+   coordonnées world-space).
+   
+   Résultat : OBJ avec exactement N blocs `o` (N = nombre de groupes).
+   Au reload, THREE.OBJLoader crée N meshes, chacun s'appelant exactement
+   comme la groupKey → match parfait avec parts → matériaux ré-attachés.
+   
+   Note : v68.2 garde son rôle (renomme meshes, sync parts, upload,
+   update studio_state). v68.3 ne change QUE la fonction d'écriture OBJ.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_3Fix() {
+  if (window.__v68_3Init) return;
+  window.__v68_3Init = true;
+
+  if (!window._v68 || !window._v68.exportAsObj) {
+    console.warn('[v68.3] _v68 ou _v68.exportAsObj introuvable');
+    return;
+  }
+
+  /* Garde l'ancien exportAsObj en fallback */
+  const exportAsObjFallback = window._v68.exportAsObj;
+  window._v68.exportAsObjFallback = exportAsObjFallback;
+
+  /* ───── Nouvelle version : fusionne par groupKey ───── */
+  function exportAsObjGroupedByMeshGroups(root) {
+    /* Fallback si meshGroups n'est pas dispo */
+    if (typeof meshGroups === 'undefined' || !meshGroups) {
+      console.log('[v68.3] meshGroups absent → fallback export par-mesh');
+      return exportAsObjFallback(root);
+    }
+    const groupKeys = Object.keys(meshGroups);
+    if (groupKeys.length === 0) {
+      console.log('[v68.3] meshGroups vide → fallback export par-mesh');
+      return exportAsObjFallback(root);
+    }
+
+    const lines = [];
+    lines.push('# TadamHome studio export v68.3 (merged by groupKey)');
+    lines.push('# generated ' + new Date().toISOString());
+    lines.push('');
+
+    let vCount = 0, vnCount = 0, vtCount = 0;
+    let totalMeshes = 0, skipped = 0;
+
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      if (!meshes || meshes.length === 0) {
+        console.warn('[v68.3] groupe vide :', groupKey);
+        return;
+      }
+      lines.push('o ' + groupKey);
+
+      meshes.forEach(mesh => {
+        if (!mesh || !mesh.isMesh || !mesh.geometry) {
+          skipped++;
+          return;
+        }
+        mesh.updateMatrixWorld(true);
+        const geom = mesh.geometry;
+        const posAttr = geom.attributes.position;
+        if (!posAttr) { skipped++; return; }
+        const normAttr = geom.attributes.normal;
+        const uvAttr = geom.attributes.uv;
+        const indexAttr = geom.index;
+
+        const matWorld = mesh.matrixWorld;
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(matWorld);
+        const tempV = new THREE.Vector3();
+        const tempN = new THREE.Vector3();
+
+        const startV  = vCount;
+        const startVn = vnCount;
+        const startVt = vtCount;
+
+        /* Écriture vertices (world-space) */
+        for (let i = 0; i < posAttr.count; i++) {
+          tempV.fromBufferAttribute(posAttr, i).applyMatrix4(matWorld);
+          lines.push('v ' + tempV.x.toFixed(6) + ' ' + tempV.y.toFixed(6) + ' ' + tempV.z.toFixed(6));
+          vCount++;
+        }
+        /* Écriture normals (transformées) */
+        if (normAttr) {
+          for (let i = 0; i < normAttr.count; i++) {
+            tempN.fromBufferAttribute(normAttr, i).applyMatrix3(normalMatrix).normalize();
+            lines.push('vn ' + tempN.x.toFixed(6) + ' ' + tempN.y.toFixed(6) + ' ' + tempN.z.toFixed(6));
+            vnCount++;
+          }
+        }
+        /* Écriture UVs */
+        if (uvAttr) {
+          for (let i = 0; i < uvAttr.count; i++) {
+            lines.push('vt ' + uvAttr.getX(i).toFixed(6) + ' ' + uvAttr.getY(i).toFixed(6));
+            vtCount++;
+          }
+        }
+        /* Écriture faces (1-based, global) */
+        const fmt = (localIdx) => {
+          const v  = localIdx + startV  + 1;
+          if (uvAttr && normAttr) return v + '/' + (localIdx + startVt + 1) + '/' + (localIdx + startVn + 1);
+          if (normAttr)           return v + '//' + (localIdx + startVn + 1);
+          if (uvAttr)             return v + '/' + (localIdx + startVt + 1);
+          return '' + v;
+        };
+        if (indexAttr) {
+          for (let i = 0; i < indexAttr.count; i += 3) {
+            lines.push('f ' + fmt(indexAttr.getX(i)) + ' ' + fmt(indexAttr.getX(i+1)) + ' ' + fmt(indexAttr.getX(i+2)));
+          }
+        } else {
+          for (let i = 0; i < posAttr.count; i += 3) {
+            lines.push('f ' + fmt(i) + ' ' + fmt(i+1) + ' ' + fmt(i+2));
+          }
+        }
+
+        totalMeshes++;
+      });
+
+      lines.push('');
+    });
+
+    console.log('[v68.3] export ·', groupKeys.length, 'blocs o · ', totalMeshes, 'meshes fusionnés ·', vCount, 'vertices' + (skipped ? ' · ' + skipped + ' meshes ignorés' : ''));
+    return lines.join('\n');
+  }
+
+  window._v68.exportAsObj = exportAsObjGroupedByMeshGroups;
+  console.log('[studio v68.3] export OBJ fusionne meshes par groupKey ✓ (1 bloc o par groupe)');
+})();
 console.log('[studio v3] prêt');
 
 </script>
