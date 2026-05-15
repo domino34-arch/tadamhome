@@ -20544,6 +20544,596 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v64] persistance shell split + re-application auto au reload ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v65 — DÉTECTION PRODUIT LIÉ ÉLARGIE (fix v59 sur /admin?panel=texture)
+   ─────────────────────────────────────────────────────────────────────────
+   PROBLÈME : v59 affiche "Enregistre d'abord le produit pour gérer les
+   variantes" sur l'URL /admin?panel=texture alors que le produit est
+   bien lié (logs montrent [v18 save] state poussé sur Supabase ✓).
+   
+   Cause : v59 vérifiait uniquement window._v18.productId, qui n'est pas
+   systématiquement renseigné sur l'URL admin (route différente, le
+   productId vient peut-être de v17 ou d'ailleurs).
+   
+   FIX : détection multi-source du produit lié (v18 + v17 + v25 + URL +
+   présence de productRow) et override de v59.render avec cette logique.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v65VariantsCatalogFix() {
+  if (window.__v65Init) return;
+  window.__v65Init = true;
+  window._v65 = {};
+
+  /* ═══ Détection robuste du produit lié ═══ */
+  function isProductLinked() {
+    /* 1. Source canonique : v18.productId */
+    if (window._v18 && window._v18.productId) return true;
+    /* 2. v18.productRow chargé = produit lié */
+    if (window._v18 && window._v18.productRow && window._v18.productRow.id) return true;
+    /* 3. v17 admin */
+    if (window._v17 && window._v17.productId) return true;
+    if (window._v17 && window._v17.product && window._v17.product.id) return true;
+    /* 4. URL classique studio?id=... */
+    try {
+      const url = new URL(location.href);
+      if (url.searchParams.get('id')) return true;
+    } catch (_) {}
+    /* 5. v25 a chargé les variants (preuve qu'on a un produit) */
+    if (window._v25 && window._v25.productId) return true;
+    /* 6. DOM : présence de chips de variantes ou bouton "+ Nouvelle variante" actif */
+    const newVarBtn = document.getElementById('btnNewVariant');
+    if (newVarBtn && !newVarBtn.disabled) return true;
+    return false;
+  }
+
+  /* ═══ Récupérer productId depuis n'importe quelle source ═══ */
+  function getProductId() {
+    if (window._v18 && window._v18.productId) return window._v18.productId;
+    if (window._v18 && window._v18.productRow && window._v18.productRow.id) return window._v18.productRow.id;
+    if (window._v17 && window._v17.productId) return window._v17.productId;
+    if (window._v17 && window._v17.product && window._v17.product.id) return window._v17.product.id;
+    try {
+      const url = new URL(location.href);
+      const id = url.searchParams.get('id');
+      if (id) return id;
+    } catch (_) {}
+    return null;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ═══ Toggle published d'une variante (re-impl pour utiliser getProductId) ═══ */
+  async function toggleVariantPublished(variantId) {
+    const productId = getProductId();
+    if (!productId) { toast('Produit non lié', 'err'); return; }
+    if (!window._v25 || !window._v25.variants) {
+      toast('Variantes indisponibles', 'err'); return;
+    }
+    const variant = window._v25.variants.find(v => v.id === variantId);
+    if (!variant) return;
+    const newVal = !variant.published;
+    variant.published = newVal;
+    try {
+      const { error } = await sb
+        .from('products')
+        .update({ variants: window._v25.variants })
+        .eq('id', productId);
+      if (error) throw error;
+      toast(`Variante « ${variant.name} » ${newVal ? 'publiée ✓' : 'dépubliée'}`, 'ok', 2500);
+      renderV59();
+    } catch (e) {
+      variant.published = !newVal;
+      console.error('[v65 toggle]', e);
+      toast('Erreur : ' + (e.message || e), 'err', 4000);
+    }
+  }
+
+  /* ═══ Render avec détection élargie ═══ */
+  function renderV59() {
+    const sectEl = document.getElementById('v59Section');
+    if (!sectEl) return;
+    const content = sectEl.querySelector('.v59-content');
+    if (!content) return;
+
+    const linked = isProductLinked();
+    const variants = (window._v25 && window._v25.variants) ? window._v25.variants : [];
+
+    if (!linked) {
+      content.innerHTML = `<div class="v59-empty">Enregistre d'abord le produit pour gérer les variantes.</div>`;
+      return;
+    }
+    if (variants.length === 0) {
+      content.innerHTML = `<div class="v59-empty">Aucune variante créée. Utilise le bouton "+ Nouvelle variante" en bas du studio.</div>`;
+      return;
+    }
+
+    const publishedCount = variants.filter(v => v.published).length;
+    const html = `
+      <div class="v59-list">
+        ${variants.map(v => `
+          <div class="v59-row">
+            <span class="v59-row-name">${escapeHtml(v.name)}</span>
+            <span class="v59-row-badge ${v.published ? 'v59-pub' : 'v59-draft'}">
+              ${v.published ? 'Publiée' : 'Brouillon'}
+            </span>
+            <button class="v59-toggle ${v.published ? 'v59-on' : ''}"
+                    data-variant-id="${escapeHtml(v.id)}"
+                    title="${v.published ? 'Retirer du catalogue' : 'Publier sur le catalogue'}"></button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="v59-info-line">
+        ${publishedCount} sur ${variants.length} variante${variants.length > 1 ? 's' : ''} publiée${publishedCount > 1 ? 's' : ''} sur le catalogue.
+      </div>
+    `;
+    content.innerHTML = html;
+    content.querySelectorAll('.v59-toggle').forEach(btn => {
+      btn.onclick = () => toggleVariantPublished(btn.dataset.variantId);
+    });
+  }
+
+  /* ═══ Override v59.render ═══ */
+  function patch() {
+    if (!window._v59) return false;
+    if (window._v59.__v65Patched) return true;
+    window._v59.render = renderV59;
+    window._v59.toggle = toggleVariantPublished;
+    window._v59.__v65Patched = true;
+    renderV59();
+    console.log('[v65] v59.render overridé avec détection élargie');
+    return true;
+  }
+  patch();
+  const intv = setInterval(() => { if (patch()) clearInterval(intv); }, 500);
+  setTimeout(() => clearInterval(intv), 20000);
+
+  /* ═══ Watcher : re-render quand l'état change (toutes les 1.2s) ═══ */
+  let lastSig = '';
+  setInterval(() => {
+    if (!document.getElementById('v59Section')) return;
+    const variants = (window._v25 && window._v25.variants) ? window._v25.variants : [];
+    const sig = isProductLinked() + '|' +
+                variants.map(v => v.id + ':' + v.name + ':' + (v.published ? '1' : '0')).join(',');
+    if (sig !== lastSig) {
+      lastSig = sig;
+      renderV59();
+    }
+  }, 1200);
+
+  /* Expose pour debug */
+  window._v65.isLinked = isProductLinked;
+  window._v65.productId = getProductId;
+  window._v65.render = renderV59;
+
+  console.log('[studio v65] détection produit lié élargie pour v59 ✓');
+})();
+/* ════════════════════════════════════════════════════════════════════════
+   v66 — DIALOG IMMERSIF "NOUVELLE VARIANTE" + HOOK ROBUSTE
+   ─────────────────────────────────────────────────────────────────────────
+   PROBLÈMES v57 (précédente impl) :
+   1. Hook fragile via cloneNode + parentNode.replaceChild → v25 re-render
+      peut écraser le clone et restaurer l'original sans hook
+   2. Détection produit lié via window._v18.productId uniquement → false
+      sur /admin?panel=texture où le productId est ailleurs
+   3. Dialog peu immersif (modal léger au-dessus du studio)
+   
+   FIX v66 :
+   1. Capture phase sur document pour intercepter le click sur
+      #btnNewVariant — passe AVANT v25 et n'est pas dépendant du DOM
+   2. isProductLinked() multi-source (réutilise v65 si dispo, sinon fallback)
+   3. Dialog immersif plein écran (overlay sombre, panneau central crème
+      large, champ "Nom" stylé, cartes "État actuel" / "Base" avec
+      descriptions, animation d'entrée fade+scale)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v66NewVariantDialog() {
+  if (window.__v66Init) return;
+  window.__v66Init = true;
+  window._v66 = {};
+
+  /* ───── Détection produit lié multi-source ───── */
+  function isProductLinked() {
+    if (window._v65 && window._v65.isLinked) return window._v65.isLinked();
+    if (window._v18 && window._v18.productId) return true;
+    if (window._v18 && window._v18.productRow && window._v18.productRow.id) return true;
+    if (window._v17 && window._v17.productId) return true;
+    try {
+      const url = new URL(location.href);
+      if (url.searchParams.get('id')) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  /* ───── CSS pour le dialog immersif ───── */
+  const css = `
+    .v66-overlay {
+      position: fixed; inset: 0;
+      background: rgba(20, 17, 13, 0.78);
+      backdrop-filter: blur(14px) saturate(0.7);
+      -webkit-backdrop-filter: blur(14px) saturate(0.7);
+      z-index: 99700;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.32s cubic-bezier(.2,.1,.2,1);
+      pointer-events: none;
+    }
+    .v66-overlay.v66-show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .v66-panel {
+      width: min(640px, 88vw);
+      max-height: 88vh;
+      background: var(--bg, #F5F2EC);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(184,150,90,0.10);
+      padding: 48px 56px;
+      transform: scale(0.92) translateY(20px);
+      transition: transform 0.32s cubic-bezier(.2,.1,.2,1);
+      overflow-y: auto;
+    }
+    .v66-overlay.v66-show .v66-panel {
+      transform: scale(1) translateY(0);
+    }
+    .v66-eyebrow {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.30em;
+      text-transform: uppercase;
+      color: var(--gold, #B8965A);
+      margin-bottom: 14px;
+    }
+    .v66-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 42px;
+      font-weight: 400;
+      letter-spacing: 0.005em;
+      color: var(--ink, #2A2620);
+      margin: 0 0 14px;
+      line-height: 1.1;
+    }
+    .v66-subtitle {
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 36px;
+      max-width: 460px;
+    }
+    .v66-field-label {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink-soft, #6B6358);
+      margin-bottom: 10px;
+    }
+    .v66-name-input {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-style: italic;
+      color: var(--ink, #2A2620);
+      transition: border-color 0.18s;
+      box-sizing: border-box;
+    }
+    .v66-name-input:focus {
+      outline: none;
+      border-color: var(--gold, #B8965A);
+    }
+    .v66-name-input::placeholder {
+      color: var(--ink-muted, #9C9388);
+      opacity: 0.55;
+    }
+    .v66-section {
+      margin-top: 28px;
+    }
+    .v66-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .v66-card {
+      padding: 20px 18px;
+      border: 1px solid var(--line, #D8D2C7);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: left;
+      position: relative;
+    }
+    .v66-card:hover {
+      border-color: var(--gold, #B8965A);
+      background: rgba(184, 150, 90, 0.04);
+    }
+    .v66-card.v66-active {
+      background: rgba(184, 150, 90, 0.08);
+      border-color: var(--gold, #B8965A);
+    }
+    .v66-card.v66-active::after {
+      content: '✓';
+      position: absolute;
+      top: 12px; right: 14px;
+      color: var(--gold, #B8965A);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .v66-card-title {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink, #2A2620);
+      margin-bottom: 6px;
+    }
+    .v66-card.v66-active .v66-card-title { color: var(--gold, #B8965A); }
+    .v66-card-desc {
+      display: block;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--ink-soft, #6B6358);
+      font-style: italic;
+    }
+    .v66-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: flex-end;
+      margin-top: 44px;
+      padding-top: 28px;
+      border-top: 1px solid var(--line-light, rgba(216, 210, 199, 0.5));
+    }
+    .v66-btn {
+      padding: 14px 28px;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+    .v66-btn.v66-secondary {
+      background: transparent;
+      color: var(--ink-soft, #6B6358);
+      border-color: transparent;
+    }
+    .v66-btn.v66-secondary:hover {
+      color: var(--ink, #2A2620);
+    }
+    .v66-btn.v66-primary {
+      background: var(--gold, #B8965A);
+      color: #fff;
+      border-color: var(--gold, #B8965A);
+      padding-left: 34px; padding-right: 34px;
+    }
+    .v66-btn.v66-primary:hover {
+      filter: brightness(1.10);
+    }
+    .v66-btn.v66-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: none;
+    }
+    .v66-close {
+      position: absolute;
+      top: 18px; right: 18px;
+      width: 36px; height: 36px;
+      background: transparent;
+      border: none;
+      color: var(--ink-soft, #6B6358);
+      font-size: 22px;
+      cursor: pointer;
+      transition: color 0.15s;
+      line-height: 1;
+    }
+    .v66-close:hover { color: var(--ink, #2A2620); }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-v66', 'new-variant-dialog');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ───── Build dialog ───── */
+  let overlayEl = null;
+  function buildOverlay() {
+    if (overlayEl) return overlayEl;
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'v66-overlay';
+    overlayEl.innerHTML = `
+      <div class="v66-panel">
+        <button class="v66-close" aria-label="Fermer">✕</button>
+        <div class="v66-eyebrow">Création</div>
+        <h2 class="v66-title">Nouvelle variante</h2>
+        <p class="v66-subtitle">
+          Une variante propose un jeu de matériaux distinct pour le même modèle.
+          Tu pourras ensuite la comparer côte à côte avec une autre variante,
+          et choisir de la publier individuellement sur le catalogue.
+        </p>
+
+        <label class="v66-field-label" for="v66Name">Nom de la variante</label>
+        <input type="text" id="v66Name" class="v66-name-input"
+               maxlength="60" placeholder="Variante chêne foncé">
+
+        <div class="v66-section">
+          <span class="v66-field-label">Point de départ</span>
+          <div class="v66-cards">
+            <button type="button" class="v66-card v66-active" data-src="current">
+              <span class="v66-card-title">État actuel</span>
+              <span class="v66-card-desc">
+                Reprend les matériaux, projections et paramètres tels qu'ils
+                sont à l'écran. Idéal pour décliner une finition.
+              </span>
+            </button>
+            <button type="button" class="v66-card" data-src="base">
+              <span class="v66-card-title">Base d'origine</span>
+              <span class="v66-card-desc">
+                Repart de la version d'origine du produit, sans aucune
+                personnalisation. Idéal pour explorer une nouvelle direction.
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="v66-actions">
+          <button class="v66-btn v66-secondary" data-act="cancel">Annuler</button>
+          <button class="v66-btn v66-primary" data-act="create">Créer la variante</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlayEl);
+
+    /* Card toggle */
+    overlayEl.querySelectorAll('.v66-card').forEach(c => {
+      c.onclick = () => {
+        overlayEl.querySelectorAll('.v66-card').forEach(x => x.classList.remove('v66-active'));
+        c.classList.add('v66-active');
+      };
+    });
+    /* Close handlers */
+    const closeFn = () => overlayEl.classList.remove('v66-show');
+    overlayEl.querySelector('.v66-close').onclick = closeFn;
+    overlayEl.querySelector('[data-act="cancel"]').onclick = closeFn;
+    overlayEl.addEventListener('click', (e) => {
+      if (e.target === overlayEl) closeFn();
+    });
+    /* Enter dans le champ nom = créer ; Esc = fermer */
+    overlayEl.querySelector('#v66Name').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        overlayEl.querySelector('[data-act="create"]').click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeFn();
+      }
+    });
+    /* Esc global */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlayEl.classList.contains('v66-show')) {
+        closeFn();
+      }
+    });
+    /* Create */
+    overlayEl.querySelector('[data-act="create"]').onclick = async () => {
+      const name = overlayEl.querySelector('#v66Name').value.trim().slice(0, 60);
+      if (!name) {
+        overlayEl.querySelector('#v66Name').focus();
+        return;
+      }
+      const src = overlayEl.querySelector('.v66-card.v66-active').dataset.src;
+      closeFn();
+      await createVariant(name, src);
+    };
+    return overlayEl;
+  }
+
+  /* ───── Show dialog ───── */
+  function showDialog() {
+    buildOverlay();
+    /* Pré-remplir le nom */
+    const n = (window._v25 && window._v25.variants ? window._v25.variants.length : 0) + 1;
+    const input = overlayEl.querySelector('#v66Name');
+    input.value = 'Variante ' + n;
+    /* Reset card */
+    overlayEl.querySelectorAll('.v66-card').forEach(c => c.classList.remove('v66-active'));
+    overlayEl.querySelector('[data-src="current"]').classList.add('v66-active');
+    /* Show */
+    overlayEl.classList.add('v66-show');
+    setTimeout(() => { input.focus(); input.select(); }, 320);
+  }
+
+  /* ───── Create variant ───── */
+  async function createVariant(name, sourceMode) {
+    /* Si "base" : applique le state base AVANT que createNewVariant prenne
+       son snapshot. */
+    if (sourceMode === 'base') {
+      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
+      if (!baseState) {
+        toast('Pas de state base trouvé', 'err', 4000);
+        return;
+      }
+      if (window._v25 && window._v25.applyVariantState) {
+        if (window._v56) window._v56.isApplying = true;
+        try { await window._v25.applyVariantState(baseState); }
+        catch (e) { console.error('[v66 base]', e); }
+        setTimeout(() => { if (window._v56) window._v56.isApplying = false; }, 250);
+      }
+    }
+    /* Hook temporaire window.prompt pour fournir notre nom */
+    const origPrompt = window.prompt;
+    window.prompt = () => name;
+    try {
+      if (window._v25 && window._v25.createNewVariant) {
+        await window._v25.createNewVariant();
+        toast(`Variante « ${name} » créée ✓`, 'ok', 3000);
+      } else {
+        toast('v25 indisponible — impossible de créer la variante', 'err', 4000);
+      }
+    } finally {
+      window.prompt = origPrompt;
+    }
+  }
+
+  /* ═══ INTERCEPTION du click "+ Nouvelle variante" ═══ */
+  /* Capture phase : on passe AVANT le handler de v25, peu importe si v25
+     re-render le bouton ou non. */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('#btnNewVariant');
+    if (!btn) return;
+
+    /* Vérifier que le produit est lié (multi-source) */
+    if (!isProductLinked()) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      toast('Enregistre d\'abord le produit pour créer une variante', 'err', 4500);
+      return;
+    }
+
+    /* Vérifier qu'un modèle est chargé */
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      toast('Charge d\'abord un modèle 3D', 'err', 4000);
+      return;
+    }
+
+    /* OK : bloque v25 et ouvre notre dialog */
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    showDialog();
+  }, true);  /* capture = true → on passe AVANT le handler v25 */
+
+  /* ═══ Si le bouton est désactivé alors qu'on est lié, le forcer actif ═══ */
+  /* Sur /admin?panel=texture, v25 peut désactiver le bouton car il check
+     window._v18.productId qui est false. On le force actif si la détection
+     élargie confirme qu'on est lié. */
+  setInterval(() => {
+    const btn = document.getElementById('btnNewVariant');
+    if (!btn) return;
+    if (btn.disabled && isProductLinked() && typeof currentObject !== 'undefined' && currentObject) {
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      btn.style.pointerEvents = '';
+      btn.style.opacity = '';
+    }
+  }, 1500);
+
+  /* Expose */
+  window._v66.show = showDialog;
+  window._v66.create = createVariant;
+  window._v66.isLinked = isProductLinked;
+
+  console.log('[studio v66] dialog immersif Nouvelle variante + hook capture-phase ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
