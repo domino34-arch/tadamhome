@@ -21134,6 +21134,241 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v66] dialog immersif Nouvelle variante + hook capture-phase ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v67 — OPTIMISATION EXPORT GLB (downscale textures + binary)
+   ─────────────────────────────────────────────────────────────────────────
+   PROBLÈME : les GLB exportés depuis le studio sont trop lourds pour se
+   charger correctement dans le catalogue public — typiquement 20-40 Mo
+   car les textures source sont en 2048×2048 ou 4096×4096.
+   
+   FIX : intercepter GLTFExporter.parse() pour, avant l'export :
+   - Cloner le modèle (sans toucher l'original)
+   - Cloner chaque matériau (pour ne pas polluer les refs partagées)
+   - Downscaler chaque texture à 1024×1024 max via canvas
+   - Préserver tous les paramètres UV (repeat, offset, rotation, wrap,
+     filtres, colorSpace, flipY)
+   - Forcer binary: true (GLB compact au lieu de glTF JSON+bin séparés)
+   
+   Résultats typiques :
+   - 2048→1024 : taille texture / 4
+   - 4096→1024 : taille texture / 16
+   - Un GLB de 30 Mo avec 6 textures 2048 passe à ~8 Mo
+   
+   Helper window._v67.setMaxTextureDim(N) pour ajuster (défaut 1024).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v67OptimizeGLB() {
+  if (window.__v67Init) return;
+  window.__v67Init = true;
+
+  let MAX_TEXTURE_DIM = 1024;
+  let stats = { lastExport: null };
+
+  /* ───── Downscale une texture si > MAX_TEXTURE_DIM ───── */
+  async function downscaleTexture(originalTx, maxDim) {
+    if (!originalTx || !originalTx.image) return originalTx;
+    const img = originalTx.image;
+    const w = img.width || img.naturalWidth || (img.videoWidth) || 0;
+    const h = img.height || img.naturalHeight || (img.videoHeight) || 0;
+    if (!w || !h) return originalTx;
+    if (w <= maxDim && h <= maxDim) return originalTx;  /* déjà OK */
+
+    const ratio = Math.min(maxDim / w, maxDim / h);
+    const nw = Math.max(1, Math.round(w * ratio));
+    const nh = Math.max(1, Math.round(h * ratio));
+
+    /* Canvas pour redimensionner */
+    let source = img;
+    if (img instanceof ImageData) {
+      const tmp = document.createElement('canvas');
+      tmp.width = img.width; tmp.height = img.height;
+      tmp.getContext('2d').putImageData(img, 0, 0);
+      source = tmp;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = nw; canvas.height = nh;
+    const ctx = canvas.getContext('2d');
+    /* Qualité maximale pour le resize */
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, nw, nh);
+
+    /* Nouvelle CanvasTexture avec tous les params de l'originale */
+    const newTx = new THREE.CanvasTexture(canvas);
+    newTx.name = (originalTx.name || '') + '_v67opt';
+    newTx.flipY = originalTx.flipY;
+    if (originalTx.colorSpace !== undefined) newTx.colorSpace = originalTx.colorSpace;
+    else if (originalTx.encoding !== undefined) newTx.encoding = originalTx.encoding;
+    newTx.wrapS = originalTx.wrapS;
+    newTx.wrapT = originalTx.wrapT;
+    if (originalTx.repeat) newTx.repeat.copy(originalTx.repeat);
+    if (originalTx.offset) newTx.offset.copy(originalTx.offset);
+    if (typeof originalTx.rotation === 'number') newTx.rotation = originalTx.rotation;
+    if (originalTx.center) newTx.center.copy(originalTx.center);
+    newTx.minFilter = originalTx.minFilter;
+    newTx.magFilter = originalTx.magFilter;
+    if (originalTx.anisotropy !== undefined) newTx.anisotropy = originalTx.anisotropy;
+    newTx.needsUpdate = true;
+    return newTx;
+  }
+
+  const TEXTURE_SLOTS = [
+    'map', 'normalMap', 'aoMap', 'roughnessMap', 'metalnessMap',
+    'emissiveMap', 'bumpMap', 'displacementMap', 'alphaMap',
+    'clearcoatMap', 'clearcoatNormalMap', 'clearcoatRoughnessMap',
+    'sheenColorMap', 'sheenRoughnessMap', 'specularMap', 'specularIntensityMap',
+    'specularColorMap', 'transmissionMap', 'thicknessMap', 'iridescenceMap',
+    'iridescenceThicknessMap',
+  ];
+
+  /* ───── Optimiser une scene pour l'export ───── */
+  async function optimizeForExport(input) {
+    /* Si input est un array, on l'enveloppe dans un Group temporaire */
+    let scene;
+    if (Array.isArray(input)) {
+      scene = new THREE.Group();
+      input.forEach(o => scene.add(o.clone(true)));
+    } else {
+      scene = input.clone(true);
+    }
+
+    const promises = [];
+    const localStats = {
+      texturesSeen: 0,
+      texturesDownscaled: 0,
+      texturesMap: new Map(),  /* dedup : même texture → un seul downscale */
+    };
+
+    scene.traverse(c => {
+      if (!c.isMesh || !c.material) return;
+      /* Cloner les matériaux pour ne pas polluer les originaux */
+      const isArray = Array.isArray(c.material);
+      const arr = isArray ? c.material : [c.material];
+      const cloned = arr.map(m => m.clone());
+      c.material = isArray ? cloned : cloned[0];
+
+      cloned.forEach(mat => {
+        TEXTURE_SLOTS.forEach(slot => {
+          const tx = mat[slot];
+          if (!tx) return;
+          localStats.texturesSeen++;
+          /* Si même texture déjà traitée, réutiliser */
+          if (localStats.texturesMap.has(tx)) {
+            mat[slot] = localStats.texturesMap.get(tx);
+            return;
+          }
+          promises.push(
+            downscaleTexture(tx, MAX_TEXTURE_DIM).then(nt => {
+              if (nt !== tx) localStats.texturesDownscaled++;
+              localStats.texturesMap.set(tx, nt);
+              mat[slot] = nt;
+            }).catch(e => {
+              console.warn('[v67] downscale erreur slot', slot, e);
+            })
+          );
+        });
+      });
+    });
+
+    await Promise.all(promises);
+    return { scene, stats: localStats };
+  }
+
+  /* ───── Hook sur GLTFExporter.prototype.parse ───── */
+  function hookExporter() {
+    /* Plusieurs chemins possibles selon comment GLTFExporter a été importé */
+    const candidates = [
+      window.THREE && window.THREE.GLTFExporter,
+      window.GLTFExporter,
+    ].filter(Boolean);
+    /* Et chercher dans tout window.* pour les imports module-scoped */
+    if (window.__v67ExporterCtor) candidates.push(window.__v67ExporterCtor);
+
+    for (const Exp of candidates) {
+      if (!Exp || !Exp.prototype || !Exp.prototype.parse) continue;
+      if (Exp.prototype.__v67Hooked) return true;
+
+      const origParse = Exp.prototype.parse;
+      Exp.prototype.parse = function v67Parse(input, onDone, onError, options) {
+        /* Si déjà optimisé (appel récursif), bypass */
+        if (options && options.__v67Skip) {
+          return origParse.call(this, input, onDone, onError, options);
+        }
+
+        const self = this;
+        const t0 = performance.now();
+        console.log('[v67] export GLTF intercepté · optimisation textures (max ' + MAX_TEXTURE_DIM + 'px)...');
+
+        optimizeForExport(input).then(({ scene, stats: s }) => {
+          const dt = (performance.now() - t0).toFixed(0);
+          console.log(`[v67] ${s.texturesSeen} textures détectées · ${s.texturesDownscaled} downscalées en ${dt}ms`);
+          const newOpts = Object.assign({ binary: true }, options || {}, { __v67Skip: true });
+          /* Force binary=true sauf si explicitement false */
+          if (options && options.binary === false) newOpts.binary = false;
+
+          const t1 = performance.now();
+          origParse.call(self, scene, (result) => {
+            const exportDt = (performance.now() - t1).toFixed(0);
+            const size = result instanceof ArrayBuffer ? result.byteLength :
+                         (typeof result === 'object' ? JSON.stringify(result).length : 0);
+            stats.lastExport = {
+              textures: s.texturesSeen,
+              downscaled: s.texturesDownscaled,
+              binary: newOpts.binary,
+              sizeBytes: size,
+              optimizeMs: parseInt(dt),
+              exportMs: parseInt(exportDt),
+            };
+            console.log(`[v67] export OK · ${(size / 1024 / 1024).toFixed(2)} Mo (${newOpts.binary ? 'GLB binary' : 'glTF json'}) en ${exportDt}ms`);
+            if (onDone) onDone(result);
+          }, (e) => {
+            console.error('[v67] export erreur:', e);
+            if (onError) onError(e);
+          }, newOpts);
+        }).catch(err => {
+          console.error('[v67] optimize erreur, fallback original:', err);
+          /* Fallback : appel sans optimisation */
+          return origParse.call(self, input, onDone, onError, options);
+        });
+      };
+
+      Exp.prototype.__v67Hooked = true;
+      console.log('[v67] hook GLTFExporter installé');
+      return true;
+    }
+    return false;
+  }
+
+  /* Tenter le hook plusieurs fois (GLTFExporter est souvent importé tard) */
+  hookExporter();
+  let attempts = 0;
+  const intv = setInterval(() => {
+    attempts++;
+    if (hookExporter() || attempts > 60) clearInterval(intv);
+  }, 700);
+
+  /* Helper pour enregistrer un constructor découvert plus tard */
+  window._v67RegisterExporter = function(Ctor) {
+    window.__v67ExporterCtor = Ctor;
+    hookExporter();
+  };
+
+  /* ═══ Mode "manuel" : optimiser un objet avant export sans toucher GLTFExporter ═══ */
+  /* À utiliser si jamais le hook ne s'attache pas — l'archi peut appeler
+     directement window._v67.optimize(obj) et passer le résultat à
+     l'exporter avec { __v67Skip: true } */
+  window._v67 = {
+    setMaxTextureDim: (d) => {
+      MAX_TEXTURE_DIM = Math.max(64, Math.min(4096, parseInt(d) || 1024));
+      console.log('[v67] MAX_TEXTURE_DIM =', MAX_TEXTURE_DIM);
+    },
+    getMaxTextureDim: () => MAX_TEXTURE_DIM,
+    optimize: optimizeForExport,
+    stats: () => stats,
+    forceRehook: hookExporter,
+  };
+
+  console.log('[studio v67] optimisation export GLB (textures ≤ ' + MAX_TEXTURE_DIM + ' px) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
