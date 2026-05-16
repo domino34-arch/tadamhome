@@ -22768,891 +22768,70 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
 /* ════════════════════════════════════════════════════════════════════════
-   v69.1 — MODE CATALOGUE STUDIO · UI panneau (placeholder)
+   v69 — CATALOGUE INTÉGRÉ AU STUDIO (version finale propre)
    ─────────────────────────────────────────────────────────────────────────
-   Première brique du chantier v69 (catalogue intégré au studio).
+   Remplace les itérations cassées v69.1, v69.1.1, v69.1.2, v69.1.3 par une
+   seule IIFE qui fait les choses correctement du premier coup.
    
-   Périmètre v69.1 (minimal, pour valider l'approche) :
-   - Détection du mode au boot via URL
-     * /studio/catalogue → mode browse
-     * /studio?catalogue=1 → mode browse (fallback sans routing serveur)
-     * /studio?id=XXX → mode édition (intact)
-   - Pose window._studioMode = 'browse' | 'edit'
-   - En mode browse : court-circuit léger de la persistance (bloque
-     _v68.persist pour éviter pushes accidentels)
-   - Injection d'un panneau catalogue à droite, même largeur que le
-     panneau matériau existant, avec :
-     * Header "CATALOGUE" + bouton fermer
-     * Recherche (cosmétique pour l'instant)
-     * Filtres catégorie (FAUTEUIL/CHAISE/CANAPÉ) cliquables
-     * Filtre marque alphabet
-     * Placeholder de liste vide avec message "Chargement…"
-   - Bouton "CATALOGUE" en topbar pour toggler panel (visible par défaut
-     en mode browse)
+   DÉTECTION DU MODE :
+   - /studio?catalogue=1 (ou /studio/catalogue) sans ?id= → mode browse
+   - tout le reste → mode édition (intact, v69 reste passif)
    
-   À venir en v69.2 :
-   - Fetch des produits Supabase
-   - Render réel de la liste
-   - Filtres fonctionnels
-   - Click → load produit dans viewer
+   EN MODE BROWSE :
+   1. Injecte un bouton "CATALOGUE" en topbar à côté du bouton AR, style
+      identique à celui de /admin?panel=texture (or, Jost uppercase)
+   2. Détecte le panneau droit par POSITION (left > viewport / 2 +
+      largeur 200-500px), évite la confusion avec l'arborescence qui est
+      sur la gauche
+   3. Identifie la barre des onglets (l'enfant direct du rightPanel qui
+      contient le bouton MATÉRIAU) pour la conserver visible
+   4. Au click sur CATALOGUE : cache TOUS les enfants du rightPanel SAUF
+      la tabRow, insère mon UI catalogue à la place du contenu natif
+   5. Au click sur MATÉRIAU/GÉOMÉTRIE/SCÈNE : restaure le contenu natif
+   6. Court-circuit léger : bloque _v68.persist pour éviter de pousser
+      des données arbitraires depuis le mode browse
    
-   À venir en v69.4 :
-   - Bouton "Ouvrir en édition" pour bascule in-place
+   À VENIR EN v69.2 :
+   - Fetch produits Supabase + render réel de la liste
+   - Click produit → load OBJ + applique studio_state via v18-C
    ════════════════════════════════════════════════════════════════════════ */
-(function v69_1Init() {
-  if (window.__v69_1Init) return;
-  window.__v69_1Init = true;
+(function v69CatalogueInit() {
+  if (window.__v69Init) return;
+  window.__v69Init = true;
 
   /* ───── 1. Détection du mode ───── */
   const url = new URL(window.location.href);
   const pathCatalogue = url.pathname.replace(/\/+$/, '').endsWith('/studio/catalogue');
   const paramCatalogue = url.searchParams.get('catalogue') === '1';
   const hasId = !!url.searchParams.get('id');
-
-  /* Mode browse si URL catalogue explicite ET pas d'id, ou si /studio nu */
   const isBrowseMode = (pathCatalogue || paramCatalogue) && !hasId;
   window._studioMode = isBrowseMode ? 'browse' : 'edit';
 
-  console.log('[studio v69.1] mode détecté :', window._studioMode);
-
   if (!isBrowseMode) {
-    /* Mode édition : v69 reste passif, le studio tourne normalement */
-    console.log('[v69.1] mode édition actif, panneau catalogue désactivé');
+    console.log('[studio v69] mode édition, catalogue passif');
     return;
   }
 
-  /* ───── 2. Court-circuit léger de la persistance ───── */
-  /* En mode browse, on bloque _v68.persist pour éviter qu'un clic
-     accidentel pousse des données arbitraires sur un produit aléatoire. */
+  console.log('[studio v69] mode catalogue actif');
+
+  /* ───── 2. Court-circuit léger de _v68.persist ───── */
   const blockPersist = () => {
-    if (window._v68 && window._v68.persist) {
-      const origPersist = window._v68.persist;
-      window._v68.persist = async function blockedInBrowse() {
-        console.warn('[v69.1] _v68.persist bloqué en mode browse');
-        if (typeof toast === 'function') {
-          toast('Persistance désactivée en mode consultation', 'info', 3000);
-        }
+    if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
+      const orig = window._v68.persist;
+      window._v68.persist = async function blocked() {
+        console.warn('[v69] _v68.persist bloqué en mode browse');
+        if (typeof toast === 'function') toast('Persistance désactivée en mode consultation', 'info', 3000);
         return false;
       };
-      window._v68._origPersist = origPersist;
+      window._v68._origPersist = orig;
+      window._v68._v69Blocked = true;
     }
   };
-  /* Le court-circuit tente plusieurs fois si _v68 n'est pas encore prêt */
   blockPersist();
   setTimeout(blockPersist, 1000);
   setTimeout(blockPersist, 3000);
 
-  /* ───── 3. CSS pour le panneau catalogue ───── */
-  const css = `
-    #v69-catalogue-panel {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 380px;
-      background: #EDEAE4;
-      border-left: 1px solid #d4cfc4;
-      box-shadow: -2px 0 12px rgba(0,0,0,0.06);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      font-family: 'Jost', sans-serif;
-      color: #1a1a1a;
-      transform: translateX(0);
-      transition: transform 0.28s ease;
-    }
-    #v69-catalogue-panel.hidden {
-      transform: translateX(100%);
-    }
-    #v69-panel-header {
-      padding: 20px 24px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      border-bottom: 1px solid #d4cfc4;
-    }
-    #v69-panel-header h2 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 24px;
-      font-weight: 400;
-      margin: 0;
-      letter-spacing: 0.02em;
-    }
-    #v69-panel-close {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 20px;
-      color: #6b6358;
-      padding: 0 4px;
-      line-height: 1;
-    }
-    #v69-panel-close:hover { color: #1a1a1a; }
-    #v69-search-bar {
-      padding: 14px 24px;
-      border-bottom: 1px solid #e5e0d4;
-    }
-    #v69-search-input {
-      width: 100%;
-      padding: 10px 14px;
-      background: #fff;
-      border: 1px solid #d4cfc4;
-      border-radius: 0;
-      font-family: 'Jost', sans-serif;
-      font-size: 13px;
-      letter-spacing: 0.03em;
-      outline: none;
-      box-sizing: border-box;
-    }
-    #v69-search-input:focus {
-      border-color: #B8965A;
-    }
-    #v69-filters {
-      padding: 14px 24px;
-      border-bottom: 1px solid #e5e0d4;
-    }
-    #v69-filters .filter-label {
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      color: #6b6358;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .v69-pill {
-      display: inline-block;
-      padding: 6px 12px;
-      margin: 0 6px 6px 0;
-      background: transparent;
-      border: 1px solid #d4cfc4;
-      cursor: pointer;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      color: #1a1a1a;
-    }
-    .v69-pill:hover { border-color: #B8965A; }
-    .v69-pill.active {
-      background: #B8965A;
-      border-color: #B8965A;
-      color: #fff;
-    }
-    #v69-list-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px 24px 24px;
-    }
-    #v69-placeholder {
-      font-size: 13px;
-      color: #6b6358;
-      text-align: center;
-      padding: 40px 16px;
-      font-style: italic;
-    }
-    #v69-toggle-btn {
-      position: fixed;
-      top: 18px;
-      right: 18px;
-      z-index: 999;
-      background: #B8965A;
-      color: #fff;
-      border: none;
-      padding: 10px 18px;
-      cursor: pointer;
-      font-family: 'Jost', sans-serif;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      display: none;
-    }
-    #v69-toggle-btn.visible { display: block; }
-    #v69-toggle-btn:hover { background: #cca766; }
-    /* Quand le panneau est ouvert, on cache le panneau matériau natif
-       du studio pour éviter le chevauchement */
-    body.v69-browse-active [class*="right-panel"],
-    body.v69-browse-active [class*="rightPanel"] {
-      /* Note : sélecteurs génériques, peuvent ne rien cibler ; à affiner */
-    }
-  `;
-  const styleEl = document.createElement('style');
-  styleEl.id = 'v69-styles';
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
-
-  /* ───── 4. Construction du panneau ───── */
-  function buildPanel() {
-    if (document.querySelector('#v69-catalogue-panel')) return;
-
-    const panel = document.createElement('div');
-    panel.id = 'v69-catalogue-panel';
-    panel.innerHTML = `
-      <div id="v69-panel-header">
-        <h2>Catalogue</h2>
-        <button id="v69-panel-close" title="Fermer le catalogue">×</button>
-      </div>
-      <div id="v69-search-bar">
-        <input id="v69-search-input" type="text" placeholder="Rechercher un meuble, une marque…" autocomplete="off" />
-      </div>
-      <div id="v69-filters">
-        <div class="filter-label">Catégorie</div>
-        <div id="v69-cat-pills">
-          <button class="v69-pill active" data-cat="all">Tous</button>
-          <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
-          <button class="v69-pill" data-cat="Chaise">Chaise</button>
-          <button class="v69-pill" data-cat="Canapé">Canapé</button>
-        </div>
-      </div>
-      <div id="v69-list-container">
-        <div id="v69-placeholder">Chargement du catalogue…<br><br>(v69.2 ajoutera les produits)</div>
-      </div>
-    `;
-    document.body.appendChild(panel);
-
-    /* Bouton toggle externe (apparaît quand le panneau est fermé) */
-    const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'v69-toggle-btn';
-    toggleBtn.textContent = 'CATALOGUE';
-    document.body.appendChild(toggleBtn);
-
-    /* Handlers */
-    panel.querySelector('#v69-panel-close').addEventListener('click', () => {
-      panel.classList.add('hidden');
-      toggleBtn.classList.add('visible');
-    });
-    toggleBtn.addEventListener('click', () => {
-      panel.classList.remove('hidden');
-      toggleBtn.classList.remove('visible');
-    });
-    panel.querySelectorAll('.v69-pill').forEach(p => {
-      p.addEventListener('click', () => {
-        panel.querySelectorAll('.v69-pill').forEach(b => b.classList.remove('active'));
-        p.classList.add('active');
-        console.log('[v69.1] filtre catégorie :', p.dataset.cat);
-        /* TODO v69.2 : filtrer la liste */
-      });
-    });
-    panel.querySelector('#v69-search-input').addEventListener('input', (e) => {
-      console.log('[v69.1] recherche :', e.target.value);
-      /* TODO v69.2 : filtrer la liste */
-    });
-
-    document.body.classList.add('v69-browse-active');
-    console.log('[v69.1] panneau catalogue injecté ✓');
-  }
-
-  /* Wait que le DOM soit prêt, le studio met du temps à monter */
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', buildPanel);
-  } else {
-    buildPanel();
-  }
-
-  console.log('[studio v69.1] mode catalogue actif · UI panneau (placeholder) ✓');
-})();
-/* ════════════════════════════════════════════════════════════════════════
-   v69.1.1 — CORRECTIF v69.1
-   ─────────────────────────────────────────────────────────────────────────
-   v69.1 ajoutait un panneau flottant 380px qui :
-   - chevauchait le viewer
-   - avait sa propre largeur (pas alignée sur le panneau natif)
-   - ajoutait un bouton CATALOGUE flottant en doublon
-   
-   v69.1.1 corrige en intégrant le catalogue DANS le panneau natif :
-   - Cleanup du panneau flottant v69.1
-   - Détecte le bouton CATALOGUE natif (déjà présent en haut du panneau
-     matériau, à côté de MATÉRIAU / GÉOMÉTRIE)
-   - Au click sur CATALOGUE en mode browse :
-     * Cache le contenu natif du panneau (les sections APPARENCE,
-       CARTES, PROJECTION, etc.)
-     * Affiche le catalogue UI à la place
-   - Au click sur MATÉRIAU ou GÉOMÉTRIE : restaure le contenu natif,
-     cache le catalogue
-   - Le catalogue UI utilise la même largeur exacte que le panneau
-     natif (mesurée au runtime via getBoundingClientRect)
-   - Theme sombre pour matcher le panneau natif (dark bg + cream text
-     + gold accent)
-   ════════════════════════════════════════════════════════════════════════ */
-(function v69_1_1Init() {
-  if (window.__v69_1_1Init) return;
-  window.__v69_1_1Init = true;
-
-  /* Ne s'active qu'en mode browse */
-  if (window._studioMode !== 'browse') {
-    console.log('[v69.1.1] mode édition, correctif inactif');
-    return;
-  }
-
-  /* ───── 1. Cleanup du panneau v69.1 ───── */
-  ['v69-catalogue-panel', 'v69-toggle-btn', 'v69-styles'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  });
-  document.body.classList.remove('v69-browse-active');
-
-  /* ───── 2. Helpers de recherche DOM ───── */
-  function findButtonByText(textCandidates) {
-    const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
-      .map(t => t.trim().toUpperCase());
-    return Array.from(document.querySelectorAll('button, [role="tab"]')).find(el => {
-      const t = (el.textContent || '').trim().toUpperCase();
-      return targets.includes(t);
-    });
-  }
-
-  let catBtn, matBtn, geoBtn;
-  let tabRow;            // ligne des onglets MATÉRIAU/GÉOMÉTRIE/CATALOGUE
-  let panelContainer;    // panneau natif englobant
-  let nativeContents = []; // siblings du tabRow à cacher quand catalogue est ouvert
-  let catalogueOpen = false;
-
-  /* ───── 3. Init ───── */
-  function tryInit() {
-    catBtn = findButtonByText('CATALOGUE');
-    matBtn = findButtonByText(['MATÉRIAU', 'MATERIAU']);
-    geoBtn = findButtonByText(['GÉOMÉTRIE', 'GEOMETRIE']);
-
-    if (!catBtn || !matBtn) return false;
-
-    /* Trouve le tabRow : ancêtre commun le plus proche entre catBtn et matBtn */
-    tabRow = catBtn.parentElement;
-    while (tabRow && tabRow !== document.body && !tabRow.contains(matBtn)) {
-      tabRow = tabRow.parentElement;
-    }
-    if (!tabRow || tabRow === document.body) return false;
-
-    /* Trouve le panneau natif englobant (le parent du tabRow, ou plus haut
-       si nécessaire pour avoir une largeur 280-500px) */
-    panelContainer = tabRow.parentElement;
-    let attempts = 0;
-    while (panelContainer && panelContainer !== document.body && attempts < 6) {
-      const w = panelContainer.offsetWidth;
-      if (w >= 280 && w <= 500) break;
-      panelContainer = panelContainer.parentElement;
-      attempts++;
-    }
-    if (!panelContainer || panelContainer === document.body) {
-      panelContainer = tabRow.parentElement;
-    }
-
-    console.log('[v69.1.1] panneau natif détecté · largeur=' + panelContainer.offsetWidth + 'px');
-
-    /* Identifier les "contenus natifs" : siblings de tabRow dans son parent
-       direct (sauf tabRow lui-même et mon contenu catalogue) */
-    nativeContents = Array.from(tabRow.parentElement.children).filter(c => c !== tabRow);
-
-    injectCatalogueUI();
-    hookTabButtons();
-
-    /* Si le mode catalogue est actif au boot, l'activer */
-    setTimeout(() => openCatalogue(), 100);
-
-    return true;
-  }
-
-  /* ───── 4. Injection du contenu catalogue ───── */
-  function injectCatalogueUI() {
-    if (document.getElementById('v69-catalogue-content')) return;
-
-    const style = document.createElement('style');
-    style.id = 'v69-1-1-styles';
-    style.textContent = `
-      #v69-catalogue-content {
-        display: none;
-        padding: 20px 24px 32px;
-        font-family: 'Jost', sans-serif;
-        color: inherit;
-        box-sizing: border-box;
-      }
-      #v69-catalogue-content.visible { display: block; }
-      #v69-search-input {
-        width: 100%;
-        padding: 10px 14px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.12);
-        color: inherit;
-        font-family: 'Jost', sans-serif;
-        font-size: 12px;
-        letter-spacing: 0.04em;
-        outline: none;
-        box-sizing: border-box;
-        margin-bottom: 22px;
-      }
-      #v69-search-input::placeholder {
-        color: rgba(255,255,255,0.4);
-        text-transform: none;
-      }
-      #v69-search-input:focus { border-color: #B8965A; }
-      .v69-filter-label {
-        font-size: 10px;
-        letter-spacing: 0.16em;
-        opacity: 0.55;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-      .v69-pills { margin-bottom: 24px; line-height: 1.8; }
-      .v69-pill {
-        display: inline-block;
-        padding: 4px 10px;
-        margin: 0 4px 4px 0;
-        background: transparent;
-        border: 1px solid rgba(255,255,255,0.16);
-        cursor: pointer;
-        font-size: 10px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: inherit;
-        font-family: 'Jost', sans-serif;
-        transition: all 0.15s;
-      }
-      .v69-pill:hover { border-color: #B8965A; }
-      .v69-pill.active {
-        background: #B8965A;
-        border-color: #B8965A;
-        color: #1a1a1a;
-      }
-      #v69-placeholder {
-        margin-top: 36px;
-        font-size: 12px;
-        opacity: 0.5;
-        text-align: center;
-        font-style: italic;
-        line-height: 1.6;
-      }
-    `;
-    document.head.appendChild(style);
-
-    const content = document.createElement('div');
-    content.id = 'v69-catalogue-content';
-    content.innerHTML = `
-      <input id="v69-search-input" type="text" placeholder="Rechercher un meuble, une marque…" autocomplete="off" />
-      <div class="v69-filter-label">Catégorie</div>
-      <div class="v69-pills" data-pills="categorie">
-        <button class="v69-pill active" data-cat="all">Tous</button>
-        <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
-        <button class="v69-pill" data-cat="Chaise">Chaise</button>
-        <button class="v69-pill" data-cat="Canapé">Canapé</button>
-      </div>
-      <div id="v69-placeholder">Chargement du catalogue…<br><br>(v69.2 ajoutera les produits)</div>
-    `;
-
-    /* Insère le contenu DANS le panneau natif, après le tabRow */
-    tabRow.parentElement.insertBefore(content, tabRow.nextSibling);
-
-    /* Handlers pills */
-    content.querySelectorAll('[data-pills="categorie"] .v69-pill').forEach(p => {
-      p.addEventListener('click', () => {
-        content.querySelectorAll('[data-pills="categorie"] .v69-pill').forEach(b => b.classList.remove('active'));
-        p.classList.add('active');
-        console.log('[v69.1.1] filtre catégorie:', p.dataset.cat);
-      });
-    });
-    content.querySelector('#v69-search-input').addEventListener('input', e => {
-      console.log('[v69.1.1] recherche:', e.target.value);
-    });
-  }
-
-  /* ───── 5. Hooks des boutons d'onglets ───── */
-  function hookTabButtons() {
-    /* CATALOGUE click : ouvre mon contenu */
-    catBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openCatalogue();
-    }, { capture: true });
-
-    /* MATÉRIAU / GÉOMÉTRIE click : restaure le contenu natif */
-    [matBtn, geoBtn].filter(Boolean).forEach(btn => {
-      btn.addEventListener('click', () => {
-        closeCatalogue();
-      }, { capture: false });
-    });
-  }
-
-  function openCatalogue() {
-    if (catalogueOpen) return;
-    const content = document.getElementById('v69-catalogue-content');
-    if (!content) return;
-
-    /* Cache tous les siblings natifs (le contenu MATÉRIAU/GÉOMÉTRIE) */
-    nativeContents.forEach(el => {
-      if (el === content) return;
-      el._v69PrevDisplay = el.style.display;
-      el.style.display = 'none';
-    });
-    content.classList.add('visible');
-    catalogueOpen = true;
-    console.log('[v69.1.1] catalogue ouvert · contenu natif caché');
-  }
-
-  function closeCatalogue() {
-    if (!catalogueOpen) return;
-    const content = document.getElementById('v69-catalogue-content');
-    if (!content) return;
-
-    /* Restaure les siblings natifs */
-    nativeContents.forEach(el => {
-      if (el === content) return;
-      el.style.display = el._v69PrevDisplay || '';
-    });
-    content.classList.remove('visible');
-    catalogueOpen = false;
-    console.log('[v69.1.1] catalogue fermé · contenu natif restauré');
-  }
-
-  /* ───── 6. Init avec retry (DOM peut ne pas être prêt) ───── */
-  if (!tryInit()) {
-    const interval = setInterval(() => {
-      if (tryInit()) clearInterval(interval);
-    }, 500);
-    setTimeout(() => clearInterval(interval), 20000);
-  }
-
-  console.log('[studio v69.1.1] catalogue intégré au panneau natif (via bouton CATALOGUE existant) ✓');
-})();
-/* ════════════════════════════════════════════════════════════════════════
-   v69.1.2 — CORRECTIF v69.1.1
-   ─────────────────────────────────────────────────────────────────────────
-   v69.1.1 supposait l'existence d'un bouton CATALOGUE en haut du panneau
-   matériau. En réalité ce bouton existe uniquement dans /admin?panel=
-   texture (l'admin panel wrapper), PAS dans /studio?catalogue=1.
-   
-   Résultat : le hook v69.1.1 ne trouvait rien à intercepter, le catalogue
-   restait invisible.
-   
-   FIX v69.1.2 :
-   - Cleanup v69.1.1 (contenu jamais affiché de toute façon)
-   - INJECTE moi-même un bouton "CATALOGUE" en topbar à droite, style
-     identique à celui de /admin?panel=texture (or, Jost uppercase)
-   - Trouve le panneau droit (où sont MATÉRIAU/GÉOMÉTRIE/SCÈNE)
-   - Au click sur le bouton :
-     * Si fermé : sauvegarde le contenu actuel du panneau droit, le
-       remplace par mon UI catalogue
-     * Si ouvert : restaure le contenu natif
-   - Au click sur MATÉRIAU/GÉOMÉTRIE/SCÈNE : ferme le catalogue
-   ════════════════════════════════════════════════════════════════════════ */
-(function v69_1_2Init() {
-  if (window.__v69_1_2Init) return;
-  window.__v69_1_2Init = true;
-
-  if (window._studioMode !== 'browse') {
-    console.log('[v69.1.2] mode édition, correctif inactif');
-    return;
-  }
-
-  /* ───── 1. Cleanup v69.1.1 ───── */
-  ['v69-catalogue-content', 'v69-1-1-styles'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  });
-
-  /* ───── 2. Helpers DOM ───── */
-  function findByText(textCandidates, tags) {
-    const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
-      .map(t => t.trim().toUpperCase());
-    const sel = tags || 'button, [role="tab"]';
-    return Array.from(document.querySelectorAll(sel)).find(el => {
-      const t = (el.textContent || '').trim().toUpperCase();
-      return targets.includes(t) && el.children.length <= 2;
-    });
-  }
-
-  /* État */
-  let catalogueOpen = false;
-  let nativeChildren = [];   // sauvegardés au moment de l'ouverture
-  let myCatalogue = null;
-  let myButton = null;
-  let rightPanel = null;
-  let matBtn = null, geoBtn = null, scnBtn = null;
-
-  /* ───── 3. Construction du contenu catalogue (dark theme) ───── */
-  function buildCatalogueDiv() {
-    const div = document.createElement('div');
-    div.id = 'v69-cat-content';
-    div.style.cssText = `
-      padding: 24px 28px 32px;
-      font-family: 'Jost', sans-serif;
-      color: inherit;
-      box-sizing: border-box;
-      height: 100%;
-      overflow-y: auto;
-    `;
-    div.innerHTML = `
-      <input
-        id="v69-search-input"
-        type="text"
-        placeholder="Rechercher un meuble, une marque…"
-        autocomplete="off"
-        style="
-          width: 100%;
-          padding: 11px 14px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: inherit;
-          font-family: 'Jost', sans-serif;
-          font-size: 12px;
-          letter-spacing: 0.04em;
-          outline: none;
-          box-sizing: border-box;
-          margin-bottom: 22px;
-        "
-      />
-      <div style="font-size: 10px; letter-spacing: 0.16em; opacity: 0.55; text-transform: uppercase; margin-bottom: 10px;">
-        Catégorie
-      </div>
-      <div id="v69-cat-pills" style="margin-bottom: 28px; line-height: 1.9;">
-        <button class="v69-pill v69-active" data-cat="all">Tous</button>
-        <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
-        <button class="v69-pill" data-cat="Chaise">Chaise</button>
-        <button class="v69-pill" data-cat="Canapé">Canapé</button>
-      </div>
-      <div style="font-size: 10px; letter-spacing: 0.16em; opacity: 0.55; text-transform: uppercase; margin-bottom: 10px;">
-        Marque
-      </div>
-      <div id="v69-brand-pills" style="margin-bottom: 28px; line-height: 1.9;">
-        <button class="v69-pill v69-active" data-brand="all">Toutes</button>
-      </div>
-      <div id="v69-placeholder" style="margin-top: 40px; font-size: 12px; opacity: 0.5; text-align: center; font-style: italic; line-height: 1.6;">
-        Chargement du catalogue…<br><br>
-        <span style="opacity: 0.6;">(v69.2 ajoutera les produits)</span>
-      </div>
-    `;
-
-    /* Styles inline pour les pills */
-    const pillCss = document.createElement('style');
-    pillCss.id = 'v69-1-2-pills';
-    pillCss.textContent = `
-      .v69-pill {
-        display: inline-block;
-        padding: 5px 11px;
-        margin: 0 4px 4px 0;
-        background: transparent;
-        border: 1px solid rgba(255,255,255,0.16);
-        cursor: pointer;
-        font-size: 10px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: inherit;
-        font-family: 'Jost', sans-serif;
-        transition: all 0.15s;
-      }
-      .v69-pill:hover { border-color: #B8965A; }
-      .v69-pill.v69-active {
-        background: #B8965A;
-        border-color: #B8965A;
-        color: #1a1a1a;
-      }
-      #v69-search-input::placeholder { color: rgba(255,255,255,0.4); }
-      #v69-search-input:focus { border-color: #B8965A; }
-    `;
-    document.head.appendChild(pillCss);
-
-    /* Handlers pills */
-    div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(p => {
-      p.addEventListener('click', () => {
-        div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.remove('v69-active'));
-        p.classList.add('v69-active');
-        console.log('[v69.1.2] filtre catégorie:', p.dataset.cat);
-      });
-    });
-    div.querySelector('#v69-search-input').addEventListener('input', e => {
-      console.log('[v69.1.2] recherche:', e.target.value);
-    });
-
-    return div;
-  }
-
-  /* ───── 4. Toggle du catalogue dans le panneau droit ───── */
-  function openCatalogue() {
-    if (catalogueOpen) return;
-    if (!rightPanel) return;
-
-    nativeChildren = Array.from(rightPanel.children);
-    nativeChildren.forEach(c => {
-      c._v69PrevDisplay = c.style.display;
-      c.style.display = 'none';
-    });
-    if (!myCatalogue) myCatalogue = buildCatalogueDiv();
-    rightPanel.appendChild(myCatalogue);
-
-    catalogueOpen = true;
-    setButtonActive(true);
-    console.log('[v69.1.2] catalogue ouvert');
-  }
-
-  function closeCatalogue() {
-    if (!catalogueOpen) return;
-    if (!rightPanel) return;
-
-    if (myCatalogue && myCatalogue.parentNode === rightPanel) {
-      rightPanel.removeChild(myCatalogue);
-    }
-    nativeChildren.forEach(c => {
-      c.style.display = c._v69PrevDisplay || '';
-    });
-    nativeChildren = [];
-
-    catalogueOpen = false;
-    setButtonActive(false);
-    console.log('[v69.1.2] catalogue fermé');
-  }
-
-  function toggleCatalogue() {
-    if (catalogueOpen) closeCatalogue();
-    else openCatalogue();
-  }
-
-  function setButtonActive(active) {
-    if (!myButton) return;
-    if (active) {
-      myButton.style.background = '#1a1a1a';
-      myButton.style.color = '#B8965A';
-      myButton.style.borderColor = '#B8965A';
-    } else {
-      myButton.style.background = '#B8965A';
-      myButton.style.color = '#fff';
-      myButton.style.borderColor = '#B8965A';
-    }
-  }
-
-  /* ───── 5. Injection du bouton CATALOGUE en topbar ───── */
-  function injectButton() {
-    if (document.getElementById('v69-cat-btn')) return true;
-
-    /* Cherche un point d'ancrage en topbar : bouton AR ou layout */
-    const arBtn = findByText('AR');
-    if (!arBtn || !arBtn.parentElement) return false;
-
-    /* Insère le bouton CATALOGUE après les layout buttons (à droite de tout) */
-    const topbarRow = arBtn.parentElement;
-
-    myButton = document.createElement('button');
-    myButton.id = 'v69-cat-btn';
-    myButton.textContent = 'CATALOGUE';
-    myButton.style.cssText = `
-      font-family: 'Jost', sans-serif;
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.13em;
-      text-transform: uppercase;
-      padding: 10px 22px;
-      background: #B8965A;
-      color: #fff;
-      border: 1px solid #B8965A;
-      cursor: pointer;
-      margin-left: 14px;
-      transition: all 0.15s;
-      vertical-align: middle;
-    `;
-    myButton.addEventListener('mouseenter', () => {
-      if (!catalogueOpen) myButton.style.background = '#cca766';
-    });
-    myButton.addEventListener('mouseleave', () => {
-      if (!catalogueOpen) myButton.style.background = '#B8965A';
-    });
-    myButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleCatalogue();
-    });
-
-    /* Place le bouton en fin de topbar row */
-    topbarRow.appendChild(myButton);
-    return true;
-  }
-
-  /* ───── 6. Détecte le panneau droit + hook autres onglets ───── */
-  function findRightPanel() {
-    matBtn = findByText(['MATÉRIAU', 'MATERIAU']);
-    geoBtn = findByText(['GÉOMÉTRIE', 'GEOMETRIE']);
-    scnBtn = findByText(['SCÈNE', 'SCENE']);
-
-    if (!matBtn) return null;
-
-    /* Trouve le conteneur du panneau droit (largeur entre 280 et 500px) */
-    let panel = matBtn.parentElement;
-    while (panel && panel !== document.body) {
-      const w = panel.offsetWidth;
-      if (w >= 280 && w <= 500) return panel;
-      panel = panel.parentElement;
-    }
-    /* Fallback : remonter de 2 niveaux par défaut */
-    return matBtn.parentElement.parentElement || matBtn.parentElement;
-  }
-
-  function hookOtherTabs() {
-    [matBtn, geoBtn, scnBtn].filter(Boolean).forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (catalogueOpen) closeCatalogue();
-      });
-    });
-  }
-
-  /* ───── 7. Init avec retry ───── */
-  function tryInit() {
-    if (!injectButton()) return false;
-    rightPanel = findRightPanel();
-    if (!rightPanel) {
-      console.warn('[v69.1.2] panneau droit introuvable, retry…');
-      return false;
-    }
-    console.log('[v69.1.2] panneau droit détecté · largeur=' + rightPanel.offsetWidth + 'px');
-    hookOtherTabs();
-    /* Ne pas auto-ouvrir : laisser l'user cliquer le bouton */
-    return true;
-  }
-
-  if (!tryInit()) {
-    const interval = setInterval(() => {
-      if (tryInit()) clearInterval(interval);
-    }, 500);
-    setTimeout(() => clearInterval(interval), 20000);
-  }
-
-  console.log('[studio v69.1.2] bouton CATALOGUE injecté en topbar · toggle panneau droit ✓');
-})();
-/* ════════════════════════════════════════════════════════════════════════
-   v69.1.3 — CORRECTIF v69.1.2
-   ─────────────────────────────────────────────────────────────────────────
-   v69.1.2 avait deux bugs sérieux :
-   
-   1. findRightPanel() montait dans le DOM en cherchant "width 280-500px",
-      mais comme parents intermédiaires peuvent être trop étroits OU trop
-      larges sans transition propre dans cette plage, on tombait sur le
-      conteneur de TOUTE la zone centrale → cacher ses enfants cachait
-      l'arborescence + viewer + panneau droit
-   
-   2. openCatalogue() cachait TOUS les enfants du panneau droit, y compris
-      les onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE. L'utilisateur ne pouvait plus
-      revenir sur MATÉRIAU
-   
-   v69.1.3 fixe :
-   
-   1. Détection par ANCRAGE : on cherche un élément texte caractéristique
-      du panneau matériau (APPARENCE, RUGOSITÉ, COULEUR DE BASE, etc.),
-      puis on remonte jusqu'au plus petit ancêtre qui contient ÉGALEMENT
-      le bouton MATÉRIAU. Ce LCA est forcément le panneau droit.
-   
-   2. Conservation des onglets : on trouve l'enfant direct du rightPanel
-      qui contient matBtn (= la barre des onglets), et on le laisse
-      visible. Seuls les autres enfants (le contenu) sont cachés.
-   ════════════════════════════════════════════════════════════════════════ */
-(function v69_1_3Init() {
-  if (window.__v69_1_3Init) return;
-  window.__v69_1_3Init = true;
-
-  if (window._studioMode !== 'browse') {
-    console.log('[v69.1.3] mode édition, correctif inactif');
-    return;
-  }
-
-  /* ───── Cleanup v69.1.2 (qui est cassé) ───── */
-  ['v69-cat-btn', 'v69-cat-content', 'v69-1-2-pills'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  });
-
-  /* ───── Helpers DOM ───── */
+  /* ───── 3. Helpers DOM ───── */
   function findByText(textCandidates, sel) {
     const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
       .map(t => t.trim().toUpperCase());
@@ -23660,14 +22839,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       const t = (el.textContent || '').trim().toUpperCase();
       return targets.includes(t) && el.children.length <= 2;
     });
-  }
-  function findTextMarker(text) {
-    const T = text.trim().toUpperCase();
-    return Array.from(document.querySelectorAll('div, span, p, h1, h2, h3, h4, h5, h6, label'))
-      .find(el => {
-        const t = (el.textContent || '').trim().toUpperCase();
-        return t === T && el.children.length === 0 && el.offsetHeight > 0;
-      });
   }
 
   /* État */
@@ -23679,7 +22850,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   let tabRowChild = null;
   let matBtn = null, geoBtn = null, scnBtn = null;
 
-  /* ───── 1. Détection robuste du panneau droit ───── */
+  /* ───── 4. Détection du panneau droit (par POSITION dans le viewport) ───── */
   function findRightPanel() {
     matBtn = findByText(['MATÉRIAU', 'MATERIAU']);
     geoBtn = findByText(['GÉOMÉTRIE', 'GEOMETRIE']);
@@ -23687,39 +22858,35 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
     if (!matBtn) return null;
 
-    /* Ancres : éléments texte caractéristiques du panneau matériau.
-       On en essaie plusieurs car selon l'état du studio certains
-       peuvent être absents */
-    const anchorTexts = ['APPARENCE', 'RUGOSITÉ', 'COULEUR DE BASE',
-                         'MATIÈRE ACTIVE', 'PROJECTION', 'CARTES'];
+    const vw = window.innerWidth;
+    const matRect = matBtn.getBoundingClientRect();
 
-    for (const txt of anchorTexts) {
-      const marker = findTextMarker(txt);
-      if (!marker) continue;
+    /* Confirme que matBtn est dans la moitié droite du viewport (sinon
+       on n'est probablement pas en mode édition matériau standard) */
+    if (matRect.left < vw * 0.5) {
+      console.warn('[v69] matBtn pas à droite du viewport, attente…');
+      return null;
+    }
 
-      /* Remonte depuis le marker jusqu'au plus petit ancêtre qui
-         contient AUSSI matBtn → c'est le panneau droit */
-      let cur = marker.parentElement;
-      while (cur && cur !== document.body) {
-        if (cur.contains(matBtn) && cur.offsetWidth >= 200 && cur.offsetWidth <= 600) {
-          console.log('[v69.1.3] panneau droit détecté via ancre "' + txt + '" · largeur=' + cur.offsetWidth + 'px');
-          return cur;
-        }
-        cur = cur.parentElement;
+    /* Remonte depuis matBtn, cherche le plus petit ancêtre qui :
+       - a une largeur 200-500px (taille du panneau droit)
+       - a son edge gauche à droite du milieu du viewport (left > vw/2)
+       - touche le bord droit (right > vw - 100) */
+    let cur = matBtn.parentElement;
+    while (cur && cur !== document.body) {
+      const r = cur.getBoundingClientRect();
+      if (r.width >= 200 && r.width <= 500 && r.left > vw * 0.5 && r.right > vw - 100) {
+        console.log('[v69] panneau droit détecté · largeur=' + Math.round(r.width) + 'px · left=' + Math.round(r.left) + 'px');
+        return cur;
       }
+      cur = cur.parentElement;
     }
 
-    console.warn('[v69.1.3] aucune ancre trouvée, fallback largeur');
-    let panel = matBtn.parentElement;
-    while (panel && panel !== document.body) {
-      if (panel.offsetWidth >= 280 && panel.offsetWidth <= 500) return panel;
-      panel = panel.parentElement;
-    }
+    console.warn('[v69] panneau droit non trouvé par position');
     return null;
   }
 
-  /* Trouve l'enfant direct de rightPanel qui contient matBtn (= la
-     barre d'onglets, à laisser visible) */
+  /* Trouve l'enfant direct du rightPanel qui contient matBtn (= la barre d'onglets) */
   function findTabRowChild() {
     if (!rightPanel || !matBtn) return null;
     let cur = matBtn;
@@ -23730,7 +22897,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     return cur;
   }
 
-  /* ───── 2. UI catalogue ───── */
+  /* ───── 5. UI catalogue (dark theme, blend avec le panneau natif) ───── */
   function buildCatalogueDiv() {
     const div = document.createElement('div');
     div.id = 'v69-cat-content';
@@ -23777,7 +22944,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     `;
 
     const css = document.createElement('style');
-    css.id = 'v69-1-3-styles';
+    css.id = 'v69-pill-styles';
     css.textContent = `
       .v69-pill {
         display: inline-block;
@@ -23804,42 +22971,39 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     `;
     document.head.appendChild(css);
 
-    /* Handlers */
     div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(p => {
       p.addEventListener('click', () => {
         div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.remove('v69-active'));
         p.classList.add('v69-active');
-        console.log('[v69.1.3] filtre catégorie:', p.dataset.cat);
+        console.log('[v69] filtre catégorie:', p.dataset.cat);
       });
     });
     div.querySelector('#v69-search-input').addEventListener('input', e => {
-      console.log('[v69.1.3] recherche:', e.target.value);
+      console.log('[v69] recherche:', e.target.value);
     });
     return div;
   }
 
-  /* ───── 3. Toggle (conserve la tabRow visible) ───── */
+  /* ───── 6. Toggle catalogue (conserve la tabRow visible) ───── */
   function openCatalogue() {
     if (catalogueOpen) return;
     if (!rightPanel || !tabRowChild) {
-      console.warn('[v69.1.3] openCatalogue : panneau ou tabRow introuvable');
+      console.warn('[v69] openCatalogue : prérequis manquants');
       return;
     }
 
-    /* Cache TOUS les enfants du rightPanel SAUF la tabRow */
     nativeChildren = Array.from(rightPanel.children).filter(c => c !== tabRowChild);
     nativeChildren.forEach(c => {
       c._v69PrevDisplay = c.style.display;
       c.style.display = 'none';
     });
 
-    /* Insère mon contenu juste après la tabRow */
     if (!myCatalogue) myCatalogue = buildCatalogueDiv();
     rightPanel.insertBefore(myCatalogue, tabRowChild.nextSibling);
 
     catalogueOpen = true;
     setButtonActive(true);
-    console.log('[v69.1.3] catalogue ouvert · tabRow conservée');
+    console.log('[v69] catalogue ouvert · tabRow conservée');
   }
 
   function closeCatalogue() {
@@ -23853,7 +23017,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     nativeChildren = [];
     catalogueOpen = false;
     setButtonActive(false);
-    console.log('[v69.1.3] catalogue fermé');
+    console.log('[v69] catalogue fermé · contenu natif restauré');
   }
 
   function toggleCatalogue() {
@@ -23872,7 +23036,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
   }
 
-  /* ───── 4. Injection bouton + hook onglets ───── */
+  /* ───── 7. Injection du bouton CATALOGUE en topbar ───── */
   function injectButton() {
     if (document.getElementById('v69-cat-btn')) return true;
     const arBtn = findByText('AR');
@@ -23920,14 +23084,14 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     });
   }
 
-  /* ───── 5. Init avec retry ───── */
+  /* ───── 8. Init avec retry ───── */
   function tryInit() {
     if (!injectButton()) return false;
     rightPanel = findRightPanel();
     if (!rightPanel) return false;
     tabRowChild = findTabRowChild();
     if (!tabRowChild) {
-      console.warn('[v69.1.3] tabRowChild introuvable malgré rightPanel détecté');
+      console.warn('[v69] tabRow introuvable malgré rightPanel détecté');
       return false;
     }
     hookOtherTabs();
@@ -23941,7 +23105,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     setTimeout(() => clearInterval(interval), 20000);
   }
 
-  console.log('[studio v69.1.3] bouton CATALOGUE + toggle panneau droit (LCA + tabRow conservée) ✓');
+  console.log('[studio v69] bouton CATALOGUE + toggle panneau droit (par position) ✓');
 })();
 console.log('[studio v3] prêt');
 
