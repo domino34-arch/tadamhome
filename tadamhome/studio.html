@@ -20654,6 +20654,22 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       if (error) throw error;
       toast(`Variante « ${variant.name} » ${newVal ? 'publiée ✓' : 'dépubliée'}`, 'ok', 2500);
       renderV59();
+
+      /* v69.21 — Auto-déclencher le pipeline multi-export GLB/USDZ quand on
+         publie une variante. Sinon scan.html n'a pas de modèle 3D spécifique
+         à afficher pour la variante (buildColorsArray tombe sur le fallback
+         Base, et le picker FINITION ne change rien visuellement quand on
+         clique sur la variante).
+         exportAllVariants est idempotent (hash check skip si rien n'a changé)
+         et a un verrou anti-concurrent (window._v49.isExporting), donc safe
+         à déclencher ici. Asynchrone (.catch) : ne bloque pas la fin du toggle. */
+      if (newVal && window._v49 && typeof window._v49.exportAllVariants === 'function' && !window._v49.isExporting) {
+        console.log('[v69.21] auto-export multi-variantes après publication de "' + variant.name + '"');
+        window._v49.exportAllVariants(productId).catch(err => {
+          console.warn('[v69.21] auto-export échec', err);
+          toast('Variante publiée mais GLB non généré : ' + (err.message || err), 'err', 5500);
+        });
+      }
     } catch (e) {
       variant.published = !newVal;
       console.error('[v65 toggle]', e);
