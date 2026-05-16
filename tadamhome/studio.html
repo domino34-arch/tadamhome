@@ -5197,9 +5197,11 @@ function setupColorPicker() {
       const input = document.createElement('input');
       input.type = 'color';
       input.value = '#' + mat.color.getHexString();
-      /* v69.10 — iOS Safari refuse d'ouvrir le picker si l'input est hors-écran
-         (left:-9999px) ou opacity 0 / width 0. Workaround : on le positionne pile
-         sur le swatch en opacity 0 mais avec des dimensions réelles → iOS accepte. */
+      /* v69.12 — Fix iPad Safari : pour que le color picker s'ouvre vraiment :
+         (1) opacity:0.01 et non 0 (Safari rejette opacity:0 comme "invisible")
+         (2) PAS de pointer-events:none (iOS ignore l'input s'il n'est pas pointable)
+         (3) input.click() SYNCHRONE dans le user gesture (requestAnimationFrame
+             casse la chaîne et iOS bloque l'ouverture du picker hors gesture). */
       const r = swatch.getBoundingClientRect();
       input.style.cssText =
         'position:fixed;' +
@@ -5207,8 +5209,7 @@ function setupColorPicker() {
         'left:' + r.left + 'px;' +
         'width:' + Math.max(r.width, 1) + 'px;' +
         'height:' + Math.max(r.height, 1) + 'px;' +
-        'opacity:0;border:0;padding:0;margin:0;' +
-        'pointer-events:none;z-index:99999';
+        'opacity:0.01;border:0;padding:0;margin:0;z-index:99999';
       document.body.appendChild(input);
       input.addEventListener('input', () => {
         mat.color.set(input.value);
@@ -5217,9 +5218,8 @@ function setupColorPicker() {
         if (valueEl) valueEl.textContent = input.value.toUpperCase();
       });
       input.addEventListener('change', () => setTimeout(() => input.remove(), 500));
-      /* requestAnimationFrame pour s'assurer que l'input est bien rendu dans le DOM
-         avant le click programmatique (iOS sensible au timing) */
-      requestAnimationFrame(() => input.click());
+      /* Appel synchrone dans le user gesture pour passer le filtre iOS Safari */
+      input.click();
     });
   });
 }
@@ -23427,52 +23427,50 @@ console.log('[studio v3] prêt');
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     v69.11 — Adaptation iPad : burger principal, panneaux gauche en drawer,
-     topbar épurée, AR direct iOS Quick Look, catalogue masque matériau,
-     bottombar scroll hint. Auto-activé sur (pointer:coarse) && 768-1366px.
+     v69.12 — Adaptation iPad (corrigé) :
+     • Burger toggle UNIQUEMENT l'arborescence (leftpanel) — la nav-rail reste visible
+     • Viewer s'agrandit quand l'arborescence est masquée (grid-template-columns)
+     • Plus de masquage du rightpanel quand catalogue actif (laissé à v69)
+     • Color picker fixé séparément dans setupColorPicker
      ════════════════════════════════════════════════════════════════════ -->
 <script>
-(function ipadUx_v69_11() {
-  if (window.__v6911) return;
-  window.__v6911 = true;
+(function ipadUx_v69_12() {
+  if (window.__v6912) return;
+  window.__v6912 = true;
 
   /* ───── 1. CSS injecté ───── */
   const css = `
-    /* === Mode iPad : grid 2 colonnes (viewer + matpanel) === */
+    /* === Mode iPad : la nav-rail reste à sa col 1 normale.
+       Seul le leftpanel (arborescence, col 2) devient un drawer.
+       Le viewer (col 3) s'agrandit pour récupérer la place du leftpanel masqué. === */
     body.ipad-mode .app {
-      grid-template-columns: 0 0 1fr var(--mat-w, 380px) !important;
+      grid-template-columns: var(--nav-w, 56px) 0 1fr var(--mat-w, 380px) !important;
     }
     body.ipad-mode .app.mat-hidden {
-      grid-template-columns: 0 0 1fr 0 !important;
+      grid-template-columns: var(--nav-w, 56px) 0 1fr 0 !important;
     }
-    /* Nav-rail + leftpanel deviennent des drawers off-screen */
-    body.ipad-mode .nav-rail,
+    /* Leftpanel devient un drawer off-screen, juste à droite de la nav-rail */
     body.ipad-mode .leftpanel {
       position: fixed !important;
       top: var(--topbar-h, 58px) !important;
       bottom: 0 !important;
+      left: var(--nav-w, 56px) !important;
+      width: var(--tree-w, 240px) !important;
       z-index: 8500;
-      transform: translateX(-100%);
+      transform: translateX(-110%);
       transition: transform 0.25s ease;
       box-shadow: 4px 0 20px rgba(0,0,0,0.35);
       display: flex !important;
     }
-    body.ipad-mode .nav-rail {
-      left: 0;
-      width: var(--nav-w, 56px);
-    }
-    body.ipad-mode .leftpanel {
-      left: var(--nav-w, 56px);
-      width: var(--tree-w, 240px);
-    }
-    body.ipad-mode.ipad-nav-open .nav-rail,
-    body.ipad-mode.ipad-nav-open .leftpanel {
+    body.ipad-mode.ipad-tree-open .leftpanel {
       transform: translateX(0);
     }
-    /* Burger principal en topbar (haut-gauche) */
+    /* Burger principal : positionné après la nav-rail, dans la topbar */
     .ipad-main-burger {
-      position: fixed; top: 10px; left: 12px;
-      width: 38px; height: 38px;
+      position: fixed;
+      top: 14px;
+      left: calc(var(--nav-w, 56px) + 12px);
+      width: 36px; height: 32px;
       background: var(--ink, #2A2620);
       border: none;
       display: none; align-items: center; justify-content: center;
@@ -23480,27 +23478,31 @@ console.log('[studio v3] prêt');
       transition: background 0.15s;
     }
     body.ipad-mode .ipad-main-burger { display: flex; }
-    .ipad-main-burger:active { background: #B8965A; }
+    .ipad-main-burger:active,
+    body.ipad-tree-open .ipad-main-burger { background: #B8965A; }
     .ipad-main-burger svg {
       width: 18px; height: 18px;
       stroke: #F5F2EC; fill: none; stroke-width: 1.6; stroke-linecap: round;
     }
-    /* Overlay quand drawer ouvert (tap dehors = fermer) */
+    /* Overlay : tap dehors = fermer le drawer */
     .ipad-drawer-overlay {
-      position: fixed; top: var(--topbar-h, 58px); left: 0; right: 0; bottom: 0;
+      position: fixed;
+      top: var(--topbar-h, 58px);
+      left: calc(var(--nav-w, 56px) + var(--tree-w, 240px));
+      right: 0; bottom: 0;
       background: rgba(0,0,0,0.45);
       z-index: 8400; opacity: 0; pointer-events: none;
       transition: opacity 0.2s;
     }
-    body.ipad-mode.ipad-nav-open .ipad-drawer-overlay {
+    body.ipad-mode.ipad-tree-open .ipad-drawer-overlay {
       opacity: 1; pointer-events: auto;
     }
-    /* Topbar épurée : on retire breadcrumb + inputs dimensions */
+    /* Topbar épurée sur iPad : on retire breadcrumb + inputs dimensions */
     body.ipad-mode .tb-tree-zone,
     body.ipad-mode .tb-dims {
       display: none !important;
     }
-    /* Compenser l'espace du burger (38px) dans la viewer-zone */
+    /* Compenser l'espace du burger (48px) dans la viewer-zone */
     body.ipad-mode .topbar .tb-viewer-zone {
       padding-left: 56px;
     }
@@ -23514,7 +23516,7 @@ console.log('[studio v3] prêt');
       background: linear-gradient(to right, transparent, var(--bg, #F5F2EC) 80%);
       z-index: 2;
     }
-    /* Anti-zoom iOS sur tous les inputs textuels */
+    /* Anti-zoom iOS sur inputs textuels */
     body.ipad-mode input[type="text"],
     body.ipad-mode input[type="number"],
     body.ipad-mode input[type="email"],
@@ -23523,29 +23525,10 @@ console.log('[studio v3] prêt');
     body.ipad-mode textarea {
       font-size: 16px !important;
     }
-
-    /* === Catalogue ouvert : masquer le panneau matériau === */
-    body.ipad-mode.catalogue-active .rightpanel {
-      display: none !important;
-    }
-    body.ipad-mode.catalogue-active .app {
-      grid-template-columns: 0 0 1fr 0 !important;
-    }
-    /* Le contentContainer du catalogue prend la place du rightpanel */
-    body.ipad-mode.catalogue-active #v69-cat-content {
-      position: fixed !important;
-      top: var(--topbar-h, 58px);
-      right: 0; bottom: var(--bottombar-h, 56px);
-      width: min(440px, 50vw);
-      z-index: 8200;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.3);
-    }
-    /* Portrait iPad : le catalogue déborde la zone visible → on l'élargit */
-    @media (orientation: portrait) {
-      body.ipad-mode.catalogue-active #v69-cat-content {
-        width: min(420px, 70vw);
-      }
-    }
+    /* v69.12 — Volontairement vide : on laisse le module v69 gérer le catalogue
+       à sa façon (mount dans contentContainer du rightpanel, masque le contenu
+       Matériau natif via nativeChildren.display='none'). Ne PAS masquer le
+       rightpanel ici, sinon on casse le catalogue lui-même. */
   `;
   const style = document.createElement('style');
   style.id = 'v69_11-ipad-styles';
@@ -23571,63 +23554,42 @@ console.log('[studio v3] prêt');
   /* ───── 3. Burger principal + overlay ───── */
   const burger = document.createElement('button');
   burger.className = 'ipad-main-burger';
-  burger.setAttribute('aria-label', 'Menu principal');
+  burger.setAttribute('aria-label', 'Afficher / masquer l\'arborescence');
   burger.innerHTML = '<svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
   burger.addEventListener('click', (e) => {
     e.stopPropagation();
-    document.body.classList.toggle('ipad-nav-open');
+    document.body.classList.toggle('ipad-tree-open');
   });
   document.body.appendChild(burger);
 
   const overlay = document.createElement('div');
   overlay.className = 'ipad-drawer-overlay';
   overlay.addEventListener('click', () => {
-    document.body.classList.remove('ipad-nav-open');
+    document.body.classList.remove('ipad-tree-open');
   });
   document.body.appendChild(overlay);
 
-  /* Auto-fermeture du drawer quand on tap sur un tree-row ou une nav-icon
-     (event delegation, capture phase pour pas rater) */
+  /* Auto-fermeture du drawer quand on tap sur un tree-row */
   document.addEventListener('click', (e) => {
-    if (!document.body.classList.contains('ipad-nav-open')) return;
-    const target = e.target.closest('.tree-row, .nav-rail .nav-icon, .nav-rail [data-tooltip]');
+    if (!document.body.classList.contains('ipad-tree-open')) return;
+    const target = e.target.closest('.tree-row');
     if (target) {
-      setTimeout(() => document.body.classList.remove('ipad-nav-open'), 220);
+      setTimeout(() => document.body.classList.remove('ipad-tree-open'), 220);
     }
   }, true);
 
-  /* ───── 4. Catalogue ↔ panneau matériau (toggle body.catalogue-active) ───── */
-  /* On observe l'apparition/disparition de #v69-cat-content dans le DOM.
-     C'est moins coûteux qu'un MutationObserver global : on cible juste son parent
-     potentiel (rightpanel) après que v69 ait booté. */
-  function wireCatalogueObserver() {
-    /* Vérifier toutes les 200ms si #v69-cat-content existe — sync rapide */
-    let lastState = null;
-    setInterval(() => {
-      const exists = !!document.getElementById('v69-cat-content');
-      if (exists !== lastState) {
-        document.body.classList.toggle('catalogue-active', exists);
-        lastState = exists;
-      }
-    }, 200);
-  }
-  wireCatalogueObserver();
-
-  /* ───── 5. AR direct (iOS Quick Look) sur iPad ─────
+  /* ───── 4. AR direct (iOS Quick Look) sur iPad ─────
      Le module v50 affiche normalement un QR. Sur iPad, on intercepte le click
      du bouton AR pour déclencher directement le lien <a rel="ar"> créé par v50. */
   document.addEventListener('click', (e) => {
     if (!document.body.classList.contains('ipad-mode')) return;
     const arBtn = e.target.closest('.v50-ar-btn, .v50-ar-btn-rp, [data-tooltip="AR"]');
     if (!arBtn) return;
-    /* Si on est sur iPad/iOS, tenter le lien rel="ar" direct */
     if (!/iPad|iPhone|iPod/.test(navigator.userAgent) &&
         !(navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)) return;
-    /* Attendre 1 frame que v50 ait préparé le lien (il le crée à la demande) */
     setTimeout(() => {
       const arLink = document.querySelector('.v50-ios-ar-link, a[rel="ar"]');
       if (arLink) {
-        /* Fermer la modal QR si elle est apparue entre-temps */
         const qr = document.querySelector('.v50-qr-modal, .v50-qr-overlay');
         if (qr) qr.style.display = 'none';
         arLink.click();
@@ -23635,7 +23597,7 @@ console.log('[studio v3] prêt');
     }, 100);
   }, true);
 
-  console.log('[v69.11] iPad UX patch ready ✓ · mode=' +
+  console.log('[v69.12] iPad UX patch ready ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
 })();
