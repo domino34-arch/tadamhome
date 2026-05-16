@@ -22768,60 +22768,60 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
 /* ════════════════════════════════════════════════════════════════════════
-   v69.6 — CATALOGUE FONCTIONNEL : produits Supabase + chips scrollables
-              + alphabet activable
+   v69.8 — CATALOGUE ACTIF EN MODE ÉDITION + SWITCH ENTRE MODÈLES
    ─────────────────────────────────────────────────────────────────────────
-   Nouveautés vs v69.5 :
-   1. Chips sur UNE seule ligne avec scroll horizontal (scrollbar masquée,
-      comme dans catalogue.html)
-   2. Quand on clique sur "Marques", la barre alphabet apparaît et les
-      lettres qui ont des marques dans le catalogue sont en couleur,
-      les autres restent grisées (logique identique à catalogue.html)
-   3. Chargement des produits depuis Supabase (table 'products'), filtrage
-      par catégorie (sofa/fauteuil/chaise/table/luminaire/rangement/autre/
-      marques) et par lettre, rendu en cards 2 colonnes adaptées à la
-      largeur étroite du panneau droit
-   4. Click sur une card → toast "Ouverture du modèle…" (v69.7 branchera
-      le load OBJ effectif dans le studio)
+   Bug v69.7 : l'iframe scan.html permettait de voir un modèle mais pas de
+   le configurer (pas d'arbo, pas de panneaux matériau, pas de persist).
    
-   Logique catégorie reprise de catalogue.html à l'identique pour cohérence.
+   Nouvelle approche v69.8 :
+   - Le bouton CATALOGUE est actif dans TOUS les modes (browse ET édition)
+   - Click sur une card du catalogue → navigate vers /studio?id=X&catalogue=1
+   - Le studio se relance en mode édition complète (arbo + viewer + matériaux
+     + persist actif)
+   - Au boot, si ?catalogue=1 est dans l'URL, le catalogue s'auto-ouvre
+     dans le panneau droit pour que l'user puisse switcher vers un autre
+     produit sans repartir
+   
+   Effet : l'archi clique sur un meuble, l'édite, switche au suivant via
+   le catalogue ouvert à côté, etc. Workflow fluide.
+   
+   _v68.persist reste bloqué uniquement en mode browse pur (?catalogue=1
+   sans ?id=). En mode édition (?id=X), persist marche normalement.
    ════════════════════════════════════════════════════════════════════════ */
 (function v69CatalogueInit() {
   if (window.__v69Init) return;
   window.__v69Init = true;
 
-  /* ───── 1. Détection du mode ───── */
+  /* ───── 1. Mode + état d'ouverture initiale ───── */
   const url = new URL(window.location.href);
   const pathCatalogue = url.pathname.replace(/\/+$/, '').endsWith('/studio/catalogue');
   const paramCatalogue = url.searchParams.get('catalogue') === '1';
   const hasId = !!url.searchParams.get('id');
-  const isBrowseMode = (pathCatalogue || paramCatalogue) && !hasId;
-  window._studioMode = isBrowseMode ? 'browse' : 'edit';
+  const isPureBrowseMode = (pathCatalogue || paramCatalogue) && !hasId;
+  const shouldAutoOpen = paramCatalogue || pathCatalogue;
+  window._studioMode = isPureBrowseMode ? 'browse' : 'edit';
 
-  if (!isBrowseMode) {
-    console.log('[studio v69.6] mode édition, catalogue passif');
-    return;
+  console.log('[studio v69.8] mode=' + window._studioMode + ' · autoOpen=' + shouldAutoOpen + ' · hasId=' + hasId);
+
+  /* ───── 2. Bloque _v68.persist UNIQUEMENT en mode browse pur ───── */
+  if (isPureBrowseMode) {
+    const blockPersist = () => {
+      if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
+        const orig = window._v68.persist;
+        window._v68.persist = async function() {
+          console.warn('[v69.8] _v68.persist bloqué (mode browse)');
+          return false;
+        };
+        window._v68._origPersist = orig;
+        window._v68._v69Blocked = true;
+      }
+    };
+    blockPersist();
+    setTimeout(blockPersist, 1000);
+    setTimeout(blockPersist, 3000);
   }
-  console.log('[studio v69.6] mode catalogue actif');
 
-  /* ───── 2. Court-circuit léger de _v68.persist ───── */
-  const blockPersist = () => {
-    if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
-      const orig = window._v68.persist;
-      window._v68.persist = async function blocked() {
-        console.warn('[v69.6] _v68.persist bloqué en mode browse');
-        if (typeof toast === 'function') toast('Persistance désactivée en mode consultation', 'info', 3000);
-        return false;
-      };
-      window._v68._origPersist = orig;
-      window._v68._v69Blocked = true;
-    }
-  };
-  blockPersist();
-  setTimeout(blockPersist, 1000);
-  setTimeout(blockPersist, 3000);
-
-  /* ───── 3. Client Supabase (réutilise window.sb si dispo) ───── */
+  /* ───── 3. Supabase ───── */
   const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
   const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
   let sb = null;
@@ -22829,13 +22829,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     if (sb) return sb;
     if (window.sb && typeof window.sb.from === 'function') { sb = window.sb; return sb; }
     if (window.supabase && typeof window.supabase.createClient === 'function') {
-      sb = window.supabase.createClient(SB_URL, SB_KEY);
-      return sb;
+      sb = window.supabase.createClient(SB_URL, SB_KEY); return sb;
     }
     return null;
   }
 
-  /* ───── 4. Catégories (logique identique à catalogue.html) ───── */
   const CATEGORIES = [
     { key: 'all',       label: 'Tout',        keys: null },
     { key: 'sofa',      label: 'Canapés',     keys: ['sofa','canapé','canape'] },
@@ -22847,12 +22845,13 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     { key: 'marques',   label: 'Marques',     keys: null },
     { key: 'autre',     label: 'Autre',       keys: ['autre'] },
   ];
-  const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
-  const FALLBACK_SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:60%;height:60%;opacity:0.35"><rect x="30" y="100" width="140" height="60" fill="#C4B896"/><rect x="30" y="80" width="140" height="25" fill="#D4C8A8"/><rect x="30" y="80" width="18" height="80" fill="#B4A888"/><rect x="152" y="80" width="18" height="80" fill="#B4A888"/></svg>`;
+  const STORAGE_BUCKETS = ['products','product-images','images','models','thumbnails','public'];
+  const FALLBACK_SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:60%;height:60%;opacity:0.3"><rect x="30" y="100" width="140" height="60" fill="#C4B896"/><rect x="30" y="80" width="140" height="25" fill="#D4C8A8"/><rect x="30" y="80" width="18" height="80" fill="#B4A888"/><rect x="152" y="80" width="18" height="80" fill="#B4A888"/></svg>`;
 
   let allProducts = [];
   let currentCat = 'all';
   let currentLetter = 'all';
+  const currentProductId = url.searchParams.get('id') || null;
 
   function getProductImage(p) {
     const candidates = [
@@ -22860,19 +22859,16 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       p.cover_url, p.coverUrl, p.cover, p.thumbnail,
       p.preview_url, p.previewUrl, p.preview,
       p.photo_url, p.photoUrl, p.photo,
-      p.image, p.img, p.picture,
-      p.image_path, p.imagePath, p.thumb, p.thumb_url,
-      p.glb_thumbnail, p.glbThumbnail,
-      p.poster, p.poster_url, p.posterUrl,
-      p.visual, p.visual_url
+      p.image, p.img, p.picture, p.image_path, p.imagePath,
+      p.thumb, p.thumb_url, p.glb_thumbnail, p.glbThumbnail,
+      p.poster, p.poster_url, p.posterUrl, p.visual, p.visual_url
     ];
     if (Array.isArray(p.images)   && p.images.length)   candidates.unshift(p.images[0]);
     if (Array.isArray(p.photos)   && p.photos.length)   candidates.unshift(p.photos[0]);
     if (Array.isArray(p.pictures) && p.pictures.length) candidates.unshift(p.pictures[0]);
     for (const v of candidates) {
       if (!v || typeof v !== 'string') continue;
-      const t = v.trim();
-      if (!t) continue;
+      const t = v.trim(); if (!t) continue;
       if (/^(https?:|data:|blob:)/i.test(t)) return t;
       const clean = t.replace(/^\/+/, '');
       const firstSeg = clean.split('/')[0];
@@ -22898,7 +22894,15 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     });
   }
 
-  /* ───── 5. Helpers DOM ───── */
+  function countByCategory(c) {
+    if (!c.keys) return allProducts.length;
+    return allProducts.filter(p => {
+      const cat = (p.category || p.categorie || '').toLowerCase();
+      return c.keys.some(k => cat.includes(k));
+    }).length;
+  }
+
+  /* ───── 4. Helpers DOM ───── */
   function findByText(textCandidates, sel) {
     const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
       .map(t => t.trim().toUpperCase());
@@ -22927,7 +22931,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       });
   }
 
-  /* État DOM */
   let catalogueOpen = false;
   let nativeChildren = [];
   let extraHidden = [];
@@ -22935,33 +22938,25 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   let myButton = null;
   let contentContainer = null;
   let matBtn = null, geoBtn = null, scnBtn = null;
+  let autoOpened = false;
 
   const PRIMARY_MARKERS = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'COULEUR DE BASE', 'RÉPÉTITION UV'];
   const HEADER_MARKERS = ['MATIÈRE ACTIVE'];
 
   function findContentContainer() {
-    const allMarkers = [...PRIMARY_MARKERS, ...HEADER_MARKERS];
+    const allM = [...PRIMARY_MARKERS, ...HEADER_MARKERS];
     const found = [];
-    for (const txt of allMarkers) {
+    for (const txt of allM) {
       const el = findTextMarker(txt);
       if (el) found.push({ name: txt, el });
     }
-    if (found.length < 2) {
-      if (!window.__v69WarnedFew) {
-        console.warn('[v69.6] moins de 2 marqueurs trouvés (' + found.length + ')');
-        window.__v69WarnedFew = true;
-      }
-      return null;
-    }
-    console.log('[v69.6] marqueurs: ' + found.map(m => m.name).join(', '));
-
+    if (found.length < 2) return null;
     let cur = found[0].el.parentElement;
     while (cur && cur !== document.body) {
-      const containsAll = found.every(m => cur.contains(m.el));
-      if (containsAll) {
+      if (found.every(m => cur.contains(m.el))) {
         const r = cur.getBoundingClientRect();
         if (r.width >= 200 && r.width <= 600) {
-          console.log('[v69.6] contentContainer (LCA complet) · largeur=' + Math.round(r.width) + 'px');
+          console.log('[v69.8] contentContainer · largeur=' + Math.round(r.width));
           return cur;
         }
       }
@@ -22973,21 +22968,13 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       while (cur && cur !== document.body) {
         if (primary.every(m => cur.contains(m.el))) {
           const r = cur.getBoundingClientRect();
-          if (r.width >= 200 && r.width <= 600) {
-            console.log('[v69.6] contentContainer (fallback primaires) · largeur=' + Math.round(r.width) + 'px');
-            return cur;
-          }
+          if (r.width >= 200 && r.width <= 600) return cur;
         }
         cur = cur.parentElement;
       }
     }
-    if (!window.__v69WarnedNoCont) {
-      console.warn('[v69.6] contentContainer non trouvé');
-      window.__v69WarnedNoCont = true;
-    }
     return null;
   }
-
   function findExtraSection(markerText) {
     const marker = findTextMarker(markerText);
     if (!marker) return null;
@@ -22997,9 +22984,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       const r = cur.getBoundingClientRect();
       if (r.width >= 200 && r.width <= 600 && r.height >= 50) {
         const parent = cur.parentElement;
-        if (parent && contentContainer && parent.contains(contentContainer) && parent !== document.body) {
-          return cur;
-        }
+        if (parent && contentContainer && parent.contains(contentContainer) && parent !== document.body) return cur;
         if (!parent || parent === document.body) return cur;
       }
       cur = cur.parentElement;
@@ -23007,112 +22992,156 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     return null;
   }
 
-  /* ───── 6. UI : styles ───── */
+  /* ───── 5. Styles ───── */
   function injectStyles() {
     if (document.getElementById('v69-styles')) return;
     const css = document.createElement('style');
     css.id = 'v69-styles';
     css.textContent = `
-      #v69-cat-content { padding: 18px 20px 28px; font-family: 'Jost',sans-serif; color: inherit; box-sizing: border-box; overflow-y: auto; }
-      #v69-cat-content .v69-label { font-size: 10px; letter-spacing: 0.18em; opacity: 0.55; text-transform: uppercase; margin-bottom: 10px; }
-      #v69-cat-pills-wrap { position: relative; margin: 0 -20px 20px; }
-      #v69-cat-pills {
-        display: flex; gap: 6px; padding: 0 20px 4px;
-        overflow-x: auto; scrollbar-width: none;
+      #v69-cat-content { padding: 18px 0 28px; font-family: 'Jost',sans-serif; color: inherit; box-sizing: border-box; overflow-y: auto; position: relative; }
+      #v69-cat-content .v69-label { font-size: 10px; letter-spacing: 0.18em; opacity: 0.55; text-transform: uppercase; margin-bottom: 10px; padding: 0 20px; }
+      #v69-toolbar { display: flex; align-items: stretch; gap: 0; margin-bottom: 18px; padding: 0 0 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      #v69-burger-btn {
+        flex-shrink: 0; width: 36px; height: 30px; margin-left: 20px; margin-right: 10px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent; border: 1px solid rgba(255,255,255,0.16);
+        color: inherit; cursor: pointer; transition: all 0.15s; position: relative;
       }
+      #v69-burger-btn:hover { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
+      #v69-burger-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
+      #v69-burger-btn::after { content: ''; position: absolute; top: 50%; right: -7px; transform: translateY(-50%); width: 1px; height: 16px; background: rgba(255,255,255,0.16); }
+      #v69-cat-pills { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-right: 20px; align-items: center; }
       #v69-cat-pills::-webkit-scrollbar { display: none; }
       .v69-pill {
-        flex-shrink: 0; padding: 6px 12px; background: transparent;
+        flex-shrink: 0; padding: 6px 11px; background: transparent;
         border: 1px solid rgba(255,255,255,0.16); cursor: pointer;
         font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-        color: inherit; font-family: 'Jost',sans-serif; transition: all 0.15s;
-        white-space: nowrap;
+        color: inherit; font-family: 'Jost',sans-serif; transition: all 0.15s; white-space: nowrap;
       }
       .v69-pill:hover { border-color: #B8965A; }
       .v69-pill.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
-      #v69-alpha-bar { display: none; margin: 0 -20px 20px; padding: 14px 20px 0; border-top: 1px solid rgba(255,255,255,0.08); }
-      #v69-alpha-letters { display: flex; flex-wrap: wrap; gap: 3px; }
-      .v69-alpha-btn {
-        width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
-        background: transparent; border: 1px solid transparent; font-family: 'Jost',sans-serif;
-        font-size: 11px; color: inherit; cursor: pointer; transition: all 0.12s; padding: 0;
+      #v69-burger-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+      #v69-burger-overlay.v69-open { opacity: 1; pointer-events: auto; }
+      #v69-burger-panel {
+        position: absolute; top: 0; left: 0; right: 0; background: #1c1b18;
+        border-bottom: 1px solid rgba(184,150,90,0.3); z-index: 11;
+        transform: translateY(-100%); transition: transform 0.25s ease;
+        max-height: 70%; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       }
+      #v69-burger-panel.v69-open { transform: translateY(0); }
+      #v69-burger-panel .v69-bp-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      #v69-burger-panel .v69-bp-head h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 18px; font-weight: 400; color: inherit; margin: 0; }
+      #v69-burger-panel .v69-bp-head h3 em { font-style: italic; color: #B8965A; }
+      #v69-burger-panel .v69-bp-close { width: 28px; height: 28px; border: 1px solid rgba(255,255,255,0.16); background: transparent; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; }
+      #v69-burger-panel .v69-bp-close:hover { border-color: #B8965A; color: #B8965A; }
+      #v69-burger-panel .v69-bp-close svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+      #v69-burger-panel .v69-bp-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+      .v69-bp-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 20px; font-size: 12px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.12s; }
+      .v69-bp-item:hover { background: rgba(184,150,90,0.06); border-left-color: rgba(184,150,90,0.4); }
+      .v69-bp-item.v69-active { background: rgba(184,150,90,0.10); border-left-color: #B8965A; color: #B8965A; }
+      .v69-bp-item .v69-count { font-size: 10px; opacity: 0.55; }
+      .v69-bp-item.v69-active .v69-count { color: #B8965A; opacity: 1; }
+      #v69-alpha-bar { display: none; margin: 0 0 18px; padding: 12px 20px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+      #v69-alpha-letters { display: flex; flex-wrap: wrap; gap: 3px; }
+      .v69-alpha-btn { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; font-family: 'Jost',sans-serif; font-size: 11px; color: inherit; cursor: pointer; transition: all 0.12s; padding: 0; }
       .v69-alpha-btn:hover:not(.v69-disabled) { color: #B8965A; border-color: rgba(184,150,90,0.3); }
       .v69-alpha-btn.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
       .v69-alpha-btn.v69-disabled { opacity: 0.25; pointer-events: none; }
       .v69-alpha-btn.v69-all { width: auto; padding: 0 9px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; margin-right: 4px; }
-      #v69-count { font-size: 10px; opacity: 0.5; margin-bottom: 12px; letter-spacing: 0.04em; }
-      #v69-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      #v69-count { font-size: 10px; opacity: 0.5; margin: 0 20px 12px; letter-spacing: 0.04em; }
+      #v69-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 20px; }
       .v69-card {
         cursor: pointer; background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.06); transition: all 0.18s; display: block;
+        border: 1px solid rgba(255,255,255,0.06); transition: all 0.18s;
+        display: block; text-decoration: none; color: inherit; position: relative;
       }
-      .v69-card:hover { background: rgba(184,150,90,0.06); border-color: rgba(184,150,90,0.3); }
-      .v69-card .v69-img {
-        aspect-ratio: 1; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center;
-        overflow: hidden; position: relative;
-      }
-      .v69-card .v69-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+      .v69-card:hover { background: rgba(184,150,90,0.06); border-color: rgba(184,150,90,0.3); transform: translateY(-1px); }
+      .v69-card.v69-current { border-color: #B8965A; background: rgba(184,150,90,0.08); }
+      .v69-card.v69-current::after { content: 'EN COURS'; position: absolute; top: 6px; right: 6px; font-size: 7px; letter-spacing: 0.14em; padding: 3px 6px; background: #B8965A; color: #1a1a1a; font-weight: 600; }
+      .v69-card .v69-img { aspect-ratio: 1; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+      .v69-card .v69-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
       .v69-card:hover .v69-img img { transform: scale(1.05); }
       .v69-card .v69-meta { padding: 8px 9px 10px; }
-      .v69-card .v69-brand { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: #B8965A; margin-bottom: 2px; }
-      .v69-card .v69-name { font-size: 11px; line-height: 1.25; color: inherit; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .v69-empty { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; line-height: 1.6; }
-      .v69-loading { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; }
+      .v69-card .v69-brand { font-family: 'Jost',sans-serif; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #B8965A; font-weight: 400; margin-bottom: 3px; }
+      .v69-card .v69-name { font-family: 'Jost',sans-serif; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 600; color: inherit; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-decoration: none; }
+      .v69-empty, .v69-loading { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; line-height: 1.6; }
     `;
     document.head.appendChild(css);
   }
 
-  /* ───── 7. UI : structure + render ───── */
+  /* ───── 6. Build UI ───── */
   function buildCatalogueDiv() {
     injectStyles();
     const div = document.createElement('div');
     div.id = 'v69-cat-content';
     div.innerHTML = `
       <div class="v69-label">Catégorie</div>
-      <div id="v69-cat-pills-wrap">
+      <div id="v69-toolbar">
+        <button id="v69-burger-btn" aria-label="Toutes les catégories" title="Toutes les catégories">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <div id="v69-cat-pills"></div>
       </div>
       <div id="v69-alpha-bar">
-        <div class="v69-label">Lettre</div>
+        <div class="v69-label" style="padding:0;margin-bottom:8px;">Lettre</div>
         <div id="v69-alpha-letters"></div>
       </div>
       <div id="v69-count">—</div>
-      <div id="v69-grid">
-        <div class="v69-loading" style="grid-column:1/-1">Chargement…</div>
-      </div>
+      <div id="v69-grid"><div class="v69-loading" style="grid-column:1/-1">Chargement…</div></div>
+      <div id="v69-burger-overlay"></div>
+      <aside id="v69-burger-panel">
+        <div class="v69-bp-head">
+          <h3>Catégories <em>·</em></h3>
+          <button class="v69-bp-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="v69-bp-list"></div>
+      </aside>
     `;
-
-    /* Chips */
     const pillsWrap = div.querySelector('#v69-cat-pills');
     CATEGORIES.forEach(c => {
       const b = document.createElement('button');
       b.className = 'v69-pill' + (c.key === currentCat ? ' v69-active' : '');
-      b.textContent = c.label;
-      b.dataset.cat = c.key;
+      b.textContent = c.label; b.dataset.cat = c.key;
       b.addEventListener('click', () => setCategory(c.key));
       pillsWrap.appendChild(b);
     });
-
-    /* Alphabet */
     const letters = div.querySelector('#v69-alpha-letters');
     const allBtn = document.createElement('button');
     allBtn.className = 'v69-alpha-btn v69-all v69-active';
-    allBtn.textContent = 'Toutes';
-    allBtn.dataset.letter = 'all';
+    allBtn.textContent = 'Toutes'; allBtn.dataset.letter = 'all';
     allBtn.addEventListener('click', () => setLetter('all'));
     letters.appendChild(allBtn);
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(L => {
       const b = document.createElement('button');
       b.className = 'v69-alpha-btn v69-disabled';
-      b.textContent = L;
-      b.dataset.letter = L;
+      b.textContent = L; b.dataset.letter = L;
       b.addEventListener('click', () => setLetter(L));
       letters.appendChild(b);
     });
-
+    div.querySelector('#v69-burger-btn').addEventListener('click', () => openBurger(div));
+    div.querySelector('#v69-burger-overlay').addEventListener('click', () => closeBurger(div));
+    div.querySelector('#v69-burger-panel .v69-bp-close').addEventListener('click', () => closeBurger(div));
     return div;
   }
+
+  function rebuildBurgerList() {
+    if (!myCatalogue) return;
+    const list = myCatalogue.querySelector('#v69-burger-panel .v69-bp-list');
+    list.innerHTML = CATEGORIES.map(c => {
+      const count = c.key === 'marques'
+        ? [...new Set(allProducts.map(p => p.enseigne_name || p.marque).filter(Boolean))].length
+        : countByCategory(c);
+      return `<div class="v69-bp-item${currentCat === c.key ? ' v69-active' : ''}" data-cat="${c.key}">
+        <span>${c.label}</span><span class="v69-count">${count.toLocaleString('fr-FR')}</span>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.v69-bp-item').forEach(it => {
+      it.addEventListener('click', () => { setCategory(it.dataset.cat); closeBurger(myCatalogue); });
+    });
+  }
+
+  function openBurger(div) { rebuildBurgerList(); div.querySelector('#v69-burger-overlay').classList.add('v69-open'); div.querySelector('#v69-burger-panel').classList.add('v69-open'); }
+  function closeBurger(div) { div.querySelector('#v69-burger-overlay').classList.remove('v69-open'); div.querySelector('#v69-burger-panel').classList.remove('v69-open'); }
 
   function refreshAlphabetState() {
     if (!myCatalogue) return;
@@ -23128,20 +23157,14 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   function setCategory(cat) {
     currentCat = cat;
     if (!myCatalogue) return;
-    myCatalogue.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => {
-      b.classList.toggle('v69-active', b.dataset.cat === cat);
-    });
+    myCatalogue.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.toggle('v69-active', b.dataset.cat === cat));
     const alpha = myCatalogue.querySelector('#v69-alpha-bar');
-    if (cat === 'marques') {
-      alpha.style.display = 'block';
-      refreshAlphabetState();
-    } else {
-      alpha.style.display = 'none';
-      currentLetter = 'all';
-    }
+    if (cat === 'marques') { alpha.style.display = 'block'; refreshAlphabetState(); }
+    else { alpha.style.display = 'none'; currentLetter = 'all'; }
+    const activePill = myCatalogue.querySelector('#v69-cat-pills .v69-pill.v69-active');
+    if (activePill) activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     renderProducts();
   }
-
   function setLetter(L) {
     currentLetter = L;
     if (!myCatalogue) return;
@@ -23158,72 +23181,71 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const filtered = filterProducts();
     countEl.textContent = filtered.length.toLocaleString('fr-FR') + ' pièce' + (filtered.length > 1 ? 's' : '');
     if (!filtered.length) {
-      grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Aucun résultat<br><span style="opacity:0.6;font-size:10px">pour cette catégorie</span></div>`;
+      grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Aucun résultat</div>`;
       return;
     }
     const safe = s => String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
     grid.innerHTML = filtered.slice(0, 60).map(p => {
-      const id    = p.id;
-      const name  = p.name || p.nom || '—';
+      const id = p.id;
+      const name = p.name || p.nom || '—';
       const brand = p.enseigne_name || p.marque || '—';
-      const img   = getProductImage(p);
+      const img = getProductImage(p);
       const imgHtml = img
         ? `<img src="${safe(img)}" alt="${safe(name)}" loading="lazy" onerror="this.outerHTML='${FALLBACK_SVG.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}'">`
         : FALLBACK_SVG;
-      return `<a class="v69-card" data-id="${safe(id)}" href="#" title="${safe(name)} — ${safe(brand)}">
+      const isCurrent = currentProductId && String(id) === String(currentProductId);
+      return `<div class="v69-card${isCurrent ? ' v69-current' : ''}" data-id="${safe(id)}" title="${safe(name)} — ${safe(brand)}">
         <div class="v69-img">${imgHtml}</div>
         <div class="v69-meta">
           <div class="v69-brand">${safe(brand)}</div>
           <div class="v69-name">${safe(name)}</div>
         </div>
-      </a>`;
+      </div>`;
     }).join('');
-    /* Click handlers */
     grid.querySelectorAll('.v69-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = card.dataset.id;
-        console.log('[v69.6] click produit id=' + id);
-        if (typeof toast === 'function') toast('Ouverture du modèle… (v69.7 branchera le load OBJ)', 'info', 3000);
-        else if (typeof window.toast === 'function') window.toast('Ouverture du modèle…', 'info', 3000);
-      });
+      card.addEventListener('click', () => openProduct(card.dataset.id));
     });
+  }
+
+  /* ───── 7. ★ NOUVELLE LOGIQUE : navigate vers /studio?id=X&catalogue=1 ───── */
+  function openProduct(productId) {
+    if (!productId) return;
+    if (currentProductId && String(productId) === String(currentProductId)) {
+      console.log('[v69.8] produit déjà chargé, ignore');
+      return;
+    }
+    console.log('[v69.8] ouverture produit id=' + productId + ' (navigation)');
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('id', productId);
+    newUrl.searchParams.set('catalogue', '1');
+    /* On retire d'autres params qui pourraient gêner */
+    newUrl.searchParams.delete('panel');
+    window.location.href = newUrl.toString();
   }
 
   async function loadProducts() {
     const client = getSupabase();
     if (!client) {
-      console.warn('[v69.6] Supabase indisponible');
-      if (myCatalogue) {
-        const grid = myCatalogue.querySelector('#v69-grid');
-        if (grid) grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Client Supabase indisponible</div>`;
-      }
+      if (myCatalogue) myCatalogue.querySelector('#v69-grid').innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Supabase indisponible</div>`;
       return;
     }
     try {
       const { data, error } = await client.from('products').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       allProducts = data || [];
-      console.log('[v69.6] ' + allProducts.length + ' produits chargés');
+      console.log('[v69.8] ' + allProducts.length + ' produits chargés' + (currentProductId ? ' · current=' + currentProductId : ''));
       refreshAlphabetState();
       renderProducts();
     } catch (e) {
-      console.error('[v69.6] erreur chargement produits:', e);
-      if (myCatalogue) {
-        const grid = myCatalogue.querySelector('#v69-grid');
-        if (grid) grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Erreur de chargement<br><span style="opacity:0.6;font-size:10px">${(e.message || '').slice(0, 80)}</span></div>`;
-      }
+      console.error('[v69.8] erreur:', e);
+      if (myCatalogue) myCatalogue.querySelector('#v69-grid').innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Erreur de chargement</div>`;
     }
   }
 
-  /* ───── 8. Toggle catalogue ───── */
+  /* ───── 8. Toggle ───── */
   function openCatalogue() {
     if (catalogueOpen) return;
-    if (!contentContainer) {
-      console.warn('[v69.6] openCatalogue : retry init…');
-      tryInit();
-      if (!contentContainer) return;
-    }
+    if (!contentContainer) { tryInit(); if (!contentContainer) return; }
     nativeChildren = Array.from(contentContainer.children);
     nativeChildren.forEach(c => { c._v69PrevDisplay = c.style.display; c.style.display = 'none'; });
     extraHidden = [];
@@ -23235,16 +23257,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         extraHidden.push(sec);
       }
     }
-    if (!myCatalogue) {
-      myCatalogue = buildCatalogueDiv();
-      loadProducts(); /* premier ouvrir → fetch */
-    }
+    if (!myCatalogue) { myCatalogue = buildCatalogueDiv(); loadProducts(); }
     contentContainer.appendChild(myCatalogue);
-    catalogueOpen = true;
-    setButtonActive(true);
-    console.log('[v69.6] catalogue ouvert · ' + nativeChildren.length + ' enfants + ' + extraHidden.length + ' sections cachées');
+    catalogueOpen = true; setButtonActive(true);
+    console.log('[v69.8] catalogue ouvert');
   }
-
   function closeCatalogue() {
     if (!catalogueOpen) return;
     if (myCatalogue && myCatalogue.parentNode === contentContainer) contentContainer.removeChild(myCatalogue);
@@ -23252,16 +23269,9 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     nativeChildren = [];
     extraHidden.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
     extraHidden = [];
-    catalogueOpen = false;
-    setButtonActive(false);
-    console.log('[v69.6] catalogue fermé');
+    catalogueOpen = false; setButtonActive(false);
   }
-
-  function toggleCatalogue() {
-    if (catalogueOpen) closeCatalogue();
-    else openCatalogue();
-  }
-
+  function toggleCatalogue() { if (catalogueOpen) closeCatalogue(); else openCatalogue(); }
   function setButtonActive(active) {
     if (!myButton) return;
     myButton.style.background = active ? '#1a1a1a' : '#B8965A';
@@ -23299,6 +23309,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     contentContainer = findContentContainer();
     if (!contentContainer) return false;
     hookOtherTabs();
+    /* ★ Auto-ouvre le catalogue au boot si demandé par l'URL */
+    if (shouldAutoOpen && !autoOpened && !catalogueOpen) {
+      autoOpened = true;
+      /* Laisse un délai pour que le studio finisse son init */
+      setTimeout(() => { if (!catalogueOpen) openCatalogue(); }, 800);
+    }
     return true;
   }
 
@@ -23306,7 +23322,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const interval = setInterval(() => { if (tryInit()) clearInterval(interval); }, 500);
     setTimeout(() => clearInterval(interval), 30000);
   }
-  console.log('[studio v69.6] catalogue ✓ (chips scroll + alphabet actif + produits Supabase)');
+  console.log('[studio v69.8] catalogue ✓ (actif en édition + navigate to ?id=X&catalogue=1)');
 })();
 console.log('[studio v3] prêt');
 
