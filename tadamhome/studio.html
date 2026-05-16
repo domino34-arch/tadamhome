@@ -22768,22 +22768,22 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
 /* ════════════════════════════════════════════════════════════════════════
-   v69.3 — FIX findTextMarker (texte direct au lieu de textContent global)
+   v69.4 — CHANGEMENT D'APPROCHE : opère sur le contentContainer seul
    ─────────────────────────────────────────────────────────────────────────
-   Bug v69 : findTextMarker exigeait children.length === 0, mais les
-   headers du studio sont du type :
-     <div class="section-header">APPARENCE<span class="badge">PBR</span></div>
-   Le div parent a un enfant (le span PBR) → rejeté par children.length.
-   Résultat : "aucun marqueur de contenu trouvé" → findRightPanel échoue
-   → openCatalogue affiche "prérequis manquants" à chaque click.
+   Diagnostic v69.3 : "candidat ancestor largeur=1728px" → la tabbar et le
+   contenu matériau sont des éléments SÉPARÉS dans le DOM. Leur LCA est
+   très haut (presque le body), donc impossible de trouver un "rightPanel"
+   qui les englobe avec largeur raisonnable.
    
-   FIX : on compare uniquement le TEXTE DIRECT du nœud (textContent en
-   excluant les descendants), pas le textContent global. Pour le div
-   ci-dessus, direct = "APPARENCE", match OK.
-   
-   Bonus : retry init au click si la première init a échoué (utile quand
-   l'utilisateur ouvre devtools docked → panneau droit caché → ferme
-   devtools → reclique sans recharger).
+   NOUVELLE STRATÉGIE :
+   - On ne touche PAS à la tabbar (MATÉRIAU/GÉOMÉTRIE/SCÈNE/×)
+   - On localise uniquement le contentContainer (le bloc qui contient
+     APPARENCE, PROJECTION, CARTES, etc.) via multi-markers
+   - Au click CATALOGUE : on cache les enfants du contentContainer et
+     on insère mon UI à la place
+   - Au click MATÉRIAU/GÉOMÉTRIE/SCÈNE : on referme le catalogue (sinon
+     l'app native va écraser le contentContainer pour afficher l'onglet
+     cliqué, et mon catalogue sera perdu)
    ════════════════════════════════════════════════════════════════════════ */
 (function v69CatalogueInit() {
   if (window.__v69Init) return;
@@ -22798,17 +22798,17 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._studioMode = isBrowseMode ? 'browse' : 'edit';
 
   if (!isBrowseMode) {
-    console.log('[studio v69.3] mode édition, catalogue passif');
+    console.log('[studio v69.4] mode édition, catalogue passif');
     return;
   }
-  console.log('[studio v69.3] mode catalogue actif');
+  console.log('[studio v69.4] mode catalogue actif');
 
   /* ───── 2. Court-circuit léger de _v68.persist ───── */
   const blockPersist = () => {
     if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
       const orig = window._v68.persist;
       window._v68.persist = async function blocked() {
-        console.warn('[v69.3] _v68.persist bloqué en mode browse');
+        console.warn('[v69.4] _v68.persist bloqué en mode browse');
         if (typeof toast === 'function') toast('Persistance désactivée en mode consultation', 'info', 3000);
         return false;
       };
@@ -22830,7 +22830,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     });
   }
 
-  /* ★ NOUVEAU : extrait le texte direct (sans descendants) */
   function getDirectText(el) {
     let s = '';
     for (const n of el.childNodes) {
@@ -22839,7 +22838,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     return s.trim();
   }
 
-  /* ★ FIX v69.3 : match sur texte direct, pas textContent global */
   function findTextMarker(text) {
     const T = text.trim().toUpperCase();
     return Array.from(document.querySelectorAll('div, span, p, label, h1, h2, h3, h4, h5, h6'))
@@ -22855,66 +22853,45 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   let nativeChildren = [];
   let myCatalogue = null;
   let myButton = null;
-  let rightPanel = null;
-  let tabRowChild = null;
+  let contentContainer = null;
   let matBtn = null, geoBtn = null, scnBtn = null;
 
-  /* ───── 4. Détection du panneau droit COMPLET (LCA matBtn+APPARENCE) ───── */
-  function findRightPanel() {
-    matBtn = findByText(['MATÉRIAU', 'MATERIAU']);
-    geoBtn = findByText(['GÉOMÉTRIE', 'GEOMETRIE']);
-    scnBtn = findByText(['SCÈNE', 'SCENE']);
-    if (!matBtn) return null;
-
-    const contentMarkers = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'MATIÈRE ACTIVE', 'COULEUR DE BASE'];
-    let marker = null, markerName = null;
-    for (const txt of contentMarkers) {
+  /* ───── 4. Détection du contentContainer (par multi-markers) ───── */
+  function findContentContainer() {
+    const markerTexts = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'MATIÈRE ACTIVE', 'COULEUR DE BASE', 'RÉPÉTITION UV'];
+    const found = [];
+    for (const txt of markerTexts) {
       const el = findTextMarker(txt);
-      if (el) { marker = el; markerName = txt; break; }
+      if (el) found.push({ name: txt, el });
     }
-    if (!marker) {
-      console.warn('[v69.3] aucun marqueur de contenu trouvé (panneau droit invisible ? viewport trop étroit ?)');
+    if (found.length < 2) {
+      if (!window.__v69WarnedFew) {
+        console.warn('[v69.4] moins de 2 marqueurs trouvés (' + found.length + ') — panneau droit invisible ?');
+        window.__v69WarnedFew = true;
+      }
       return null;
     }
-    console.log('[v69.3] marqueur trouvé: "' + markerName + '"');
+    console.log('[v69.4] marqueurs trouvés: ' + found.map(m => m.name).join(', '));
 
-    const vw = window.innerWidth;
-    /* Contrainte assouplie : on garde juste la largeur raisonnable
-       (200-600px) + le fait que l'ancêtre contienne à la fois matBtn
-       et le marker (= forcément le panneau droit, pas une tabbar
-       seule, pas un container trop large). On ne contraint plus la
-       position pour rester compatible avec devtools docked à droite. */
-    let cur = matBtn.parentElement;
-    let warnedOnce = false;
+    /* Remonte depuis le 1er marker, trouve le plus petit ancêtre qui
+       contient TOUS les markers ET a largeur 200-600px */
+    let cur = found[0].el.parentElement;
     while (cur && cur !== document.body) {
-      if (cur.contains(marker)) {
+      const containsAll = found.every(m => cur.contains(m.el));
+      if (containsAll) {
         const r = cur.getBoundingClientRect();
         if (r.width >= 200 && r.width <= 600) {
-          console.log('[v69.3] panneau droit détecté via "' + markerName + '" · largeur=' + Math.round(r.width) + 'px · left=' + Math.round(r.left) + 'px (vw=' + vw + ')');
+          console.log('[v69.4] contentContainer trouvé · largeur=' + Math.round(r.width) + 'px · contient ' + found.length + ' marqueurs');
           return cur;
-        }
-        if (!warnedOnce && r.width > 0) {
-          console.log('[v69.3] candidat ancestor largeur=' + Math.round(r.width) + 'px (hors plage 200-600), on remonte…');
-          warnedOnce = true;
         }
       }
       cur = cur.parentElement;
     }
-    if (!window.__v69WarnedLCA) {
-      console.warn('[v69.3] LCA matBtn+' + markerName + ' aucun ancêtre 200-600px (panneau caché par devtools docked ?)');
-      window.__v69WarnedLCA = true;
+    if (!window.__v69WarnedNoCont) {
+      console.warn('[v69.4] contentContainer non trouvé (aucun ancêtre 200-600 ne contient tous les marqueurs)');
+      window.__v69WarnedNoCont = true;
     }
     return null;
-  }
-
-  function findTabRowChild() {
-    if (!rightPanel || !matBtn) return null;
-    let cur = matBtn;
-    while (cur && cur.parentElement !== rightPanel) {
-      cur = cur.parentElement;
-      if (!cur) return null;
-    }
-    return cur;
   }
 
   /* ───── 5. UI catalogue ───── */
@@ -22940,57 +22917,64 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       </div>
       <div id="v69-placeholder" style="margin-top:40px;font-size:12px;opacity:0.5;text-align:center;font-style:italic;line-height:1.6;">
         Chargement du catalogue…<br><br>
-        <span style="opacity:0.6;">(v69.3 ajoutera les produits)</span>
+        <span style="opacity:0.6;">(v69.5 ajoutera les produits)</span>
       </div>
     `;
-    const css = document.createElement('style');
-    css.id = 'v69-pill-styles';
-    css.textContent = `
-      .v69-pill { display:inline-block; padding:5px 11px; margin:0 4px 4px 0; background:transparent; border:1px solid rgba(255,255,255,0.16); cursor:pointer; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:inherit; font-family:'Jost',sans-serif; transition:all 0.15s; }
-      .v69-pill:hover { border-color:#B8965A; }
-      .v69-pill.v69-active { background:#B8965A; border-color:#B8965A; color:#1a1a1a; }
-      #v69-search-input::placeholder { color:rgba(255,255,255,0.4); }
-      #v69-search-input:focus { border-color:#B8965A; }
-    `;
-    document.head.appendChild(css);
+    if (!document.getElementById('v69-pill-styles')) {
+      const css = document.createElement('style');
+      css.id = 'v69-pill-styles';
+      css.textContent = `
+        .v69-pill { display:inline-block; padding:5px 11px; margin:0 4px 4px 0; background:transparent; border:1px solid rgba(255,255,255,0.16); cursor:pointer; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:inherit; font-family:'Jost',sans-serif; transition:all 0.15s; }
+        .v69-pill:hover { border-color:#B8965A; }
+        .v69-pill.v69-active { background:#B8965A; border-color:#B8965A; color:#1a1a1a; }
+        #v69-search-input::placeholder { color:rgba(255,255,255,0.4); }
+        #v69-search-input:focus { border-color:#B8965A; }
+      `;
+      document.head.appendChild(css);
+    }
     div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(p => {
       p.addEventListener('click', () => {
         div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.remove('v69-active'));
         p.classList.add('v69-active');
-        console.log('[v69.3] filtre catégorie:', p.dataset.cat);
+        console.log('[v69.4] filtre catégorie:', p.dataset.cat);
       });
     });
     div.querySelector('#v69-search-input').addEventListener('input', e => {
-      console.log('[v69.3] recherche:', e.target.value);
+      console.log('[v69.4] recherche:', e.target.value);
     });
     return div;
   }
 
-  /* ───── 6. Toggle catalogue ───── */
+  /* ───── 6. Toggle catalogue (opère sur le contentContainer uniquement) ───── */
   function openCatalogue() {
     if (catalogueOpen) return;
-    if (!rightPanel || !tabRowChild) {
-      console.warn('[v69.3] openCatalogue : prérequis manquants, retry init…');
+    if (!contentContainer) {
+      console.warn('[v69.4] openCatalogue : contentContainer manquant, retry init…');
       tryInit();
-      if (!rightPanel || !tabRowChild) return;
+      if (!contentContainer) {
+        console.warn('[v69.4] contentContainer toujours absent après retry — abandon');
+        return;
+      }
     }
-    nativeChildren = Array.from(rightPanel.children).filter(c => c !== tabRowChild);
+    nativeChildren = Array.from(contentContainer.children);
     nativeChildren.forEach(c => { c._v69PrevDisplay = c.style.display; c.style.display = 'none'; });
     if (!myCatalogue) myCatalogue = buildCatalogueDiv();
-    rightPanel.insertBefore(myCatalogue, tabRowChild.nextSibling);
+    contentContainer.appendChild(myCatalogue);
     catalogueOpen = true;
     setButtonActive(true);
-    console.log('[v69.3] catalogue ouvert · ' + nativeChildren.length + ' enfants natifs cachés');
+    console.log('[v69.4] catalogue ouvert · ' + nativeChildren.length + ' enfants natifs cachés');
   }
 
   function closeCatalogue() {
     if (!catalogueOpen) return;
-    if (myCatalogue && myCatalogue.parentNode === rightPanel) rightPanel.removeChild(myCatalogue);
+    if (myCatalogue && myCatalogue.parentNode === contentContainer) {
+      contentContainer.removeChild(myCatalogue);
+    }
     nativeChildren.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
     nativeChildren = [];
     catalogueOpen = false;
     setButtonActive(false);
-    console.log('[v69.3] catalogue fermé');
+    console.log('[v69.4] catalogue fermé');
   }
 
   function toggleCatalogue() {
@@ -23021,6 +23005,9 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   }
 
   function hookOtherTabs() {
+    matBtn = findByText(['MATÉRIAU', 'MATERIAU']);
+    geoBtn = findByText(['GÉOMÉTRIE', 'GEOMETRIE']);
+    scnBtn = findByText(['SCÈNE', 'SCENE']);
     [matBtn, geoBtn, scnBtn].filter(Boolean).forEach(btn => {
       if (btn._v69Hooked) return;
       btn._v69Hooked = true;
@@ -23031,10 +23018,8 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   /* ───── 8. Init avec retry ───── */
   function tryInit() {
     if (!injectButton()) return false;
-    rightPanel = findRightPanel();
-    if (!rightPanel) return false;
-    tabRowChild = findTabRowChild();
-    if (!tabRowChild) { console.warn('[v69.3] tabRow introuvable'); return false; }
+    contentContainer = findContentContainer();
+    if (!contentContainer) return false;
     hookOtherTabs();
     return true;
   }
@@ -23043,7 +23028,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const interval = setInterval(() => { if (tryInit()) clearInterval(interval); }, 500);
     setTimeout(() => clearInterval(interval), 30000);
   }
-  console.log('[studio v69.3] bouton CATALOGUE + toggle (contrainte position relâchée pour devtools docked) ✓');
+  console.log('[studio v69.4] bouton CATALOGUE + opère sur contentContainer uniquement ✓');
 })();
 console.log('[studio v3] prêt');
 
