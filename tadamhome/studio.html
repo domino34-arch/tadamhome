@@ -23134,6 +23134,17 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       .v69-card .v69-meta { padding: 8px 9px 10px; }
       .v69-card .v69-brand { font-family: 'Jost',sans-serif; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #B8965A; font-weight: 400; margin-bottom: 3px; }
       .v69-card .v69-name { font-family: 'Jost',sans-serif; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 600; color: inherit; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-decoration: none; }
+      .v69-card .v69-finishes {
+        position: absolute; bottom: 6px; right: 6px;
+        font-family: 'Jost',sans-serif; font-size: 8px; font-weight: 500;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 3px 7px; background: rgba(28,27,24,0.78); color: #B8965A;
+        display: flex; align-items: center; gap: 5px; pointer-events: none;
+        z-index: 1;
+      }
+      .v69-card .v69-finishes::before {
+        content: ''; width: 4px; height: 4px; background: #B8965A; flex-shrink: 0;
+      }
       .v69-empty, .v69-loading { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; line-height: 1.6; }
     `;
     document.head.appendChild(css);
@@ -23262,6 +23273,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       return;
     }
     const safe = s => String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
+    /* v69.18 — Compte les finitions = colors[] (projection) si présent, sinon
+       1 (Base) + variants.length. On n'affiche le badge qu'à partir de 2. */
+    const countFinishes = p => {
+      if (Array.isArray(p.colors) && p.colors.length > 0) return p.colors.length;
+      return 1 + (Array.isArray(p.variants) ? p.variants.length : 0);
+    };
     grid.innerHTML = filtered.slice(0, 60).map(p => {
       const id = p.id;
       const name = p.name || p.nom || '—';
@@ -23271,8 +23288,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         ? `<img src="${safe(img)}" alt="${safe(name)}" loading="lazy" onerror="this.outerHTML='${FALLBACK_SVG.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}'">`
         : FALLBACK_SVG;
       const isCurrent = currentProductId && String(id) === String(currentProductId);
-      return `<div class="v69-card${isCurrent ? ' v69-current' : ''}" data-id="${safe(id)}" title="${safe(name)} — ${safe(brand)}">
-        <div class="v69-img">${imgHtml}</div>
+      const finishCount = countFinishes(p);
+      const finishesHtml = finishCount >= 2
+        ? `<div class="v69-finishes">${finishCount} finition${finishCount > 1 ? 's' : ''}</div>`
+        : '';
+      return `<div class="v69-card${isCurrent ? ' v69-current' : ''}" data-id="${safe(id)}" title="${safe(name)} — ${safe(brand)}${finishCount >= 2 ? ' · ' + finishCount + ' finitions' : ''}">
+        <div class="v69-img">${imgHtml}${finishesHtml}</div>
         <div class="v69-meta">
           <div class="v69-brand">${safe(brand)}</div>
           <div class="v69-name">${safe(name)}</div>
