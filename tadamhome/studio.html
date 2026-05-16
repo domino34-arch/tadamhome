@@ -22768,22 +22768,25 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
 /* ════════════════════════════════════════════════════════════════════════
-   v69.4 — CHANGEMENT D'APPROCHE : opère sur le contentContainer seul
+   v69.5 — FIX MATIÈRE ACTIVE résiduelle + UI alignée catalogue.html
    ─────────────────────────────────────────────────────────────────────────
-   Diagnostic v69.3 : "candidat ancestor largeur=1728px" → la tabbar et le
-   contenu matériau sont des éléments SÉPARÉS dans le DOM. Leur LCA est
-   très haut (presque le body), donc impossible de trouver un "rightPanel"
-   qui les englobe avec largeur raisonnable.
+   PROBLÈME : la section "MATIÈRE ACTIVE · GARNISSAGE / BOUCLETTE /
+   CHOISIR UN MATÉRIAU" restait visible au-dessus du catalogue parce que
+   findTextMarker cherchait "MATIÈRE ACTIVE" en match exact, alors que le
+   DOM contient probablement <div>MATIÈRE ACTIVE · GARNISSAGE</div> où
+   le texte direct est "MATIÈRE ACTIVE · GARNISSAGE" (avec suffixe).
    
-   NOUVELLE STRATÉGIE :
-   - On ne touche PAS à la tabbar (MATÉRIAU/GÉOMÉTRIE/SCÈNE/×)
-   - On localise uniquement le contentContainer (le bloc qui contient
-     APPARENCE, PROJECTION, CARTES, etc.) via multi-markers
-   - Au click CATALOGUE : on cache les enfants du contentContainer et
-     on insère mon UI à la place
-   - Au click MATÉRIAU/GÉOMÉTRIE/SCÈNE : on referme le catalogue (sinon
-     l'app native va écraser le contentContainer pour afficher l'onglet
-     cliqué, et mon catalogue sera perdu)
+   FIX 1 : findTextMarker accepte aussi "T<délimiteur>X" (espace,
+   middle-dot, colon, pipe, hyphen). MATIÈRE ACTIVE est maintenant
+   trouvé, ce qui élargit le LCA pour englober aussi cette section.
+   
+   FIX 2 : si le LCA avec tous les marqueurs échoue (largeur >600 par
+   exemple), fallback aux marqueurs primaires seuls + recherche
+   séparée du conteneur MATIÈRE ACTIVE pour le cacher manuellement.
+   
+   FIX 3 : UI alignée sur la logique de catalogue.html (pas de search
+   input, chips Tout/Canapés/Fauteuils/Chaises/Tables/Luminaires/
+   Rangements/Marques/Autre, futur alphabet bar pour Marques).
    ════════════════════════════════════════════════════════════════════════ */
 (function v69CatalogueInit() {
   if (window.__v69Init) return;
@@ -22798,17 +22801,17 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._studioMode = isBrowseMode ? 'browse' : 'edit';
 
   if (!isBrowseMode) {
-    console.log('[studio v69.4] mode édition, catalogue passif');
+    console.log('[studio v69.5] mode édition, catalogue passif');
     return;
   }
-  console.log('[studio v69.4] mode catalogue actif');
+  console.log('[studio v69.5] mode catalogue actif');
 
   /* ───── 2. Court-circuit léger de _v68.persist ───── */
   const blockPersist = () => {
     if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
       const orig = window._v68.persist;
       window._v68.persist = async function blocked() {
-        console.warn('[v69.4] _v68.persist bloqué en mode browse');
+        console.warn('[v69.5] _v68.persist bloqué en mode browse');
         if (typeof toast === 'function') toast('Persistance désactivée en mode consultation', 'info', 3000);
         return false;
       };
@@ -22838,131 +22841,240 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     return s.trim();
   }
 
+  /* ★ FIX v69.5 : accepte "T<delim>..." en plus du match exact */
   function findTextMarker(text) {
     const T = text.trim().toUpperCase();
     return Array.from(document.querySelectorAll('div, span, p, label, h1, h2, h3, h4, h5, h6'))
       .find(el => {
         if (el.offsetHeight === 0) return false;
         const direct = getDirectText(el).toUpperCase();
-        return direct === T;
+        if (direct === T) return true;
+        if (direct.length > T.length && direct.startsWith(T)) {
+          const next = direct.charAt(T.length);
+          /* Délimiteurs : espace, middle-dot ·, colon, pipe, hyphen, tab */
+          return next === ' ' || next === '·' || next === ':' || next === '|' || next === '-' || next === '\t';
+        }
+        return false;
       });
   }
 
   /* État */
   let catalogueOpen = false;
   let nativeChildren = [];
+  let extraHidden = [];                          /* ★ NOUVEAU : sections cachées hors contentContainer */
   let myCatalogue = null;
   let myButton = null;
   let contentContainer = null;
   let matBtn = null, geoBtn = null, scnBtn = null;
 
-  /* ───── 4. Détection du contentContainer (par multi-markers) ───── */
+  /* Markers primaires (toujours dans le contentContainer) */
+  const PRIMARY_MARKERS = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'COULEUR DE BASE', 'RÉPÉTITION UV'];
+  /* Markers headers (peuvent être hors contentContainer) */
+  const HEADER_MARKERS = ['MATIÈRE ACTIVE'];
+
+  /* ───── 4. Détection du contentContainer ───── */
   function findContentContainer() {
-    const markerTexts = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'MATIÈRE ACTIVE', 'COULEUR DE BASE', 'RÉPÉTITION UV'];
+    const allMarkers = [...PRIMARY_MARKERS, ...HEADER_MARKERS];
     const found = [];
-    for (const txt of markerTexts) {
+    for (const txt of allMarkers) {
       const el = findTextMarker(txt);
       if (el) found.push({ name: txt, el });
     }
     if (found.length < 2) {
       if (!window.__v69WarnedFew) {
-        console.warn('[v69.4] moins de 2 marqueurs trouvés (' + found.length + ') — panneau droit invisible ?');
+        console.warn('[v69.5] moins de 2 marqueurs trouvés (' + found.length + ')');
         window.__v69WarnedFew = true;
       }
       return null;
     }
-    console.log('[v69.4] marqueurs trouvés: ' + found.map(m => m.name).join(', '));
+    console.log('[v69.5] marqueurs trouvés: ' + found.map(m => m.name).join(', '));
 
-    /* Remonte depuis le 1er marker, trouve le plus petit ancêtre qui
-       contient TOUS les markers ET a largeur 200-600px */
+    /* Tentative 1 : LCA de TOUS les markers (inclut MATIÈRE ACTIVE) */
     let cur = found[0].el.parentElement;
     while (cur && cur !== document.body) {
       const containsAll = found.every(m => cur.contains(m.el));
       if (containsAll) {
         const r = cur.getBoundingClientRect();
         if (r.width >= 200 && r.width <= 600) {
-          console.log('[v69.4] contentContainer trouvé · largeur=' + Math.round(r.width) + 'px · contient ' + found.length + ' marqueurs');
+          console.log('[v69.5] contentContainer trouvé (LCA complet) · largeur=' + Math.round(r.width) + 'px · ' + found.length + ' marqueurs');
           return cur;
         }
       }
       cur = cur.parentElement;
     }
+
+    /* Tentative 2 : LCA des markers primaires seulement (cas où MATIÈRE
+       ACTIVE est dans une section séparée siblings du contentContainer) */
+    const primary = found.filter(m => PRIMARY_MARKERS.includes(m.name));
+    if (primary.length >= 2) {
+      cur = primary[0].el.parentElement;
+      while (cur && cur !== document.body) {
+        const containsAllPrimary = primary.every(m => cur.contains(m.el));
+        if (containsAllPrimary) {
+          const r = cur.getBoundingClientRect();
+          if (r.width >= 200 && r.width <= 600) {
+            console.log('[v69.5] contentContainer trouvé (fallback primaires) · largeur=' + Math.round(r.width) + 'px · ' + primary.length + ' marqueurs');
+            return cur;
+          }
+        }
+        cur = cur.parentElement;
+      }
+    }
     if (!window.__v69WarnedNoCont) {
-      console.warn('[v69.4] contentContainer non trouvé (aucun ancêtre 200-600 ne contient tous les marqueurs)');
+      console.warn('[v69.5] contentContainer non trouvé');
       window.__v69WarnedNoCont = true;
     }
     return null;
   }
 
-  /* ───── 5. UI catalogue ───── */
+  /* ★ NOUVEAU : trouve une section "périphérique" (MATIÈRE ACTIVE etc.)
+     dans le panneau droit mais hors du contentContainer */
+  function findExtraSection(markerText) {
+    const marker = findTextMarker(markerText);
+    if (!marker) return null;
+    /* Si le marker est déjà dans le contentContainer, pas besoin */
+    if (contentContainer && contentContainer.contains(marker)) return null;
+    /* Remonte jusqu'à un container de taille section (largeur panneau, hauteur > 50) */
+    let cur = marker;
+    while (cur && cur !== document.body) {
+      const r = cur.getBoundingClientRect();
+      if (r.width >= 200 && r.width <= 600 && r.height >= 50) {
+        /* Ne pas remonter trop loin : si parent englobe aussi
+           contentContainer, on s'arrête */
+        const parent = cur.parentElement;
+        if (parent && contentContainer && parent.contains(contentContainer) && parent !== document.body) {
+          return cur;
+        }
+        if (!parent || parent === document.body) return cur;
+      }
+      cur = cur.parentElement;
+    }
+    return null;
+  }
+
+  /* ───── 5. UI catalogue (alignée catalogue.html) ───── */
   function buildCatalogueDiv() {
     const div = document.createElement('div');
     div.id = 'v69-cat-content';
     div.style.cssText = `
-      padding: 24px 28px 32px;
+      padding: 22px 24px 32px;
       font-family: 'Jost', sans-serif;
       color: inherit;
       box-sizing: border-box;
       overflow-y: auto;
     `;
     div.innerHTML = `
-      <input id="v69-search-input" type="text" placeholder="Rechercher un meuble, une marque…" autocomplete="off"
-        style="width:100%;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:inherit;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:0.04em;outline:none;box-sizing:border-box;margin-bottom:22px;" />
-      <div style="font-size:10px;letter-spacing:0.16em;opacity:0.55;text-transform:uppercase;margin-bottom:10px;">Catégorie</div>
-      <div id="v69-cat-pills" style="margin-bottom:28px;line-height:1.9;">
-        <button class="v69-pill v69-active" data-cat="all">Tous</button>
-        <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
-        <button class="v69-pill" data-cat="Chaise">Chaise</button>
-        <button class="v69-pill" data-cat="Canapé">Canapé</button>
+      <div style="font-size:10px;letter-spacing:0.18em;opacity:0.55;text-transform:uppercase;margin-bottom:12px;">Catégorie</div>
+      <div id="v69-cat-pills" style="margin-bottom:24px;display:flex;flex-wrap:wrap;gap:6px;">
+        <button class="v69-pill v69-active" data-cat="all">Tout</button>
+        <button class="v69-pill" data-cat="sofa">Canapés</button>
+        <button class="v69-pill" data-cat="fauteuil">Fauteuils</button>
+        <button class="v69-pill" data-cat="chaise">Chaises</button>
+        <button class="v69-pill" data-cat="table">Tables</button>
+        <button class="v69-pill" data-cat="luminaire">Luminaires</button>
+        <button class="v69-pill" data-cat="rangement">Rangements</button>
+        <button class="v69-pill" data-cat="marques">Marques</button>
+        <button class="v69-pill" data-cat="autre">Autre</button>
       </div>
-      <div id="v69-placeholder" style="margin-top:40px;font-size:12px;opacity:0.5;text-align:center;font-style:italic;line-height:1.6;">
+      <div id="v69-alpha-bar" style="display:none;margin-bottom:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:10px;letter-spacing:0.18em;opacity:0.55;text-transform:uppercase;margin-bottom:10px;">Lettre</div>
+        <div id="v69-alpha-letters" style="display:flex;flex-wrap:wrap;gap:3px;"></div>
+      </div>
+      <div id="v69-placeholder" style="margin-top:40px;font-size:12px;opacity:0.5;text-align:center;font-style:italic;line-height:1.6;padding:0 12px;">
         Chargement du catalogue…<br><br>
-        <span style="opacity:0.6;">(v69.5 ajoutera les produits)</span>
+        <span style="opacity:0.7;font-size:11px;">(v69.6 ajoutera les produits Supabase)</span>
       </div>
     `;
     if (!document.getElementById('v69-pill-styles')) {
       const css = document.createElement('style');
       css.id = 'v69-pill-styles';
       css.textContent = `
-        .v69-pill { display:inline-block; padding:5px 11px; margin:0 4px 4px 0; background:transparent; border:1px solid rgba(255,255,255,0.16); cursor:pointer; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:inherit; font-family:'Jost',sans-serif; transition:all 0.15s; }
-        .v69-pill:hover { border-color:#B8965A; }
-        .v69-pill.v69-active { background:#B8965A; border-color:#B8965A; color:#1a1a1a; }
-        #v69-search-input::placeholder { color:rgba(255,255,255,0.4); }
-        #v69-search-input:focus { border-color:#B8965A; }
+        .v69-pill {
+          padding: 6px 11px; background: transparent;
+          border: 1px solid rgba(255,255,255,0.16); cursor: pointer;
+          font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+          color: inherit; font-family: 'Jost',sans-serif; transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .v69-pill:hover { border-color: #B8965A; }
+        .v69-pill.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
+        .v69-alpha-btn {
+          width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+          background: transparent; border: 1px solid transparent; font-family: 'Jost',sans-serif;
+          font-size: 11px; color: inherit; cursor: pointer; transition: all 0.12s;
+        }
+        .v69-alpha-btn:hover { color: #B8965A; border-color: rgba(184,150,90,0.3); }
+        .v69-alpha-btn.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
+        .v69-alpha-btn.v69-disabled { opacity: 0.25; pointer-events: none; }
+        .v69-alpha-btn.v69-all { width: auto; padding: 0 10px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; }
       `;
       document.head.appendChild(css);
     }
+    /* Alphabet A-Z */
+    const lettersWrap = div.querySelector('#v69-alpha-letters');
+    const allBtn = document.createElement('button');
+    allBtn.className = 'v69-alpha-btn v69-all v69-active';
+    allBtn.textContent = 'Toutes';
+    allBtn.dataset.letter = 'all';
+    lettersWrap.appendChild(allBtn);
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(L => {
+      const b = document.createElement('button');
+      b.className = 'v69-alpha-btn v69-disabled';
+      b.textContent = L;
+      b.dataset.letter = L;
+      lettersWrap.appendChild(b);
+    });
+    /* Handlers chips */
     div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(p => {
       p.addEventListener('click', () => {
         div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.remove('v69-active'));
         p.classList.add('v69-active');
-        console.log('[v69.4] filtre catégorie:', p.dataset.cat);
+        const cat = p.dataset.cat;
+        console.log('[v69.5] filtre catégorie:', cat);
+        const alpha = div.querySelector('#v69-alpha-bar');
+        alpha.style.display = (cat === 'marques') ? 'block' : 'none';
       });
     });
-    div.querySelector('#v69-search-input').addEventListener('input', e => {
-      console.log('[v69.4] recherche:', e.target.value);
+    /* Handlers alphabet */
+    div.querySelectorAll('#v69-alpha-letters .v69-alpha-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        if (b.classList.contains('v69-disabled')) return;
+        div.querySelectorAll('#v69-alpha-letters .v69-alpha-btn').forEach(x => x.classList.remove('v69-active'));
+        b.classList.add('v69-active');
+        console.log('[v69.5] filtre lettre:', b.dataset.letter);
+      });
     });
     return div;
   }
 
-  /* ───── 6. Toggle catalogue (opère sur le contentContainer uniquement) ───── */
+  /* ───── 6. Toggle catalogue ───── */
   function openCatalogue() {
     if (catalogueOpen) return;
     if (!contentContainer) {
-      console.warn('[v69.4] openCatalogue : contentContainer manquant, retry init…');
+      console.warn('[v69.5] openCatalogue : contentContainer manquant, retry init…');
       tryInit();
-      if (!contentContainer) {
-        console.warn('[v69.4] contentContainer toujours absent après retry — abandon');
-        return;
-      }
+      if (!contentContainer) { console.warn('[v69.5] abandon'); return; }
     }
+    /* Cache enfants du contentContainer */
     nativeChildren = Array.from(contentContainer.children);
     nativeChildren.forEach(c => { c._v69PrevDisplay = c.style.display; c.style.display = 'none'; });
+
+    /* ★ NOUVEAU : cache aussi les sections périphériques (MATIÈRE ACTIVE…) */
+    extraHidden = [];
+    for (const m of HEADER_MARKERS) {
+      const sec = findExtraSection(m);
+      if (sec && !extraHidden.includes(sec)) {
+        sec._v69PrevDisplay = sec.style.display;
+        sec.style.display = 'none';
+        extraHidden.push(sec);
+      }
+    }
+
     if (!myCatalogue) myCatalogue = buildCatalogueDiv();
     contentContainer.appendChild(myCatalogue);
     catalogueOpen = true;
     setButtonActive(true);
-    console.log('[v69.4] catalogue ouvert · ' + nativeChildren.length + ' enfants natifs cachés');
+    console.log('[v69.5] catalogue ouvert · ' + nativeChildren.length + ' enfants + ' + extraHidden.length + ' sections périphériques cachées');
   }
 
   function closeCatalogue() {
@@ -22972,9 +23084,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     nativeChildren.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
     nativeChildren = [];
+    extraHidden.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
+    extraHidden = [];
     catalogueOpen = false;
     setButtonActive(false);
-    console.log('[v69.4] catalogue fermé');
+    console.log('[v69.5] catalogue fermé');
   }
 
   function toggleCatalogue() {
@@ -23028,7 +23142,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const interval = setInterval(() => { if (tryInit()) clearInterval(interval); }, 500);
     setTimeout(() => clearInterval(interval), 30000);
   }
-  console.log('[studio v69.4] bouton CATALOGUE + opère sur contentContainer uniquement ✓');
+  console.log('[studio v69.5] catalogue ✓ (matcher étendu + sections périphériques + UI alignée catalogue.html)');
 })();
 console.log('[studio v3] prêt');
 
