@@ -3579,7 +3579,7 @@ document.addEventListener('keydown', (e) => {
     injectStyles();
     enrichModal();
     monkeyPatchOpenEditModal();
-    console.log('[admin v34.2] modal édition enrichie : upload GLB/OBJ/USDZ + photo ✓');
+    console.log('[admin v34.3] modal édition enrichie : upload GLB/OBJ/USDZ + photo ✓ (boot)');
   }
 
   /* ───── 2. Styles ───── */
@@ -3990,6 +3990,10 @@ document.addEventListener('keydown', (e) => {
     const origOpen = window.openEditModal;
     window.openEditModal = function(id) {
       const result = origOpen.apply(this, arguments);
+      /* v34.3 — Toujours appeler enrichModal au cas où l'enrichissement boot
+         aurait échoué (timing whenReady, DOM pas prêt, etc.). enrichModal est
+         idempotent : il ne fait rien si #edFilesSection existe déjà. */
+      try { enrichModal(); } catch (e) { console.warn('[admin v34.3] enrichModal retry échec', e); }
       /* Refresh l'état des zones fichiers après l'ouverture */
       setTimeout(() => refreshFileZones(id), 50);
       return result;
