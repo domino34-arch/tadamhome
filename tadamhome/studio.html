@@ -13469,15 +13469,17 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const variants = Array.isArray(row.variants) ? row.variants : [];
     variants.forEach(v => {
       const sw = (v.studio_state && v.studio_state.textureSwatchUrl) || null;
+      /* v69.19 — Utiliser le GLB/USDZ spécifique à la variante si le pipeline
+         v49 (multi-variant publish) l'a généré et stocké. Fallback sur le glb
+         de Base sinon (cas d'une variante créée mais pas encore re-publiée). */
+      const variantGlb  = (v.studio_state && v.studio_state.exports && v.studio_state.exports.glb)  || glb;
+      const variantUsdz = (v.studio_state && v.studio_state.exports && v.studio_state.exports.usdz) || usdz;
       colors.push({
         name: v.name || 'Variante',
         mat,
         texture: sw,
-        /* Note : glb/usdz identiques à la Base (limitation temporaire — voir
-           commentaire en tête de v42). À la publication d'un pipeline par
-           variante, ces URLs deviendront spécifiques. */
-        glb,
-        usdz,
+        glb: variantGlb,
+        usdz: variantUsdz,
       });
     });
 
