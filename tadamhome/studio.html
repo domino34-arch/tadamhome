@@ -23049,6 +23049,267 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v69.1] mode catalogue actif · UI panneau (placeholder) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v69.1.1 — CORRECTIF v69.1
+   ─────────────────────────────────────────────────────────────────────────
+   v69.1 ajoutait un panneau flottant 380px qui :
+   - chevauchait le viewer
+   - avait sa propre largeur (pas alignée sur le panneau natif)
+   - ajoutait un bouton CATALOGUE flottant en doublon
+   
+   v69.1.1 corrige en intégrant le catalogue DANS le panneau natif :
+   - Cleanup du panneau flottant v69.1
+   - Détecte le bouton CATALOGUE natif (déjà présent en haut du panneau
+     matériau, à côté de MATÉRIAU / GÉOMÉTRIE)
+   - Au click sur CATALOGUE en mode browse :
+     * Cache le contenu natif du panneau (les sections APPARENCE,
+       CARTES, PROJECTION, etc.)
+     * Affiche le catalogue UI à la place
+   - Au click sur MATÉRIAU ou GÉOMÉTRIE : restaure le contenu natif,
+     cache le catalogue
+   - Le catalogue UI utilise la même largeur exacte que le panneau
+     natif (mesurée au runtime via getBoundingClientRect)
+   - Theme sombre pour matcher le panneau natif (dark bg + cream text
+     + gold accent)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v69_1_1Init() {
+  if (window.__v69_1_1Init) return;
+  window.__v69_1_1Init = true;
+
+  /* Ne s'active qu'en mode browse */
+  if (window._studioMode !== 'browse') {
+    console.log('[v69.1.1] mode édition, correctif inactif');
+    return;
+  }
+
+  /* ───── 1. Cleanup du panneau v69.1 ───── */
+  ['v69-catalogue-panel', 'v69-toggle-btn', 'v69-styles'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+  document.body.classList.remove('v69-browse-active');
+
+  /* ───── 2. Helpers de recherche DOM ───── */
+  function findButtonByText(textCandidates) {
+    const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
+      .map(t => t.trim().toUpperCase());
+    return Array.from(document.querySelectorAll('button, [role="tab"]')).find(el => {
+      const t = (el.textContent || '').trim().toUpperCase();
+      return targets.includes(t);
+    });
+  }
+
+  let catBtn, matBtn, geoBtn;
+  let tabRow;            // ligne des onglets MATÉRIAU/GÉOMÉTRIE/CATALOGUE
+  let panelContainer;    // panneau natif englobant
+  let nativeContents = []; // siblings du tabRow à cacher quand catalogue est ouvert
+  let catalogueOpen = false;
+
+  /* ───── 3. Init ───── */
+  function tryInit() {
+    catBtn = findButtonByText('CATALOGUE');
+    matBtn = findButtonByText(['MATÉRIAU', 'MATERIAU']);
+    geoBtn = findButtonByText(['GÉOMÉTRIE', 'GEOMETRIE']);
+
+    if (!catBtn || !matBtn) return false;
+
+    /* Trouve le tabRow : ancêtre commun le plus proche entre catBtn et matBtn */
+    tabRow = catBtn.parentElement;
+    while (tabRow && tabRow !== document.body && !tabRow.contains(matBtn)) {
+      tabRow = tabRow.parentElement;
+    }
+    if (!tabRow || tabRow === document.body) return false;
+
+    /* Trouve le panneau natif englobant (le parent du tabRow, ou plus haut
+       si nécessaire pour avoir une largeur 280-500px) */
+    panelContainer = tabRow.parentElement;
+    let attempts = 0;
+    while (panelContainer && panelContainer !== document.body && attempts < 6) {
+      const w = panelContainer.offsetWidth;
+      if (w >= 280 && w <= 500) break;
+      panelContainer = panelContainer.parentElement;
+      attempts++;
+    }
+    if (!panelContainer || panelContainer === document.body) {
+      panelContainer = tabRow.parentElement;
+    }
+
+    console.log('[v69.1.1] panneau natif détecté · largeur=' + panelContainer.offsetWidth + 'px');
+
+    /* Identifier les "contenus natifs" : siblings de tabRow dans son parent
+       direct (sauf tabRow lui-même et mon contenu catalogue) */
+    nativeContents = Array.from(tabRow.parentElement.children).filter(c => c !== tabRow);
+
+    injectCatalogueUI();
+    hookTabButtons();
+
+    /* Si le mode catalogue est actif au boot, l'activer */
+    setTimeout(() => openCatalogue(), 100);
+
+    return true;
+  }
+
+  /* ───── 4. Injection du contenu catalogue ───── */
+  function injectCatalogueUI() {
+    if (document.getElementById('v69-catalogue-content')) return;
+
+    const style = document.createElement('style');
+    style.id = 'v69-1-1-styles';
+    style.textContent = `
+      #v69-catalogue-content {
+        display: none;
+        padding: 20px 24px 32px;
+        font-family: 'Jost', sans-serif;
+        color: inherit;
+        box-sizing: border-box;
+      }
+      #v69-catalogue-content.visible { display: block; }
+      #v69-search-input {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: inherit;
+        font-family: 'Jost', sans-serif;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        outline: none;
+        box-sizing: border-box;
+        margin-bottom: 22px;
+      }
+      #v69-search-input::placeholder {
+        color: rgba(255,255,255,0.4);
+        text-transform: none;
+      }
+      #v69-search-input:focus { border-color: #B8965A; }
+      .v69-filter-label {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        opacity: 0.55;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .v69-pills { margin-bottom: 24px; line-height: 1.8; }
+      .v69-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        margin: 0 4px 4px 0;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,0.16);
+        cursor: pointer;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: inherit;
+        font-family: 'Jost', sans-serif;
+        transition: all 0.15s;
+      }
+      .v69-pill:hover { border-color: #B8965A; }
+      .v69-pill.active {
+        background: #B8965A;
+        border-color: #B8965A;
+        color: #1a1a1a;
+      }
+      #v69-placeholder {
+        margin-top: 36px;
+        font-size: 12px;
+        opacity: 0.5;
+        text-align: center;
+        font-style: italic;
+        line-height: 1.6;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const content = document.createElement('div');
+    content.id = 'v69-catalogue-content';
+    content.innerHTML = `
+      <input id="v69-search-input" type="text" placeholder="Rechercher un meuble, une marque…" autocomplete="off" />
+      <div class="v69-filter-label">Catégorie</div>
+      <div class="v69-pills" data-pills="categorie">
+        <button class="v69-pill active" data-cat="all">Tous</button>
+        <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
+        <button class="v69-pill" data-cat="Chaise">Chaise</button>
+        <button class="v69-pill" data-cat="Canapé">Canapé</button>
+      </div>
+      <div id="v69-placeholder">Chargement du catalogue…<br><br>(v69.2 ajoutera les produits)</div>
+    `;
+
+    /* Insère le contenu DANS le panneau natif, après le tabRow */
+    tabRow.parentElement.insertBefore(content, tabRow.nextSibling);
+
+    /* Handlers pills */
+    content.querySelectorAll('[data-pills="categorie"] .v69-pill').forEach(p => {
+      p.addEventListener('click', () => {
+        content.querySelectorAll('[data-pills="categorie"] .v69-pill').forEach(b => b.classList.remove('active'));
+        p.classList.add('active');
+        console.log('[v69.1.1] filtre catégorie:', p.dataset.cat);
+      });
+    });
+    content.querySelector('#v69-search-input').addEventListener('input', e => {
+      console.log('[v69.1.1] recherche:', e.target.value);
+    });
+  }
+
+  /* ───── 5. Hooks des boutons d'onglets ───── */
+  function hookTabButtons() {
+    /* CATALOGUE click : ouvre mon contenu */
+    catBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      openCatalogue();
+    }, { capture: true });
+
+    /* MATÉRIAU / GÉOMÉTRIE click : restaure le contenu natif */
+    [matBtn, geoBtn].filter(Boolean).forEach(btn => {
+      btn.addEventListener('click', () => {
+        closeCatalogue();
+      }, { capture: false });
+    });
+  }
+
+  function openCatalogue() {
+    if (catalogueOpen) return;
+    const content = document.getElementById('v69-catalogue-content');
+    if (!content) return;
+
+    /* Cache tous les siblings natifs (le contenu MATÉRIAU/GÉOMÉTRIE) */
+    nativeContents.forEach(el => {
+      if (el === content) return;
+      el._v69PrevDisplay = el.style.display;
+      el.style.display = 'none';
+    });
+    content.classList.add('visible');
+    catalogueOpen = true;
+    console.log('[v69.1.1] catalogue ouvert · contenu natif caché');
+  }
+
+  function closeCatalogue() {
+    if (!catalogueOpen) return;
+    const content = document.getElementById('v69-catalogue-content');
+    if (!content) return;
+
+    /* Restaure les siblings natifs */
+    nativeContents.forEach(el => {
+      if (el === content) return;
+      el.style.display = el._v69PrevDisplay || '';
+    });
+    content.classList.remove('visible');
+    catalogueOpen = false;
+    console.log('[v69.1.1] catalogue fermé · contenu natif restauré');
+  }
+
+  /* ───── 6. Init avec retry (DOM peut ne pas être prêt) ───── */
+  if (!tryInit()) {
+    const interval = setInterval(() => {
+      if (tryInit()) clearInterval(interval);
+    }, 500);
+    setTimeout(() => clearInterval(interval), 20000);
+  }
+
+  console.log('[studio v69.1.1] catalogue intégré au panneau natif (via bouton CATALOGUE existant) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
