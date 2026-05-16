@@ -1916,6 +1916,13 @@ button{font-family:inherit;cursor:pointer}
 .mat-section-title { margin-bottom: 6px !important; font-size: 8.5px !important; }
 .mat-section-title .extra { font-size: 8px !important; }
 
+/* v69.20 — Réserver l'espace en bas du panneau matériau pour que le dernier
+   contrôle (souvent le curseur V de "Répétition UV") ne soit pas caché par
+   le bouton "Voir en réalité augmentée" qui est en position:fixed au-dessus
+   du rightpanel. La spécificité ici (.rp-view-edit + .mat-body) override
+   tous les paddings définis plus haut. S'applique desktop ET iPad. */
+.rp-view-edit .mat-body { padding-bottom: calc(var(--bottombar-h, 56px) + 24px) !important; }
+
 .mat-row { margin-bottom: 5px !important; min-height: 0 !important; }
 .mat-row .mat-label { font-size: 9.5px !important; }
 .mat-row .mat-value { font-size: 9.5px !important; }
