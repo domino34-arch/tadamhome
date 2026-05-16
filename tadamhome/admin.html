@@ -3579,7 +3579,7 @@ document.addEventListener('keydown', (e) => {
     injectStyles();
     enrichModal();
     monkeyPatchOpenEditModal();
-    console.log('[admin v34.3] modal édition enrichie : upload GLB/OBJ/USDZ + photo ✓ (boot)');
+    console.log('[admin v34.5] modal édition enrichie : upload GLB/OBJ/USDZ + photo + vignettes finitions ✓ (boot)');
   }
 
   /* ───── 2. Styles ───── */
@@ -3669,6 +3669,86 @@ document.addEventListener('keydown', (e) => {
         font-family: var(--sans); font-size: 11px; color: var(--muted);
         font-style: italic; line-height: 1.4;
       }
+
+      /* ───── v34.5 — vignettes finitions ───── */
+      .ed-variants-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+      }
+      .ed-variants-empty {
+        font-family: var(--sans); font-size: 12px; color: var(--muted);
+        font-style: italic; padding: 14px 0; text-align: center;
+      }
+      .ed-variant-card {
+        position: relative; display: flex; flex-direction: column;
+        gap: 6px; cursor: pointer;
+      }
+      .ed-variant-thumb {
+        position: relative;
+        aspect-ratio: 1 / 1; width: 100%;
+        background: var(--bg) center/cover no-repeat;
+        border: 1px dashed rgba(184,152,106,0.35);
+        transition: all .2s;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+      }
+      .ed-variant-card:hover .ed-variant-thumb {
+        border-color: var(--accent); background-color: rgba(184,152,106,0.04);
+      }
+      .ed-variant-card.has-img .ed-variant-thumb {
+        border-style: solid; border-color: rgba(39,112,74,0.4);
+      }
+      .ed-variant-card.uploading .ed-variant-thumb {
+        opacity: 0.55;
+      }
+      .ed-variant-card.uploading .ed-variant-bar {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+        background: rgba(184,152,106,0.15); overflow: hidden;
+      }
+      .ed-variant-card.uploading .ed-variant-bar::after {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+        width: 35%; background: var(--accent);
+        animation: edVariantPulse 1.2s ease-in-out infinite;
+      }
+      @keyframes edVariantPulse {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(285%); }
+      }
+      .ed-variant-thumb input[type="file"] {
+        position: absolute; inset: 0;
+        opacity: 0; cursor: pointer; z-index: 1;
+      }
+      .ed-variant-placeholder {
+        font-family: var(--sans); font-size: 10px;
+        color: var(--muted); text-transform: uppercase;
+        letter-spacing: 0.1em; text-align: center;
+        padding: 0 6px; line-height: 1.4;
+      }
+      .ed-variant-card.has-img .ed-variant-placeholder { display: none; }
+      .ed-variant-swatch {
+        position: absolute; top: 4px; left: 4px; width: 14px; height: 14px;
+        border: 1px solid rgba(0,0,0,0.12);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+        z-index: 1;
+      }
+      .ed-variant-remove {
+        position: absolute; top: 4px; right: 4px; z-index: 2;
+        width: 20px; height: 20px;
+        background: rgba(28,27,24,0.75); color: #fff;
+        border: none; cursor: pointer;
+        font-size: 12px; line-height: 1;
+        display: none; align-items: center; justify-content: center;
+      }
+      .ed-variant-card.has-img .ed-variant-remove { display: flex; }
+      .ed-variant-remove:hover { background: var(--red); }
+      .ed-variant-label {
+        font-family: var(--sans); font-size: 11px; color: var(--ink);
+        text-align: center; line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .ed-variant-label .ed-variant-mat {
+        font-style: italic; color: var(--muted);
+      }
     `;
     document.head.appendChild(css);
   }
@@ -3738,12 +3818,29 @@ document.addEventListener('keydown', (e) => {
       </div>
     `;
 
+    /* v34.5 — Vignettes finitions (une par entrée de products.colors) */
+    const variantsSection = document.createElement('div');
+    variantsSection.className = 'modal-section';
+    variantsSection.id = 'edVariantsSection';
+    variantsSection.innerHTML = `
+      <div class="modal-section-title">Vignettes finitions</div>
+      <p style="font-family:var(--sans);font-size:11px;color:var(--muted);margin-bottom:12px;font-style:italic;line-height:1.5">
+        Une vignette par variante (finition) — affichée dans le bandeau <strong style="font-style:normal">FINITION</strong> de la page scan.<br>
+        Les variantes sont créées dans le studio. Compression auto à 600px max.
+      </p>
+      <div class="ed-variants-grid" id="edVariantsGrid">
+        <div class="ed-variants-empty">Chargement…</div>
+      </div>
+    `;
+
     if (statusSection) {
       body.insertBefore(filesSection, statusSection);
       body.insertBefore(photoSection, statusSection);
+      body.insertBefore(variantsSection, statusSection);
     } else {
       body.appendChild(filesSection);
       body.appendChild(photoSection);
+      body.appendChild(variantsSection);
     }
 
     /* Wire handlers */
@@ -3758,6 +3855,7 @@ document.addEventListener('keydown', (e) => {
       });
     });
     photoSection.querySelector('input[type="file"]').addEventListener('change', onPhotoSelected);
+    /* Les handlers de variantsGrid sont câblés dynamiquement dans refreshVariantThumbs */
   }
 
   /* ───── 4. Helpers ───── */
@@ -4033,6 +4131,170 @@ document.addEventListener('keydown', (e) => {
         preview.textContent = 'Aucune photo';
         preview.style.backgroundImage = '';
       }
+    }
+
+    /* v34.5 — Vignettes finitions */
+    refreshVariantThumbs(id);
+  }
+
+  /* ───── v34.5 — Vignettes finitions (products.colors[i].texture) ─────
+     scan.html lit chaque variante avec : c.texture || c.swatch_url || c.swatch || c.image
+     On écrit dans `texture` (canonique). Fallback sur les autres en lecture pour
+     ne pas casser les produits déjà uploadés sous un autre nom. */
+  function refreshVariantThumbs(id) {
+    const grid = document.getElementById('edVariantsGrid');
+    if (!grid) return;
+    const p = getProduct(id);
+    if (!p) { grid.innerHTML = '<div class="ed-variants-empty">Produit introuvable</div>'; return; }
+
+    const colors = Array.isArray(p.colors) ? p.colors : [];
+    if (colors.length === 0) {
+      grid.innerHTML = '<div class="ed-variants-empty">Aucune variante. Crée-les dans le studio puis reviens ici uploader les vignettes.</div>';
+      return;
+    }
+
+    grid.innerHTML = colors.map((c, i) => {
+      const name = c.name || c.label || `Variante ${i + 1}`;
+      const mat  = c.mat || '';
+      const hex  = c.hex || c.color || '';
+      const url  = c.texture || c.swatch_url || c.swatch || c.image || '';
+      const labelHTML = mat
+        ? `<span class="ed-variant-mat">${escAttr(mat)}</span> ${escAttr(name)}`
+        : escAttr(name);
+      const swatch = hex ? `<span class="ed-variant-swatch" style="background:${escAttr(hex)}"></span>` : '';
+      return `
+        <div class="ed-variant-card ${url ? 'has-img' : ''}" data-idx="${i}">
+          <div class="ed-variant-thumb" ${url ? `style="background-image:url('${escAttr(url)}')"` : ''}>
+            ${swatch}
+            <input type="file" accept="image/*" data-vidx="${i}">
+            <button class="ed-variant-remove" type="button" title="Retirer la vignette">×</button>
+            <span class="ed-variant-placeholder">Cliquer<br>pour ajouter</span>
+            <div class="ed-variant-bar"></div>
+          </div>
+          <div class="ed-variant-label" title="${escAttr(name)}">${labelHTML}</div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('input[type="file"][data-vidx]').forEach(inp => {
+      inp.addEventListener('change', (e) => onVariantThumbSelected(e, parseInt(inp.dataset.vidx, 10)));
+    });
+    grid.querySelectorAll('.ed-variant-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const card = btn.closest('.ed-variant-card');
+        const idx = parseInt(card.dataset.idx, 10);
+        onVariantThumbRemove(idx);
+      });
+    });
+  }
+
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+      .replaceAll('"','&quot;').replaceAll("'",'&#39;');
+  }
+
+  async function onVariantThumbSelected(e, vIdx) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const id = getProductId();
+    if (!id) { toast('Sauvegarde le produit d\'abord avant d\'uploader des vignettes', 'err'); return; }
+    const sb = getSb();
+    if (!sb) { toast('Client Supabase indisponible', 'err'); return; }
+
+    const card = document.querySelector(`.ed-variant-card[data-idx="${vIdx}"]`);
+    if (!card) return;
+    card.classList.add('uploading');
+
+    try {
+      /* Compresse l'image à 600px max (vignettes petites) */
+      const blob = await compressImage(file, 600, 0.85);
+      const path = `finish-thumbnails/${id}/${vIdx}-${Date.now()}.jpg`;
+
+      /* Upload Storage */
+      const { error: upErr } = await sb.storage
+        .from(bucket())
+        .upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '31536000' });
+      if (upErr) throw upErr;
+      const url = publicUrl(path) + '?v=' + Date.now();
+
+      /* Construit la nouvelle valeur de colors (clone profond + modif idx) */
+      const p = getProduct(id);
+      const currentColors = Array.isArray(p.colors) ? p.colors : [];
+      const newColors = JSON.parse(JSON.stringify(currentColors));
+      if (!newColors[vIdx]) { throw new Error('Variante introuvable (index ' + vIdx + ')'); }
+      newColors[vIdx].texture = url;
+
+      /* Update DB */
+      const { error: dbErr } = await sb.from('products').update({ colors: newColors }).eq('id', id);
+      if (dbErr) throw dbErr;
+
+      /* Mirror en mémoire */
+      p.colors = newColors;
+
+      toast('Vignette uploadée ✓', 'ok');
+
+      /* Refresh la carte */
+      refreshVariantThumbs(id);
+
+      /* Refresh tableau admin pour répercuter */
+      if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+    } catch (err) {
+      console.error('[admin v34.5] upload vignette variante échec', err);
+      toast('Erreur upload vignette : ' + (err.message || err), 'err', 5000);
+      card.classList.remove('uploading');
+    } finally {
+      e.target.value = ''; /* reset input pour permettre re-upload du même fichier */
+    }
+  }
+
+  async function onVariantThumbRemove(vIdx) {
+    const id = getProductId();
+    if (!id) return;
+    const sb = getSb();
+    if (!sb) return;
+    if (!confirm(`Retirer la vignette de cette variante ?\n\nL'image sera supprimée du stockage et la référence vidée.`)) return;
+
+    const card = document.querySelector(`.ed-variant-card[data-idx="${vIdx}"]`);
+    if (card) card.classList.add('uploading');
+
+    try {
+      const p = getProduct(id);
+      const currentColors = Array.isArray(p.colors) ? p.colors : [];
+      const currentUrl = currentColors[vIdx]?.texture
+                     || currentColors[vIdx]?.swatch_url
+                     || currentColors[vIdx]?.swatch
+                     || currentColors[vIdx]?.image
+                     || '';
+
+      /* Tente de supprimer du Storage (best effort — extraction du path) */
+      if (currentUrl) {
+        const m = currentUrl.match(/\/object\/public\/[^/]+\/(.+?)(\?|$)/);
+        if (m && m[1]) {
+          try { await sb.storage.from(bucket()).remove([m[1]]); } catch (_) {}
+        }
+      }
+
+      /* Update DB : vide texture (et fallbacks) */
+      const newColors = JSON.parse(JSON.stringify(currentColors));
+      if (newColors[vIdx]) {
+        newColors[vIdx].texture = null;
+        if ('swatch_url' in newColors[vIdx]) newColors[vIdx].swatch_url = null;
+        if ('swatch' in newColors[vIdx]) newColors[vIdx].swatch = null;
+        if ('image' in newColors[vIdx]) newColors[vIdx].image = null;
+      }
+      const { error: dbErr } = await sb.from('products').update({ colors: newColors }).eq('id', id);
+      if (dbErr) throw dbErr;
+
+      p.colors = newColors;
+      toast('Vignette retirée ✓', 'ok');
+      refreshVariantThumbs(id);
+      if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+    } catch (err) {
+      console.error('[admin v34.5] remove vignette variante échec', err);
+      toast('Erreur suppression : ' + (err.message || err), 'err', 5000);
+      if (card) card.classList.remove('uploading');
     }
   }
 })();
