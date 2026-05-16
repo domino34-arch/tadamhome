@@ -22767,6 +22767,288 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v69.1 — MODE CATALOGUE STUDIO · UI panneau (placeholder)
+   ─────────────────────────────────────────────────────────────────────────
+   Première brique du chantier v69 (catalogue intégré au studio).
+   
+   Périmètre v69.1 (minimal, pour valider l'approche) :
+   - Détection du mode au boot via URL
+     * /studio/catalogue → mode browse
+     * /studio?catalogue=1 → mode browse (fallback sans routing serveur)
+     * /studio?id=XXX → mode édition (intact)
+   - Pose window._studioMode = 'browse' | 'edit'
+   - En mode browse : court-circuit léger de la persistance (bloque
+     _v68.persist pour éviter pushes accidentels)
+   - Injection d'un panneau catalogue à droite, même largeur que le
+     panneau matériau existant, avec :
+     * Header "CATALOGUE" + bouton fermer
+     * Recherche (cosmétique pour l'instant)
+     * Filtres catégorie (FAUTEUIL/CHAISE/CANAPÉ) cliquables
+     * Filtre marque alphabet
+     * Placeholder de liste vide avec message "Chargement…"
+   - Bouton "CATALOGUE" en topbar pour toggler panel (visible par défaut
+     en mode browse)
+   
+   À venir en v69.2 :
+   - Fetch des produits Supabase
+   - Render réel de la liste
+   - Filtres fonctionnels
+   - Click → load produit dans viewer
+   
+   À venir en v69.4 :
+   - Bouton "Ouvrir en édition" pour bascule in-place
+   ════════════════════════════════════════════════════════════════════════ */
+(function v69_1Init() {
+  if (window.__v69_1Init) return;
+  window.__v69_1Init = true;
+
+  /* ───── 1. Détection du mode ───── */
+  const url = new URL(window.location.href);
+  const pathCatalogue = url.pathname.replace(/\/+$/, '').endsWith('/studio/catalogue');
+  const paramCatalogue = url.searchParams.get('catalogue') === '1';
+  const hasId = !!url.searchParams.get('id');
+
+  /* Mode browse si URL catalogue explicite ET pas d'id, ou si /studio nu */
+  const isBrowseMode = (pathCatalogue || paramCatalogue) && !hasId;
+  window._studioMode = isBrowseMode ? 'browse' : 'edit';
+
+  console.log('[studio v69.1] mode détecté :', window._studioMode);
+
+  if (!isBrowseMode) {
+    /* Mode édition : v69 reste passif, le studio tourne normalement */
+    console.log('[v69.1] mode édition actif, panneau catalogue désactivé');
+    return;
+  }
+
+  /* ───── 2. Court-circuit léger de la persistance ───── */
+  /* En mode browse, on bloque _v68.persist pour éviter qu'un clic
+     accidentel pousse des données arbitraires sur un produit aléatoire. */
+  const blockPersist = () => {
+    if (window._v68 && window._v68.persist) {
+      const origPersist = window._v68.persist;
+      window._v68.persist = async function blockedInBrowse() {
+        console.warn('[v69.1] _v68.persist bloqué en mode browse');
+        if (typeof toast === 'function') {
+          toast('Persistance désactivée en mode consultation', 'info', 3000);
+        }
+        return false;
+      };
+      window._v68._origPersist = origPersist;
+    }
+  };
+  /* Le court-circuit tente plusieurs fois si _v68 n'est pas encore prêt */
+  blockPersist();
+  setTimeout(blockPersist, 1000);
+  setTimeout(blockPersist, 3000);
+
+  /* ───── 3. CSS pour le panneau catalogue ───── */
+  const css = `
+    #v69-catalogue-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 380px;
+      background: #EDEAE4;
+      border-left: 1px solid #d4cfc4;
+      box-shadow: -2px 0 12px rgba(0,0,0,0.06);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Jost', sans-serif;
+      color: #1a1a1a;
+      transform: translateX(0);
+      transition: transform 0.28s ease;
+    }
+    #v69-catalogue-panel.hidden {
+      transform: translateX(100%);
+    }
+    #v69-panel-header {
+      padding: 20px 24px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid #d4cfc4;
+    }
+    #v69-panel-header h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 400;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+    #v69-panel-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #6b6358;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    #v69-panel-close:hover { color: #1a1a1a; }
+    #v69-search-bar {
+      padding: 14px 24px;
+      border-bottom: 1px solid #e5e0d4;
+    }
+    #v69-search-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #fff;
+      border: 1px solid #d4cfc4;
+      border-radius: 0;
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      outline: none;
+      box-sizing: border-box;
+    }
+    #v69-search-input:focus {
+      border-color: #B8965A;
+    }
+    #v69-filters {
+      padding: 14px 24px;
+      border-bottom: 1px solid #e5e0d4;
+    }
+    #v69-filters .filter-label {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: #6b6358;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .v69-pill {
+      display: inline-block;
+      padding: 6px 12px;
+      margin: 0 6px 6px 0;
+      background: transparent;
+      border: 1px solid #d4cfc4;
+      cursor: pointer;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      color: #1a1a1a;
+    }
+    .v69-pill:hover { border-color: #B8965A; }
+    .v69-pill.active {
+      background: #B8965A;
+      border-color: #B8965A;
+      color: #fff;
+    }
+    #v69-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 24px 24px;
+    }
+    #v69-placeholder {
+      font-size: 13px;
+      color: #6b6358;
+      text-align: center;
+      padding: 40px 16px;
+      font-style: italic;
+    }
+    #v69-toggle-btn {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 999;
+      background: #B8965A;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      cursor: pointer;
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display: none;
+    }
+    #v69-toggle-btn.visible { display: block; }
+    #v69-toggle-btn:hover { background: #cca766; }
+    /* Quand le panneau est ouvert, on cache le panneau matériau natif
+       du studio pour éviter le chevauchement */
+    body.v69-browse-active [class*="right-panel"],
+    body.v69-browse-active [class*="rightPanel"] {
+      /* Note : sélecteurs génériques, peuvent ne rien cibler ; à affiner */
+    }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.id = 'v69-styles';
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  /* ───── 4. Construction du panneau ───── */
+  function buildPanel() {
+    if (document.querySelector('#v69-catalogue-panel')) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'v69-catalogue-panel';
+    panel.innerHTML = `
+      <div id="v69-panel-header">
+        <h2>Catalogue</h2>
+        <button id="v69-panel-close" title="Fermer le catalogue">×</button>
+      </div>
+      <div id="v69-search-bar">
+        <input id="v69-search-input" type="text" placeholder="Rechercher un meuble, une marque…" autocomplete="off" />
+      </div>
+      <div id="v69-filters">
+        <div class="filter-label">Catégorie</div>
+        <div id="v69-cat-pills">
+          <button class="v69-pill active" data-cat="all">Tous</button>
+          <button class="v69-pill" data-cat="Fauteuil">Fauteuil</button>
+          <button class="v69-pill" data-cat="Chaise">Chaise</button>
+          <button class="v69-pill" data-cat="Canapé">Canapé</button>
+        </div>
+      </div>
+      <div id="v69-list-container">
+        <div id="v69-placeholder">Chargement du catalogue…<br><br>(v69.2 ajoutera les produits)</div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+
+    /* Bouton toggle externe (apparaît quand le panneau est fermé) */
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'v69-toggle-btn';
+    toggleBtn.textContent = 'CATALOGUE';
+    document.body.appendChild(toggleBtn);
+
+    /* Handlers */
+    panel.querySelector('#v69-panel-close').addEventListener('click', () => {
+      panel.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    });
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    });
+    panel.querySelectorAll('.v69-pill').forEach(p => {
+      p.addEventListener('click', () => {
+        panel.querySelectorAll('.v69-pill').forEach(b => b.classList.remove('active'));
+        p.classList.add('active');
+        console.log('[v69.1] filtre catégorie :', p.dataset.cat);
+        /* TODO v69.2 : filtrer la liste */
+      });
+    });
+    panel.querySelector('#v69-search-input').addEventListener('input', (e) => {
+      console.log('[v69.1] recherche :', e.target.value);
+      /* TODO v69.2 : filtrer la liste */
+    });
+
+    document.body.classList.add('v69-browse-active');
+    console.log('[v69.1] panneau catalogue injecté ✓');
+  }
+
+  /* Wait que le DOM soit prêt, le studio met du temps à monter */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildPanel);
+  } else {
+    buildPanel();
+  }
+
+  console.log('[studio v69.1] mode catalogue actif · UI panneau (placeholder) ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
