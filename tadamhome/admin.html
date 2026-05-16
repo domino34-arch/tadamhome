@@ -887,6 +887,7 @@ h1, h2, h3, h4,
 
 <!-- Modals injectées plus bas par modals.js inline -->
 
+
 <!-- ════════════════════════════════════════════════════════════════════════
      v51 — Génération de sphères PBR côté client
      Expose window.generateSphereThumbnail(maps) qui retourne un Blob PNG
@@ -1265,6 +1266,7 @@ h1, h2, h3, h4,
   console.log('[admin v56] startMaterialPreview prêt ✓');
 </script>
 
+
 <script>
 /* ══════════════════════════════════════════════════════════════════ */
 /* ══ CONFIG & STATE ════════════════════════════════════════════════ */
@@ -1628,7 +1630,10 @@ function renderMaterialsGrid(){
 function openNewMaterial(presetCategory){
   openMaterialModal(null, presetCategory);
 }
+</script>
 
+
+<script>
 /* ══════════════════════════════════════════════════════════════════
    MATERIAL MODAL : création + édition complète
    Bucket Supabase : models / path : materials-library/{id}/...
@@ -2541,7 +2546,10 @@ async function removeMap(mapKey, slotDiv){
   slotDiv.replaceWith(buildMapSlot(field, ''));
   toast('Map retirée','ok');
 }
+</script>
 
+
+<script>
 function openMaterialModal(materialId, presetCategory, duplicateMode){
   injectMaterialModal();
   /* En mode duplication : on est en CRÉATION mais on hérite des URLs et
@@ -3245,7 +3253,10 @@ async function saveMeshyProduct(nom,marque){
   toast('✓ '+nom+' généré et sauvegardé','ok');
   loadProducts(); showPanel('catalogue');
 }
+</script>
 
+
+<script>
 /* ══ CONFIRM MODAL injection ══ */
 document.addEventListener('DOMContentLoaded',()=>{
   if(document.getElementById('confirmModal')) return;
@@ -3513,6 +3524,515 @@ document.addEventListener('keydown', (e) => {
     if(em && em.classList.contains('show')) closeEditModal();
   }
 });
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- ADMIN v34.2 — Patch inline : upload fichiers 3D (GLB/OBJ/USDZ) + photo  -->
+<!-- de couverture dans la modal "Éditer le produit". Auto-exécuté (IIFE).  -->
+<!-- Idempotent (flag __adminProductFilesV1) — safe à charger plusieurs fois. -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   admin v34.2 — UPLOAD FICHIERS 3D + PHOTO DANS LA MODAL ÉDITION
+   ─────────────────────────────────────────────────────────────────────────
+   Ajoute à la modal editProductModal :
+   - 3 drop zones GLB / OBJ / USDZ avec upload instantané vers Supabase
+   - 1 drop zone photo de couverture (cover_url / image_url / thumbnail_url)
+   - Affichage de l'état actuel des fichiers (présent ✓ ou vide)
+   - Bouton ✕ pour retirer un fichier
+   
+   OBJ uploadé vers le path attendu par le studio v68.6 :
+     models/obj-sources/{productId}/source.obj
+   Donc à partir du moment où l'OBJ est uploadé pour un produit, ce produit
+   devient automatiquement éditable dans le studio (et chargeable depuis
+   v69.8 du catalogue intégré).
+   
+   GLB / USDZ : uploadés vers models/{type}/{productId}/model.{ext} pour
+   éviter les collisions et organiser proprement par produit.
+   
+   Photo : uploadée vers models/product-photos/{productId}/cover.jpg
+   (compressée à 1200px max + 0.85 qualité pour rester légère).
+   
+   À COLLER : juste avant </script></body></html> à la fin de admin.html.
+   Aucune autre modification du fichier nécessaire.
+   ════════════════════════════════════════════════════════════════════════ */
+(function adminProductFilesV1() {
+  if (window.__adminProductFilesV1) return;
+  window.__adminProductFilesV1 = true;
+
+  /* ───── 1. Attend que la modal originale soit injectée ───── */
+  function whenReady(test, cb, max) {
+    let n = 0;
+    const t = setInterval(() => {
+      if (test()) { clearInterval(t); cb(); return; }
+      if (++n > (max || 60)) clearInterval(t);
+    }, 200);
+    if (test()) { clearInterval(t); cb(); }
+  }
+
+  whenReady(
+    () => document.getElementById('editProductModal') && typeof window.openEditModal === 'function',
+    init
+  );
+
+  function init() {
+    injectStyles();
+    enrichModal();
+    monkeyPatchOpenEditModal();
+    console.log('[admin v34.2] modal édition enrichie : upload GLB/OBJ/USDZ + photo ✓');
+  }
+
+  /* ───── 2. Styles ───── */
+  function injectStyles() {
+    if (document.getElementById('admin-files-styles')) return;
+    const css = document.createElement('style');
+    css.id = 'admin-files-styles';
+    css.textContent = `
+      .ed-files-grid {
+        display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+      }
+      @media (max-width: 700px) {
+        .ed-files-grid { grid-template-columns: 1fr; }
+      }
+      .ed-file-zone {
+        position: relative; border: 1px dashed rgba(184,152,106,0.35);
+        background: var(--bg); padding: 16px 12px; cursor: pointer;
+        transition: all .2s; display: flex; flex-direction: column;
+        align-items: center; gap: 6px; min-height: 110px;
+      }
+      .ed-file-zone:hover { border-color: var(--accent); background: rgba(184,152,106,0.04); }
+      .ed-file-zone.has-file { border-style: solid; border-color: rgba(39,112,74,0.4); background: rgba(39,112,74,0.03); }
+      .ed-file-zone input[type="file"] {
+        position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 1;
+      }
+      .ed-file-format {
+        font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600;
+        letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase;
+      }
+      .ed-file-format .req { opacity: 0.55; font-weight: 400; font-size: 9px; margin-left: 4px; }
+      .ed-file-status {
+        font-family: var(--sans); font-size: 11px; color: var(--muted);
+        font-style: italic; text-align: center; line-height: 1.4;
+        word-break: break-word; max-width: 100%;
+      }
+      .ed-file-zone.has-file .ed-file-status { color: var(--green); font-style: normal; font-weight: 500; }
+      .ed-file-progress {
+        height: 2px; background: rgba(184,152,106,0.15); width: 100%;
+        position: relative; overflow: hidden; display: none;
+      }
+      .ed-file-zone.uploading .ed-file-progress { display: block; }
+      .ed-file-bar {
+        position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent);
+        width: 0; transition: width .3s; animation: edPulse 1.2s ease-in-out infinite;
+      }
+      @keyframes edPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      .ed-file-remove {
+        position: absolute; top: 5px; right: 5px; z-index: 2;
+        width: 22px; height: 22px; background: rgba(28,27,24,0.75); color: #fff;
+        border: none; cursor: pointer; font-size: 13px; line-height: 1;
+        display: none; align-items: center; justify-content: center;
+      }
+      .ed-file-zone.has-file .ed-file-remove { display: flex; }
+      .ed-file-remove:hover { background: var(--red); }
+      .ed-file-link {
+        font-family: var(--sans); font-size: 10px; color: var(--accent);
+        text-decoration: underline; opacity: 0.7;
+      }
+      .ed-file-link:hover { opacity: 1; }
+
+      .ed-photo-row { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: stretch; }
+      .ed-photo-preview {
+        width: 120px; height: 90px; background: var(--bg) center/cover no-repeat;
+        border: 1px solid var(--border); position: relative; flex-shrink: 0;
+      }
+      .ed-photo-preview.empty {
+        display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-family: var(--sans); font-size: 10px;
+        letter-spacing: 0.1em; text-transform: uppercase; font-style: italic;
+        background: repeating-linear-gradient(45deg, var(--bg), var(--bg) 8px, rgba(184,152,106,0.04) 8px, rgba(184,152,106,0.04) 16px);
+      }
+      .ed-photo-zone {
+        position: relative; border: 1px dashed rgba(184,152,106,0.35);
+        background: var(--bg); padding: 14px 16px; cursor: pointer;
+        display: flex; flex-direction: column; justify-content: center;
+        gap: 4px; transition: all .2s;
+      }
+      .ed-photo-zone:hover { border-color: var(--accent); background: rgba(184,152,106,0.04); }
+      .ed-photo-zone input[type="file"] {
+        position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      }
+      .ed-photo-zone .ed-photo-title {
+        font-family: var(--sans); font-size: 11px; font-weight: 500;
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+      }
+      .ed-photo-zone .ed-photo-sub {
+        font-family: var(--sans); font-size: 11px; color: var(--muted);
+        font-style: italic; line-height: 1.4;
+      }
+    `;
+    document.head.appendChild(css);
+  }
+
+  /* ───── 3. Enrichit le HTML de la modal ───── */
+  function enrichModal() {
+    const modal = document.getElementById('editProductModal');
+    if (!modal) return;
+    const body = modal.querySelector('.modal-body');
+    if (!body) return;
+    if (body.querySelector('#edFilesSection')) return; /* déjà fait */
+
+    /* On insère AVANT la section "Statut de publication" pour conserver
+       l'ordre logique : identité → classification → dimensions → fichiers → statut */
+    const statusSection = Array.from(body.querySelectorAll('.modal-section'))
+      .find(s => {
+        const title = s.querySelector('.modal-section-title');
+        return title && /statut/i.test(title.textContent);
+      });
+
+    const filesSection = document.createElement('div');
+    filesSection.className = 'modal-section';
+    filesSection.id = 'edFilesSection';
+    filesSection.innerHTML = `
+      <div class="modal-section-title">Fichiers 3D</div>
+      <p style="font-family:var(--sans);font-size:11px;color:var(--muted);margin-bottom:12px;font-style:italic;line-height:1.5">
+        L'OBJ est nécessaire pour éditer le modèle dans le studio.<br>
+        GLB sert à l'AR Android / Web. USDZ sert à l'AR iOS Safari.
+      </p>
+      <div class="ed-files-grid">
+        <div class="ed-file-zone" data-fmt="glb">
+          <button class="ed-file-remove" type="button" title="Retirer">×</button>
+          <input type="file" accept=".glb,.gltf" data-fmt="glb">
+          <span class="ed-file-format">GLB <span class="req">AR Web</span></span>
+          <span class="ed-file-status">Cliquer pour ajouter</span>
+          <div class="ed-file-progress"><div class="ed-file-bar"></div></div>
+        </div>
+        <div class="ed-file-zone" data-fmt="obj">
+          <button class="ed-file-remove" type="button" title="Retirer">×</button>
+          <input type="file" accept=".obj" data-fmt="obj">
+          <span class="ed-file-format">OBJ <span class="req">Studio</span></span>
+          <span class="ed-file-status">Cliquer pour ajouter</span>
+          <div class="ed-file-progress"><div class="ed-file-bar"></div></div>
+        </div>
+        <div class="ed-file-zone" data-fmt="usdz">
+          <button class="ed-file-remove" type="button" title="Retirer">×</button>
+          <input type="file" accept=".usdz" data-fmt="usdz">
+          <span class="ed-file-format">USDZ <span class="req">AR iOS</span></span>
+          <span class="ed-file-status">Cliquer pour ajouter</span>
+          <div class="ed-file-progress"><div class="ed-file-bar"></div></div>
+        </div>
+      </div>
+    `;
+
+    const photoSection = document.createElement('div');
+    photoSection.className = 'modal-section';
+    photoSection.id = 'edPhotoSection';
+    photoSection.innerHTML = `
+      <div class="modal-section-title">Photo de couverture</div>
+      <div class="ed-photo-row">
+        <div class="ed-photo-preview empty" id="edPhotoPreview">Aucune photo</div>
+        <div class="ed-photo-zone" id="edPhotoZone">
+          <input type="file" accept="image/*">
+          <span class="ed-photo-title">Glisser ou cliquer pour téléverser</span>
+          <span class="ed-photo-sub">JPG / PNG / WebP — compressé à 1200px max, ~0.85 qualité</span>
+        </div>
+      </div>
+    `;
+
+    if (statusSection) {
+      body.insertBefore(filesSection, statusSection);
+      body.insertBefore(photoSection, statusSection);
+    } else {
+      body.appendChild(filesSection);
+      body.appendChild(photoSection);
+    }
+
+    /* Wire handlers */
+    filesSection.querySelectorAll('input[type="file"][data-fmt]').forEach(inp => {
+      inp.addEventListener('change', (e) => onFileSelected(e, inp.dataset.fmt));
+    });
+    filesSection.querySelectorAll('.ed-file-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const zone = btn.closest('.ed-file-zone');
+        onFileRemove(zone.dataset.fmt);
+      });
+    });
+    photoSection.querySelector('input[type="file"]').addEventListener('change', onPhotoSelected);
+  }
+
+  /* ───── 4. Helpers ───── */
+  function getSb() {
+    if (typeof window.sb !== 'undefined' && window.sb && typeof window.sb.from === 'function') return window.sb;
+    return null;
+  }
+  function getProductId() {
+    return document.getElementById('edProductId')?.value || null;
+  }
+  function getProduct(id) {
+    return (window.allProducts || []).find(p => p.id === id);
+  }
+  function bucket() { return 'models'; }
+  function publicUrl(path) {
+    const { data } = getSb().storage.from(bucket()).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  /* Map format → config DB + path Storage */
+  const FORMAT_CONFIG = {
+    glb:  { dbField: 'model_glb_url',  path: (id) => `glb-models/${id}/model.glb`,        mime: 'model/gltf-binary' },
+    obj:  { dbField: 'model_obj_url',  path: (id) => `obj-sources/${id}/source.obj`,      mime: 'text/plain' },
+    usdz: { dbField: 'model_usdz_url', path: (id) => `usdz-models/${id}/model.usdz`,      mime: 'model/vnd.usdz+zip' },
+  };
+
+  /* ───── 5. Upload fichier 3D ───── */
+  async function onFileSelected(e, fmt) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const id = getProductId();
+    if (!id) { toast('Sauvegarde du produit d\'abord avant d\'uploader des fichiers', 'err'); return; }
+    const sb = getSb();
+    if (!sb) { toast('Client Supabase indisponible', 'err'); return; }
+
+    const conf = FORMAT_CONFIG[fmt];
+    if (!conf) return;
+
+    const zone = document.querySelector(`.ed-file-zone[data-fmt="${fmt}"]`);
+    const status = zone.querySelector('.ed-file-status');
+    const bar = zone.querySelector('.ed-file-bar');
+
+    zone.classList.add('uploading');
+    zone.classList.remove('has-file');
+    status.textContent = 'Upload…';
+    bar.style.width = '40%';
+
+    try {
+      const path = conf.path(id);
+      const { error: upErr } = await sb.storage
+        .from(bucket())
+        .upload(path, file, { upsert: true, contentType: conf.mime, cacheControl: '31536000' });
+      if (upErr) throw upErr;
+
+      bar.style.width = '80%';
+      const url = publicUrl(path) + '?v=' + Date.now();
+
+      /* Update DB. Fallback gracieux si la colonne n'existe pas (cas
+         de model_obj_url qui peut manquer) → le fichier est sur le
+         Storage et le studio le retrouvera par convention de path. */
+      const payload = {}; payload[conf.dbField] = url;
+      const { error: dbErr } = await sb.from('products').update(payload).eq('id', id);
+
+      if (dbErr) {
+        if (/column.*does not exist|schema cache|could not find/i.test(dbErr.message || '')) {
+          console.warn(`[admin v34.2] colonne ${conf.dbField} absente en DB — fichier uploadé sur Storage uniquement.`, dbErr.message);
+          status.innerHTML = `Uploadé ✓<br><small style="opacity:.7;font-style:italic">⚠ Colonne ${conf.dbField} absente en DB</small>`;
+          toast(`${fmt.toUpperCase()} uploadé · à ajouter ${conf.dbField} en DB pour le lier`, 'info', 5000);
+        } else {
+          throw dbErr;
+        }
+      } else {
+        status.innerHTML = `<strong>${file.name}</strong><br><a class="ed-file-link" href="${url}" target="_blank">Voir le fichier</a>`;
+        toast(`${fmt.toUpperCase()} mis à jour`, 'ok');
+        /* Mirror en mémoire */
+        const p = getProduct(id);
+        if (p) p[conf.dbField] = url;
+      }
+
+      bar.style.width = '100%';
+      zone.classList.add('has-file');
+      zone.classList.remove('uploading');
+
+      /* Refresh tableau (badges GLB/USDZ) */
+      if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+    } catch (err) {
+      console.error(`[admin v34.2] upload ${fmt} échec`, err);
+      zone.classList.remove('uploading', 'has-file');
+      status.textContent = '✗ ' + (err.message || err);
+      toast(`Erreur upload ${fmt} : ${err.message || err}`, 'err', 5000);
+    } finally {
+      e.target.value = ''; /* reset input pour permettre re-upload du même fichier */
+    }
+  }
+
+  async function onFileRemove(fmt) {
+    const id = getProductId();
+    if (!id) return;
+    const sb = getSb();
+    if (!sb) return;
+    const conf = FORMAT_CONFIG[fmt];
+    if (!conf) return;
+
+    if (!confirm(`Retirer le fichier ${fmt.toUpperCase()} ?\n\nLe fichier sera supprimé du stockage et la référence en base sera vidée.`)) return;
+
+    const zone = document.querySelector(`.ed-file-zone[data-fmt="${fmt}"]`);
+    const status = zone.querySelector('.ed-file-status');
+    status.textContent = 'Suppression…';
+
+    try {
+      const path = conf.path(id);
+      /* Supprime le fichier (ignore l'erreur si pas trouvé) */
+      try { await sb.storage.from(bucket()).remove([path]); } catch (_) {}
+
+      /* Update DB : passe l'URL à null */
+      const payload = {}; payload[conf.dbField] = null;
+      const { error: dbErr } = await sb.from('products').update(payload).eq('id', id);
+      if (dbErr && !/column.*does not exist|schema cache|could not find/i.test(dbErr.message || '')) {
+        throw dbErr;
+      }
+
+      const p = getProduct(id);
+      if (p) p[conf.dbField] = null;
+
+      zone.classList.remove('has-file');
+      status.textContent = 'Cliquer pour ajouter';
+      toast(`${fmt.toUpperCase()} retiré`, 'ok');
+      if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+    } catch (err) {
+      console.error('[admin v34.2] remove échec', err);
+      status.textContent = '✗ ' + (err.message || err);
+      toast('Erreur suppression : ' + (err.message || err), 'err');
+    }
+  }
+
+  /* ───── 6. Upload photo de couverture ───── */
+  async function compressImage(file, maxSize, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const w0 = img.naturalWidth, h0 = img.naturalHeight;
+        const ratio = Math.min(maxSize / w0, maxSize / h0, 1);
+        const w = Math.max(1, Math.round(w0 * ratio));
+        const h = Math.max(1, Math.round(h0 * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+      img.src = url;
+    });
+  }
+
+  async function onPhotoSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const id = getProductId();
+    if (!id) { toast('Sauvegarde du produit d\'abord', 'err'); return; }
+    const sb = getSb();
+    if (!sb) return;
+
+    const preview = document.getElementById('edPhotoPreview');
+    const zone = document.getElementById('edPhotoZone');
+    const title = zone.querySelector('.ed-photo-title');
+    const originalTitle = title.textContent;
+
+    title.textContent = 'Compression…';
+    try {
+      const blob = await compressImage(file, 1200, 0.85);
+      title.textContent = 'Upload…';
+
+      const path = `product-photos/${id}/cover-${Date.now()}.jpg`;
+      const { error: upErr } = await sb.storage.from(bucket()).upload(path, blob, {
+        upsert: true, contentType: 'image/jpeg', cacheControl: '31536000'
+      });
+      if (upErr) throw upErr;
+      const url = publicUrl(path) + '?v=' + Date.now();
+
+      /* Détecte quelle colonne photo existe (cover_url / image_url / thumbnail_url) */
+      const p = getProduct(id);
+      const photoFields = ['cover_url', 'image_url', 'thumbnail_url', 'photo_url'];
+      let savedField = null;
+      for (const f of photoFields) {
+        if (p && f in p) { savedField = f; break; }
+      }
+      if (!savedField) savedField = 'image_url'; /* default */
+
+      const payload = {}; payload[savedField] = url;
+      const { error: dbErr } = await sb.from('products').update(payload).eq('id', id);
+      if (dbErr) {
+        /* Si la colonne par défaut n'existe pas, on essaie les autres */
+        let saved = false;
+        if (/column.*does not exist|schema cache/i.test(dbErr.message || '')) {
+          for (const f of photoFields) {
+            if (f === savedField) continue;
+            const altPayload = {}; altPayload[f] = url;
+            const { error: e2 } = await sb.from('products').update(altPayload).eq('id', id);
+            if (!e2) { savedField = f; saved = true; break; }
+          }
+        }
+        if (!saved) {
+          console.warn('[admin v34.2] aucune colonne photo trouvée — photo uploadée mais non liée');
+          toast('Photo uploadée mais aucune colonne photo en DB', 'info', 5000);
+        }
+      }
+
+      preview.classList.remove('empty');
+      preview.textContent = '';
+      preview.style.backgroundImage = `url(${url})`;
+      title.textContent = '✓ Photo mise à jour';
+      setTimeout(() => { title.textContent = originalTitle; }, 2500);
+
+      if (p) p[savedField] = url;
+      toast('Photo mise à jour', 'ok');
+      if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+    } catch (err) {
+      console.error('[admin v34.2] photo échec', err);
+      title.textContent = '✗ ' + (err.message || err);
+      toast('Erreur photo : ' + (err.message || err), 'err');
+    } finally {
+      e.target.value = '';
+    }
+  }
+
+  /* ───── 7. Hook openEditModal pour afficher l'état initial ───── */
+  function monkeyPatchOpenEditModal() {
+    const origOpen = window.openEditModal;
+    window.openEditModal = function(id) {
+      const result = origOpen.apply(this, arguments);
+      /* Refresh l'état des zones fichiers après l'ouverture */
+      setTimeout(() => refreshFileZones(id), 50);
+      return result;
+    };
+  }
+
+  function refreshFileZones(id) {
+    const p = getProduct(id);
+    if (!p) return;
+
+    /* Pour chaque format, check si une URL est présente */
+    Object.entries(FORMAT_CONFIG).forEach(([fmt, conf]) => {
+      const zone = document.querySelector(`.ed-file-zone[data-fmt="${fmt}"]`);
+      if (!zone) return;
+      const status = zone.querySelector('.ed-file-status');
+      const url = p[conf.dbField];
+      if (url) {
+        zone.classList.add('has-file');
+        const filename = url.split('/').pop().split('?')[0];
+        status.innerHTML = `<strong>Présent ✓</strong><br><a class="ed-file-link" href="${url}" target="_blank">${filename.length > 30 ? filename.slice(0, 27) + '…' : filename}</a>`;
+      } else {
+        zone.classList.remove('has-file');
+        status.textContent = 'Cliquer pour ajouter';
+      }
+    });
+
+    /* Photo */
+    const preview = document.getElementById('edPhotoPreview');
+    if (preview) {
+      const photoUrl = p.cover_url || p.image_url || p.thumbnail_url || p.photo_url;
+      if (photoUrl) {
+        preview.classList.remove('empty');
+        preview.textContent = '';
+        preview.style.backgroundImage = `url(${photoUrl})`;
+      } else {
+        preview.classList.add('empty');
+        preview.textContent = 'Aucune photo';
+        preview.style.backgroundImage = '';
+      }
+    }
+  }
+})();
+
 </script>
 
 </body>
