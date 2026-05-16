@@ -23427,20 +23427,21 @@ console.log('[studio v3] prêt');
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     v69.15 — Visibilité globale + ajustements UX :
-     • height: 100dvh (au lieu de 100vh) → respecte la barre d'outils Safari iPad
-       → bottombar et bouton "Voir en RA" toujours visibles
-     • Label "Catégorie" du panneau catalogue masqué (inutile, desktop + iPad)
-     • Bouton AR de la topbar masqué (redondant avec celui du panneau Matériau)
-     • Color picker : flag cpDragGuard pour empêcher la fermeture parasite
-       après un drag (iOS Safari génère un click synthétique au touchend)
-     • Color picker iPad plus compact (300px max, SV aspect 2:1)
-     • v69.14 conservé : bottombar scroll-x, color picker custom, etc.
+     v69.16 — Affinements UX :
+     • Bouton "Voir en RA" relocé au body en position:fixed, aligné haut avec
+       bottombar (right:0, bottom:0, width:--mat-w, height:--bottombar-h)
+       → reste visible même quand catalogue ouvert (échappe au masquage v69)
+     • admin-panel : height 100dvh pour respecter la barre Safari iPad
+       (le bas du panneau "Paramètres" était sous l'écran)
+     • Color picker : drag guard 400→600ms + stopPropagation des touch events
+       sur le panel (évite que iOS Safari remonte au backdrop et ferme)
+     • v69.15 conservé : 100dvh global, label Catégorie masqué, bouton AR
+       topbar masqué, color picker compact iPad
      ════════════════════════════════════════════════════════════════════ -->
 <script>
-(function ipadUx_v69_15() {
-  if (window.__v6915) return;
-  window.__v6915 = true;
+(function ipadUx_v69_16() {
+  if (window.__v6916) return;
+  window.__v6916 = true;
 
   /* ───── 1. CSS injecté (iPad UX) ───── */
   const cssIpad = `
@@ -23454,11 +23455,48 @@ console.log('[studio v3] prêt');
       height: 100vh;
       height: 100dvh;
     }
+    /* v69.16 — admin-panel (s'ouvre depuis le burger nav-rail) : 100dvh pour
+       que le bas reste visible avec la barre Safari iPad */
+    .admin-panel {
+      height: 100vh !important;
+      height: 100dvh !important;
+    }
     /* Masquer le label "Catégorie" du panneau catalogue (desktop + iPad — inutile) */
     #v69-cat-content > .v69-label { display: none !important; }
     /* Masquer le bouton AR de la topbar (redondant avec le bouton "Voir en RA"
        dans le panneau Matériau de droite) */
     .v50-ar-btn { display: none !important; }
+
+    /* === v69.16 — Bouton "Voir en réalité augmentée" : position fixed alignée bottombar ===
+       Sorti du contentContainer (par JS) et positionné en fixed : il reste
+       visible même quand le catalogue est ouvert (v69 masque les nativeChildren
+       du contentContainer, mais ce bouton est désormais au niveau body). */
+    #v50ARBtnRP {
+      position: fixed !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: var(--mat-w, 340px) !important;
+      height: var(--bottombar-h, 50px) !important;
+      margin: 0 !important;
+      padding: 0 14px !important;
+      border: none !important;
+      border-radius: 0 !important;
+      z-index: 100 !important;
+      flex-shrink: 0;
+    }
+    /* Si le panneau matériau est masqué (.app.mat-hidden), le bouton AR aussi */
+    .app.mat-hidden ~ #v50ARBtnRP,
+    body:has(.app.mat-hidden) #v50ARBtnRP {
+      display: none !important;
+    }
+    /* Loader / désactivé */
+    #v50ARBtnRP:disabled {
+      background: transparent !important;
+      color: var(--ink-muted, #9C9388) !important;
+      border: 1px dashed var(--line, #D8D2C7) !important;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
 
     /* === iPad : tree-w garde 240px (lisibilité), mat-w légèrement réduit (340) === */
     body.ipad-mode {
@@ -23469,7 +23507,9 @@ console.log('[studio v3] prêt');
     body.ipad-mode .tb-dims {
       display: none !important;
     }
-    /* Bottombar : scroll horizontal en 1 ligne + fade gradient à droite */
+    /* Bottombar : scroll horizontal en 1 ligne + fade gradient à droite
+       v69.16 — Réduire la largeur de la bottombar de --mat-w pour ne pas
+       passer SOUS le bouton "Voir en RA" qui est désormais à droite en fixed */
     body.ipad-mode .bottombar {
       position: relative;
       flex-wrap: nowrap !important;
@@ -23553,6 +23593,27 @@ console.log('[studio v3] prêt');
       }
     }, 100);
   }, true);
+
+  /* ───── v69.16 — Relocaliser le bouton "Voir en RA" au body ─────
+     Le bouton est inséré par le module v50 dans le contentContainer du rightpanel.
+     Quand v69 ouvre le catalogue, il masque les nativeChildren → le bouton AR
+     disparaît. Solution : le déplacer au body et le positionner en fixed.
+     Polling jusqu'à 30s pour attraper le bouton dès sa création. */
+  function relocateARButton() {
+    const btn = document.getElementById('v50ARBtnRP');
+    if (!btn) return false;
+    if (btn.dataset.v6916Relocated === '1') return true;
+    /* Détacher le bouton de son wrapper natif et le placer dans body */
+    document.body.appendChild(btn);
+    btn.dataset.v6916Relocated = '1';
+    return true;
+  }
+  if (!relocateARButton()) {
+    const arPollInterval = setInterval(() => {
+      if (relocateARButton()) clearInterval(arPollInterval);
+    }, 300);
+    setTimeout(() => clearInterval(arPollInterval), 30000);
+  }
 
   /* ════════════════════════════════════════════════════════════════════
      COLOR PICKER CUSTOM — style sombre cohérent avec le panneau catalogue.
@@ -23815,8 +23876,9 @@ console.log('[studio v3] prêt');
     }
     function end() {
       dragging = false;
-      /* Garder le guard actif 400ms pour absorber le click synthétique iOS */
-      setTimeout(() => { cpDragGuard = false; }, 400);
+      /* v69.16 — Garder le guard 600ms (au lieu de 400) pour absorber
+         le click synthétique iOS Safari, même après un drag long */
+      setTimeout(() => { cpDragGuard = false; }, 600);
     }
     el.addEventListener('mousedown', start);
     el.addEventListener('touchstart', start, { passive: false });
@@ -23888,6 +23950,14 @@ console.log('[studio v3] prêt');
   cpModal.addEventListener('touchend', (e) => {
     if (cpDragGuard) e.preventDefault();
   }, { passive: false });
+  /* v69.16 — Le panel (et tout son contenu) absorbe les touch events pour éviter
+     que iOS Safari ne les remonte au backdrop et ferme le picker. */
+  const cpPanel = cpModal.querySelector('.v6914-cp-panel');
+  if (cpPanel) {
+    ['touchstart', 'touchmove', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
+      cpPanel.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
+    });
+  }
 
   /* Expose globalement pour réutilisation */
   window.v6914OpenColorPicker = openPicker;
@@ -23915,7 +23985,7 @@ console.log('[studio v3] prêt');
     });
   }, true);
 
-  console.log('[v69.15] iPad UX + color picker custom ✓ · mode=' +
+  console.log('[v69.16] iPad UX + AR fixed + color picker hardened ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
 })();
