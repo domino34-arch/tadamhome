@@ -22448,6 +22448,325 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._v68.exportAsObj = exportAsObjGroupedYUpToZUp;
   console.log('[studio v68.5] export OBJ Y-up → Z-up (compensation explicite pour v51) ✓');
 })();
+/* ════════════════════════════════════════════════════════════════════════
+   v68.6 — PERSIST RÉÉCRIT (clean) + BOUTON "PERSISTER LA STRUCTURE"
+   ─────────────────────────────────────────────────────────────────────────
+   Bug découvert : v68.2.persist capture `origExportAsObj` à son init, donc
+   les overrides v68.3, v68.4, v68.5 sur window._v68.exportAsObj sont
+   ignorés (code mort). v68.2.persist a toujours appelé l'exportAsObj v68
+   original qui écrit un bloc `o ${mesh.name}` par mesh.
+   
+   Sur Aurea ça marchait par chance (OBJLoader gardait les noms en
+   doublon). Sur LA BENDA B le matching échoue → appliquées: 0.
+   
+   v68.6 = réécriture complète et autonome :
+   - Une seule fonction persistStructure qui regroupe tout
+   - Export OBJ explicite avec UN bloc `o groupKey` par groupe (vertices
+     de tous les meshes du groupe fusionnés)
+   - Rotation Y-up→Z-up CONDITIONNELLE selon studio_state.zUpFixed :
+     * zUpFixed=true (Aurea, modèle Z-up Blender) → rotation appliquée
+       car v51 va re-redresser au reload
+     * zUpFixed=false (LA BENDA B, Y-up natif) → pas de rotation
+   - Bouton "PERSISTER LA STRUCTURE" à côté de AUTO-SEGMENTER
+   ════════════════════════════════════════════════════════════════════════ */
+(function v68_6Fix() {
+  if (window.__v68_6Init) return;
+  window.__v68_6Init = true;
+
+  /* ───── Extraction d'un part depuis un mesh ───── */
+  function extractPartFromMesh(mesh) {
+    const part = {
+      color: '#cccccc', repeatU: 1, repeatV: 1, rotation: 0,
+      metalness: 0, roughness: 0.7, materialId: null,
+      projection: 'uv', aoIntensity: 1, normalScale: 1,
+    };
+    if (!mesh || !mesh.material) return part;
+    const mat = mesh.material;
+    if (mat.color && mat.color.getHexString) part.color = '#' + mat.color.getHexString();
+    if (typeof mat.roughness === 'number') part.roughness = mat.roughness;
+    if (typeof mat.metalness === 'number') part.metalness = mat.metalness;
+    if (mat.userData) {
+      if (mat.userData.materialId) part.materialId = mat.userData.materialId;
+      if (typeof mat.userData.aoIntensity === 'number') part.aoIntensity = mat.userData.aoIntensity;
+      if (typeof mat.userData.normalScale === 'number') part.normalScale = mat.userData.normalScale;
+    }
+    if (mat.map) {
+      if (mat.map.repeat) {
+        if (typeof mat.map.repeat.x === 'number') part.repeatU = mat.map.repeat.x;
+        if (typeof mat.map.repeat.y === 'number') part.repeatV = mat.map.repeat.y;
+      }
+      if (typeof mat.map.rotation === 'number') part.rotation = mat.map.rotation;
+    }
+    return part;
+  }
+
+  /* ───── Export OBJ avec UN bloc o par groupKey (vertices fusionnés) ───── */
+  function exportObjGroupedByMeshGroups(applyZUpRotation) {
+    const lines = [];
+    lines.push('# TadamHome v68.6 export (merged by groupKey)');
+    lines.push('# generated ' + new Date().toISOString());
+    if (applyZUpRotation) lines.push('# rotation Y-up→Z-up appliquée (v51 redressera au reload)');
+    lines.push('');
+
+    const yToZ = applyZUpRotation ? new THREE.Matrix4().makeRotationX(Math.PI / 2) : null;
+    const meshTransform = new THREE.Matrix4();
+
+    let vCount = 0, vnCount = 0, vtCount = 0;
+    let totalMeshes = 0;
+
+    Object.entries(meshGroups).forEach(([groupKey, meshes]) => {
+      if (!meshes || meshes.length === 0) return;
+      lines.push('o ' + groupKey);
+
+      meshes.forEach(mesh => {
+        if (!mesh || !mesh.isMesh || !mesh.geometry) return;
+        mesh.updateMatrixWorld(true);
+
+        const geom = mesh.geometry;
+        const posAttr = geom.attributes.position;
+        if (!posAttr) return;
+        const normAttr = geom.attributes.normal;
+        const uvAttr = geom.attributes.uv;
+        const indexAttr = geom.index;
+
+        if (yToZ) meshTransform.multiplyMatrices(yToZ, mesh.matrixWorld);
+        else meshTransform.copy(mesh.matrixWorld);
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshTransform);
+
+        const tempV = new THREE.Vector3();
+        const tempN = new THREE.Vector3();
+
+        const startV = vCount, startVn = vnCount, startVt = vtCount;
+
+        for (let i = 0; i < posAttr.count; i++) {
+          tempV.fromBufferAttribute(posAttr, i).applyMatrix4(meshTransform);
+          lines.push('v ' + tempV.x.toFixed(6) + ' ' + tempV.y.toFixed(6) + ' ' + tempV.z.toFixed(6));
+          vCount++;
+        }
+        if (normAttr) {
+          for (let i = 0; i < normAttr.count; i++) {
+            tempN.fromBufferAttribute(normAttr, i).applyMatrix3(normalMatrix).normalize();
+            lines.push('vn ' + tempN.x.toFixed(6) + ' ' + tempN.y.toFixed(6) + ' ' + tempN.z.toFixed(6));
+            vnCount++;
+          }
+        }
+        if (uvAttr) {
+          for (let i = 0; i < uvAttr.count; i++) {
+            lines.push('vt ' + uvAttr.getX(i).toFixed(6) + ' ' + uvAttr.getY(i).toFixed(6));
+            vtCount++;
+          }
+        }
+
+        const fmt = (localIdx) => {
+          const v = localIdx + startV + 1;
+          if (uvAttr && normAttr) return v + '/' + (localIdx + startVt + 1) + '/' + (localIdx + startVn + 1);
+          if (normAttr)           return v + '//' + (localIdx + startVn + 1);
+          if (uvAttr)             return v + '/' + (localIdx + startVt + 1);
+          return '' + v;
+        };
+        if (indexAttr) {
+          for (let i = 0; i < indexAttr.count; i += 3) {
+            lines.push('f ' + fmt(indexAttr.getX(i)) + ' ' + fmt(indexAttr.getX(i+1)) + ' ' + fmt(indexAttr.getX(i+2)));
+          }
+        } else {
+          for (let i = 0; i < posAttr.count; i += 3) {
+            lines.push('f ' + fmt(i) + ' ' + fmt(i+1) + ' ' + fmt(i+2));
+          }
+        }
+        totalMeshes++;
+      });
+      lines.push('');
+    });
+
+    console.log('[v68.6] export ·', Object.keys(meshGroups).length, 'blocs o ·', totalMeshes, 'meshes ·', vCount, 'vertices · orientation=' + (applyZUpRotation ? 'Z-up' : 'Y-up'));
+    return lines.join('\n');
+  }
+
+  /* ───── Persist principal ───── */
+  async function persistStructure(opts) {
+    opts = opts || {};
+
+    if (typeof currentObject === 'undefined' || !currentObject) {
+      if (typeof toast === 'function') toast('Aucun modèle chargé', 'err', 3000);
+      console.warn('[v68.6] currentObject absent'); return false;
+    }
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) {
+      if (typeof toast === 'function') toast('Pas de produit cible (mode sandbox ?)', 'err', 3500);
+      console.warn('[v68.6] productId absent'); return false;
+    }
+    if (typeof meshGroups === 'undefined' || !meshGroups) {
+      if (typeof toast === 'function') toast('Lance Auto-segmenter d\'abord', 'err', 3500);
+      console.warn('[v68.6] meshGroups absent'); return false;
+    }
+
+    const groupKeys = Object.keys(meshGroups);
+    if (groupKeys.length === 0) {
+      if (typeof toast === 'function') toast('Aucun groupe à persister', 'err', 3000);
+      console.warn('[v68.6] meshGroups vide'); return false;
+    }
+
+    let totalMeshes = 0;
+    groupKeys.forEach(k => totalMeshes += (meshGroups[k] || []).length);
+    if (totalMeshes < 2 && !opts.force) {
+      if (typeof toast === 'function') toast('Aucune structure à persister', 'info', 3000);
+      console.log('[v68.6] pas de split (' + totalMeshes + ' mesh)'); return false;
+    }
+
+    const row = window._v18.productRow;
+    if (!row) { console.warn('[v68.6] productRow absent'); return false; }
+
+    if (typeof toast === 'function') toast('Sauvegarde de la structure…', 'info', 3500);
+    console.log('[v68.6] persistance ·', groupKeys.length, 'groupes ·', totalMeshes, 'meshes');
+    console.log('[v68.6] groupKeys:', groupKeys);
+
+    /* Décision rotation : zUpFixed → modèle Z-up natif Blender, v51
+       redressera au reload, donc on ré-applique Z-up à l'export */
+    const zUpFixed = !!(row.studio_state && row.studio_state.zUpFixed);
+    console.log('[v68.6] zUpFixed=' + zUpFixed + ' → rotation Y-up→Z-up =', zUpFixed);
+
+    /* Construire newParts (1 entrée par groupKey, depuis le 1er mesh du groupe) */
+    const newParts = {};
+    groupKeys.forEach(groupKey => {
+      const meshes = meshGroups[groupKey];
+      if (!meshes || meshes.length === 0) return;
+      newParts[groupKey] = extractPartFromMesh(meshes[0]);
+    });
+    console.log('[v68.6] nouveau parts:', Object.keys(newParts));
+
+    /* Export OBJ */
+    let objContent;
+    try {
+      objContent = exportObjGroupedByMeshGroups(zUpFixed);
+    } catch (e) {
+      console.error('[v68.6] erreur export OBJ:', e);
+      if (typeof toast === 'function') toast('Échec génération OBJ', 'err', 4000);
+      return false;
+    }
+
+    const blob = new Blob([objContent], { type: 'text/plain; charset=utf-8' });
+    const sizeMo = (blob.size / 1024 / 1024).toFixed(2);
+    console.log('[v68.6] OBJ généré · ' + sizeMo + ' Mo');
+
+    /* Bucket + path Supabase (utilise les helpers de v68 si dispos) */
+    let bucket = 'models';
+    let path = productId + '/source.obj';
+    if (window._v68 && window._v68.findObjUrl && window._v68.parseStorageUrl) {
+      const urlObj = window._v68.findObjUrl(row);
+      if (urlObj) {
+        const parsed = window._v68.parseStorageUrl(urlObj);
+        if (parsed) { bucket = parsed.bucket; path = parsed.path; }
+      }
+    }
+    console.log('[v68.6] storage : bucket="' + bucket + '" path="' + path + '"');
+
+    /* Upload */
+    try {
+      const { error } = await sb.storage.from(bucket).upload(path, blob, {
+        upsert: true, contentType: 'text/plain', cacheControl: '0',
+      });
+      if (error) throw error;
+      console.log('[v68.6] upload OK');
+    } catch (e) {
+      console.error('[v68.6] upload erreur:', e);
+      if (typeof toast === 'function') toast('Échec upload : ' + (e.message || JSON.stringify(e)), 'err', 5000);
+      return false;
+    }
+
+    /* Update DB */
+    try {
+      const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
+      if (!pub || !pub.publicUrl) throw new Error('publicUrl indisponible');
+      const cachedUrl = pub.publicUrl + '?v=' + Date.now();
+      const newState = Object.assign({}, row.studio_state || {}, {
+        obj_source_url: cachedUrl,
+        parts: newParts,
+      });
+      const payload = { studio_state: newState, variants: row.variants };
+      const { error } = await sb.from('products').update(payload).eq('id', productId);
+      if (error) throw error;
+      row.studio_state = newState;
+      console.log('[v68.6] studio_state mis à jour : parts=' + Object.keys(newParts).length);
+      if (typeof toast === 'function') {
+        toast('Structure sauvegardée ✓ (' + groupKeys.length + ' groupes · ' + sizeMo + ' Mo)', 'ok', 4500);
+      }
+    } catch (e) {
+      console.error('[v68.6] DB update erreur:', e);
+      if (typeof toast === 'function') toast('OBJ uploadé mais DB pas à jour', 'err', 4000);
+      return false;
+    }
+
+    return true;
+  }
+
+  /* ───── Remplacer window._v68.persist par cette version propre ───── */
+  if (!window._v68) window._v68 = {};
+  window._v68.persist = persistStructure;
+
+  /* ───── Bouton "PERSISTER LA STRUCTURE" dans la barre du bas ───── */
+  function injectPersistButton() {
+    if (document.querySelector('#v68-6-persist-btn')) return true;
+
+    /* Cherche le bouton AUTO-SEGMENTER pour s'insérer à côté */
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const autoSegBtn = buttons.find(b => {
+      const t = (b.textContent || '').trim().toLowerCase();
+      return t === 'auto-segmenter' || t.includes('auto-segmenter');
+    });
+    if (!autoSegBtn || !autoSegBtn.parentNode) return false;
+
+    const persistBtn = document.createElement('button');
+    persistBtn.id = 'v68-6-persist-btn';
+    persistBtn.textContent = 'PERSISTER STRUCTURE';
+    /* Reprend le style des autres boutons de la barre du bas */
+    const computed = window.getComputedStyle(autoSegBtn);
+    persistBtn.style.cssText = `
+      font-family: ${computed.fontFamily};
+      font-size: ${computed.fontSize};
+      font-weight: ${computed.fontWeight};
+      letter-spacing: ${computed.letterSpacing};
+      text-transform: ${computed.textTransform};
+      padding: ${computed.padding};
+      background: #B8965A;
+      color: #1a1a1a;
+      border: none;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: background 0.15s, opacity 0.15s;
+    `;
+    persistBtn.addEventListener('mouseenter', () => { if (!persistBtn.disabled) persistBtn.style.background = '#cca766'; });
+    persistBtn.addEventListener('mouseleave', () => { if (!persistBtn.disabled) persistBtn.style.background = '#B8965A'; });
+    persistBtn.addEventListener('click', async () => {
+      persistBtn.disabled = true;
+      persistBtn.style.opacity = '0.6';
+      const oldText = persistBtn.textContent;
+      persistBtn.textContent = 'SAUVEGARDE…';
+      try {
+        await persistStructure({ force: true });
+      } catch (e) {
+        console.error('[v68.6] persist erreur:', e);
+      } finally {
+        persistBtn.disabled = false;
+        persistBtn.style.opacity = '1';
+        persistBtn.textContent = oldText;
+      }
+    });
+
+    autoSegBtn.parentNode.insertBefore(persistBtn, autoSegBtn.nextSibling);
+    console.log('[v68.6] bouton "PERSISTER STRUCTURE" injecté ✓');
+    return true;
+  }
+
+  /* Retry périodique si le bouton AUTO-SEGMENTER n'est pas encore dans le DOM */
+  if (!injectPersistButton()) {
+    const interval = setInterval(() => {
+      if (injectPersistButton()) clearInterval(interval);
+    }, 500);
+    setTimeout(() => clearInterval(interval), 20000);
+  }
+
+  console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
+})();
 console.log('[studio v3] prêt');
 
 </script>
