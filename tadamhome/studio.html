@@ -23427,21 +23427,18 @@ console.log('[studio v3] prêt');
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     v69.16 — Affinements UX :
-     • Bouton "Voir en RA" relocé au body en position:fixed, aligné haut avec
-       bottombar (right:0, bottom:0, width:--mat-w, height:--bottombar-h)
-       → reste visible même quand catalogue ouvert (échappe au masquage v69)
-     • admin-panel : height 100dvh pour respecter la barre Safari iPad
-       (le bas du panneau "Paramètres" était sous l'écran)
-     • Color picker : drag guard 400→600ms + stopPropagation des touch events
-       sur le panel (évite que iOS Safari remonte au backdrop et ferme)
-     • v69.15 conservé : 100dvh global, label Catégorie masqué, bouton AR
-       topbar masqué, color picker compact iPad
+     v69.17 — Alignement parfait du bouton "Voir en RA" :
+     • Le CSS var(--mat-w) ne reflétait pas la vraie largeur du rightpanel sur
+       iPad → le bouton débordait sur la bottombar.
+     • Solution : syncARButtonGeometry() mesure le rightpanel.getBoundingClientRect()
+       et applique left/width au bouton en inline style. Polling 400ms + listeners
+       resize/orientationchange. Hide automatique si .app.mat-hidden.
+     • v69.16 conservé : relocate au body, admin 100dvh, picker hardened.
      ════════════════════════════════════════════════════════════════════ -->
 <script>
-(function ipadUx_v69_16() {
-  if (window.__v6916) return;
-  window.__v6916 = true;
+(function ipadUx_v69_17() {
+  if (window.__v6917) return;
+  window.__v6917 = true;
 
   /* ───── 1. CSS injecté (iPad UX) ───── */
   const cssIpad = `
@@ -23467,27 +23464,20 @@ console.log('[studio v3] prêt');
        dans le panneau Matériau de droite) */
     .v50-ar-btn { display: none !important; }
 
-    /* === v69.16 — Bouton "Voir en réalité augmentée" : position fixed alignée bottombar ===
+    /* === v69.17 — Bouton "Voir en réalité augmentée" : position fixed alignée bottombar ===
        Sorti du contentContainer (par JS) et positionné en fixed : il reste
-       visible même quand le catalogue est ouvert (v69 masque les nativeChildren
-       du contentContainer, mais ce bouton est désormais au niveau body). */
+       visible même quand le catalogue est ouvert.
+       La largeur et la position gauche sont calculées en JS depuis le rightpanel
+       réel pour un alignement pixel-parfait (cf syncARButtonGeometry). */
     #v50ARBtnRP {
       position: fixed !important;
-      right: 0 !important;
       bottom: 0 !important;
-      width: var(--mat-w, 340px) !important;
-      height: var(--bottombar-h, 50px) !important;
       margin: 0 !important;
       padding: 0 14px !important;
       border: none !important;
       border-radius: 0 !important;
       z-index: 100 !important;
-      flex-shrink: 0;
-    }
-    /* Si le panneau matériau est masqué (.app.mat-hidden), le bouton AR aussi */
-    .app.mat-hidden ~ #v50ARBtnRP,
-    body:has(.app.mat-hidden) #v50ARBtnRP {
-      display: none !important;
+      box-sizing: border-box !important;
     }
     /* Loader / désactivé */
     #v50ARBtnRP:disabled {
@@ -23614,6 +23604,42 @@ console.log('[studio v3] prêt');
     }, 300);
     setTimeout(() => clearInterval(arPollInterval), 30000);
   }
+
+  /* ───── v69.17 — Sync géométrie du bouton AR avec le rightpanel réel ─────
+     Le CSS var(--mat-w) peut ne pas refléter la vraie largeur du rightpanel
+     (héritage CSS, overrides desktop vs iPad). Solution : mesurer le rightpanel
+     en JS et appliquer ses left/width au bouton AR pour un alignement parfait.
+     Bonus : si le panneau matériau est masqué (.app.mat-hidden), on cache le
+     bouton (sa visibilité suit celle du rightpanel). */
+  function syncARButtonGeometry() {
+    const btn = document.getElementById('v50ARBtnRP');
+    if (!btn) return;
+    const rp = document.getElementById('rightpanel');
+    const app = document.querySelector('.app');
+    /* Si l'app cache le panneau matériau, on cache le bouton */
+    if (!rp || (app && app.classList.contains('mat-hidden'))) {
+      btn.style.display = 'none';
+      return;
+    }
+    const rect = rp.getBoundingClientRect();
+    if (rect.width === 0) {
+      btn.style.display = 'none';
+      return;
+    }
+    btn.style.display = 'flex';
+    btn.style.left = rect.left + 'px';
+    btn.style.right = 'auto';
+    btn.style.width = rect.width + 'px';
+    /* Hauteur = bottombar-h depuis les CSS vars */
+    const bbh = getComputedStyle(document.documentElement)
+      .getPropertyValue('--bottombar-h').trim() || '50px';
+    btn.style.height = bbh;
+  }
+  syncARButtonGeometry();
+  /* Polling léger pour rattraper les changements de classe (mat-hidden, etc.) */
+  setInterval(syncARButtonGeometry, 400);
+  window.addEventListener('resize', syncARButtonGeometry);
+  window.addEventListener('orientationchange', () => setTimeout(syncARButtonGeometry, 200));
 
   /* ════════════════════════════════════════════════════════════════════
      COLOR PICKER CUSTOM — style sombre cohérent avec le panneau catalogue.
@@ -23985,7 +24011,7 @@ console.log('[studio v3] prêt');
     });
   }, true);
 
-  console.log('[v69.16] iPad UX + AR fixed + color picker hardened ✓ · mode=' +
+  console.log('[v69.17] iPad UX + AR aligned ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
 })();
