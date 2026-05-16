@@ -3579,7 +3579,7 @@ document.addEventListener('keydown', (e) => {
     injectStyles();
     enrichModal();
     monkeyPatchOpenEditModal();
-    console.log('[admin v34.5] modal édition enrichie : upload GLB/OBJ/USDZ + photo + vignettes finitions ✓ (boot)');
+    console.log('[admin v34.6] modal édition enrichie : upload GLB/OBJ/USDZ + photo + vignettes finitions ✓ (boot)');
   }
 
   /* ───── 2. Styles ───── */
@@ -4137,41 +4137,87 @@ document.addEventListener('keydown', (e) => {
     refreshVariantThumbs(id);
   }
 
-  /* ───── v34.5 — Vignettes finitions (products.colors[i].texture) ─────
-     scan.html lit chaque variante avec : c.texture || c.swatch_url || c.swatch || c.image
-     On écrit dans `texture` (canonique). Fallback sur les autres en lecture pour
-     ne pas casser les produits déjà uploadés sous un autre nom. */
+  /* ───── v34.6 — Vignettes finitions
+     Source de vérité côté studio :
+       - Base    → row.studio_state.textureSwatchUrl
+       - Variante → row.variants[i].studio_state.textureSwatchUrl
+     row.colors est une projection reconstruite par syncColors() côté studio.
+     On écrit dans la source de vérité ET on mirror sur colors pour que
+     scan.html voie immédiatement la mise à jour.
+     scan.html lit chaque entry de colors[] avec :
+        c.texture || c.swatch_url || c.swatch || c.image
+  */
   function refreshVariantThumbs(id) {
     const grid = document.getElementById('edVariantsGrid');
     if (!grid) return;
     const p = getProduct(id);
     if (!p) { grid.innerHTML = '<div class="ed-variants-empty">Produit introuvable</div>'; return; }
 
+    /* Lire colors[] (projection) pour récupérer les vignettes telles que vues
+       par scan.html — en fallback sur les sources de vérité si colors[] est
+       vide (cas d'un produit jamais passé par syncColors). */
     const colors = Array.isArray(p.colors) ? p.colors : [];
-    if (colors.length === 0) {
-      grid.innerHTML = '<div class="ed-variants-empty">Aucune variante. Crée-les dans le studio puis reviens ici uploader les vignettes.</div>';
+    const variants = Array.isArray(p.variants) ? p.variants : [];
+
+    /* Construction de la liste d'items affichés :
+       1) Base (toujours présente)
+       2) Une entrée par variante additionnelle */
+    const items = [];
+
+    /* Base */
+    items.push({
+      label: 'Base',
+      mat: (colors[0] && colors[0].mat) || deduceMatFromCategory(p.category || p.categorie || ''),
+      hex: '',
+      url: (colors[0] && (colors[0].texture || colors[0].swatch_url || colors[0].swatch || colors[0].image))
+           || (p.studio_state && p.studio_state.textureSwatchUrl)
+           || '',
+      sourceKind: 'base',
+      sourceIdx: -1,
+    });
+
+    /* Variantes additionnelles */
+    variants.forEach((v, i) => {
+      const projected = colors[i + 1];
+      items.push({
+        label: v.name || `Variante ${i + 1}`,
+        mat: (projected && projected.mat) || deduceMatFromCategory(p.category || p.categorie || ''),
+        hex: (v.studio_state && v.studio_state.swatchHex) || '',
+        url: (projected && (projected.texture || projected.swatch_url || projected.swatch || projected.image))
+             || (v.studio_state && v.studio_state.textureSwatchUrl)
+             || '',
+        sourceKind: 'variant',
+        sourceIdx: i,
+      });
+    });
+
+    if (items.length === 1 && !items[0].url) {
+      /* Pas de variantes additionnelles ET pas de texture Base — message empty */
+      grid.innerHTML = `
+        <div class="ed-variants-empty">
+          Aucune variante créée dans le studio.<br>
+          La vignette "Base" sera disponible une fois la première texture appliquée dans le studio.
+        </div>
+      `;
       return;
     }
 
-    grid.innerHTML = colors.map((c, i) => {
-      const name = c.name || c.label || `Variante ${i + 1}`;
-      const mat  = c.mat || '';
-      const hex  = c.hex || c.color || '';
-      const url  = c.texture || c.swatch_url || c.swatch || c.image || '';
-      const labelHTML = mat
-        ? `<span class="ed-variant-mat">${escAttr(mat)}</span> ${escAttr(name)}`
-        : escAttr(name);
-      const swatch = hex ? `<span class="ed-variant-swatch" style="background:${escAttr(hex)}"></span>` : '';
+    grid.innerHTML = items.map((it, i) => {
+      const labelHTML = it.mat
+        ? `<span class="ed-variant-mat">${escAttr(it.mat)}</span> ${escAttr(it.label)}`
+        : escAttr(it.label);
+      const swatch = it.hex ? `<span class="ed-variant-swatch" style="background:${escAttr(it.hex)}"></span>` : '';
       return `
-        <div class="ed-variant-card ${url ? 'has-img' : ''}" data-idx="${i}">
-          <div class="ed-variant-thumb" ${url ? `style="background-image:url('${escAttr(url)}')"` : ''}>
+        <div class="ed-variant-card ${it.url ? 'has-img' : ''}"
+             data-idx="${i}" data-kind="${escAttr(it.sourceKind)}" data-sidx="${it.sourceIdx}">
+          <div class="ed-variant-thumb" ${it.url ? `style="background-image:url('${escAttr(it.url)}')"` : ''}>
             ${swatch}
             <input type="file" accept="image/*" data-vidx="${i}">
             <button class="ed-variant-remove" type="button" title="Retirer la vignette">×</button>
             <span class="ed-variant-placeholder">Cliquer<br>pour ajouter</span>
             <div class="ed-variant-bar"></div>
           </div>
-          <div class="ed-variant-label" title="${escAttr(name)}">${labelHTML}</div>
+          <div class="ed-variant-label" title="${escAttr(it.label)}">${labelHTML}</div>
         </div>
       `;
     }).join('');
@@ -4183,10 +4229,19 @@ document.addEventListener('keydown', (e) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault(); e.stopPropagation();
         const card = btn.closest('.ed-variant-card');
-        const idx = parseInt(card.dataset.idx, 10);
-        onVariantThumbRemove(idx);
+        onVariantThumbRemove(parseInt(card.dataset.idx, 10));
       });
     });
+  }
+
+  /* Reproduit deduceMatLabel du studio (ligne 13435+) — fallback raisonnable */
+  function deduceMatFromCategory(category) {
+    const c = (category || '').toLowerCase();
+    if (/cuir/.test(c)) return 'Cuir';
+    if (/bois|table|bureau|rangement/.test(c)) return 'Bois';
+    if (/m[ée]tal/.test(c)) return 'Métal';
+    if (/sofa|canap[ée]|fauteuil|chaise|lit/.test(c)) return 'Tissu';
+    return 'Finition';
   }
 
   function escAttr(s) {
@@ -4195,80 +4250,119 @@ document.addEventListener('keydown', (e) => {
       .replaceAll('"','&quot;').replaceAll("'",'&#39;');
   }
 
-  async function onVariantThumbSelected(e, vIdx) {
+  /* Récupère la carte par index d'affichage, retourne {kind, sourceIdx} */
+  function getCardSource(displayIdx) {
+    const card = document.querySelector(`.ed-variant-card[data-idx="${displayIdx}"]`);
+    if (!card) return null;
+    return {
+      card,
+      kind: card.dataset.kind,
+      sourceIdx: parseInt(card.dataset.sidx, 10),
+    };
+  }
+
+  async function onVariantThumbSelected(e, displayIdx) {
     const file = e.target.files[0];
     if (!file) return;
     const id = getProductId();
     if (!id) { toast('Sauvegarde le produit d\'abord avant d\'uploader des vignettes', 'err'); return; }
     const sb = getSb();
     if (!sb) { toast('Client Supabase indisponible', 'err'); return; }
+    const src = getCardSource(displayIdx);
+    if (!src) return;
 
-    const card = document.querySelector(`.ed-variant-card[data-idx="${vIdx}"]`);
-    if (!card) return;
-    card.classList.add('uploading');
+    src.card.classList.add('uploading');
 
     try {
-      /* Compresse l'image à 600px max (vignettes petites) */
       const blob = await compressImage(file, 600, 0.85);
-      const path = `finish-thumbnails/${id}/${vIdx}-${Date.now()}.jpg`;
+      const path = `finish-thumbnails/${id}/${src.kind === 'base' ? 'base' : 'v' + src.sourceIdx}-${Date.now()}.jpg`;
 
-      /* Upload Storage */
       const { error: upErr } = await sb.storage
         .from(bucket())
         .upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '31536000' });
       if (upErr) throw upErr;
       const url = publicUrl(path) + '?v=' + Date.now();
 
-      /* Construit la nouvelle valeur de colors (clone profond + modif idx) */
+      /* Re-fetch les données concernées pour update atomique */
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state, variants, colors')
+        .eq('id', id).single();
+      if (e1) throw e1;
+
+      const payload = {};
+      const projection = Array.isArray(row.colors) ? JSON.parse(JSON.stringify(row.colors)) : [];
+
+      if (src.kind === 'base') {
+        const state = row.studio_state || {};
+        state.textureSwatchUrl = url;
+        payload.studio_state = state;
+        /* Mirror sur colors[0] pour sync immédiat de scan.html */
+        if (projection[0]) projection[0].texture = url;
+        payload.colors = projection;
+      } else {
+        const variants = Array.isArray(row.variants) ? JSON.parse(JSON.stringify(row.variants)) : [];
+        if (!variants[src.sourceIdx]) throw new Error('Variante index ' + src.sourceIdx + ' introuvable en DB');
+        if (!variants[src.sourceIdx].studio_state) variants[src.sourceIdx].studio_state = {};
+        variants[src.sourceIdx].studio_state.textureSwatchUrl = url;
+        payload.variants = variants;
+        /* Mirror sur colors[sourceIdx + 1] pour sync immédiat */
+        const colIdx = src.sourceIdx + 1;
+        if (projection[colIdx]) projection[colIdx].texture = url;
+        payload.colors = projection;
+      }
+
+      const { error: e2 } = await sb.from('products').update(payload).eq('id', id);
+      if (e2) throw e2;
+
+      /* Mirror en mémoire pour cohérence immédiate */
       const p = getProduct(id);
-      const currentColors = Array.isArray(p.colors) ? p.colors : [];
-      const newColors = JSON.parse(JSON.stringify(currentColors));
-      if (!newColors[vIdx]) { throw new Error('Variante introuvable (index ' + vIdx + ')'); }
-      newColors[vIdx].texture = url;
-
-      /* Update DB */
-      const { error: dbErr } = await sb.from('products').update({ colors: newColors }).eq('id', id);
-      if (dbErr) throw dbErr;
-
-      /* Mirror en mémoire */
-      p.colors = newColors;
+      if (p) {
+        if (payload.studio_state) p.studio_state = payload.studio_state;
+        if (payload.variants) p.variants = payload.variants;
+        if (payload.colors) p.colors = payload.colors;
+      }
 
       toast('Vignette uploadée ✓', 'ok');
-
-      /* Refresh la carte */
       refreshVariantThumbs(id);
-
-      /* Refresh tableau admin pour répercuter */
       if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
     } catch (err) {
-      console.error('[admin v34.5] upload vignette variante échec', err);
-      toast('Erreur upload vignette : ' + (err.message || err), 'err', 5000);
-      card.classList.remove('uploading');
+      console.error('[admin v34.6] upload vignette échec', err);
+      toast('Erreur upload : ' + (err.message || err), 'err', 5000);
+      src.card.classList.remove('uploading');
     } finally {
-      e.target.value = ''; /* reset input pour permettre re-upload du même fichier */
+      e.target.value = '';
     }
   }
 
-  async function onVariantThumbRemove(vIdx) {
+  async function onVariantThumbRemove(displayIdx) {
     const id = getProductId();
     if (!id) return;
     const sb = getSb();
     if (!sb) return;
-    if (!confirm(`Retirer la vignette de cette variante ?\n\nL'image sera supprimée du stockage et la référence vidée.`)) return;
+    const src = getCardSource(displayIdx);
+    if (!src) return;
+    if (!confirm(`Retirer la vignette de cette ${src.kind === 'base' ? 'Base' : 'variante'} ?\n\nL'image sera supprimée du stockage et la référence vidée dans le studio_state.`)) return;
 
-    const card = document.querySelector(`.ed-variant-card[data-idx="${vIdx}"]`);
-    if (card) card.classList.add('uploading');
+    src.card.classList.add('uploading');
 
     try {
-      const p = getProduct(id);
-      const currentColors = Array.isArray(p.colors) ? p.colors : [];
-      const currentUrl = currentColors[vIdx]?.texture
-                     || currentColors[vIdx]?.swatch_url
-                     || currentColors[vIdx]?.swatch
-                     || currentColors[vIdx]?.image
-                     || '';
+      const { data: row, error: e1 } = await sb.from('products')
+        .select('studio_state, variants, colors')
+        .eq('id', id).single();
+      if (e1) throw e1;
 
-      /* Tente de supprimer du Storage (best effort — extraction du path) */
+      /* Identifier l'URL actuelle pour tenter le delete Storage */
+      let currentUrl = '';
+      if (src.kind === 'base') {
+        currentUrl = row.studio_state?.textureSwatchUrl || '';
+      } else {
+        currentUrl = row.variants?.[src.sourceIdx]?.studio_state?.textureSwatchUrl || '';
+      }
+      if (!currentUrl && Array.isArray(row.colors)) {
+        const cIdx = src.kind === 'base' ? 0 : (src.sourceIdx + 1);
+        const c = row.colors[cIdx];
+        if (c) currentUrl = c.texture || c.swatch_url || c.swatch || c.image || '';
+      }
       if (currentUrl) {
         const m = currentUrl.match(/\/object\/public\/[^/]+\/(.+?)(\?|$)/);
         if (m && m[1]) {
@@ -4276,25 +4370,43 @@ document.addEventListener('keydown', (e) => {
         }
       }
 
-      /* Update DB : vide texture (et fallbacks) */
-      const newColors = JSON.parse(JSON.stringify(currentColors));
-      if (newColors[vIdx]) {
-        newColors[vIdx].texture = null;
-        if ('swatch_url' in newColors[vIdx]) newColors[vIdx].swatch_url = null;
-        if ('swatch' in newColors[vIdx]) newColors[vIdx].swatch = null;
-        if ('image' in newColors[vIdx]) newColors[vIdx].image = null;
-      }
-      const { error: dbErr } = await sb.from('products').update({ colors: newColors }).eq('id', id);
-      if (dbErr) throw dbErr;
+      const payload = {};
+      const projection = Array.isArray(row.colors) ? JSON.parse(JSON.stringify(row.colors)) : [];
 
-      p.colors = newColors;
+      if (src.kind === 'base') {
+        const state = row.studio_state || {};
+        delete state.textureSwatchUrl;
+        payload.studio_state = state;
+        if (projection[0]) projection[0].texture = null;
+        payload.colors = projection;
+      } else {
+        const variants = Array.isArray(row.variants) ? JSON.parse(JSON.stringify(row.variants)) : [];
+        if (variants[src.sourceIdx]?.studio_state) {
+          delete variants[src.sourceIdx].studio_state.textureSwatchUrl;
+        }
+        payload.variants = variants;
+        const colIdx = src.sourceIdx + 1;
+        if (projection[colIdx]) projection[colIdx].texture = null;
+        payload.colors = projection;
+      }
+
+      const { error: e2 } = await sb.from('products').update(payload).eq('id', id);
+      if (e2) throw e2;
+
+      const p = getProduct(id);
+      if (p) {
+        if (payload.studio_state) p.studio_state = payload.studio_state;
+        if (payload.variants) p.variants = payload.variants;
+        if (payload.colors) p.colors = payload.colors;
+      }
+
       toast('Vignette retirée ✓', 'ok');
       refreshVariantThumbs(id);
       if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
     } catch (err) {
-      console.error('[admin v34.5] remove vignette variante échec', err);
+      console.error('[admin v34.6] remove vignette échec', err);
       toast('Erreur suppression : ' + (err.message || err), 'err', 5000);
-      if (card) card.classList.remove('uploading');
+      src.card.classList.remove('uploading');
     }
   }
 })();
