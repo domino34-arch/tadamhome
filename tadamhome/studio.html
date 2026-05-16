@@ -23427,22 +23427,40 @@ console.log('[studio v3] prêt');
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     v69.14 — Adaptation iPad (simplifié, stable) + Color picker sombre custom :
-     • Annulation rebrand Scène→Catalogue (cassait l'ouverture du panneau)
-     • Largeurs panneaux gauche/droite : retour aux defaults pour lisibilité
-     • Bottombar : scroll horizontal + fade gradient (cf v69.10)
-     • Bouton CATALOGUE doré reste visible et fonctionnel
-     • Color picker custom dans le style sombre du catalogue (remplace l'input
-       natif iOS qui s'échappait sous le doigt)
+     v69.15 — Visibilité globale + ajustements UX :
+     • height: 100dvh (au lieu de 100vh) → respecte la barre d'outils Safari iPad
+       → bottombar et bouton "Voir en RA" toujours visibles
+     • Label "Catégorie" du panneau catalogue masqué (inutile, desktop + iPad)
+     • Bouton AR de la topbar masqué (redondant avec celui du panneau Matériau)
+     • Color picker : flag cpDragGuard pour empêcher la fermeture parasite
+       après un drag (iOS Safari génère un click synthétique au touchend)
+     • Color picker iPad plus compact (300px max, SV aspect 2:1)
+     • v69.14 conservé : bottombar scroll-x, color picker custom, etc.
      ════════════════════════════════════════════════════════════════════ -->
 <script>
-(function ipadUx_v69_14() {
-  if (window.__v6914) return;
-  window.__v6914 = true;
+(function ipadUx_v69_15() {
+  if (window.__v6915) return;
+  window.__v6915 = true;
 
   /* ───── 1. CSS injecté (iPad UX) ───── */
   const cssIpad = `
-    /* iPad : tree-w garde 240px (lisibilité), mat-w légèrement réduit (340) */
+    /* === v69.15 — Visibilité globale : utiliser 100dvh pour respecter la barre Safari iPad === */
+    html, body {
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    .app {
+      height: 100vh;
+      height: 100dvh;
+    }
+    /* Masquer le label "Catégorie" du panneau catalogue (desktop + iPad — inutile) */
+    #v69-cat-content > .v69-label { display: none !important; }
+    /* Masquer le bouton AR de la topbar (redondant avec le bouton "Voir en RA"
+       dans le panneau Matériau de droite) */
+    .v50-ar-btn { display: none !important; }
+
+    /* === iPad : tree-w garde 240px (lisibilité), mat-w légèrement réduit (340) === */
     body.ipad-mode {
       --mat-w: 340px;
     }
@@ -23454,7 +23472,7 @@ console.log('[studio v3] prêt');
     /* Bottombar : scroll horizontal en 1 ligne + fade gradient à droite */
     body.ipad-mode .bottombar {
       position: relative;
-      flex-wrap: nowrap !important;     /* PAS de wrap (ne déborde pas en hauteur) */
+      flex-wrap: nowrap !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
       padding: 0 14px !important;
@@ -23481,6 +23499,24 @@ console.log('[studio v3] prêt');
     body.ipad-mode select,
     body.ipad-mode textarea {
       font-size: 16px !important;
+    }
+
+    /* === v69.15 — Color picker compact sur iPad === */
+    body.ipad-mode .v6914-cp-panel {
+      width: min(300px, 85vw);
+    }
+    body.ipad-mode .v6914-cp-sv {
+      aspect-ratio: 2 / 1;             /* plus court → tient mieux à l'écran */
+    }
+    body.ipad-mode .v6914-cp-body {
+      padding: 12px 14px 14px;
+      gap: 10px;
+    }
+    body.ipad-mode .v6914-cp-head {
+      padding: 12px 14px;
+    }
+    body.ipad-mode .v6914-cp-actions button {
+      padding: 10px 12px;
     }
   `;
   const styleIpad = document.createElement('style');
@@ -23752,7 +23788,11 @@ console.log('[studio v3] prêt');
     if (cpState.onApply) cpState.onApply(hex);
   }
 
-  /* SV drag handler — supports mouse + touch via Pointer Events */
+  /* SV drag handler — supports mouse + touch via Pointer Events.
+     v69.15 — Le flag `cpDragGuard` empêche la fermeture du picker quand
+     l'utilisateur termine un drag à l'extérieur du panel (iOS Safari génère
+     un click synthétique sur le backdrop après touchend → fermeture parasite). */
+  let cpDragGuard = false;
   function attachDrag(el, onMove) {
     function getPos(e) {
       const r = el.getBoundingClientRect();
@@ -23765,7 +23805,7 @@ console.log('[studio v3] prêt');
     }
     let dragging = false;
     function start(e) {
-      dragging = true; e.preventDefault();
+      dragging = true; cpDragGuard = true; e.preventDefault();
       onMove(getPos(e));
     }
     function move(e) {
@@ -23773,7 +23813,11 @@ console.log('[studio v3] prêt');
       e.preventDefault();
       onMove(getPos(e));
     }
-    function end() { dragging = false; }
+    function end() {
+      dragging = false;
+      /* Garder le guard actif 400ms pour absorber le click synthétique iOS */
+      setTimeout(() => { cpDragGuard = false; }, 400);
+    }
     el.addEventListener('mousedown', start);
     el.addEventListener('touchstart', start, { passive: false });
     window.addEventListener('mousemove', move);
@@ -23835,10 +23879,15 @@ console.log('[studio v3] prêt');
   cpModal.querySelector('.v6914-cp-close').addEventListener('click', () => closePicker(false));
   cpModal.querySelector('.v6914-cp-cancel').addEventListener('click', () => closePicker(false));
   cpModal.querySelector('.v6914-cp-ok').addEventListener('click', () => closePicker(true));
-  /* Click sur backdrop = annuler */
+  /* Click sur backdrop = annuler — MAIS pas si on vient de drag (cpDragGuard) */
   cpModal.addEventListener('click', (e) => {
+    if (cpDragGuard) return;          /* v69.15 — bloque la fermeture après drag */
     if (e.target === cpModal) closePicker(false);
   });
+  /* iOS Safari : touchstart sur backdrop ne doit PAS propager comme click parasite */
+  cpModal.addEventListener('touchend', (e) => {
+    if (cpDragGuard) e.preventDefault();
+  }, { passive: false });
 
   /* Expose globalement pour réutilisation */
   window.v6914OpenColorPicker = openPicker;
@@ -23866,7 +23915,7 @@ console.log('[studio v3] prêt');
     });
   }, true);
 
-  console.log('[v69.14] iPad UX + color picker custom ✓ · mode=' +
+  console.log('[v69.15] iPad UX + color picker custom ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
 })();
