@@ -23427,96 +23427,76 @@ console.log('[studio v3] prêt');
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     v69.12 — Adaptation iPad (corrigé) :
-     • Burger toggle UNIQUEMENT l'arborescence (leftpanel) — la nav-rail reste visible
-     • Viewer s'agrandit quand l'arborescence est masquée (grid-template-columns)
-     • Plus de masquage du rightpanel quand catalogue actif (laissé à v69)
-     • Color picker fixé séparément dans setupColorPicker
+     v69.13 — Adaptation iPad (revised) :
+     • Annulation drawer arborescence (panneau reste apparent par défaut)
+     • Largeurs des panneaux gauche/droite réduites sur iPad → viewer plus grand
+     • Tab "Scène" devient "Catalogue" (desktop + iPad) — le bouton doré
+       CATALOGUE est masqué (redondant)
+     • Bottombar : flex-wrap sur iPad pour voir tous les boutons d'un coup
+     • Color picker fix iOS Safari (cf. setupColorPicker)
      ════════════════════════════════════════════════════════════════════ -->
 <script>
-(function ipadUx_v69_12() {
-  if (window.__v6912) return;
-  window.__v6912 = true;
+(function ipadUx_v69_13() {
+  if (window.__v6913) return;
+  window.__v6913 = true;
 
   /* ───── 1. CSS injecté ───── */
   const css = `
-    /* === Mode iPad : la nav-rail reste à sa col 1 normale.
-       Seul le leftpanel (arborescence, col 2) devient un drawer.
-       Le viewer (col 3) s'agrandit pour récupérer la place du leftpanel masqué. === */
+    /* === Mode iPad : largeurs panneaux réduites pour agrandir le viewer === */
+    body.ipad-mode {
+      --tree-w: 200px;
+      --mat-w: 320px;
+      --bottombar-h: 80px;            /* + d'espace pour bottombar en 2 lignes si besoin */
+    }
+    /* Le grid reste normal — pas de drawer */
     body.ipad-mode .app {
-      grid-template-columns: var(--nav-w, 56px) 0 1fr var(--mat-w, 380px) !important;
+      grid-template-columns: var(--nav-w, 56px) var(--tree-w, 200px) 1fr var(--mat-w, 320px) !important;
     }
     body.ipad-mode .app.mat-hidden {
-      grid-template-columns: var(--nav-w, 56px) 0 1fr 0 !important;
+      grid-template-columns: var(--nav-w, 56px) var(--tree-w, 200px) 1fr 0 !important;
     }
-    /* Leftpanel devient un drawer off-screen, juste à droite de la nav-rail */
-    body.ipad-mode .leftpanel {
-      position: fixed !important;
-      top: var(--topbar-h, 58px) !important;
-      bottom: 0 !important;
-      left: var(--nav-w, 56px) !important;
-      width: var(--tree-w, 240px) !important;
-      z-index: 8500;
-      transform: translateX(-110%);
-      transition: transform 0.25s ease;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.35);
-      display: flex !important;
+    body.ipad-mode .app.tree-hidden {
+      grid-template-columns: var(--nav-w, 56px) 0 1fr var(--mat-w, 320px) !important;
     }
-    body.ipad-mode.ipad-tree-open .leftpanel {
-      transform: translateX(0);
+
+    /* === Tab "Catalogue" (ex-"Scène") : style identique aux autres tabs === */
+    /* Bouton CATALOGUE doré du module v69 : masqué partout (remplacé par le tab) */
+    #v69-cat-btn { display: none !important; }
+    /* Quand le catalogue est actif, marquer le tab comme actif */
+    .mat-tab.v6913-catalogue-active {
+      color: var(--gold, #B8965A) !important;
     }
-    /* Burger principal : positionné après la nav-rail, dans la topbar */
-    .ipad-main-burger {
-      position: fixed;
-      top: 14px;
-      left: calc(var(--nav-w, 56px) + 12px);
-      width: 36px; height: 32px;
-      background: var(--ink, #2A2620);
-      border: none;
-      display: none; align-items: center; justify-content: center;
-      z-index: 9000; cursor: pointer; padding: 0;
-      transition: background 0.15s;
-    }
-    body.ipad-mode .ipad-main-burger { display: flex; }
-    .ipad-main-burger:active,
-    body.ipad-tree-open .ipad-main-burger { background: #B8965A; }
-    .ipad-main-burger svg {
-      width: 18px; height: 18px;
-      stroke: #F5F2EC; fill: none; stroke-width: 1.6; stroke-linecap: round;
-    }
-    /* Overlay : tap dehors = fermer le drawer */
-    .ipad-drawer-overlay {
-      position: fixed;
-      top: var(--topbar-h, 58px);
-      left: calc(var(--nav-w, 56px) + var(--tree-w, 240px));
-      right: 0; bottom: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 8400; opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    body.ipad-mode.ipad-tree-open .ipad-drawer-overlay {
-      opacity: 1; pointer-events: auto;
-    }
-    /* Topbar épurée sur iPad : on retire breadcrumb + inputs dimensions */
+
+    /* === Topbar épurée sur iPad (inputs dimensions iront en panneau Géométrie) === */
     body.ipad-mode .tb-tree-zone,
     body.ipad-mode .tb-dims {
       display: none !important;
     }
-    /* Compenser l'espace du burger (48px) dans la viewer-zone */
-    body.ipad-mode .topbar .tb-viewer-zone {
-      padding-left: 56px;
-    }
-    /* Bottombar : fade gradient à droite pour signaler scroll horizontal */
+
+    /* === Bottombar iPad : flex-wrap pour tout voir au premier coup d'œil === */
     body.ipad-mode .bottombar {
-      position: relative;
+      flex-wrap: wrap !important;
+      height: auto !important;
+      min-height: var(--bottombar-h, 80px);
+      padding: 8px 12px !important;
+      gap: 6px 8px !important;
+      overflow: visible !important;     /* annule le overflow-x:auto desktop */
+      align-content: center !important;
     }
     body.ipad-mode .bottombar::after {
-      content: ''; position: absolute; right: 0; top: 0; bottom: 4px;
-      width: 32px; pointer-events: none;
-      background: linear-gradient(to right, transparent, var(--bg, #F5F2EC) 80%);
-      z-index: 2;
+      display: none !important;          /* plus de fade gradient si tout est visible */
     }
-    /* Anti-zoom iOS sur inputs textuels */
+    body.ipad-mode .bottombar .row-btn,
+    body.ipad-mode .bottombar .var-chip,
+    body.ipad-mode .bottombar .var-add,
+    body.ipad-mode .bottombar .var-label,
+    body.ipad-mode .bottombar > button {
+      padding: 5px 9px !important;
+      font-size: 10px !important;
+      min-height: 28px;
+    }
+
+    /* === Anti-zoom iOS sur inputs === */
     body.ipad-mode input[type="text"],
     body.ipad-mode input[type="number"],
     body.ipad-mode input[type="email"],
@@ -23525,21 +23505,14 @@ console.log('[studio v3] prêt');
     body.ipad-mode textarea {
       font-size: 16px !important;
     }
-    /* v69.12 — Volontairement vide : on laisse le module v69 gérer le catalogue
-       à sa façon (mount dans contentContainer du rightpanel, masque le contenu
-       Matériau natif via nativeChildren.display='none'). Ne PAS masquer le
-       rightpanel ici, sinon on casse le catalogue lui-même. */
   `;
   const style = document.createElement('style');
-  style.id = 'v69_11-ipad-styles';
+  style.id = 'v69_13-ipad-styles';
   style.textContent = css;
   document.head.appendChild(style);
 
   /* ───── 2. Détection iPad / tablette tactile ───── */
   function isIPadViewport() {
-    /* iPad Pro 10.5" : 1112×834 paysage / 834×1112 portrait
-       iPad standard : 1024×768 / 768×1024
-       Critère : pointer:coarse (vrai tactile) + largeur entre 768 et 1366 */
     if (!matchMedia('(pointer: coarse)').matches) return false;
     const w = window.innerWidth;
     return w >= 768 && w <= 1366;
@@ -23551,36 +23524,49 @@ console.log('[studio v3] prêt');
   window.addEventListener('resize', syncMode);
   window.addEventListener('orientationchange', () => setTimeout(syncMode, 150));
 
-  /* ───── 3. Burger principal + overlay ───── */
-  const burger = document.createElement('button');
-  burger.className = 'ipad-main-burger';
-  burger.setAttribute('aria-label', 'Afficher / masquer l\'arborescence');
-  burger.innerHTML = '<svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
-  burger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.body.classList.toggle('ipad-tree-open');
-  });
-  document.body.appendChild(burger);
+  /* ───── 3. Tab "Scène" → "Catalogue" (desktop ET iPad) ─────
+     Renommage du label + détournement du click vers le bouton du module v69.
+     On essaie plusieurs fois car les onglets peuvent être recréés. */
+  function rebrandSceneAsCatalogue() {
+    document.querySelectorAll('.mat-tab').forEach(tab => {
+      const txt = tab.textContent.trim().toLowerCase();
+      if (txt !== 'scène' && txt !== 'scene') return;
+      if (tab.dataset.v6913 === '1') return;
+      tab.textContent = 'Catalogue';
+      tab.dataset.v6913 = '1';
+      /* Capture phase pour intercepter AVANT le handler natif (toggle active) */
+      tab.addEventListener('click', (e) => {
+        const v69Btn = document.getElementById('v69-cat-btn');
+        if (v69Btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          /* Click programmatique sur le bouton (toggle catalogue) */
+          v69Btn.click();
+          /* Refléter l'état actif du tab après un court délai */
+          setTimeout(() => {
+            const isOpen = !!document.getElementById('v69-cat-content');
+            tab.classList.toggle('v6913-catalogue-active', isOpen);
+          }, 50);
+        }
+      }, true);
+    });
+  }
+  rebrandSceneAsCatalogue();
+  /* Re-essayer car le module v69 peut booter en différé */
+  setTimeout(rebrandSceneAsCatalogue, 500);
+  setTimeout(rebrandSceneAsCatalogue, 1500);
+  setTimeout(rebrandSceneAsCatalogue, 4000);
 
-  const overlay = document.createElement('div');
-  overlay.className = 'ipad-drawer-overlay';
-  overlay.addEventListener('click', () => {
-    document.body.classList.remove('ipad-tree-open');
-  });
-  document.body.appendChild(overlay);
+  /* Synchroniser l'état actif du tab Catalogue avec l'état réel du catalogue
+     (au cas où il serait ouvert/fermé par un autre chemin, ex: deeplink) */
+  setInterval(() => {
+    const isOpen = !!document.getElementById('v69-cat-content');
+    document.querySelectorAll('.mat-tab[data-v6913="1"]').forEach(tab => {
+      tab.classList.toggle('v6913-catalogue-active', isOpen);
+    });
+  }, 400);
 
-  /* Auto-fermeture du drawer quand on tap sur un tree-row */
-  document.addEventListener('click', (e) => {
-    if (!document.body.classList.contains('ipad-tree-open')) return;
-    const target = e.target.closest('.tree-row');
-    if (target) {
-      setTimeout(() => document.body.classList.remove('ipad-tree-open'), 220);
-    }
-  }, true);
-
-  /* ───── 4. AR direct (iOS Quick Look) sur iPad ─────
-     Le module v50 affiche normalement un QR. Sur iPad, on intercepte le click
-     du bouton AR pour déclencher directement le lien <a rel="ar"> créé par v50. */
+  /* ───── 4. AR direct (iOS Quick Look) sur iPad ───── */
   document.addEventListener('click', (e) => {
     if (!document.body.classList.contains('ipad-mode')) return;
     const arBtn = e.target.closest('.v50-ar-btn, .v50-ar-btn-rp, [data-tooltip="AR"]');
@@ -23597,7 +23583,7 @@ console.log('[studio v3] prêt');
     }, 100);
   }, true);
 
-  console.log('[v69.12] iPad UX patch ready ✓ · mode=' +
+  console.log('[v69.13] iPad UX patch ready ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
 })();
