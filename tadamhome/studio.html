@@ -22768,25 +22768,23 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   console.log('[studio v68.6] persist réécrit (clean) + bouton "Persister structure" ✓');
 })();
 /* ════════════════════════════════════════════════════════════════════════
-   v69.5 — FIX MATIÈRE ACTIVE résiduelle + UI alignée catalogue.html
+   v69.6 — CATALOGUE FONCTIONNEL : produits Supabase + chips scrollables
+              + alphabet activable
    ─────────────────────────────────────────────────────────────────────────
-   PROBLÈME : la section "MATIÈRE ACTIVE · GARNISSAGE / BOUCLETTE /
-   CHOISIR UN MATÉRIAU" restait visible au-dessus du catalogue parce que
-   findTextMarker cherchait "MATIÈRE ACTIVE" en match exact, alors que le
-   DOM contient probablement <div>MATIÈRE ACTIVE · GARNISSAGE</div> où
-   le texte direct est "MATIÈRE ACTIVE · GARNISSAGE" (avec suffixe).
+   Nouveautés vs v69.5 :
+   1. Chips sur UNE seule ligne avec scroll horizontal (scrollbar masquée,
+      comme dans catalogue.html)
+   2. Quand on clique sur "Marques", la barre alphabet apparaît et les
+      lettres qui ont des marques dans le catalogue sont en couleur,
+      les autres restent grisées (logique identique à catalogue.html)
+   3. Chargement des produits depuis Supabase (table 'products'), filtrage
+      par catégorie (sofa/fauteuil/chaise/table/luminaire/rangement/autre/
+      marques) et par lettre, rendu en cards 2 colonnes adaptées à la
+      largeur étroite du panneau droit
+   4. Click sur une card → toast "Ouverture du modèle…" (v69.7 branchera
+      le load OBJ effectif dans le studio)
    
-   FIX 1 : findTextMarker accepte aussi "T<délimiteur>X" (espace,
-   middle-dot, colon, pipe, hyphen). MATIÈRE ACTIVE est maintenant
-   trouvé, ce qui élargit le LCA pour englober aussi cette section.
-   
-   FIX 2 : si le LCA avec tous les marqueurs échoue (largeur >600 par
-   exemple), fallback aux marqueurs primaires seuls + recherche
-   séparée du conteneur MATIÈRE ACTIVE pour le cacher manuellement.
-   
-   FIX 3 : UI alignée sur la logique de catalogue.html (pas de search
-   input, chips Tout/Canapés/Fauteuils/Chaises/Tables/Luminaires/
-   Rangements/Marques/Autre, futur alphabet bar pour Marques).
+   Logique catégorie reprise de catalogue.html à l'identique pour cohérence.
    ════════════════════════════════════════════════════════════════════════ */
 (function v69CatalogueInit() {
   if (window.__v69Init) return;
@@ -22801,17 +22799,17 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   window._studioMode = isBrowseMode ? 'browse' : 'edit';
 
   if (!isBrowseMode) {
-    console.log('[studio v69.5] mode édition, catalogue passif');
+    console.log('[studio v69.6] mode édition, catalogue passif');
     return;
   }
-  console.log('[studio v69.5] mode catalogue actif');
+  console.log('[studio v69.6] mode catalogue actif');
 
   /* ───── 2. Court-circuit léger de _v68.persist ───── */
   const blockPersist = () => {
     if (window._v68 && window._v68.persist && !window._v68._v69Blocked) {
       const orig = window._v68.persist;
       window._v68.persist = async function blocked() {
-        console.warn('[v69.5] _v68.persist bloqué en mode browse');
+        console.warn('[v69.6] _v68.persist bloqué en mode browse');
         if (typeof toast === 'function') toast('Persistance désactivée en mode consultation', 'info', 3000);
         return false;
       };
@@ -22823,7 +22821,84 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   setTimeout(blockPersist, 1000);
   setTimeout(blockPersist, 3000);
 
-  /* ───── 3. Helpers DOM ───── */
+  /* ───── 3. Client Supabase (réutilise window.sb si dispo) ───── */
+  const SB_URL = 'https://wbunwfxecvxngypuehop.supabase.co';
+  const SB_KEY = 'sb_publishable_whNXpZBu7hbDWxZ-foYFUQ_WSEiIl1P';
+  let sb = null;
+  function getSupabase() {
+    if (sb) return sb;
+    if (window.sb && typeof window.sb.from === 'function') { sb = window.sb; return sb; }
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      sb = window.supabase.createClient(SB_URL, SB_KEY);
+      return sb;
+    }
+    return null;
+  }
+
+  /* ───── 4. Catégories (logique identique à catalogue.html) ───── */
+  const CATEGORIES = [
+    { key: 'all',       label: 'Tout',        keys: null },
+    { key: 'sofa',      label: 'Canapés',     keys: ['sofa','canapé','canape'] },
+    { key: 'fauteuil',  label: 'Fauteuils',   keys: ['fauteuil'] },
+    { key: 'chaise',    label: 'Chaises',     keys: ['chaise'] },
+    { key: 'table',     label: 'Tables',      keys: ['table'] },
+    { key: 'luminaire', label: 'Luminaires',  keys: ['luminaire'] },
+    { key: 'rangement', label: 'Rangements',  keys: ['rangement'] },
+    { key: 'marques',   label: 'Marques',     keys: null },
+    { key: 'autre',     label: 'Autre',       keys: ['autre'] },
+  ];
+  const STORAGE_BUCKETS = ['products', 'product-images', 'images', 'models', 'thumbnails', 'public'];
+  const FALLBACK_SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:60%;height:60%;opacity:0.35"><rect x="30" y="100" width="140" height="60" fill="#C4B896"/><rect x="30" y="80" width="140" height="25" fill="#D4C8A8"/><rect x="30" y="80" width="18" height="80" fill="#B4A888"/><rect x="152" y="80" width="18" height="80" fill="#B4A888"/></svg>`;
+
+  let allProducts = [];
+  let currentCat = 'all';
+  let currentLetter = 'all';
+
+  function getProductImage(p) {
+    const candidates = [
+      p.image_url, p.imageUrl, p.thumbnail_url, p.thumbnailUrl,
+      p.cover_url, p.coverUrl, p.cover, p.thumbnail,
+      p.preview_url, p.previewUrl, p.preview,
+      p.photo_url, p.photoUrl, p.photo,
+      p.image, p.img, p.picture,
+      p.image_path, p.imagePath, p.thumb, p.thumb_url,
+      p.glb_thumbnail, p.glbThumbnail,
+      p.poster, p.poster_url, p.posterUrl,
+      p.visual, p.visual_url
+    ];
+    if (Array.isArray(p.images)   && p.images.length)   candidates.unshift(p.images[0]);
+    if (Array.isArray(p.photos)   && p.photos.length)   candidates.unshift(p.photos[0]);
+    if (Array.isArray(p.pictures) && p.pictures.length) candidates.unshift(p.pictures[0]);
+    for (const v of candidates) {
+      if (!v || typeof v !== 'string') continue;
+      const t = v.trim();
+      if (!t) continue;
+      if (/^(https?:|data:|blob:)/i.test(t)) return t;
+      const clean = t.replace(/^\/+/, '');
+      const firstSeg = clean.split('/')[0];
+      if (STORAGE_BUCKETS.includes(firstSeg)) return `${SB_URL}/storage/v1/object/public/${clean}`;
+      return `${SB_URL}/storage/v1/object/public/products/${clean}`;
+    }
+    return null;
+  }
+
+  function filterProducts() {
+    return allProducts.filter(p => {
+      if (currentCat === 'marques') {
+        if (currentLetter === 'all') return true;
+        const brand = (p.enseigne_name || p.marque || '').trim();
+        if (!brand) return false;
+        return brand.charAt(0).toUpperCase() === currentLetter;
+      }
+      if (currentCat === 'all') return true;
+      const cat = (p.category || p.categorie || '').toLowerCase();
+      const catDef = CATEGORIES.find(c => c.key === currentCat);
+      if (!catDef || !catDef.keys) return true;
+      return catDef.keys.some(k => cat.includes(k));
+    });
+  }
+
+  /* ───── 5. Helpers DOM ───── */
   function findByText(textCandidates, sel) {
     const targets = (Array.isArray(textCandidates) ? textCandidates : [textCandidates])
       .map(t => t.trim().toUpperCase());
@@ -22832,16 +22907,11 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       return targets.includes(t) && el.children.length <= 2;
     });
   }
-
   function getDirectText(el) {
     let s = '';
-    for (const n of el.childNodes) {
-      if (n.nodeType === Node.TEXT_NODE) s += n.textContent;
-    }
+    for (const n of el.childNodes) if (n.nodeType === Node.TEXT_NODE) s += n.textContent;
     return s.trim();
   }
-
-  /* ★ FIX v69.5 : accepte "T<delim>..." en plus du match exact */
   function findTextMarker(text) {
     const T = text.trim().toUpperCase();
     return Array.from(document.querySelectorAll('div, span, p, label, h1, h2, h3, h4, h5, h6'))
@@ -22851,28 +22921,24 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         if (direct === T) return true;
         if (direct.length > T.length && direct.startsWith(T)) {
           const next = direct.charAt(T.length);
-          /* Délimiteurs : espace, middle-dot ·, colon, pipe, hyphen, tab */
           return next === ' ' || next === '·' || next === ':' || next === '|' || next === '-' || next === '\t';
         }
         return false;
       });
   }
 
-  /* État */
+  /* État DOM */
   let catalogueOpen = false;
   let nativeChildren = [];
-  let extraHidden = [];                          /* ★ NOUVEAU : sections cachées hors contentContainer */
+  let extraHidden = [];
   let myCatalogue = null;
   let myButton = null;
   let contentContainer = null;
   let matBtn = null, geoBtn = null, scnBtn = null;
 
-  /* Markers primaires (toujours dans le contentContainer) */
   const PRIMARY_MARKERS = ['APPARENCE', 'PROJECTION', 'CARTES', 'RUGOSITÉ', 'COULEUR DE BASE', 'RÉPÉTITION UV'];
-  /* Markers headers (peuvent être hors contentContainer) */
   const HEADER_MARKERS = ['MATIÈRE ACTIVE'];
 
-  /* ───── 4. Détection du contentContainer ───── */
   function findContentContainer() {
     const allMarkers = [...PRIMARY_MARKERS, ...HEADER_MARKERS];
     const found = [];
@@ -22882,38 +22948,33 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     if (found.length < 2) {
       if (!window.__v69WarnedFew) {
-        console.warn('[v69.5] moins de 2 marqueurs trouvés (' + found.length + ')');
+        console.warn('[v69.6] moins de 2 marqueurs trouvés (' + found.length + ')');
         window.__v69WarnedFew = true;
       }
       return null;
     }
-    console.log('[v69.5] marqueurs trouvés: ' + found.map(m => m.name).join(', '));
+    console.log('[v69.6] marqueurs: ' + found.map(m => m.name).join(', '));
 
-    /* Tentative 1 : LCA de TOUS les markers (inclut MATIÈRE ACTIVE) */
     let cur = found[0].el.parentElement;
     while (cur && cur !== document.body) {
       const containsAll = found.every(m => cur.contains(m.el));
       if (containsAll) {
         const r = cur.getBoundingClientRect();
         if (r.width >= 200 && r.width <= 600) {
-          console.log('[v69.5] contentContainer trouvé (LCA complet) · largeur=' + Math.round(r.width) + 'px · ' + found.length + ' marqueurs');
+          console.log('[v69.6] contentContainer (LCA complet) · largeur=' + Math.round(r.width) + 'px');
           return cur;
         }
       }
       cur = cur.parentElement;
     }
-
-    /* Tentative 2 : LCA des markers primaires seulement (cas où MATIÈRE
-       ACTIVE est dans une section séparée siblings du contentContainer) */
     const primary = found.filter(m => PRIMARY_MARKERS.includes(m.name));
     if (primary.length >= 2) {
       cur = primary[0].el.parentElement;
       while (cur && cur !== document.body) {
-        const containsAllPrimary = primary.every(m => cur.contains(m.el));
-        if (containsAllPrimary) {
+        if (primary.every(m => cur.contains(m.el))) {
           const r = cur.getBoundingClientRect();
           if (r.width >= 200 && r.width <= 600) {
-            console.log('[v69.5] contentContainer trouvé (fallback primaires) · largeur=' + Math.round(r.width) + 'px · ' + primary.length + ' marqueurs');
+            console.log('[v69.6] contentContainer (fallback primaires) · largeur=' + Math.round(r.width) + 'px');
             return cur;
           }
         }
@@ -22921,26 +22982,20 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       }
     }
     if (!window.__v69WarnedNoCont) {
-      console.warn('[v69.5] contentContainer non trouvé');
+      console.warn('[v69.6] contentContainer non trouvé');
       window.__v69WarnedNoCont = true;
     }
     return null;
   }
 
-  /* ★ NOUVEAU : trouve une section "périphérique" (MATIÈRE ACTIVE etc.)
-     dans le panneau droit mais hors du contentContainer */
   function findExtraSection(markerText) {
     const marker = findTextMarker(markerText);
     if (!marker) return null;
-    /* Si le marker est déjà dans le contentContainer, pas besoin */
     if (contentContainer && contentContainer.contains(marker)) return null;
-    /* Remonte jusqu'à un container de taille section (largeur panneau, hauteur > 50) */
     let cur = marker;
     while (cur && cur !== document.body) {
       const r = cur.getBoundingClientRect();
       if (r.width >= 200 && r.width <= 600 && r.height >= 50) {
-        /* Ne pas remonter trop loin : si parent englobe aussi
-           contentContainer, on s'arrête */
         const parent = cur.parentElement;
         if (parent && contentContainer && parent.contains(contentContainer) && parent !== document.body) {
           return cur;
@@ -22952,114 +23007,225 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     return null;
   }
 
-  /* ───── 5. UI catalogue (alignée catalogue.html) ───── */
+  /* ───── 6. UI : styles ───── */
+  function injectStyles() {
+    if (document.getElementById('v69-styles')) return;
+    const css = document.createElement('style');
+    css.id = 'v69-styles';
+    css.textContent = `
+      #v69-cat-content { padding: 18px 20px 28px; font-family: 'Jost',sans-serif; color: inherit; box-sizing: border-box; overflow-y: auto; }
+      #v69-cat-content .v69-label { font-size: 10px; letter-spacing: 0.18em; opacity: 0.55; text-transform: uppercase; margin-bottom: 10px; }
+      #v69-cat-pills-wrap { position: relative; margin: 0 -20px 20px; }
+      #v69-cat-pills {
+        display: flex; gap: 6px; padding: 0 20px 4px;
+        overflow-x: auto; scrollbar-width: none;
+      }
+      #v69-cat-pills::-webkit-scrollbar { display: none; }
+      .v69-pill {
+        flex-shrink: 0; padding: 6px 12px; background: transparent;
+        border: 1px solid rgba(255,255,255,0.16); cursor: pointer;
+        font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+        color: inherit; font-family: 'Jost',sans-serif; transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .v69-pill:hover { border-color: #B8965A; }
+      .v69-pill.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
+      #v69-alpha-bar { display: none; margin: 0 -20px 20px; padding: 14px 20px 0; border-top: 1px solid rgba(255,255,255,0.08); }
+      #v69-alpha-letters { display: flex; flex-wrap: wrap; gap: 3px; }
+      .v69-alpha-btn {
+        width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+        background: transparent; border: 1px solid transparent; font-family: 'Jost',sans-serif;
+        font-size: 11px; color: inherit; cursor: pointer; transition: all 0.12s; padding: 0;
+      }
+      .v69-alpha-btn:hover:not(.v69-disabled) { color: #B8965A; border-color: rgba(184,150,90,0.3); }
+      .v69-alpha-btn.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
+      .v69-alpha-btn.v69-disabled { opacity: 0.25; pointer-events: none; }
+      .v69-alpha-btn.v69-all { width: auto; padding: 0 9px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; margin-right: 4px; }
+      #v69-count { font-size: 10px; opacity: 0.5; margin-bottom: 12px; letter-spacing: 0.04em; }
+      #v69-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .v69-card {
+        cursor: pointer; background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06); transition: all 0.18s; display: block;
+      }
+      .v69-card:hover { background: rgba(184,150,90,0.06); border-color: rgba(184,150,90,0.3); }
+      .v69-card .v69-img {
+        aspect-ratio: 1; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center;
+        overflow: hidden; position: relative;
+      }
+      .v69-card .v69-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+      .v69-card:hover .v69-img img { transform: scale(1.05); }
+      .v69-card .v69-meta { padding: 8px 9px 10px; }
+      .v69-card .v69-brand { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: #B8965A; margin-bottom: 2px; }
+      .v69-card .v69-name { font-size: 11px; line-height: 1.25; color: inherit; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .v69-empty { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; line-height: 1.6; }
+      .v69-loading { padding: 40px 12px; text-align: center; font-size: 11px; opacity: 0.5; font-style: italic; }
+    `;
+    document.head.appendChild(css);
+  }
+
+  /* ───── 7. UI : structure + render ───── */
   function buildCatalogueDiv() {
+    injectStyles();
     const div = document.createElement('div');
     div.id = 'v69-cat-content';
-    div.style.cssText = `
-      padding: 22px 24px 32px;
-      font-family: 'Jost', sans-serif;
-      color: inherit;
-      box-sizing: border-box;
-      overflow-y: auto;
-    `;
     div.innerHTML = `
-      <div style="font-size:10px;letter-spacing:0.18em;opacity:0.55;text-transform:uppercase;margin-bottom:12px;">Catégorie</div>
-      <div id="v69-cat-pills" style="margin-bottom:24px;display:flex;flex-wrap:wrap;gap:6px;">
-        <button class="v69-pill v69-active" data-cat="all">Tout</button>
-        <button class="v69-pill" data-cat="sofa">Canapés</button>
-        <button class="v69-pill" data-cat="fauteuil">Fauteuils</button>
-        <button class="v69-pill" data-cat="chaise">Chaises</button>
-        <button class="v69-pill" data-cat="table">Tables</button>
-        <button class="v69-pill" data-cat="luminaire">Luminaires</button>
-        <button class="v69-pill" data-cat="rangement">Rangements</button>
-        <button class="v69-pill" data-cat="marques">Marques</button>
-        <button class="v69-pill" data-cat="autre">Autre</button>
+      <div class="v69-label">Catégorie</div>
+      <div id="v69-cat-pills-wrap">
+        <div id="v69-cat-pills"></div>
       </div>
-      <div id="v69-alpha-bar" style="display:none;margin-bottom:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
-        <div style="font-size:10px;letter-spacing:0.18em;opacity:0.55;text-transform:uppercase;margin-bottom:10px;">Lettre</div>
-        <div id="v69-alpha-letters" style="display:flex;flex-wrap:wrap;gap:3px;"></div>
+      <div id="v69-alpha-bar">
+        <div class="v69-label">Lettre</div>
+        <div id="v69-alpha-letters"></div>
       </div>
-      <div id="v69-placeholder" style="margin-top:40px;font-size:12px;opacity:0.5;text-align:center;font-style:italic;line-height:1.6;padding:0 12px;">
-        Chargement du catalogue…<br><br>
-        <span style="opacity:0.7;font-size:11px;">(v69.6 ajoutera les produits Supabase)</span>
+      <div id="v69-count">—</div>
+      <div id="v69-grid">
+        <div class="v69-loading" style="grid-column:1/-1">Chargement…</div>
       </div>
     `;
-    if (!document.getElementById('v69-pill-styles')) {
-      const css = document.createElement('style');
-      css.id = 'v69-pill-styles';
-      css.textContent = `
-        .v69-pill {
-          padding: 6px 11px; background: transparent;
-          border: 1px solid rgba(255,255,255,0.16); cursor: pointer;
-          font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-          color: inherit; font-family: 'Jost',sans-serif; transition: all 0.15s;
-          white-space: nowrap;
-        }
-        .v69-pill:hover { border-color: #B8965A; }
-        .v69-pill.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
-        .v69-alpha-btn {
-          width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
-          background: transparent; border: 1px solid transparent; font-family: 'Jost',sans-serif;
-          font-size: 11px; color: inherit; cursor: pointer; transition: all 0.12s;
-        }
-        .v69-alpha-btn:hover { color: #B8965A; border-color: rgba(184,150,90,0.3); }
-        .v69-alpha-btn.v69-active { background: #B8965A; border-color: #B8965A; color: #1a1a1a; }
-        .v69-alpha-btn.v69-disabled { opacity: 0.25; pointer-events: none; }
-        .v69-alpha-btn.v69-all { width: auto; padding: 0 10px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; }
-      `;
-      document.head.appendChild(css);
-    }
-    /* Alphabet A-Z */
-    const lettersWrap = div.querySelector('#v69-alpha-letters');
+
+    /* Chips */
+    const pillsWrap = div.querySelector('#v69-cat-pills');
+    CATEGORIES.forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'v69-pill' + (c.key === currentCat ? ' v69-active' : '');
+      b.textContent = c.label;
+      b.dataset.cat = c.key;
+      b.addEventListener('click', () => setCategory(c.key));
+      pillsWrap.appendChild(b);
+    });
+
+    /* Alphabet */
+    const letters = div.querySelector('#v69-alpha-letters');
     const allBtn = document.createElement('button');
     allBtn.className = 'v69-alpha-btn v69-all v69-active';
     allBtn.textContent = 'Toutes';
     allBtn.dataset.letter = 'all';
-    lettersWrap.appendChild(allBtn);
+    allBtn.addEventListener('click', () => setLetter('all'));
+    letters.appendChild(allBtn);
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(L => {
       const b = document.createElement('button');
       b.className = 'v69-alpha-btn v69-disabled';
       b.textContent = L;
       b.dataset.letter = L;
-      lettersWrap.appendChild(b);
+      b.addEventListener('click', () => setLetter(L));
+      letters.appendChild(b);
     });
-    /* Handlers chips */
-    div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(p => {
-      p.addEventListener('click', () => {
-        div.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => b.classList.remove('v69-active'));
-        p.classList.add('v69-active');
-        const cat = p.dataset.cat;
-        console.log('[v69.5] filtre catégorie:', cat);
-        const alpha = div.querySelector('#v69-alpha-bar');
-        alpha.style.display = (cat === 'marques') ? 'block' : 'none';
-      });
-    });
-    /* Handlers alphabet */
-    div.querySelectorAll('#v69-alpha-letters .v69-alpha-btn').forEach(b => {
-      b.addEventListener('click', () => {
-        if (b.classList.contains('v69-disabled')) return;
-        div.querySelectorAll('#v69-alpha-letters .v69-alpha-btn').forEach(x => x.classList.remove('v69-active'));
-        b.classList.add('v69-active');
-        console.log('[v69.5] filtre lettre:', b.dataset.letter);
-      });
-    });
+
     return div;
   }
 
-  /* ───── 6. Toggle catalogue ───── */
+  function refreshAlphabetState() {
+    if (!myCatalogue) return;
+    const brands = [...new Set(allProducts.map(p => p.enseigne_name || p.marque).filter(Boolean))];
+    const lettersAvailable = new Set(brands.map(b => b.charAt(0).toUpperCase()));
+    myCatalogue.querySelectorAll('.v69-alpha-btn[data-letter]').forEach(btn => {
+      const L = btn.dataset.letter;
+      if (L === 'all') return;
+      btn.classList.toggle('v69-disabled', !lettersAvailable.has(L));
+    });
+  }
+
+  function setCategory(cat) {
+    currentCat = cat;
+    if (!myCatalogue) return;
+    myCatalogue.querySelectorAll('#v69-cat-pills .v69-pill').forEach(b => {
+      b.classList.toggle('v69-active', b.dataset.cat === cat);
+    });
+    const alpha = myCatalogue.querySelector('#v69-alpha-bar');
+    if (cat === 'marques') {
+      alpha.style.display = 'block';
+      refreshAlphabetState();
+    } else {
+      alpha.style.display = 'none';
+      currentLetter = 'all';
+    }
+    renderProducts();
+  }
+
+  function setLetter(L) {
+    currentLetter = L;
+    if (!myCatalogue) return;
+    myCatalogue.querySelectorAll('.v69-alpha-btn').forEach(b => b.classList.remove('v69-active'));
+    const btn = myCatalogue.querySelector(`.v69-alpha-btn[data-letter="${L}"]`);
+    if (btn) btn.classList.add('v69-active');
+    renderProducts();
+  }
+
+  function renderProducts() {
+    if (!myCatalogue) return;
+    const grid = myCatalogue.querySelector('#v69-grid');
+    const countEl = myCatalogue.querySelector('#v69-count');
+    const filtered = filterProducts();
+    countEl.textContent = filtered.length.toLocaleString('fr-FR') + ' pièce' + (filtered.length > 1 ? 's' : '');
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Aucun résultat<br><span style="opacity:0.6;font-size:10px">pour cette catégorie</span></div>`;
+      return;
+    }
+    const safe = s => String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
+    grid.innerHTML = filtered.slice(0, 60).map(p => {
+      const id    = p.id;
+      const name  = p.name || p.nom || '—';
+      const brand = p.enseigne_name || p.marque || '—';
+      const img   = getProductImage(p);
+      const imgHtml = img
+        ? `<img src="${safe(img)}" alt="${safe(name)}" loading="lazy" onerror="this.outerHTML='${FALLBACK_SVG.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}'">`
+        : FALLBACK_SVG;
+      return `<a class="v69-card" data-id="${safe(id)}" href="#" title="${safe(name)} — ${safe(brand)}">
+        <div class="v69-img">${imgHtml}</div>
+        <div class="v69-meta">
+          <div class="v69-brand">${safe(brand)}</div>
+          <div class="v69-name">${safe(name)}</div>
+        </div>
+      </a>`;
+    }).join('');
+    /* Click handlers */
+    grid.querySelectorAll('.v69-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = card.dataset.id;
+        console.log('[v69.6] click produit id=' + id);
+        if (typeof toast === 'function') toast('Ouverture du modèle… (v69.7 branchera le load OBJ)', 'info', 3000);
+        else if (typeof window.toast === 'function') window.toast('Ouverture du modèle…', 'info', 3000);
+      });
+    });
+  }
+
+  async function loadProducts() {
+    const client = getSupabase();
+    if (!client) {
+      console.warn('[v69.6] Supabase indisponible');
+      if (myCatalogue) {
+        const grid = myCatalogue.querySelector('#v69-grid');
+        if (grid) grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Client Supabase indisponible</div>`;
+      }
+      return;
+    }
+    try {
+      const { data, error } = await client.from('products').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      allProducts = data || [];
+      console.log('[v69.6] ' + allProducts.length + ' produits chargés');
+      refreshAlphabetState();
+      renderProducts();
+    } catch (e) {
+      console.error('[v69.6] erreur chargement produits:', e);
+      if (myCatalogue) {
+        const grid = myCatalogue.querySelector('#v69-grid');
+        if (grid) grid.innerHTML = `<div class="v69-empty" style="grid-column:1/-1">Erreur de chargement<br><span style="opacity:0.6;font-size:10px">${(e.message || '').slice(0, 80)}</span></div>`;
+      }
+    }
+  }
+
+  /* ───── 8. Toggle catalogue ───── */
   function openCatalogue() {
     if (catalogueOpen) return;
     if (!contentContainer) {
-      console.warn('[v69.5] openCatalogue : contentContainer manquant, retry init…');
+      console.warn('[v69.6] openCatalogue : retry init…');
       tryInit();
-      if (!contentContainer) { console.warn('[v69.5] abandon'); return; }
+      if (!contentContainer) return;
     }
-    /* Cache enfants du contentContainer */
     nativeChildren = Array.from(contentContainer.children);
     nativeChildren.forEach(c => { c._v69PrevDisplay = c.style.display; c.style.display = 'none'; });
-
-    /* ★ NOUVEAU : cache aussi les sections périphériques (MATIÈRE ACTIVE…) */
     extraHidden = [];
     for (const m of HEADER_MARKERS) {
       const sec = findExtraSection(m);
@@ -23069,26 +23235,26 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
         extraHidden.push(sec);
       }
     }
-
-    if (!myCatalogue) myCatalogue = buildCatalogueDiv();
+    if (!myCatalogue) {
+      myCatalogue = buildCatalogueDiv();
+      loadProducts(); /* premier ouvrir → fetch */
+    }
     contentContainer.appendChild(myCatalogue);
     catalogueOpen = true;
     setButtonActive(true);
-    console.log('[v69.5] catalogue ouvert · ' + nativeChildren.length + ' enfants + ' + extraHidden.length + ' sections périphériques cachées');
+    console.log('[v69.6] catalogue ouvert · ' + nativeChildren.length + ' enfants + ' + extraHidden.length + ' sections cachées');
   }
 
   function closeCatalogue() {
     if (!catalogueOpen) return;
-    if (myCatalogue && myCatalogue.parentNode === contentContainer) {
-      contentContainer.removeChild(myCatalogue);
-    }
+    if (myCatalogue && myCatalogue.parentNode === contentContainer) contentContainer.removeChild(myCatalogue);
     nativeChildren.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
     nativeChildren = [];
     extraHidden.forEach(c => { c.style.display = c._v69PrevDisplay || ''; });
     extraHidden = [];
     catalogueOpen = false;
     setButtonActive(false);
-    console.log('[v69.5] catalogue fermé');
+    console.log('[v69.6] catalogue fermé');
   }
 
   function toggleCatalogue() {
@@ -23102,7 +23268,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     myButton.style.color = active ? '#B8965A' : '#fff';
   }
 
-  /* ───── 7. Injection bouton ───── */
   function injectButton() {
     if (document.getElementById('v69-cat-btn')) return true;
     const arBtn = findByText('AR');
@@ -23129,7 +23294,6 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     });
   }
 
-  /* ───── 8. Init avec retry ───── */
   function tryInit() {
     if (!injectButton()) return false;
     contentContainer = findContentContainer();
@@ -23142,7 +23306,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     const interval = setInterval(() => { if (tryInit()) clearInterval(interval); }, 500);
     setTimeout(() => clearInterval(interval), 30000);
   }
-  console.log('[studio v69.5] catalogue ✓ (matcher étendu + sections périphériques + UI alignée catalogue.html)');
+  console.log('[studio v69.6] catalogue ✓ (chips scroll + alphabet actif + produits Supabase)');
 })();
 console.log('[studio v3] prêt');
 
