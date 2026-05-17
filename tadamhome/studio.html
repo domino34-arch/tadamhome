@@ -10784,7 +10784,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     if (window._v18.restoring) return; /* pas pendant la restoration */
     const pid = window._v18.productId;
     try {
-      const { data, error } = await sb.from('products').select('studio_state').eq('id', pid).single();
+      /* v74.1 — bugfix loop : on lit aussi `variants` pour pouvoir les
+         renvoyer tels quels dans l'UPDATE et bypasser V62. Sans variants
+         dans le payload, V62 route { studio_state: ... } vers la variante
+         active → studio_state de base jamais enrichi → V34 retente toutes
+         les 5s → boucle infinie qui pourrit variants[active].studio_state. */
+      const { data, error } = await sb.from('products').select('studio_state, variants').eq('id', pid).single();
       if (error || !data) return;
       const s = data.studio_state || {};
       let changed = false;
@@ -10841,7 +10846,13 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       }
       
       if (changed) {
-        const { error: uerr } = await sb.from('products').update({ studio_state: s }).eq('id', pid);
+        /* v74.1 — Bypass V62 en incluant variants dans le payload. V62 check
+           !('variants' in payload) pour décider s'il route — la présence de
+           variants désactive le routing, l'update va bien sur studio_state
+           de base. On renvoie les variants exactement comme lus pour ne pas
+           écraser de modifs concurrentes. */
+        const updatePayload = { studio_state: s, variants: data.variants };
+        const { error: uerr } = await sb.from('products').update(updatePayload).eq('id', pid);
         if (uerr) throw uerr;
         if (window._v18.productRow) window._v18.productRow.studio_state = s;
         console.log('[v34 sync 5s] state enrichi en base :', updates.join(', '));
