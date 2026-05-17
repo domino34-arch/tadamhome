@@ -5390,13 +5390,25 @@ selectPartReal = function(key) {
 flashHighlightPart = function(key, color = 0xFF2222, duration = 600) {
   const mat = partMaterials[key];
   if (!mat || !mat.emissive) return;
+  /* v77.5 — Filtre rouge supprimé. Le rouge (0xFF2222) était jugé trop
+     agressif et persistant. Remplacé par un flash gold subtil et court :
+     - couleur = gold brand (0xB8965A) au lieu du rouge
+     - intensité = 0.35 (au lieu de 0.9) — très discret
+     - durée = 220ms (au lieu de 600ms) — flash vraiment transitoire
+     Comportement préservé pour les autres couleurs (mesh bleu, pipette vert). */
+  if (color === 0xFF2222) {
+    color = 0xB8965A;
+    duration = 220;
+  }
+  const isRedReplaced = (color === 0xB8965A && duration === 220);
+  const peakIntensity = isRedReplaced ? 0.35 : 0.9;
   mat.emissive.setHex(color);
-  mat.emissiveIntensity = 0.9;
+  mat.emissiveIntensity = peakIntensity;
   const t0 = performance.now();
   function decay() {
     const t = (performance.now() - t0) / duration;
     if (t >= 1) { mat.emissive.setHex(0x000000); mat.emissiveIntensity = 0; return; }
-    mat.emissiveIntensity = 0.9 * (1 - t);
+    mat.emissiveIntensity = peakIntensity * (1 - t);
     requestAnimationFrame(decay);
   }
   requestAnimationFrame(decay);
@@ -27041,85 +27053,30 @@ console.log('[studio v3] prêt');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
-     FIX 4 — Exports : download local ALSO en mode lié, MAIS uniquement
-     déclenché par un clic manuel sur Export GLB/USDZ/OBJ/SketchUp.
+     FIX 4 — Exports : v77.5 — Le hook download local est SUPPRIMÉ.
      ─────────────────────────────────────────────────────────────────────
-     v77.2 — Refactor : on wrappe directement window._v19.runExport au
-     lieu de poller passivement window._v19.exports.
+     Raisons :
+     - V33 et V34 appellent window._v19.runExport('glb') et ('usdz')
+       PROGRAMMATIQUEMENT pendant la publication (avant V49 prenne le relais
+       sur le multi-variantes). Mon wrap ne pouvait pas distinguer ces calls
+       programmatiques des clics manuels → downloads parasites au publish.
+     - L'utilisateur veut zéro download automatique : "il faut le faire
+       manuellement". Les fichiers sont disponibles sur le bucket Supabase,
+       on peut les retrouver via dashboard ou link direct depuis la DB.
 
-     Pourquoi :
-     - Le watcher polling se déclenchait à tort lors d'un publish (V49 écrit
-       dans _v19.exports.glb/usdz mais via sa propre pipeline, sans passer
-       par runExport) et au hydrateFromState au boot (qui copiait des
-       _uploadedAt historiques).
-     - V49 n'appelle PAS runExport (elle a sa propre fonction genBlob +
-       uploadAtPath interne). Donc un wrap de runExport ne fire que sur les
-       clics utilisateur dans le burger menu, ce qui est exactement le
-       comportement voulu.
+     Si tu veux un download local d'un export, ouvre la console et fais :
+       fetch(window._v19.exports.glb).then(r => r.blob()).then(b => {
+         const a = document.createElement('a');
+         a.href = URL.createObjectURL(b);
+         a.download = 'modele.glb';
+         a.click();
+       });
 
-     Comportement final :
-     - Click manuel "Export GLB" en mode sandbox → V19 télécharge localement
-       directement (comportement V19 natif).
-     - Click manuel "Export GLB" en mode lié → V19 upload bucket, mon hook
-       détecte le nouveau _uploadedAt et trigger AUSSI download local.
-     - Click "Publier sur le catalogue" ou "Publier nouvelle variante" → V49
-       exporte tout, MAIS sans passer par runExport → AUCUN download local.
+     Ou ajoute un bouton dédié dans une prochaine itération si besoin.
      ───────────────────────────────────────────────────────────────────── */
   function hookExportsForLocalDownload() {
-    if (!window._v19 || typeof window._v19.runExport !== 'function') {
-      setTimeout(hookExportsForLocalDownload, 1000);
-      return;
-    }
-    if (window._v19.runExport.__v77) return;
-
-    const original = window._v19.runExport;
-
-    /* Helpers locaux pour le download */
-    function defaultName(format) {
-      const stamp = new Date().toISOString().slice(0, 10);
-      const ext = { glb: 'glb', usdz: 'usdz', obj: 'obj', dae: 'dae' }[format] || format;
-      const baseName = (document.getElementById('tbName')?.value || 'modele').trim()
-                       .replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 40) || 'modele';
-      return `${baseName}_${stamp}.${ext}`;
-    }
-    function downloadFromUrl(url, filename) {
-      fetch(url)
-        .then(r => r.blob())
-        .then(blob => {
-          const a = document.createElement('a');
-          const objUrl = URL.createObjectURL(blob);
-          a.href = objUrl;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
-          console.log('[v77] download local après upload manuel :', filename);
-        })
-        .catch(err => console.warn('[v77] download local échec :', err));
-    }
-
-    window._v19.runExport = async function(format, ...rest) {
-      const productId = window._v18 && window._v18.productId;
-      /* Snapshot du stamp avant l'export */
-      const beforeStamp = window._v19.exports && window._v19.exports[format + '_uploadedAt'];
-
-      const result = await original.apply(this, [format, ...rest]);
-
-      /* Après : si on est en mode lié ET qu'un nouveau upload a eu lieu
-         (nouveau _uploadedAt stamp), on déclenche AUSSI le download local.
-         En sandbox, V19 fait déjà le download natif → on ne touche pas. */
-      if (productId) {
-        const afterStamp = window._v19.exports && window._v19.exports[format + '_uploadedAt'];
-        const afterUrl = window._v19.exports && window._v19.exports[format];
-        if (afterStamp && afterStamp !== beforeStamp && afterUrl) {
-          downloadFromUrl(afterUrl, defaultName(format));
-        }
-      }
-      return result;
-    };
-    window._v19.runExport.__v77 = true;
-    console.log('[v77] hook runExport pour download local après upload manuel armé ✓ · publish via V49 NON impacté');
+    /* no-op — voir commentaire ci-dessus. */
+    console.log('[v77] download local automatique désactivé (souhait utilisateur)');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
@@ -27173,6 +27130,132 @@ console.log('[studio v3] prêt');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
+     FIX 6 (v77.5) — Click sur le modèle 3D ouvre OBLIGATOIREMENT le panel
+     matériau (mat-hidden retiré). Hook sur selectPartReal qui est appelé
+     par tous les chemins de sélection : handleSceneClick (click viewport),
+     tree click, pipette.
+     ───────────────────────────────────────────────────────────────────── */
+  function forceMatPanelOnSelect() {
+    function patch() {
+      if (typeof window.selectPartReal !== 'function') {
+        setTimeout(patch, 500);
+        return;
+      }
+      if (window.selectPartReal.__v77MatForce) return;
+
+      const original = window.selectPartReal;
+      window.selectPartReal = function(key) {
+        const r = original.apply(this, arguments);
+        try {
+          /* Ouvrir le panel matériau si caché */
+          const appEl = document.querySelector('.app');
+          if (appEl && appEl.classList.contains('mat-hidden')) {
+            appEl.classList.remove('mat-hidden');
+            /* Resync du bouton toggle si présent */
+            const btn = document.getElementById('matToggle');
+            if (btn) btn.classList.add('active');
+          }
+          /* S'assurer qu'on est sur l'onglet Matériau (idx 0) si on est en
+             vue Géométrie ou Scène — l'archi clique le modèle pour éditer la
+             matière, pas pour rester sur la géométrie. */
+          const tabs = document.querySelectorAll('.tb-mat-zone .mat-tab, .rp-view-edit .mat-tab');
+          let matTabActive = false;
+          tabs.forEach((tab, idx) => {
+            const isMatTab = tab.textContent.trim().toLowerCase().startsWith('mat');
+            if (isMatTab && tab.classList.contains('active')) matTabActive = true;
+          });
+          if (!matTabActive) {
+            const matTab = [...tabs].find(t => t.textContent.trim().toLowerCase().startsWith('mat'));
+            if (matTab) matTab.click();
+          }
+        } catch (e) {
+          console.warn('[v77 forceMatPanel] :', e);
+        }
+        return r;
+      };
+      window.selectPartReal.__v77MatForce = true;
+      /* Sync de la variable locale au scope racine */
+      if (typeof selectPartReal !== 'undefined') {
+        try { selectPartReal = window.selectPartReal; } catch (_) {}
+      }
+      console.log('[v77] click modèle → force ouverture panel matériau ✓');
+    }
+    patch();
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 7 (v77.5) — iPad color picker : la fenêtre couleur dispar
+     pendant la manipulation des curseurs internes.
+
+     Cause :
+     - setupColorPicker (ligne ~5542) supprime l'input via setTimeout(remove, 500)
+       sur l'événement 'change'.
+     - Sur iOS Safari, l'événement 'change' fire à chaque relâchement de slider
+       interne, pas seulement à la fermeture du picker.
+     - Résultat : input retiré du DOM 500ms après le premier ajustement →
+       le picker se ferme alors que l'utilisateur continue à manipuler.
+
+     Fix : on switch sur 'blur' au lieu de 'change' (blur fire UNIQUEMENT
+     quand le picker est vraiment fermé/dismissé) + on augmente le timeout
+     à 2s pour donner de la marge. On hook par event delegation sur le
+     document pour catcher les inputs créés dynamiquement par setupColorPicker.
+     ───────────────────────────────────────────────────────────────────── */
+  function fixColorPickerIPad() {
+    /* Délégation : intercepte la création d'input[type=color] et remplace
+       son listener 'change' par un 'blur'. Comme setupColorPicker crée
+       l'input dynamiquement, on observe les ajouts au body. */
+    const mo = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType !== 1) return;
+          /* Cas direct : c'est l'input couleur lui-même */
+          if (node.tagName === 'INPUT' && node.type === 'color' && !node.dataset.v77Patched) {
+            patchPickerRemoval(node);
+          }
+          /* Cas indirect : l'input est inside */
+          const inner = node.querySelector && node.querySelector('input[type="color"]');
+          if (inner && !inner.dataset.v77Patched) patchPickerRemoval(inner);
+        });
+      });
+    });
+    mo.observe(document.body, { childList: true, subtree: false });
+
+    function patchPickerRemoval(input) {
+      input.dataset.v77Patched = '1';
+      /* Capture du listener 'change' existant (qui supprime à 500ms) */
+      /* Comme on ne peut pas le retirer directement (pas de référence),
+         on neutralise en clonant le node sans ses listeners… mais l'input
+         a déjà été inséré et clické. Plus simple : on ajoute notre propre
+         listener blur qui supprime à 2s, et on monkey-patch input.remove
+         pour différer si appelé trop tôt. */
+      const originalRemove = input.remove.bind(input);
+      let pickerStillOpen = true;
+
+      /* Le blur fire quand le picker se ferme vraiment sur iOS */
+      input.addEventListener('blur', () => {
+        pickerStillOpen = false;
+        setTimeout(() => {
+          if (input.isConnected) originalRemove();
+        }, 2000); /* 2s de marge après fermeture du picker */
+      });
+
+      /* Override de input.remove pour bloquer les suppressions précoces */
+      input.remove = function() {
+        if (pickerStillOpen) {
+          /* Le setupColorPicker original a déclenché remove via change event,
+             mais le user manipule encore le picker. On différé. */
+          console.log('[v77 colorPicker] remove différé (picker encore actif)');
+          return;
+        }
+        originalRemove();
+      };
+
+      console.log('[v77 colorPicker] input patché pour iPad ✓');
+    }
+    console.log('[v77] color picker iPad fix armé (MutationObserver sur body) ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
      Init — toutes les opérations sont idempotentes et auto-retry.
      ───────────────────────────────────────────────────────────────────── */
   function init() {
@@ -27182,6 +27265,8 @@ console.log('[studio v3] prêt');
     injectVariantButton();
     hookExportsForLocalDownload();
     wireSaveStateButton();
+    forceMatPanelOnSelect();   /* v77.5 — click modèle = ouvre panel matière */
+    fixColorPickerIPad();      /* v77.5 — color picker robuste sur iPad */
 
     /* Re-tentatives périodiques pour les éléments injectés tardivement */
     setInterval(() => {
