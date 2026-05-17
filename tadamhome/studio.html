@@ -3029,12 +3029,13 @@ button{font-family:inherit;cursor:pointer}
 .v27-modal {
   background: var(--bg);
   border: 1px solid var(--line);
-  width: 460px;
+  width: 720px;
   max-width: calc(100vw - 40px);
   max-height: 90vh;
   overflow-y: auto;
   transform: scale(0.96);
   transition: transform 0.24s cubic-bezier(.4,.2,.2,1);
+  position: relative;
 }
 .v27-modal-backdrop.open .v27-modal {
   transform: scale(1);
@@ -3160,6 +3161,300 @@ button{font-family:inherit;cursor:pointer}
 .v27-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   V27.5 — Refonte modale = miroir de la fiche éditoriale admin
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Close X en haut-droite de la modale (parité admin) */
+.v27-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  z-index: 2;
+}
+.v27-close:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.v27-close svg { width: 12px; height: 12px; }
+
+/* Sections internes (mêmes codes que .admin-section côté admin) */
+.v27-section {
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--line-light, rgba(0,0,0,0.06));
+}
+.v27-section:last-of-type { border-bottom: none; }
+
+.v27-section-eyebrow {
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.v27-section-eyebrow::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--gold);
+  display: inline-block;
+}
+
+.v27-section-help {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: -4px 0 14px;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+}
+
+/* Grilles internes aux sections */
+.v27-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.v27-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+/* En reprenant .v27-field existant, on neutralise sa marge dans les grilles */
+.v27-grid-2 .v27-field,
+.v27-grid-3 .v27-field {
+  margin-bottom: 0;
+}
+
+/* Slots fichiers 3D (drop-zone style admin) */
+.v27-file-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 22px 12px;
+  min-height: 130px;
+  background: rgba(184, 150, 90, 0.04);
+  border: 1px dashed rgba(184, 150, 90, 0.45);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.v27-file-slot:hover {
+  background: rgba(184, 150, 90, 0.08);
+  border-color: var(--gold);
+}
+.v27-file-slot.is-filled {
+  background: rgba(184, 150, 90, 0.10);
+  border-style: solid;
+  border-color: var(--gold);
+}
+.v27-file-slot.is-locked {
+  cursor: default;
+}
+.v27-file-slot-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.v27-file-slot-format {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.v27-file-slot-tag {
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.v27-file-slot-cta {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-muted);
+  letter-spacing: 0.005em;
+}
+.v27-file-slot.is-filled .v27-file-slot-cta {
+  color: var(--gold);
+  font-style: normal;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.v27-file-slot-meta {
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+.v27-file-slot-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(0,0,0,0.04);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.v27-file-slot.is-filled:not(.is-locked) .v27-file-slot-clear {
+  display: flex;
+}
+.v27-file-slot-clear:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* Photo de couverture : thumbnail à gauche + drop-zone à droite */
+.v27-photo-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+.v27-photo-thumb {
+  aspect-ratio: 1 / 1;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(184, 150, 90, 0.06),
+    rgba(184, 150, 90, 0.06) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.v27-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+.v27-photo-drop {
+  border: 1px dashed rgba(184, 150, 90, 0.45);
+  background: rgba(184, 150, 90, 0.04);
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.18s;
+}
+.v27-photo-drop:hover {
+  background: rgba(184, 150, 90, 0.08);
+  border-color: var(--gold);
+}
+.v27-photo-drop-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.v27-photo-drop-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.005em;
+  line-height: 1.45;
+}
+
+/* Section header (eyebrow + nom + marque) plus aéré au-dessus des sections */
+.v27-modal-head-clean {
+  padding: 22px 28px 8px;
+  border-bottom: none;
+}
+.v27-modal-head-clean .v27-modal-eyebrow { margin-bottom: 4px; }
+.v27-modal-head-clean .v27-modal-title { font-size: 26px; }
+
+/* Footer dans la même teinte cream que la modale admin */
+.v27-modal-foot-clean {
+  padding: 16px 28px 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+/* Bouton primary noir (parité admin "ENREGISTRER") */
+.v27-btn.primary-dark {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.v27-btn.primary-dark:hover {
+  background: #000;
+  border-color: #000;
+}
+
+/* Responsive : sur mobile, les grilles 3-col deviennent 1-col */
+@media (max-width: 560px) {
+  .v27-modal { width: calc(100vw - 24px); }
+  .v27-grid-2,
+  .v27-grid-3 { grid-template-columns: 1fr; gap: 10px; }
+  .v27-photo-row { grid-template-columns: 1fr; }
+  .v27-photo-thumb { aspect-ratio: 3 / 2; }
+  .v27-section { padding: 16px 20px; }
+  .v27-modal-head-clean { padding: 18px 20px 6px; }
+  .v27-modal-foot-clean { padding: 14px 20px 18px; }
 }
 
 /* État verrouillé des inputs dimensions */
@@ -8780,17 +9075,35 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     backdrop.id = 'v27Modal';
     backdrop.innerHTML = `
       <div class="v27-modal" role="dialog" aria-labelledby="v27Title" aria-modal="true">
-        <div class="v27-modal-head">
+        <button class="v27-close" id="v27BtnClose" title="Fermer" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>
+        </button>
+
+        <div class="v27-modal-head v27-modal-head-clean">
           <div class="v27-modal-eyebrow">Nouveau modèle</div>
           <div class="v27-modal-title" id="v27Title">Informations du modèle 3D</div>
           <div class="v27-modal-subtitle" id="v27Subtitle">—</div>
         </div>
-        <div class="v27-modal-body">
-          <div class="v27-field">
-            <label class="v27-field-label" for="v27Name">Nom du modèle<span class="required">*</span></label>
-            <input id="v27Name" type="text" placeholder="ex. Aria B-5310" autocomplete="off">
+
+        <!-- ═══ IDENTITÉ ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Identité</div>
+          <div class="v27-grid-2">
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27Name">Nom<span class="required">*</span></label>
+              <input id="v27Name" type="text" placeholder="ex. Aria B-5310" autocomplete="off">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27Brand">Marque / Enseigne<span class="required">*</span></label>
+              <input id="v27Brand" type="text" list="brandList" autocomplete="off" placeholder="ex. Paged">
+            </div>
           </div>
-          <div class="v27-field-row">
+        </section>
+
+        <!-- ═══ CLASSIFICATION & PRIX ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Classification &amp; Prix</div>
+          <div class="v27-grid-2">
             <div class="v27-field">
               <label class="v27-field-label" for="v27Category">Catégorie<span class="required">*</span></label>
               <select id="v27Category">
@@ -8799,46 +9112,210 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
             </div>
             <div class="v27-field">
               <label class="v27-field-label" for="v27Price">Prix (€)</label>
-              <input id="v27Price" type="number" step="0.01" min="0" placeholder="optionnel">
+              <input id="v27Price" type="number" step="0.01" min="0" placeholder="ex. 450">
             </div>
           </div>
-          <div class="v27-field">
-            <label class="v27-field-label" for="v27Brand">Marque<span class="required">*</span></label>
-            <input id="v27Brand" type="text" list="brandList" autocomplete="off" placeholder="ex. Paged">
-          </div>
-          <div class="v27-field">
-            <label class="v27-field-label">Dimensions (cm)<span class="required">*</span></label>
-            <div class="v27-field-dims">
-              <div class="v27-dim-cell">
-                <input id="v27DimL" type="number" step="0.1" min="0" placeholder="Largeur">
-                <span class="v27-dim-suffix">L</span>
-              </div>
-              <div class="v27-dim-cell">
-                <input id="v27DimH" type="number" step="0.1" min="0" placeholder="Hauteur">
-                <span class="v27-dim-suffix">H</span>
-              </div>
-              <div class="v27-dim-cell">
-                <input id="v27DimP" type="number" step="0.1" min="0" placeholder="Profondeur">
-                <span class="v27-dim-suffix">P</span>
-              </div>
+        </section>
+
+        <!-- ═══ DIMENSIONS ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Dimensions (cm)</div>
+          <div class="v27-grid-3">
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimL">Largeur (L)<span class="required">*</span></label>
+              <input id="v27DimL" type="number" step="0.1" min="0" placeholder="L">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimH">Hauteur (H)<span class="required">*</span></label>
+              <input id="v27DimH" type="number" step="0.1" min="0" placeholder="H">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimP">Profondeur (P)<span class="required">*</span></label>
+              <input id="v27DimP" type="number" step="0.1" min="0" placeholder="P">
             </div>
           </div>
-        </div>
-        <div class="v27-modal-foot">
+        </section>
+
+        <!-- ═══ FICHIERS 3D ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Fichiers 3D</div>
+          <div class="v27-section-help">
+            L'OBJ est nécessaire pour éditer le modèle dans le studio.<br>
+            GLB sert à l'AR Android / Web. USDZ sert à l'AR iOS Safari.
+          </div>
+          <div class="v27-grid-3">
+
+            <!-- GLB -->
+            <div class="v27-file-slot" id="v27SlotGlb" data-format="glb" tabindex="0">
+              <button type="button" class="v27-file-slot-clear" data-clear="glb" title="Retirer">×</button>
+              <div class="v27-file-slot-head">
+                <span class="v27-file-slot-format">GLB</span>
+                <span class="v27-file-slot-tag">AR Web</span>
+              </div>
+              <div class="v27-file-slot-cta" data-cta>Cliquer pour ajouter</div>
+              <div class="v27-file-slot-meta" data-meta style="display:none"></div>
+            </div>
+
+            <!-- OBJ — pré-rempli au drop -->
+            <div class="v27-file-slot is-filled is-locked" id="v27SlotObj" data-format="obj">
+              <div class="v27-file-slot-head">
+                <span class="v27-file-slot-format">OBJ</span>
+                <span class="v27-file-slot-tag">Studio</span>
+              </div>
+              <div class="v27-file-slot-cta" data-cta>✓ Chargé</div>
+              <div class="v27-file-slot-meta" data-meta>—</div>
+            </div>
+
+            <!-- USDZ -->
+            <div class="v27-file-slot" id="v27SlotUsdz" data-format="usdz" tabindex="0">
+              <button type="button" class="v27-file-slot-clear" data-clear="usdz" title="Retirer">×</button>
+              <div class="v27-file-slot-head">
+                <span class="v27-file-slot-format">USDZ</span>
+                <span class="v27-file-slot-tag">AR iOS</span>
+              </div>
+              <div class="v27-file-slot-cta" data-cta>Cliquer pour ajouter</div>
+              <div class="v27-file-slot-meta" data-meta style="display:none"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ═══ PHOTO DE COUVERTURE ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Photo de couverture</div>
+          <div class="v27-photo-row">
+            <div class="v27-photo-thumb" id="v27PhotoThumb">
+              <span id="v27PhotoThumbLabel">Aucune photo</span>
+            </div>
+            <div class="v27-photo-drop" id="v27PhotoDrop" tabindex="0">
+              <div class="v27-photo-drop-title" id="v27PhotoDropTitle">Glisser ou cliquer pour téléverser</div>
+              <div class="v27-photo-drop-sub" id="v27PhotoDropSub">JPG / PNG / WebP — compressé à 1200px max, ~0.85 qualité</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ FINITION (matériau principal du modèle, base) ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Finition</div>
+          <div class="v27-section-help">
+            Visuel macro du matériau principal du modèle dans sa version de base.<br>
+            Les swatches additionnels (variantes) s'ajoutent depuis le studio après configuration.
+          </div>
+          <div class="v27-photo-row v27-finition-row">
+            <div class="v27-photo-thumb v27-finition-thumb" id="v27FinitionThumb">
+              <span id="v27FinitionThumbLabel">Aucun swatch</span>
+            </div>
+            <div class="v27-photo-drop" id="v27FinitionDrop" tabindex="0">
+              <div class="v27-photo-drop-title" id="v27FinitionDropTitle">Glisser ou cliquer pour téléverser</div>
+              <div class="v27-photo-drop-sub" id="v27FinitionDropSub">JPG / PNG / WebP — photo macro 5×5 cm, fond neutre</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="v27-modal-foot v27-modal-foot-clean">
           <button class="v27-btn" id="v27BtnCancel">Annuler</button>
-          <button class="v27-btn primary" id="v27BtnConfirm">Continuer</button>
+          <button class="v27-btn primary-dark" id="v27BtnConfirm">Continuer</button>
         </div>
       </div>
     `;
     document.body.appendChild(backdrop);
 
-    /* Wire les boutons */
-    document.getElementById('v27BtnCancel').onclick = (e) => {
-      e.preventDefault(); cancelModal();
-    };
-    document.getElementById('v27BtnConfirm').onclick = (e) => {
-      e.preventDefault(); confirmModal();
-    };
+    /* ─── Inputs file cachés (3 : GLB, USDZ, photo) ─── */
+    if (!document.getElementById('v27InputGlb')) {
+      const inGlb = document.createElement('input');
+      inGlb.type = 'file'; inGlb.accept = '.glb,model/gltf-binary';
+      inGlb.style.display = 'none'; inGlb.id = 'v27InputGlb';
+      document.body.appendChild(inGlb);
+      inGlb.addEventListener('change', (e) => handleFilePick('glb', e.target.files[0]));
+    }
+    if (!document.getElementById('v27InputUsdz')) {
+      const inUsdz = document.createElement('input');
+      inUsdz.type = 'file'; inUsdz.accept = '.usdz,model/vnd.usdz+zip';
+      inUsdz.style.display = 'none'; inUsdz.id = 'v27InputUsdz';
+      document.body.appendChild(inUsdz);
+      inUsdz.addEventListener('change', (e) => handleFilePick('usdz', e.target.files[0]));
+    }
+    if (!document.getElementById('v27InputPhoto')) {
+      const inPhoto = document.createElement('input');
+      inPhoto.type = 'file'; inPhoto.accept = 'image/jpeg,image/png,image/webp';
+      inPhoto.style.display = 'none'; inPhoto.id = 'v27InputPhoto';
+      document.body.appendChild(inPhoto);
+      inPhoto.addEventListener('change', (e) => handlePhotoPick(e.target.files[0]));
+    }
+    if (!document.getElementById('v27InputFinition')) {
+      const inFin = document.createElement('input');
+      inFin.type = 'file'; inFin.accept = 'image/jpeg,image/png,image/webp';
+      inFin.style.display = 'none'; inFin.id = 'v27InputFinition';
+      document.body.appendChild(inFin);
+      inFin.addEventListener('change', (e) => handleFinitionPick(e.target.files[0]));
+    }
+
+    /* ─── Wire les slots GLB / USDZ → click ouvre l'input correspondant ─── */
+    document.getElementById('v27SlotGlb').addEventListener('click', (e) => {
+      if (e.target.closest('[data-clear]')) return;
+      document.getElementById('v27InputGlb').click();
+    });
+    document.getElementById('v27SlotUsdz').addEventListener('click', (e) => {
+      if (e.target.closest('[data-clear]')) return;
+      document.getElementById('v27InputUsdz').click();
+    });
+
+    /* Boutons "×" pour vider un slot */
+    backdrop.querySelectorAll('[data-clear]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        clearFileSlot(btn.dataset.clear);
+      });
+    });
+
+    /* ─── Photo : click + drag&drop sur la drop-zone ─── */
+    const photoDrop = document.getElementById('v27PhotoDrop');
+    photoDrop.addEventListener('click', () => document.getElementById('v27InputPhoto').click());
+    ['dragenter', 'dragover'].forEach(evt => {
+      photoDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        photoDrop.style.background = 'rgba(184, 150, 90, 0.14)';
+        photoDrop.style.borderColor = 'var(--gold)';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      photoDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        photoDrop.style.background = '';
+        photoDrop.style.borderColor = '';
+      });
+    });
+    photoDrop.addEventListener('drop', (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) handlePhotoPick(f);
+    });
+
+    /* ─── Finition : click + drag&drop ─── */
+    const finitionDrop = document.getElementById('v27FinitionDrop');
+    finitionDrop.addEventListener('click', () => document.getElementById('v27InputFinition').click());
+    ['dragenter', 'dragover'].forEach(evt => {
+      finitionDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        finitionDrop.style.background = 'rgba(184, 150, 90, 0.14)';
+        finitionDrop.style.borderColor = 'var(--gold)';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      finitionDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        finitionDrop.style.background = '';
+        finitionDrop.style.borderColor = '';
+      });
+    });
+    finitionDrop.addEventListener('drop', (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) handleFinitionPick(f);
+    });
+
+    /* Wire les boutons header/footer */
+    document.getElementById('v27BtnClose').onclick  = (e) => { e.preventDefault(); cancelModal(); };
+    document.getElementById('v27BtnCancel').onclick = (e) => { e.preventDefault(); cancelModal(); };
+    document.getElementById('v27BtnConfirm').onclick = (e) => { e.preventDefault(); confirmModal(); };
 
     /* Backdrop click = annulation */
     backdrop.addEventListener('click', (e) => {
@@ -8851,6 +9328,87 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     });
   }
 
+  /* ═══ Helpers pour les slots fichiers 3D ═══ */
+  function handleFilePick(format, file) {
+    if (!file) return;
+    window._v27.attachments = window._v27.attachments || {};
+    window._v27.attachments[format] = file;
+    const slot = document.getElementById(format === 'glb' ? 'v27SlotGlb' : 'v27SlotUsdz');
+    if (!slot) return;
+    slot.classList.add('is-filled');
+    const cta  = slot.querySelector('[data-cta]');
+    const meta = slot.querySelector('[data-meta]');
+    if (cta)  cta.textContent  = '✓ Sélectionné';
+    if (meta) {
+      meta.style.display = '';
+      meta.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    }
+  }
+
+  function clearFileSlot(format) {
+    if (window._v27.attachments) delete window._v27.attachments[format];
+    const slot = document.getElementById(format === 'glb' ? 'v27SlotGlb' : 'v27SlotUsdz');
+    if (!slot) return;
+    slot.classList.remove('is-filled');
+    const cta  = slot.querySelector('[data-cta]');
+    const meta = slot.querySelector('[data-meta]');
+    if (cta)  cta.textContent  = 'Cliquer pour ajouter';
+    if (meta) { meta.style.display = 'none'; meta.textContent = ''; }
+    /* Reset l'input pour permettre de re-sélectionner le même fichier */
+    const input = document.getElementById(format === 'glb' ? 'v27InputGlb' : 'v27InputUsdz');
+    if (input) input.value = '';
+  }
+
+  function handlePhotoPick(file) {
+    if (!file) return;
+    window._v27.attachments = window._v27.attachments || {};
+    window._v27.attachments.photo = file;
+
+    /* Preview dans la thumbnail */
+    const thumb = document.getElementById('v27PhotoThumb');
+    const label = document.getElementById('v27PhotoThumbLabel');
+    const dropTitle = document.getElementById('v27PhotoDropTitle');
+    const dropSub   = document.getElementById('v27PhotoDropSub');
+    if (!thumb) return;
+
+    /* Nettoyer l'éventuelle preview précédente */
+    thumb.querySelectorAll('img').forEach(el => el.remove());
+    const img = document.createElement('img');
+    img.alt = 'Aperçu photo de couverture';
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+    thumb.appendChild(img);
+    if (label) label.style.display = 'none';
+
+    if (dropTitle) dropTitle.textContent = '✓ Photo sélectionnée';
+    if (dropSub)   dropSub.textContent   = `${file.name} · ${(file.size / 1024).toFixed(0)} KB — cliquer pour remplacer`;
+  }
+
+  function handleFinitionPick(file) {
+    if (!file) return;
+    window._v27.attachments = window._v27.attachments || {};
+    window._v27.attachments.finition = file;
+
+    const thumb = document.getElementById('v27FinitionThumb');
+    const label = document.getElementById('v27FinitionThumbLabel');
+    const dropTitle = document.getElementById('v27FinitionDropTitle');
+    const dropSub   = document.getElementById('v27FinitionDropSub');
+    if (!thumb) return;
+
+    thumb.querySelectorAll('img').forEach(el => el.remove());
+    const img = document.createElement('img');
+    img.alt = 'Aperçu swatch finition';
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+    thumb.appendChild(img);
+    if (label) label.style.display = 'none';
+
+    if (dropTitle) dropTitle.textContent = '✓ Finition sélectionnée';
+    if (dropSub)   dropSub.textContent   = `${file.name} · ${(file.size / 1024).toFixed(0)} KB — cliquer pour remplacer`;
+  }
+
   /* ═══ Ouvrir / fermer la modal ═══ */
   function openModal(file) {
     injectModal();
@@ -8861,6 +9419,39 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     }
     window._v27.pendingFile = file;
     window._v27.modalOpen = true;
+    window._v27.attachments = { obj: file };  /* OBJ pré-rempli au drop */
+
+    /* Reset visuel des autres slots (GLB / USDZ / Photo) en cas de réouverture */
+    ['glb', 'usdz'].forEach(fmt => clearFileSlot(fmt));
+    const photoThumb = document.getElementById('v27PhotoThumb');
+    const photoLabel = document.getElementById('v27PhotoThumbLabel');
+    const photoTitle = document.getElementById('v27PhotoDropTitle');
+    const photoSub   = document.getElementById('v27PhotoDropSub');
+    if (photoThumb) photoThumb.querySelectorAll('img').forEach(el => el.remove());
+    if (photoLabel) photoLabel.style.display = '';
+    if (photoTitle) photoTitle.textContent = 'Glisser ou cliquer pour téléverser';
+    if (photoSub)   photoSub.textContent   = 'JPG / PNG / WebP — compressé à 1200px max, ~0.85 qualité';
+    const photoInput = document.getElementById('v27InputPhoto');
+    if (photoInput) photoInput.value = '';
+
+    /* Reset Finition */
+    const finitionThumb = document.getElementById('v27FinitionThumb');
+    const finitionLabel = document.getElementById('v27FinitionThumbLabel');
+    const finitionTitle = document.getElementById('v27FinitionDropTitle');
+    const finitionSub   = document.getElementById('v27FinitionDropSub');
+    if (finitionThumb) finitionThumb.querySelectorAll('img').forEach(el => el.remove());
+    if (finitionLabel) finitionLabel.style.display = '';
+    if (finitionTitle) finitionTitle.textContent = 'Glisser ou cliquer pour téléverser';
+    if (finitionSub)   finitionSub.textContent   = 'JPG / PNG / WebP — photo macro 5×5 cm, fond neutre';
+    const finitionInput = document.getElementById('v27InputFinition');
+    if (finitionInput) finitionInput.value = '';
+
+    /* Renseigner le slot OBJ avec le fichier dropé */
+    const objMeta = document.querySelector('#v27SlotObj [data-meta]');
+    if (objMeta) {
+      objMeta.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    }
+
     backdrop.classList.add('open');
     updateBrandDatalist();
     /* Focus auto sur le nom */
@@ -24129,6 +24720,301 @@ console.log('[studio v3] prêt');
     const t = setInterval(() => { if (hookSceneClick()) clearInterval(t); }, 500);
     setTimeout(() => clearInterval(t), 20000);
   }
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v70 — V27 ATTACHMENTS → UPLOAD SUPABASE APRÈS CRÉATION DU PRODUIT
+   ─────────────────────────────────────────────────────────────────────────
+   Pendant que la modale V27 collecte les fichiers du nouveau modèle (OBJ
+   déjà géré par V34, plus GLB / USDZ / photo / finition optionnels), tout
+   est stocké dans window._v27.attachments. Ce module surveille l'apparition
+   d'un productId fraîchement créé et upload chaque attachment au bon endroit
+   sur Supabase Storage, puis met à jour les colonnes correspondantes de la
+   table products.
+
+   Ordre des opérations :
+   1. createNewProduct (V26) INSERT le produit → productId apparaît
+   2. V34 watcher (1.5s) → upload OBJ source + déclenche V49 auto-export
+   3. V49 (5-10s) → génère GLB/USDZ depuis la scène three.js et écrit les
+      URLs dans products.model_glb_url / model_usdz_url
+   4. V70 (ce module, 12s) → upload les attachments V27 utilisateur :
+      - GLB / USDZ utilisateur : ÉCRASE ce que V49 a auto-généré (l'archi
+        a choisi explicitement de fournir son propre GLB → c'est lui qui gagne)
+      - Photo de couverture : upload + maj de la colonne photo (auto-détectée)
+      - Finition (base) : upload + maj de studio_state.textureSwatchUrl + colors[0]
+
+   Si V70 démarre AVANT que V49 finisse, c'est juste une race condition : la
+   dernière écriture gagne. Le délai de 12s est large pour V49.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v70WireV27Attachments() {
+  if (window.__v70Init) return;
+  window.__v70Init = true;
+
+  const BUCKET = 'models';
+  const PHOTO_FIELDS = ['cover_url', 'image_url', 'thumbnail_url', 'photo_url'];
+  const POST_CREATE_DELAY_MS = 12000; /* attendre que V49 finisse l'auto-export */
+
+  /* Map format → config DB + path Storage (mêmes conventions qu'admin v34.2) */
+  const MODEL_FORMAT_CONFIG = {
+    glb:  { dbField: 'model_glb_url',  path: (id) => `glb-models/${id}/model.glb`,   mime: 'model/gltf-binary' },
+    usdz: { dbField: 'model_usdz_url', path: (id) => `usdz-models/${id}/model.usdz`, mime: 'model/vnd.usdz+zip' },
+  };
+
+  let isProcessing = false;
+  let lastProcessedId = null;
+
+  /* ─── Helper : compression image (1200px / 600px max, JPEG ~0.85) ─── */
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(blob => {
+            if (!blob) return reject(new Error('canvas.toBlob a renvoyé null'));
+            resolve(blob);
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = () => reject(new Error('Image illisible'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('FileReader a échoué'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ─── Upload modèle 3D (GLB ou USDZ) ─── */
+  async function uploadModel3D(format, file, productId) {
+    const conf = MODEL_FORMAT_CONFIG[format];
+    if (!conf || !file) return null;
+    if (typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible');
+
+    const path = conf.path(productId);
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, {
+      contentType: conf.mime, upsert: true, cacheControl: '3600',
+    });
+    if (upErr) throw upErr;
+
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
+    const url = pub.publicUrl + '?v=' + Date.now();
+
+    /* Maj de la colonne DB correspondante */
+    try {
+      const { error: dbErr } = await sb.from('products')
+        .update({ [conf.dbField]: url })
+        .eq('id', productId);
+      if (dbErr) {
+        console.warn(`[v70] colonne ${conf.dbField} absente — fichier sur Storage uniquement.`, dbErr.message);
+      } else if (window._v18?.productRow) {
+        window._v18.productRow[conf.dbField] = url;
+      }
+    } catch (e) {
+      console.warn(`[v70] update DB ${conf.dbField} a échoué`, e.message);
+    }
+
+    console.log(`[v70] ✓ ${format.toUpperCase()} uploadé :`, url);
+    return url;
+  }
+
+  /* ─── Upload photo de couverture ─── */
+  async function uploadPhoto(file, productId) {
+    if (!file || typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible ou fichier vide');
+
+    const compressed = await compressImage(file, 1200, 0.85);
+    const path = `photos/${productId}/cover.jpg`;
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, compressed, {
+      contentType: 'image/jpeg', upsert: true, cacheControl: '3600',
+    });
+    if (upErr) throw upErr;
+
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
+    const url = pub.publicUrl + '?v=' + Date.now();
+
+    /* Détecter quelle colonne photo existe et la mettre à jour */
+    let updated = false;
+    for (const field of PHOTO_FIELDS) {
+      try {
+        const { error: dbErr } = await sb.from('products')
+          .update({ [field]: url })
+          .eq('id', productId);
+        if (!dbErr) {
+          if (window._v18?.productRow) window._v18.productRow[field] = url;
+          console.log(`[v70] ✓ Photo uploadée + colonne ${field} mise à jour :`, url);
+          updated = true;
+          break;
+        }
+      } catch (_) { /* essayer la suivante */ }
+    }
+    if (!updated) {
+      console.warn('[v70] aucune colonne photo (cover_url/image_url/...) acceptée — fichier sur Storage uniquement');
+    }
+    return url;
+  }
+
+  /* ─── Upload finition (swatch de base) ─── */
+  async function uploadFinition(file, productId) {
+    if (!file || typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible ou fichier vide');
+
+    const compressed = await compressImage(file, 600, 0.85);
+    const path = `finish-thumbnails/${productId}/base-${Date.now()}.jpg`;
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, compressed, {
+      contentType: 'image/jpeg', upsert: true, cacheControl: '3600',
+    });
+    if (upErr) throw upErr;
+
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
+    const url = pub.publicUrl + '?v=' + Date.now();
+
+    /* Maj studio_state.textureSwatchUrl + miroir sur colors[0] (parité scan.html) */
+    const product = window._v18?.productRow || {};
+    const studioState = { ...(product.studio_state || {}), textureSwatchUrl: url };
+    const colors = Array.isArray(product.colors) ? [...product.colors] : [];
+    colors[0] = { ...(colors[0] || {}), texture: url, swatch_url: url };
+
+    try {
+      const { error: dbErr } = await sb.from('products')
+        .update({ studio_state: studioState, colors })
+        .eq('id', productId);
+      if (dbErr) {
+        /* Fallback : tenter studio_state seul si colors est absent du schéma */
+        try {
+          await sb.from('products')
+            .update({ studio_state: studioState })
+            .eq('id', productId);
+          console.warn('[v70] colors absent du schéma — seul studio_state.textureSwatchUrl écrit');
+        } catch (e2) {
+          console.warn('[v70] update DB finition échec :', e2.message);
+        }
+      }
+    } catch (e) {
+      console.warn('[v70] update DB finition exception :', e.message);
+    }
+
+    /* Sync local */
+    if (window._v18?.productRow) {
+      window._v18.productRow.studio_state = studioState;
+      window._v18.productRow.colors = colors;
+    }
+
+    console.log('[v70] ✓ Finition (base) uploadée :', url);
+    return url;
+  }
+
+  /* ─── Pipeline principal : process tous les attachments d'un coup ─── */
+  async function processAttachments(productId) {
+    if (isProcessing) return;
+    if (lastProcessedId === productId) return;
+
+    const attachments = (window._v27 && window._v27.attachments) || {};
+    const tasks = [];
+    if (attachments.glb)      tasks.push(['glb', attachments.glb]);
+    if (attachments.usdz)     tasks.push(['usdz', attachments.usdz]);
+    if (attachments.photo)    tasks.push(['photo', attachments.photo]);
+    if (attachments.finition) tasks.push(['finition', attachments.finition]);
+
+    if (tasks.length === 0) {
+      lastProcessedId = productId;
+      return;
+    }
+
+    isProcessing = true;
+    lastProcessedId = productId;
+
+    const total = tasks.length;
+    if (typeof toast === 'function') {
+      toast(`📦 Upload de ${total} fichier${total > 1 ? 's' : ''} attaché${total > 1 ? 's' : ''}…`, 'info', 3000);
+    }
+
+    let done = 0;
+    const errors = [];
+
+    for (const [fmt, file] of tasks) {
+      try {
+        if (fmt === 'glb' || fmt === 'usdz') {
+          await uploadModel3D(fmt, file, productId);
+        } else if (fmt === 'photo') {
+          await uploadPhoto(file, productId);
+        } else if (fmt === 'finition') {
+          await uploadFinition(file, productId);
+        }
+        done++;
+        /* Vider l'attachment pour ne pas le ré-uploader si un autre cycle se déclenche */
+        delete attachments[fmt];
+      } catch (e) {
+        errors.push(`${fmt.toUpperCase()}: ${e.message || e}`);
+        console.error(`[v70] upload ${fmt} a échoué`, e);
+      }
+    }
+
+    isProcessing = false;
+
+    if (typeof toast === 'function') {
+      if (errors.length === 0) {
+        toast(`✓ ${done} fichier${done > 1 ? 's' : ''} attaché${done > 1 ? 's' : ''} au produit`, 'ok', 4000);
+      } else if (done > 0) {
+        toast(`Uploads : ${done}/${total} OK · ${errors.length} échec${errors.length > 1 ? 's' : ''}`, 'err', 6000);
+      } else {
+        toast(`Uploads échoués : ${errors.join(' · ')}`, 'err', 7000);
+      }
+    }
+
+    /* Forcer un refresh des UI qui lisent productRow (carte catalogue V29, etc.) */
+    if (window._v26 && typeof window._v26.updateProductSectionUI === 'function') {
+      try { window._v26.updateProductSectionUI(); } catch (_) {}
+    }
+  }
+
+  /* ─── Détection production de produit : watcher de productId ─── */
+  /* On note l'?id= initial pour distinguer "ouverture d'un produit existant"
+     (pas d'attachments à uploader, V27 jamais ouverte) de "création" (V27
+     vient d'être confirmée, attachments présents). */
+  const initialUrlId = new URLSearchParams(location.search).get('id') || null;
+  if (initialUrlId) lastProcessedId = initialUrlId;
+
+  let pendingProductId = null;
+  let pendingSince = 0;
+
+  const watcher = setInterval(() => {
+    const id = window._v18 && window._v18.productId;
+    if (!id) return;
+    if (id === lastProcessedId) return;
+
+    if (id !== pendingProductId) {
+      pendingProductId = id;
+      pendingSince = Date.now();
+      console.log('[v70] Nouveau productId détecté →', id, '· attente de', POST_CREATE_DELAY_MS / 1000, 's avant upload V27 attachments');
+      return;
+    }
+
+    /* Si on a attendu assez longtemps, on traite */
+    if (Date.now() - pendingSince >= POST_CREATE_DELAY_MS) {
+      pendingProductId = null;
+      processAttachments(id).catch(e => console.error('[v70] processAttachments fatal :', e));
+    }
+  }, 1000);
+
+  /* ─── Expose ─── */
+  window._v70 = {
+    processAttachments,        /* trigger manuel : window._v70.processAttachments(productId) */
+    uploadModel3D, uploadPhoto, uploadFinition,
+    compressImage,
+    config: { BUCKET, POST_CREATE_DELAY_MS, PHOTO_FIELDS, MODEL_FORMAT_CONFIG },
+  };
+
+  console.log('[studio v70] V27 attachments → upload Supabase câblé ✓ (délai post-création ' + (POST_CREATE_DELAY_MS / 1000) + 's)');
 })();
 </script>
 
