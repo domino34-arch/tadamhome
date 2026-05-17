@@ -1291,6 +1291,13 @@ let allProducts   = [];
 let allEditorials = [];
 let allSols       = [];
 let allMaterials  = [];
+/* v34.7.1 — Expose allProducts en global via getter pour que les modules
+   en scope isolé (vignettes finitions notamment) puissent lire la valeur
+   COURANTE, pas un snapshot. La variable est mutée par loadProducts(). */
+Object.defineProperty(window, 'allProducts', {
+  get() { return allProducts; },
+  configurable: true
+});
 let glbUrl=null,usdzUrl=null;
 let editId=null,editGlbUrl=null,editUsdzUrl=null;
 let currentEditoId=null,currentSolId=null,currentMaterialId=null;
@@ -4464,6 +4471,15 @@ document.addEventListener('keydown', (e) => {
     return txt === 'chargement…' || txt === 'chargement...';
   }
 
+  /* v34.7.1 — Plus robuste que gridIsLoading : la condition de succès est
+     d'avoir au moins une card rendue. Tous les autres états ("Chargement…",
+     "Produit introuvable", "Impossible de charger", grid vide) doivent
+     déclencher un retry. */
+  function gridNeedsRefresh(grid) {
+    if (!grid) return false;
+    return !grid.querySelector('.ed-variant-card');
+  }
+
   function getProductCached(id) {
     return (window.allProducts || []).find(p => p.id === id);
   }
@@ -4499,38 +4515,43 @@ document.addEventListener('keydown', (e) => {
 
   async function forceRefresh(id) {
     if (!id) return;
-    /* 1. Tentative immédiate avec le cache */
+    const grid = getGrid();
+    if (!grid) return;
+
+    /* v34.7.1 — Approche directe : on fetch toujours depuis Supabase d'abord
+       (le cache window.allProducts peut être obsolète ou vide). Le fetch est
+       rapide et garantit la fraîcheur des variants + studio_state. */
+    grid.innerHTML = '<div class="ed-variants-empty">Chargement des vignettes…</div>';
+    const fresh = await fetchProductFresh(id);
+    if (!fresh) {
+      grid.innerHTML = `
+        <div class="ed-variants-empty" style="color:#c45">
+          Impossible de charger les vignettes finitions.<br>
+          Vérifie ta connexion Supabase et la console pour le détail de l'erreur.<br>
+          <small style="opacity:0.6">Produit ID : ${id.slice(0,8)}…</small>
+        </div>
+      `;
+      return;
+    }
+    /* Maintenant que le cache a été enrichi par fetchProductFresh, on peut
+       appeler refreshVariantThumbs qui va re-lire depuis window.allProducts
+       (lequel pointe vers la variable interne via le getter v34.7.1). */
     if (typeof window.refreshVariantThumbs === 'function') {
       try { window.refreshVariantThumbs(id); } catch (e) {
         console.warn('[admin v34.7] refreshVariantThumbs throw', e);
+        grid.innerHTML = `<div class="ed-variants-empty" style="color:#c45">Erreur rendu : ${e.message || e}</div>`;
       }
+    } else {
+      grid.innerHTML = '<div class="ed-variants-empty" style="color:#c45">window.refreshVariantThumbs introuvable</div>';
     }
-    const grid = getGrid();
-    if (!grid) return;
-    if (!gridIsLoading(grid)) return; /* succès */
-
-    /* 2. Le cache manque ou refresh n'a pas changé "Chargement…" → fetch fresh */
-    console.log('[admin v34.7] grid encore en Chargement, fetch direct produit', id);
-    const fresh = await fetchProductFresh(id);
-    if (fresh && typeof window.refreshVariantThumbs === 'function') {
-      try { window.refreshVariantThumbs(id); } catch (e) {
-        console.warn('[admin v34.7] refresh post-fetch throw', e);
-      }
+    /* Diagnostic si toujours vide */
+    if (gridIsLoading(grid) || /produit introuvable/i.test(grid.textContent)) {
+      console.warn('[admin v34.7] grid encore en erreur après fetch frais ·',
+        'allProducts.length =', (window.allProducts || []).length,
+        '· fresh product =', fresh);
+    } else {
+      console.log('[admin v34.7] grid populé après fetch direct ✓');
     }
-    if (!gridIsLoading(grid)) {
-      console.log('[admin v34.7] grid populé après fetch ✓');
-      return;
-    }
-
-    /* 3. Échec persistant → afficher un message d'erreur explicite */
-    grid.innerHTML = `
-      <div class="ed-variants-empty" style="color: #c45">
-        Impossible de charger les vignettes finitions.<br>
-        Recharge la page ou vérifie ta connexion Supabase.<br>
-        <small style="opacity:0.6">Produit ID : ${id.slice(0,8)}…</small>
-      </div>
-    `;
-    console.warn('[admin v34.7] échec final force refresh pour', id);
   }
 
   /* Retry séquence : 0ms, 200ms, 500ms, 1.2s, 2.5s */
@@ -4550,7 +4571,10 @@ document.addEventListener('keydown', (e) => {
       retryTimers.push(setTimeout(() => {
         if (activeId !== id) return; /* modal changed entre temps */
         const grid = getGrid();
-        if (grid && !gridIsLoading(grid)) return; /* succès, skip */
+        /* v34.7.1 — Check de succès basé sur la présence de cards (plus
+           robuste que la détection de string "Chargement…" qui pouvait
+           rater des états intermédiaires). */
+        if (grid && !gridNeedsRefresh(grid)) return; /* succès, skip */
         console.log(`[admin v34.7] retry ${i+1}/${RETRY_DELAYS.length} pour`, id);
         forceRefresh(id);
       }, delay));
