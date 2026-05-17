@@ -26887,25 +26887,59 @@ console.log('[studio v3] prêt');
       const ctx = getActiveVariantContext();
       if (!ctx.productId || !ctx.variant) return;
 
-      const variant = ctx.variant;
+      /* ÉTAPE 1 — Régénérer les GLB+USDZ via V49 exportAllVariants
+         ─────────────────────────────────────────────────────────────────
+         Sans ça, scan.html charge le GLB obsolète du bucket (qui date
+         d'avant les changements de matériaux). V49 régénère :
+         - Base   → {productId}/model.glb (+ .usdz) → products.model_glb_url
+         - Var. N → {productId}/variants/{vId}.glb → variants[N].studio_state.exports.glb
+         puis V42 propage vers products.colors[].glb.
+         V49 a un hash check (skip si rien n'a changé) donc c'est idempotent. */
+      if (window._v49 && typeof window._v49.exportAllVariants === 'function') {
+        if (window._v49.isExporting) {
+          toast('Export déjà en cours, patiente la fin…', 'info', 3000);
+          return;
+        }
+        try {
+          /* V49 affiche son propre overlay plein écran avec progression */
+          await window._v49.exportAllVariants(ctx.productId);
+          console.log('[v77 publish] V49 exportAllVariants terminé · GLB+USDZ régénérés');
+        } catch (e) {
+          console.error('[v77 publish] V49 exportAllVariants échoué :', e);
+          toast('Régénération 3D échouée : ' + (e.message || '') + ' · publication annulée', 'err', 6000);
+          return;
+        }
+      } else {
+        console.warn('[v77 publish] V49 indisponible, publish sans régénération GLB (les vignettes resteront sur des modèles obsolètes)');
+      }
+
+      /* ÉTAPE 2 — Re-lecture du contexte après V49 (qui a peut-être muté
+         window._v25.variants et window._v18.productRow). On récupère la
+         variante à publier dans son nouvel état. */
+      const ctx2 = getActiveVariantContext();
+      if (!ctx2.variant) {
+        toast('Variante perdue après export, retente', 'err', 4000);
+        return;
+      }
+      const variant = ctx2.variant;
       const wasPublished = variant.published === true;
       const previousSwatch = (variant.studio_state && variant.studio_state.textureSwatchUrl) || null;
 
-      /* On marque comme publié immédiatement (l'état actuel de studio_state
-         est déjà à jour côté window._v25.variants grâce à V62 + V42). */
+      /* ÉTAPE 3 — Marquer comme publié + dériver le swatch finition */
       variant.published = true;
-
-      /* Dérivation automatique du swatch (texture vignette pour scan.html).
-         Au publish, on overwrite TOUJOURS pour refléter le dernier état édité.
-         Si l'utilisateur veut un swatch custom, il peut l'uploader via V38
-         après publication. */
       if (!variant.studio_state) variant.studio_state = {};
-      const derivedSwatch = deriveSwatchUrl(ctx.idx);
+
+      const derivedSwatch = deriveSwatchUrl(ctx2.idx);
       if (derivedSwatch) {
         variant.studio_state.textureSwatchUrl = derivedSwatch;
-        console.log('[v77 publish] swatch auto-dérivé pour variante', ctx.idx + 1, ':', derivedSwatch);
-      } else if (!previousSwatch) {
-        toast('Aucun matériau appliqué détecté — vignette finition vide. Édite la variante puis re-publie.', 'info', 5500);
+        console.log('[v77 publish] swatch auto-dérivé pour variante', ctx2.idx + 1, ':', derivedSwatch);
+      } else {
+        console.warn('[v77 publish] swatch non dérivable · variant.studio_state.parts =',
+          variant.studio_state.parts, '· allMaterials.length =',
+          (window.allMaterials && window.allMaterials.length) || 0);
+        if (!previousSwatch) {
+          toast('Aucun matériau détecté pour la vignette finition. Édite la variante puis re-publie.', 'info', 5500);
+        }
       }
 
       const supa = window.sb;
@@ -26917,32 +26951,31 @@ console.log('[studio v3] prêt');
         return;
       }
 
+      /* ÉTAPE 4 — UPDATE DB avec variants.published=true + textureSwatchUrl */
       try {
-        if (typeof toast === 'function') toast('Publication en cours…', 'info', 1800);
-        /* Update DB avec la full variants array (suit le pattern V59) */
+        toast('Finalisation de la publication…', 'info', 1800);
         const { error } = await supa
           .from('products')
           .update({ variants: window._v25.variants })
-          .eq('id', ctx.productId);
+          .eq('id', ctx2.productId);
         if (error) throw error;
 
-        /* V74.1 — Mirror vers window._v18.productRow.variants pour que V42
-           syncColors voit le changement et propage vers products.colors[]
-           (consommé par scan.html). */
+        /* Mirror vers productRow pour V42 watcher (pattern V74.1) */
         if (window._v18 && window._v18.productRow) {
           window._v18.productRow.variants = window._v25.variants;
         }
+        /* Trigger V42 final pour propager vers products.colors[] */
         if (window._v42 && typeof window._v42.sync === 'function') {
           await window._v42.sync(true);
         }
 
-        toast(`« ${variant.name || 'Variante'} » publiée sur le catalogue ✓`, 'ok', 3000);
+        toast(`« ${variant.name || 'Variante'} » publiée sur le catalogue ✓ · scan.html à jour`, 'ok', 4000);
         updateState();
       } catch (e) {
         variant.published = wasPublished; /* rollback */
         if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
         else delete variant.studio_state.textureSwatchUrl;
-        console.error('[v77 publish]', e);
+        console.error('[v77 publish] UPDATE final :', e);
         toast('Erreur publication : ' + (e.message || ''), 'err', 4500);
         updateState();
       }
