@@ -4385,6 +4385,9 @@ function toast(msg, type='ok', dur=3500) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), dur);
 }
+/* V77 — expose toast globalement pour que les modules en <script> non-module
+   (V77 et suivants) puissent l'utiliser via window.toast. */
+window.toast = toast;
 
 /* ─── imports Three ─── */
 let THREE, OBJLoader, OrbitControls;
@@ -4426,6 +4429,15 @@ const partMaterials = {};
 const partMaterialChoices = {};
 let activePartKey   = null;
 let allMaterials    = [];
+/* V77 — expose allMaterials globalement pour que V76 (script non-module)
+   puisse retrouver les infos matière (thumbnail_url, name, etc.) au moment
+   où il track une application dans la liste des récents.
+   La référence est ré-évaluée à chaque accès puisqu'elle est mutable :
+   on définit un getter pour toujours pointer sur la dernière valeur. */
+Object.defineProperty(window, 'allMaterials', {
+  get() { return allMaterials; },
+  configurable: true
+});
 let currentLibCategory = '';
 
 /* ═════════════════════════ THREE INIT ═════════════════════════ */
@@ -26496,6 +26508,14 @@ console.log('[studio v3] prêt');
   window.__v77Init = true;
   window._v77 = {};
 
+  /* Alias local : V77 est dans un <script> non-module, n'a pas accès direct
+     à toast() (qui est module-scoped). On le récupère via window.toast
+     (exposé en haut du module). Fallback no-op pour ne jamais throw. */
+  const toast = (msg, type, dur) => {
+    if (typeof window.toast === 'function') return window.toast(msg, type, dur);
+    console.log('[toast]', type || 'info', msg);
+  };
+
   /* ─────────────────────────────────────────────────────────────────────
      CSS additions
      ───────────────────────────────────────────────────────────────────── */
@@ -26801,6 +26821,67 @@ console.log('[studio v3] prêt');
         : `Publie « ${variantName} » sur le catalogue (visible sur scan.html)`;
     }
 
+    /* ─── Heuristique : dérive automatiquement un swatch URL pour la variante
+       depuis les matériaux qui lui sont appliqués. Évite à l'utilisateur de
+       devoir uploader manuellement un swatch via V38.
+       Priorité :
+         1. La première part où la variante DIFFÈRE de Base (= la finition qui
+            caractérise la variante : garnissage refait, coque changée, etc.)
+         2. Fallback : ordre arbitraire des parts les plus visibles
+            (garnissage > coque > assise > dossier > piétement > plateau > logo)
+         3. Fallback ultime : la première part avec un materialId valide
+       Retourne thumbnail_url || albedo_url || null. */
+    function deriveSwatchUrl(variantIdx) {
+      const variant = (window._v25 && window._v25.variants && window._v25.variants[variantIdx]) || null;
+      if (!variant || !variant.studio_state || !variant.studio_state.parts) return null;
+
+      const variantParts = variant.studio_state.parts;
+      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
+      const baseParts = (baseState && baseState.parts) || {};
+
+      let chosenMatId = null;
+
+      /* (1) Trouver la première part qui diffère de Base */
+      for (const key of Object.keys(variantParts)) {
+        const vMatId = variantParts[key] && variantParts[key].materialId;
+        const bMatId = baseParts[key] && baseParts[key].materialId;
+        if (vMatId && vMatId !== bMatId) { chosenMatId = vMatId; break; }
+      }
+
+      /* (2) Fallback prioritaire si pas de diff (variante identique à Base ou Base vide) */
+      if (!chosenMatId) {
+        const priority = ['garnissage', 'coque', 'assise', 'dossier', 'piétement', 'pietement', 'plateau', 'tablette', 'logo'];
+        for (const pkey of priority) {
+          const matchedKey = Object.keys(variantParts).find(k => k.toLowerCase() === pkey.toLowerCase());
+          if (matchedKey && variantParts[matchedKey] && variantParts[matchedKey].materialId) {
+            chosenMatId = variantParts[matchedKey].materialId;
+            break;
+          }
+        }
+      }
+
+      /* (3) Fallback ultime : n'importe quelle part avec un materialId */
+      if (!chosenMatId) {
+        for (const key of Object.keys(variantParts)) {
+          if (variantParts[key] && variantParts[key].materialId) {
+            chosenMatId = variantParts[key].materialId;
+            break;
+          }
+        }
+      }
+
+      if (!chosenMatId) return null;
+
+      /* Lookup matériau dans allMaterials (exposé en getter via window) */
+      const mats = (window.allMaterials && Array.isArray(window.allMaterials)) ? window.allMaterials : [];
+      const mat = mats.find(m => m.id === chosenMatId);
+      if (!mat) {
+        console.warn('[v77 deriveSwatch] materialId introuvable dans allMaterials :', chosenMatId);
+        return null;
+      }
+      return mat.thumbnail_url || mat.albedo_url || null;
+    }
+
     /* ─── Action publish ─── */
     async function doPublish() {
       const ctx = getActiveVariantContext();
@@ -26808,15 +26889,31 @@ console.log('[studio v3] prêt');
 
       const variant = ctx.variant;
       const wasPublished = variant.published === true;
+      const previousSwatch = (variant.studio_state && variant.studio_state.textureSwatchUrl) || null;
 
       /* On marque comme publié immédiatement (l'état actuel de studio_state
          est déjà à jour côté window._v25.variants grâce à V62 + V42). */
       variant.published = true;
 
+      /* Dérivation automatique du swatch (texture vignette pour scan.html).
+         Au publish, on overwrite TOUJOURS pour refléter le dernier état édité.
+         Si l'utilisateur veut un swatch custom, il peut l'uploader via V38
+         après publication. */
+      if (!variant.studio_state) variant.studio_state = {};
+      const derivedSwatch = deriveSwatchUrl(ctx.idx);
+      if (derivedSwatch) {
+        variant.studio_state.textureSwatchUrl = derivedSwatch;
+        console.log('[v77 publish] swatch auto-dérivé pour variante', ctx.idx + 1, ':', derivedSwatch);
+      } else if (!previousSwatch) {
+        toast('Aucun matériau appliqué détecté — vignette finition vide. Édite la variante puis re-publie.', 'info', 5500);
+      }
+
       const supa = window.sb;
       if (!supa) {
         toast('Client Supabase indisponible', 'err', 3500);
         variant.published = wasPublished; /* rollback */
+        if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
+        else delete variant.studio_state.textureSwatchUrl;
         return;
       }
 
@@ -26843,6 +26940,8 @@ console.log('[studio v3] prêt');
         updateState();
       } catch (e) {
         variant.published = wasPublished; /* rollback */
+        if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
+        else delete variant.studio_state.textureSwatchUrl;
         console.error('[v77 publish]', e);
         toast('Erreur publication : ' + (e.message || ''), 'err', 4500);
         updateState();
