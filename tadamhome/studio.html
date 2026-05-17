@@ -25648,41 +25648,9 @@ console.log('[studio v3] prêt');
        sont câblés sur la version topbar ou utilisent un fallback. */
     .rightpanel .mat-tabs { display: none !important; }
 
-    /* ═══ TABS en pills (style "TOUT / CANAPÉS / FAUTEUILS" du catalogue) ═══ */
-    .rightpanel .mat-tabs {
-      display: flex !important;
-      gap: 6px !important;
-      align-items: center !important;
-      padding: 14px 20px 12px !important;
-      border-bottom: 1px solid var(--rp-line) !important;
-    }
-    .rightpanel .mat-tab {
-      flex: 0 0 auto !important;
-      padding: 7px 13px !important;
-      background: transparent !important;
-      border: 1px solid var(--rp-line-mid) !important;
-      font-family: 'Jost', sans-serif !important;
-      font-size: 10px !important;
-      font-weight: 500 !important;
-      letter-spacing: 0.16em !important;
-      text-transform: uppercase !important;
-      color: var(--rp-ink-2) !important;
-      transition: all 0.15s !important;
-      white-space: nowrap !important;
-      cursor: pointer !important;
-    }
-    .rightpanel .mat-tab:hover:not(.active) {
-      border-color: var(--rp-gold) !important;
-      color: var(--rp-ink) !important;
-    }
-    .rightpanel .mat-tab.active {
-      background: var(--rp-gold) !important;
-      border-color: var(--rp-gold) !important;
-      color: var(--rp-on-gold) !important;
-      font-weight: 600 !important;
-    }
-    /* Supprime l'ancien underline gold sous le tab actif (remplacé par fill) */
-    .rightpanel .mat-tab.active::after { display: none !important; }
+    /* (Les anciennes règles V75 qui stylisaient les pills .rightpanel .mat-tab
+       ont été retirées : maintenant cachées via display:none ci-dessus.
+       Les onglets actifs sont ceux clonés par V12 dans .tb-mat-zone.) */
 
     /* ═══ HEAD = identité de la part active ═══ */
     .rightpanel .mat-head {
