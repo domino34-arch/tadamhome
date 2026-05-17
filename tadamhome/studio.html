@@ -894,13 +894,25 @@ button{font-family:inherit;cursor:pointer}
   color:var(--ink);
   line-height:1.1;
   letter-spacing:0.005em;
+  /* v74.3 — Toujours réserver 2 lignes pour que les vignettes soient alignées
+     dans la grille 2-col, peu importe la longueur du nom. line-clamp tronque
+     avec ellipsis si le nom dépasse vraiment 2 lignes (rare). min-height
+     remplit le vide pour les noms courts (1 ligne) → bottom des cartes aligné. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(14px * 1.1 * 2); /* font-size × line-height × 2 lignes */
 }
 .lib-card-sub{
+  /* v74.3 — Réserver une hauteur minimale même quand .lib-card-sub n'est pas
+     rendu, pour que les cartes avec/sans sub gardent la même hauteur totale. */
   margin-top:1px;
   font-size:9px;
   letter-spacing:0.14em;
   text-transform:uppercase;
   color:var(--ink-muted);
+  min-height: calc(9px * 1.4);
 }
 .lib-card.is-current .lib-card-thumb{
   border:2px solid var(--gold);
@@ -4642,7 +4654,10 @@ function selectPartReal(key) {
   document.querySelectorAll('.tree-row').forEach(r => r.classList.toggle('selected', r.dataset.key === key));
 
   Object.entries(partMaterials).forEach(([k, mat]) => {
-    mat.emissive && mat.emissive.setHex(k === key ? 0x2A1A00 : 0x000000);
+    /* v74.2 — Plus d'emissif persistant. V74 module pose un flash transitoire
+       à la place via flashHighlightPart(). On clear systématiquement. */
+    mat.emissive && mat.emissive.setHex(0x000000);
+    if (mat) mat.emissiveIntensity = 0;
   });
 
   const eyebrow = document.querySelector('.mat-eyebrow');
@@ -4778,7 +4793,7 @@ function renderLibrary() {
       <button class="lib-card${isCur}" data-mat-id="${m.id}">
         <div class="lib-card-thumb" style="${bgStyle}"></div>
         <div class="lib-card-name">${escapeHtml(m.name || '—')}</div>
-        ${sub ? '<div class="lib-card-sub">' + escapeHtml(sub) + '</div>' : ''}
+        <div class="lib-card-sub">${sub ? escapeHtml(sub) : ''}</div>
       </button>
     `;
   }).join('');
@@ -4910,7 +4925,7 @@ if (libSearchInput) {
       const thumb = m.thumbnail_url || m.albedo_url || '';
       const sub = [m.subcategory, m.ref_code].filter(Boolean).join(' · ');
       const bgStyle = thumb ? `background-image:url('${thumb}');background-size:cover;background-position:center` : `background:${m.base_color || '#888'}`;
-      return `<button class="lib-card" data-mat-id="${m.id}"><div class="lib-card-thumb" style="${bgStyle}"></div><div class="lib-card-name">${escapeHtml(m.name||'—')}</div>${sub?'<div class="lib-card-sub">'+escapeHtml(sub)+'</div>':''}</button>`;
+      return `<button class="lib-card" data-mat-id="${m.id}"><div class="lib-card-thumb" style="${bgStyle}"></div><div class="lib-card-name">${escapeHtml(m.name||'—')}</div><div class="lib-card-sub">${sub?escapeHtml(sub):''}</div></button>`;
     }).join('');
     grid.querySelectorAll('.lib-card').forEach(card => {
       card.onclick = () => applyMaterialFromSupabase(card.dataset.matId, card);
@@ -4964,7 +4979,9 @@ const partProjection = {};
 function flashHighlightPart(key) {
   const mat = partMaterials[key];
   if (!mat || !mat.emissive) return;
-  const baseEmissive = 0x442200;
+  /* v74.2 — Ancienne version qui laissait un emissif amber 0x442200 à intensité
+     0.5 après décai. On décai vers 0x000000 / intensity 0 à la place pour
+     éviter le "filtre rouge persistant" sur les parts sélectionnées. */
   const flashEmissive = 0x884422;
   mat.emissive.setHex(flashEmissive);
   mat.emissiveIntensity = 1.0;
@@ -4972,11 +4989,11 @@ function flashHighlightPart(key) {
   function decay() {
     const t = (performance.now() - t0) / 600;
     if (t >= 1) {
-      mat.emissive.setHex(baseEmissive);
-      mat.emissiveIntensity = 0.5;
+      mat.emissive.setHex(0x000000);
+      mat.emissiveIntensity = 0;
       return;
     }
-    mat.emissiveIntensity = 1.0 - 0.5 * t;
+    mat.emissiveIntensity = 1.0 - 1.0 * t;
     requestAnimationFrame(decay);
   }
   requestAnimationFrame(decay);
@@ -4984,10 +5001,12 @@ function flashHighlightPart(key) {
 
 const _origSelectPart = selectPartReal;
 selectPartReal = function(key) {
+  /* v74.2 — Plus d'emissif persistant 0x442200 / 0.5. V74 module wrappe
+     cette fonction et déclenche un flash rouge transitoire à la place. */
   Object.entries(partMaterials).forEach(([k, mat]) => {
     if (mat.emissive) {
-      mat.emissive.setHex(k === key ? 0x442200 : 0x000000);
-      mat.emissiveIntensity = k === key ? 0.5 : 0;
+      mat.emissive.setHex(0x000000);
+      mat.emissiveIntensity = 0;
     }
   });
   activePartKey = key;
@@ -23351,7 +23370,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
     const persistBtn = document.createElement('button');
     persistBtn.id = 'v68-6-persist-btn';
-    persistBtn.textContent = 'PERSISTER STRUCTURE';
+    persistBtn.textContent = 'SAUVEGARDER LES GROUPES';
     /* Reprend le style des autres boutons de la barre du bas */
     const computed = window.getComputedStyle(autoSegBtn);
     persistBtn.style.cssText = `
@@ -25475,6 +25494,795 @@ console.log('[studio v3] prêt');
   }
 
   console.log('[studio v74] sélection = flash couleur · groupe ROUGE · mesh BLEU · pipette VERT ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v74.2 — SYNC IMMÉDIAT CUSTOM_LABELS VERS BASE (bypass V62)
+   ─────────────────────────────────────────────────────────────────────────
+   Problème : quand l'archi renomme un groupe (V24, double-click sur tree-row)
+   en étant sur une VARIANTE, V18 doSave pousse studio_state, V62 intercepte
+   et route vers variants[active].studio_state. Conséquence : customLabels
+   se retrouve dans variants[i].studio_state, jamais dans Base. Au refresh,
+   detectParts lit row.studio_state.customLabels (Base) → vide → noms perdus.
+
+   Le V34 sync 5s récupère ce cas (il merge window._v21.customLabels vers Base,
+   et avec le bypass V62 du v74.1, ça arrive bien en base), mais avec un délai
+   de 5s. Si l'archi rafraîchit la page entre le rename et le tour V34 suivant,
+   les noms sont perdus.
+
+   Fix : on poll window._v21.customLabels toutes les 600 ms, on détecte les
+   changements (par diff stringify), et on UPDATE directement Base avec le
+   bypass V62 (payload contient variants → V62 ne route pas). Premier tour
+   skippé pour ne pas écrire la valeur initiale chargée depuis la DB.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v74_2CustomLabelsSync() {
+  if (window.__v74_2) return;
+  window.__v74_2 = true;
+
+  let lastSnapshot = null;
+  let firstPass = true;
+  let inFlight = false;
+
+  function snapshot() {
+    const labels = (window._v21 && window._v21.customLabels) || {};
+    return JSON.stringify(labels);
+  }
+
+  async function pushToBase() {
+    if (inFlight) return;
+    if (typeof sb === 'undefined' || !sb) return;
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) return;
+    const localLabels = (window._v21 && window._v21.customLabels) || {};
+    if (Object.keys(localLabels).length === 0) return;
+
+    inFlight = true;
+    try {
+      /* Read studio_state + variants pour bypass V62 */
+      const { data, error } = await sb.from('products')
+        .select('studio_state, variants')
+        .eq('id', productId).single();
+      if (error || !data) return;
+      const baseState = data.studio_state || {};
+      const existing = baseState.customLabels || {};
+
+      /* Merge : on ajoute / remplace seulement, jamais supprimer (V21
+         supprime un label seulement quand un groupe disparait, c'est
+         géré ailleurs). */
+      let changed = false;
+      Object.keys(localLabels).forEach(k => {
+        if (existing[k] !== localLabels[k]) {
+          existing[k] = localLabels[k];
+          changed = true;
+        }
+      });
+      if (!changed) return;
+
+      baseState.customLabels = existing;
+      /* Bypass V62 : inclure variants dans le payload */
+      const payload = { studio_state: baseState, variants: data.variants };
+      const { error: uerr } = await sb.from('products').update(payload).eq('id', productId);
+      if (uerr) throw uerr;
+
+      /* Mirror local */
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = baseState;
+      }
+      console.log('[v74.2] customLabels → Base (immédiat) ·', Object.keys(localLabels).length, 'noms');
+    } catch (e) {
+      console.warn('[v74.2] push customLabels échec :', e && (e.message || e));
+    } finally {
+      inFlight = false;
+    }
+  }
+
+  /* Watcher 600 ms : skip 1er tour pour ignorer la valeur initiale chargée */
+  setInterval(() => {
+    const snap = snapshot();
+    if (firstPass) {
+      lastSnapshot = snap;
+      firstPass = false;
+      return;
+    }
+    if (snap !== lastSnapshot) {
+      lastSnapshot = snap;
+      pushToBase().catch(() => {});
+    }
+  }, 600);
+
+  /* Expose pour flush manuel */
+  window._v74_2 = { pushNow: pushToBase };
+
+  console.log('[studio v74.2] sync immédiat customLabels → Base (bypass V62) actif ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v75 — RIGHTPANEL UNIFIÉ : skin catalogue pour Matériau / Géométrie / Scène
+   ─────────────────────────────────────────────────────────────────────────
+   Le panneau de droite avait un skin cream/Cormorant Garamond, différent du
+   panneau catalogue (dark warm + Jost uppercase). On unifie : fond #2A2620,
+   tabs en pills, éléments de section en eyebrow muted + tiret, displays
+   en Jost 600 uppercase comme les cards "AUREA / NOTE M-4060".
+
+   Stratégie : override CSS, on ne TOUCHE PAS aux classes existantes (.mat-*,
+   .rp-view-edit, .geom-*, .lib-*) donc tous les hooks JS continuent de
+   fonctionner. Spécificité atteinte via .rightpanel parent.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v75UnifiedRightpanelSkin() {
+  if (window.__v75Init) return;
+  window.__v75Init = true;
+
+  const css = document.createElement('style');
+  css.setAttribute('data-v75', 'unified-rightpanel');
+  css.textContent = `
+    /* ═══ TOKENS sur le rightpanel ═══ */
+    .rightpanel {
+      --rp-bg:       #2A2620;
+      --rp-elev:     rgba(255,255,255,0.02);
+      --rp-line:     rgba(255,255,255,0.06);
+      --rp-line-mid: rgba(255,255,255,0.16);
+      --rp-gold:     #B8965A;
+      --rp-gold-2:   rgba(184,150,90,0.3);
+      --rp-ink:      rgba(245,242,236,0.95);
+      --rp-ink-2:    rgba(245,242,236,0.85);
+      --rp-muted:    rgba(245,242,236,0.55);
+      --rp-faint:    rgba(245,242,236,0.35);
+      --rp-on-gold:  #1a1a1a;
+
+      background: var(--rp-bg) !important;
+      border-left: 1px solid rgba(0,0,0,0.35) !important;
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+    }
+    .rightpanel .rp-view-edit,
+    .rightpanel .rp-view-library {
+      background: var(--rp-bg) !important;
+    }
+
+    /* ═══ V75 — Pas de duplication des tabs Matériau/Géométrie/Scène ═══ */
+    /* L'organisation par défaut : V12 clone .mat-tabs dans .tb-mat-zone
+       (topbar). On laisse cette organisation en place et on masque la
+       version dans le rightpanel. Les hooks JS (V35, V69.22, V75 scène)
+       sont câblés sur la version topbar ou utilisent un fallback. */
+    .rightpanel .mat-tabs { display: none !important; }
+
+    /* ═══ TABS en pills (style "TOUT / CANAPÉS / FAUTEUILS" du catalogue) ═══ */
+    .rightpanel .mat-tabs {
+      display: flex !important;
+      gap: 6px !important;
+      align-items: center !important;
+      padding: 14px 20px 12px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+    }
+    .rightpanel .mat-tab {
+      flex: 0 0 auto !important;
+      padding: 7px 13px !important;
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink-2) !important;
+      transition: all 0.15s !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+    }
+    .rightpanel .mat-tab:hover:not(.active) {
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-ink) !important;
+    }
+    .rightpanel .mat-tab.active {
+      background: var(--rp-gold) !important;
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-weight: 600 !important;
+    }
+    /* Supprime l'ancien underline gold sous le tab actif (remplacé par fill) */
+    .rightpanel .mat-tab.active::after { display: none !important; }
+
+    /* ═══ HEAD = identité de la part active ═══ */
+    .rightpanel .mat-head {
+      padding: 22px 20px 18px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+      background: var(--rp-bg) !important;
+    }
+    /* Eyebrow muted + tiret extensible */
+    .rightpanel .mat-eyebrow {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 16px !important;
+    }
+    .rightpanel .mat-eyebrow::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .mat-name-row {
+      display: flex !important;
+      gap: 14px !important;
+      align-items: center !important;
+    }
+    .rightpanel .mat-swatch-big {
+      width: 60px !important;
+      height: 60px !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      flex-shrink: 0 !important;
+      cursor: pointer !important;
+      transition: border-color 0.15s !important;
+    }
+    .rightpanel .mat-swatch-big:hover { border-color: var(--rp-gold) !important; }
+    /* Le bloc texte à droite du swatch : on transforme Cormorant italic en
+       Jost uppercase 600 (pattern catalogue AUREA / NOTE M-4060) */
+    .rightpanel .mat-name {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+      line-height: 1.3 !important;
+    }
+    .rightpanel .mat-subname {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      line-height: 1.3 !important;
+      margin-top: 3px !important;
+    }
+    .rightpanel .mat-meta {
+      margin-top: 8px !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.10em !important;
+      color: var(--rp-faint) !important;
+      line-height: 1.7 !important;
+      text-transform: uppercase !important;
+    }
+    .rightpanel .mat-meta b {
+      color: var(--rp-muted) !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.18em !important;
+    }
+    .rightpanel .btn-library {
+      width: 100% !important;
+      margin-top: 14px !important;
+      padding: 11px 14px !important;
+      background: var(--rp-gold) !important;
+      border: 1px solid var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      transition: filter 0.15s !important;
+    }
+    .rightpanel .btn-library:hover { filter: brightness(1.08) !important; }
+    .rightpanel .btn-library svg { width: 12px !important; height: 12px !important; }
+
+    /* ═══ BODY scrollable ═══ */
+    .rightpanel .mat-body {
+      background: var(--rp-bg) !important;
+      color: var(--rp-ink) !important;
+      padding: 0 20px 28px !important;
+    }
+    .rightpanel .mat-body::-webkit-scrollbar { width: 4px; }
+    .rightpanel .mat-body::-webkit-scrollbar-thumb { background: rgba(184,150,90,0.25); }
+    .rightpanel .mat-body::-webkit-scrollbar-track { background: transparent; }
+
+    /* ═══ SECTION ═══ */
+    .rightpanel .mat-section {
+      padding: 22px 0 18px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+    }
+    .rightpanel .mat-section:last-child {
+      border-bottom: none !important;
+      padding-bottom: 8px !important;
+    }
+    .rightpanel .mat-section-title {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 16px !important;
+    }
+    .rightpanel .mat-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .mat-section-title .extra {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.16em !important;
+      color: var(--rp-faint) !important;
+      font-weight: 400 !important;
+      flex: 0 0 auto !important;
+      order: 3 !important; /* après le tiret */
+    }
+    .rightpanel .mat-section-title::after { order: 2; }
+
+    /* ═══ ROW (label · value · slider/swatch) ═══ */
+    .rightpanel .mat-row {
+      gap: 12px !important;
+      padding: 10px 0 !important;
+      margin-bottom: 0 !important;
+      border-top: 1px dashed transparent !important;
+    }
+    .rightpanel .mat-row + .mat-row { border-top-color: var(--rp-line) !important; }
+    .rightpanel .mat-label {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+    }
+    .rightpanel .mat-value {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+    .rightpanel .mat-swatch {
+      width: 26px !important;
+      height: 26px !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      cursor: pointer !important;
+      transition: border-color 0.15s !important;
+    }
+    .rightpanel .mat-swatch:hover { border-color: var(--rp-gold) !important; }
+
+    /* ═══ SLIDER ═══ */
+    .rightpanel .mat-slider {
+      grid-column: 1 / -1 !important;
+      height: 2px !important;
+      background: var(--rp-line-mid) !important;
+      position: relative !important;
+      cursor: pointer !important;
+      margin-top: 6px !important;
+    }
+    .rightpanel .mat-slider-fill { background: var(--rp-gold) !important; height: 100% !important; }
+    .rightpanel .mat-slider-thumb {
+      background: var(--rp-gold) !important;
+      width: 10px !important;
+      height: 10px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    /* ═══ PROJ + ROTATE grids ═══ */
+    .rightpanel .proj-grid,
+    .rightpanel .rotate-grid {
+      gap: 6px !important;
+    }
+    .rightpanel .proj-btn,
+    .rightpanel .rotate-btn {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      transition: all 0.15s !important;
+    }
+    .rightpanel .proj-btn:hover,
+    .rightpanel .rotate-btn:hover {
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-gold) !important;
+    }
+    .rightpanel .proj-btn.active,
+    .rightpanel .rotate-btn.active {
+      background: var(--rp-gold) !important;
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-weight: 600 !important;
+    }
+    .rightpanel .proj-btn svg { stroke: currentColor !important; }
+
+    /* ═══ UV row (axe + slider + value) ═══ */
+    .rightpanel .uv-row { gap: 12px !important; padding: 6px 0 !important; }
+    .rightpanel .uv-axis {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      color: var(--rp-gold) !important;
+      width: 18px !important;
+      text-align: center !important;
+    }
+    .rightpanel .uv-value {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.10em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+
+    /* ═══ GÉOMÉTRIE panel (V35) ═══ */
+    .rightpanel .rp-geom-panel {
+      background: var(--rp-bg) !important;
+      color: var(--rp-ink) !important;
+      padding: 22px 20px 28px !important;
+      font-family: 'Jost', sans-serif !important;
+    }
+    .rightpanel .rp-geom-panel .geom-section { margin-bottom: 22px !important; padding-bottom: 18px !important; border-bottom: 1px solid var(--rp-line) !important; }
+    .rightpanel .rp-geom-panel .geom-section:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+    .rightpanel .rp-geom-panel .geom-label {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 14px !important;
+    }
+    .rightpanel .rp-geom-panel .geom-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .rp-geom-panel .geom-input-row {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+    }
+    .rightpanel .rp-geom-panel .geom-axis-tag {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      border-right-color: var(--rp-line-mid) !important;
+      /* On garde les teintes x/y/z mais désaturées sur dark */
+    }
+    .rightpanel .rp-geom-panel .geom-axis-tag.x { color: #d57676 !important; }
+    .rightpanel .rp-geom-panel .geom-axis-tag.y { color: #6cbb7e !important; }
+    .rightpanel .rp-geom-panel .geom-axis-tag.z { color: #7799d4 !important; }
+    .rightpanel .rp-geom-panel .geom-input-row input {
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.04em !important;
+    }
+    .rightpanel .rp-geom-panel .geom-input-row input:focus { background: rgba(184,150,90,0.08) !important; }
+    .rightpanel .rp-geom-panel .geom-input-suffix {
+      color: var(--rp-faint) !important;
+      border-left-color: var(--rp-line) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+    }
+    .rightpanel .rp-geom-panel .geom-buttons button,
+    .rightpanel .rp-geom-panel button:not(.geom-axis-tag) {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      transition: all 0.15s !important;
+    }
+    .rightpanel .rp-geom-panel .geom-buttons button:hover,
+    .rightpanel .rp-geom-panel button:not(.geom-axis-tag):hover {
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-gold) !important;
+    }
+
+    /* ═══ LIBRARY view (.rp-view-library) ═══ */
+    .rightpanel .rp-view-library { background: var(--rp-bg) !important; color: var(--rp-ink) !important; }
+    .rightpanel .lib-head {
+      padding: 14px 20px 12px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+      background: var(--rp-bg) !important;
+    }
+    .rightpanel .lib-back {
+      background: transparent !important;
+      color: var(--rp-ink-2) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+    }
+    .rightpanel .lib-back:hover { border-color: var(--rp-gold) !important; color: var(--rp-gold) !important; }
+    .rightpanel .lib-title {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+    .rightpanel .lib-title small {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      font-weight: 400 !important;
+      display: block !important;
+      margin-top: 3px !important;
+    }
+    .rightpanel .lib-search input {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 11px !important;
+      letter-spacing: 0.04em !important;
+    }
+    .rightpanel .lib-search input::placeholder { color: var(--rp-faint) !important; }
+    .rightpanel .lib-filters { padding: 0 20px 12px !important; gap: 6px !important; }
+    .rightpanel .lib-chip {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      padding: 5px 10px !important;
+    }
+    .rightpanel .lib-chip:hover { border-color: var(--rp-gold) !important; color: var(--rp-gold) !important; }
+    .rightpanel .lib-chip.active {
+      background: var(--rp-gold) !important;
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-weight: 600 !important;
+    }
+    .rightpanel .lib-card {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line) !important;
+      transition: all 0.18s !important;
+    }
+    .rightpanel .lib-card:hover {
+      background: rgba(184,150,90,0.06) !important;
+      border-color: var(--rp-gold-2) !important;
+    }
+    .rightpanel .lib-card-thumb {
+      border-color: var(--rp-line-mid) !important;
+    }
+    /* TYPO Library cards — pattern catalogue exact */
+    .rightpanel .lib-card-name {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.12em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+      line-height: 1.3 !important;
+      min-height: calc(10px * 1.3 * 2) !important;
+      padding: 0 6px !important;
+    }
+    .rightpanel .lib-card-sub {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 8px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      padding: 0 6px !important;
+      min-height: calc(8px * 1.4) !important;
+    }
+    .rightpanel .lib-card.is-current::after {
+      content: 'EN COURS' !important;
+      position: absolute !important;
+      top: 6px !important;
+      right: 6px !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 7px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      padding: 3px 6px !important;
+      background: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+    }
+    .rightpanel .lib-card.is-current .lib-card-thumb {
+      border: 1px solid var(--rp-gold) !important;
+    }
+
+    /* ═══ SCÈNE placeholder (injecté en JS plus bas) ═══ */
+    .rightpanel .v75-scene-empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--rp-ink);
+      font-family: 'Jost', sans-serif;
+    }
+    .v75-scene-empty .v75-empty-icon {
+      width: 52px; height: 52px;
+      margin: 0 auto 22px;
+      border: 1px dashed var(--rp-gold-2);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--rp-gold);
+    }
+    .v75-scene-empty .v75-empty-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.4; }
+    .v75-scene-empty .v75-empty-title {
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--rp-ink);
+      margin-bottom: 10px;
+    }
+    .v75-scene-empty .v75-empty-text {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--rp-muted);
+      line-height: 1.7;
+      max-width: 280px;
+      margin: 0 auto 18px;
+    }
+    .v75-scene-empty .v75-soon {
+      display: inline-block;
+      padding: 5px 11px;
+      background: var(--rp-gold);
+      color: var(--rp-on-gold);
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+    .v75-scene-empty .v75-roadmap {
+      margin-top: 28px;
+      text-align: left;
+      border-top: 1px solid var(--rp-line);
+      padding-top: 18px;
+    }
+    .v75-scene-empty .v75-roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--rp-ink-2);
+    }
+    .v75-scene-empty .v75-roadmap-item + .v75-roadmap-item { border-top: 1px dashed var(--rp-line); }
+    .v75-scene-empty .v75-roadmap-num {
+      width: 26px; height: 26px;
+      border: 1px solid var(--rp-gold-2);
+      color: var(--rp-gold);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+  `;
+  document.head.appendChild(css);
+
+  /* ─── Injecter le placeholder Scène quand le 3ème tab est cliqué ─── */
+  function buildSceneEmpty() {
+    const wrap = document.createElement('div');
+    wrap.className = 'v75-scene-empty';
+    wrap.id = 'v75-scene-content';
+    wrap.innerHTML = `
+      <div class="v75-empty-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 16l5-5 4 4 8-8M16 7h5v5"/>
+        </svg>
+      </div>
+      <div class="v75-empty-title">Ambiance de scène</div>
+      <div class="v75-empty-text">
+        Pilotage de l'éclairage, de la caméra et du fond pour les rendus catalogue et AR. En cours de design.
+      </div>
+      <span class="v75-soon">À venir</span>
+      <div class="v75-roadmap">
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">01</span><span>Lumière directionnelle</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">02</span><span>Fond et sol</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">03</span><span>Caméras prédéfinies</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">04</span><span>Capture HD catalogue</span></div>
+      </div>
+    `;
+    return wrap;
+  }
+
+  function showSceneEmpty() {
+    /* On masque mat-head + mat-body et on insère le placeholder dans rp-view-edit */
+    const view = document.querySelector('.rp-view-edit');
+    if (!view) return;
+    const head = view.querySelector('.mat-head');
+    const body = view.querySelector('.mat-body');
+    const geom = view.querySelector('.rp-geom-panel');
+    if (head) head.style.display = 'none';
+    if (body) body.style.display = 'none';
+    if (geom) geom.style.display = 'none';
+    let sceneEl = document.getElementById('v75-scene-content');
+    if (!sceneEl) {
+      sceneEl = buildSceneEmpty();
+      view.appendChild(sceneEl);
+    }
+    sceneEl.style.display = 'block';
+  }
+
+  function hideSceneEmpty() {
+    const el = document.getElementById('v75-scene-content');
+    if (el) el.style.display = 'none';
+  }
+
+  /* Hook sur les tabs : on intercepte les clicks et on switche scène/restore.
+     V75.1 — on cible la zone topbar (V12 clone) en priorité, fallback sur
+     rightpanel. Comme on cache les tabs du rightpanel via CSS, c'est la
+     version topbar qui reçoit les clicks utilisateur. */
+  function wireTabsForScene() {
+    const tabsContainer = document.querySelector('.tb-mat-zone .mat-tabs')
+                       || document.querySelector('.rp-view-edit .mat-tabs');
+    if (!tabsContainer) { setTimeout(wireTabsForScene, 500); return; }
+    const tabs = tabsContainer.querySelectorAll('.mat-tab');
+    if (tabs.length < 3) { setTimeout(wireTabsForScene, 500); return; }
+    if (tabsContainer.dataset.v75Wired === '1') return;
+    tabsContainer.dataset.v75Wired = '1';
+
+    tabs.forEach((tab, idx) => {
+      tab.addEventListener('click', () => {
+        /* Update active state pour le visuel (la topbar V12 affiche un
+           underline gold sur le tab actif) */
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (idx === 2) {
+          showSceneEmpty();
+        } else {
+          hideSceneEmpty();
+          /* Pour idx 0 et 1, V35 gère déjà mat/geom — on ne fait rien d'autre */
+        }
+      });
+    });
+    console.log('[studio v75] hook scène placeholder câblé sur', tabsContainer.closest('.tb-mat-zone') ? 'topbar' : 'rightpanel', '✓');
+  }
+  wireTabsForScene();
+
+  console.log('[studio v75] rightpanel unifié (skin catalogue · Jost uppercase · pills) actif ✓');
 })();
 </script>
 
