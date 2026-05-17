@@ -13014,6 +13014,23 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       else delete window._v25.variants[idx].studio_state.textureSwatchUrl;
       const { error } = await sb.from('products').update({ variants: window._v25.variants }).eq('id', productId);
       if (error) throw error;
+      /* v74.1 — BUGFIX : mirror window._v25.variants vers window._v18.productRow.variants.
+         Sans ça, le watcher V42 (qui hash row.variants[i].studio_state.textureSwatchUrl)
+         ne détecte pas le changement → colors[] reste obsolète → scan.html ne voit
+         pas le nouveau swatch tant qu'on ne refresh pas la page. */
+      if (window._v18.productRow) {
+        window._v18.productRow.variants = window._v25.variants;
+      }
+    }
+    /* v74.1 — Trigger V42 sync immédiatement, sans attendre le polling 2s du
+       watcher. Garantit que products.colors[] est à jour avant que l'archi
+       ouvre la page scan pour vérifier. */
+    if (window._v42 && typeof window._v42.sync === 'function') {
+      try {
+        await window._v42.sync(true);
+      } catch (e) {
+        console.warn('[v38] V42.sync après writeSwatch a échoué :', e.message || e);
+      }
     }
     return true;
   }
@@ -25322,6 +25339,131 @@ console.log('[studio v3] prêt');
   }
 
   window._v73 = { open: openDrawer, close: closeDrawer, toggle: toggleDrawer };
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v74 — SÉLECTION = FLASH COULEUR (pas d'émissif persistant)
+   ─────────────────────────────────────────────────────────────────────────
+   Problème : selectPartReal posait un emissif persistant 0x2A1A00 sur la
+   part sélectionnée, qui restait après l'action et obscurcissait le
+   matériau. V37 (mode MESH) faisait pareil avec un emissif gold 0xB8965A
+   sur le mesh cliqué.
+
+   Solution : transformer la sélection en flash transitoire avec un code
+   couleur clair par type d'action :
+
+     - GROUPE (PARTIES)  → flash ROUGE   (0xFF2222) · 700 ms
+     - MESH              → flash BLEU    (0x2266FF) · 700 ms
+     - PIPETTE           → flash VERT    (0x22DD22) · 800 ms  ← déjà ok
+
+   Le state de sélection reste visible dans la tree (.tree-row.selected),
+   et pour MESH dans l'overlay flottant "Mesh sélectionné" de V37. L'utilisateur
+   a donc toujours un retour visuel persistant — mais en UI, pas sur le mesh.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v74FlashSelection() {
+  if (window.__v74) return;
+  window.__v74 = true;
+
+  const COLORS = { GROUP: 0xFF2222, MESH: 0x2266FF };
+  const DURATION = 700;
+
+  /* ─── 1. Patcher selectPartReal : neutraliser l'emissif persistant ─── */
+  function patchSelectPartReal() {
+    if (typeof window.selectPartReal !== 'function') return false;
+    if (window.selectPartReal.__v74) return true;
+
+    const original = window.selectPartReal;
+    window.selectPartReal = function(key) {
+      const r = original.apply(this, arguments);
+      try {
+        /* Forcer tous les emissifs à 0 (selectPartReal vient de poser 0x2A1A00
+           sur la part active, on l'écrase pour ne garder que le flash) */
+        if (typeof partMaterials === 'object' && partMaterials) {
+          Object.values(partMaterials).forEach(mat => {
+            if (mat && mat.emissive) {
+              mat.emissive.setHex(0x000000);
+              mat.emissiveIntensity = 0;
+            }
+          });
+        }
+        /* Déclencher le flash rouge sur la part sélectionnée */
+        if (typeof window.flashHighlightPart === 'function' && key) {
+          window.flashHighlightPart(key, COLORS.GROUP, DURATION);
+        }
+      } catch (e) {
+        console.warn('[v74] wrap selectPartReal échec :', e);
+      }
+      return r;
+    };
+    window.selectPartReal.__v74 = true;
+    /* Sync de la variable locale au scope racine (utilisée par certains modules
+       qui ont chopé une ref avant nous) */
+    if (typeof selectPartReal !== 'undefined') {
+      try { selectPartReal = window.selectPartReal; } catch (_) {}
+    }
+    return true;
+  }
+
+  /* ─── 2. V37 mesh mode : transformer highlight gold persistant en flash bleu ─── */
+  /* Stratégie : V37 expose window._v37.selectedMesh. On le watch — quand un mesh
+     vient d'être assigné, on switch l'emissif du cloned material vers bleu et on
+     lance un décai vers 0. La logique d'isolation de V37 marche toujours
+     (selectedMesh reste pour le bouton "Isoler"). */
+  let lastWatchedMesh = null;
+  let flashTokens = new WeakMap(); /* mesh -> token pour éviter double-flash */
+
+  function flashMeshBlue(mesh) {
+    if (!mesh || !mesh.material || !mesh.material.emissive) return;
+    const mat = mesh.material;
+    /* Token unique pour cancel toute animation précédente sur ce mesh */
+    const token = Symbol('v74-flash');
+    flashTokens.set(mesh, token);
+
+    mat.emissive.setHex(COLORS.MESH);
+    mat.emissiveIntensity = 0.9;
+    const t0 = performance.now();
+    function decay() {
+      /* Si un autre flash a été déclenché entre-temps, on s'arrête */
+      if (flashTokens.get(mesh) !== token) return;
+      /* Si le mesh n'est plus sélectionné, on stop */
+      if (!mesh.material || !mesh.material.emissive) return;
+      const t = (performance.now() - t0) / DURATION;
+      if (t >= 1) {
+        mat.emissive.setHex(0x000000);
+        mat.emissiveIntensity = 0;
+        return;
+      }
+      mat.emissiveIntensity = 0.9 * (1 - t);
+      requestAnimationFrame(decay);
+    }
+    requestAnimationFrame(decay);
+  }
+
+  /* Watcher : poll window._v37.selectedMesh */
+  setInterval(() => {
+    if (!window._v37 || window._v37.mode !== 'mesh') {
+      lastWatchedMesh = null;
+      return;
+    }
+    const m = window._v37.selectedMesh;
+    if (m && m !== lastWatchedMesh) {
+      lastWatchedMesh = m;
+      /* Petit délai pour laisser V37 finir son clone + setHex 0xB8965A,
+         puis on écrase avec le bleu et on lance le décai */
+      setTimeout(() => flashMeshBlue(m), 30);
+    } else if (!m) {
+      lastWatchedMesh = null;
+    }
+  }, 100);
+
+  /* ─── Init avec retry si selectPartReal pas encore défini ─── */
+  if (!patchSelectPartReal()) {
+    const t = setInterval(() => { if (patchSelectPartReal()) clearInterval(t); }, 400);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+
+  console.log('[studio v74] sélection = flash couleur · groupe ROUGE · mesh BLEU · pipette VERT ✓');
 })();
 </script>
 
