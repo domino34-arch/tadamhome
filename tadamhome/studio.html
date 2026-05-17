@@ -15580,13 +15580,15 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     .v50-ar-btn:hover:not(:disabled) { filter: brightness(1.10); }
     .v50-ar-btn:active:not(:disabled) { transform: scale(0.97); }
+    /* v70.1 — État disabled lisible (parité .v50-ar-btn-rp) */
     .v50-ar-btn:disabled {
-      background: transparent;
-      color: var(--ink-muted, #9C9388);
+      background: var(--panel-2, #F8F4EC);
+      color: var(--ink-soft, #6B6358);
       border-color: var(--line, #D8D2C7);
       cursor: not-allowed;
-      opacity: 0.6;
+      opacity: 1;
     }
+    .v50-ar-btn:disabled svg { opacity: 0.55; }
     .v50-ar-btn svg { width: 14px; height: 14px; }
     .v50-ar-btn-dot {
       width: 6px; height: 6px;
@@ -15618,13 +15620,20 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     .v50-ar-btn-rp:hover:not(:disabled) { filter: brightness(1.10); }
     .v50-ar-btn-rp:active:not(:disabled) { transform: scale(0.99); }
+    /* v70.1 — État disabled lisible : avant on avait opacity:0.5 + fond
+       transparent + bordure pointillée + couleur muted, ce qui rendait le
+       bouton quasi invisible quand on n'a pas de modèle chargé (surtout
+       sur fond sombre du catalogue ouvert). On garde le signal "non
+       cliquable" (cursor + désaturation modérée) mais on rétablit la
+       lisibilité (background opaque, contraste correct, opacity:1). */
     .v50-ar-btn-rp:disabled {
-      background: transparent;
-      color: var(--ink-muted, #9C9388);
-      border: 1px dashed var(--line, #D8D2C7);
+      background: var(--panel-2, #F8F4EC);
+      color: var(--ink-soft, #6B6358);
+      border: 1px solid var(--line, #D8D2C7);
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 1;
     }
+    .v50-ar-btn-rp:disabled svg { opacity: 0.55; }
     .v50-ar-btn-rp svg { width: 16px; height: 16px; }
 
     /* Overlay loading */
@@ -24089,14 +24098,15 @@ console.log('[studio v3] prêt');
       z-index: 100 !important;
       box-sizing: border-box !important;
     }
-    /* Loader / désactivé */
+    /* Loader / désactivé — v70.1 lisible : fond opaque, contraste correct */
     #v50ARBtnRP:disabled {
-      background: transparent !important;
-      color: var(--ink-muted, #9C9388) !important;
-      border: 1px dashed var(--line, #D8D2C7) !important;
+      background: var(--panel-2, #F8F4EC) !important;
+      color: var(--ink-soft, #6B6358) !important;
+      border: 1px solid var(--line, #D8D2C7) !important;
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 1;
     }
+    #v50ARBtnRP:disabled svg { opacity: 0.55; }
 
     /* === iPad : tree-w garde 240px (lisibilité), mat-w légèrement réduit (340) === */
     body.ipad-mode {
