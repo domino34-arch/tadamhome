@@ -25429,10 +25429,14 @@ console.log('[studio v3] prêt');
             }
           });
         }
-        /* Déclencher le flash rouge sur la part sélectionnée */
-        if (typeof window.flashHighlightPart === 'function' && key) {
+        /* V77 — Plus de flash rouge à la sélection : l'utilisateur trouvait
+           le filtre rouge désagréable. On garde le force-à-0 des emissifs
+           (utile pour neutraliser le 0x2A1A00 que selectPartReal pose) mais
+           on ne déclenche pas le flash GROUP. Les flashes MESH (bleu) et
+           PIPETTE (vert) restent inchangés dans leurs modules respectifs. */
+        /* if (typeof window.flashHighlightPart === 'function' && key) {
           window.flashHighlightPart(key, COLORS.GROUP, DURATION);
-        }
+        } */
       } catch (e) {
         console.warn('[v74] wrap selectPartReal échec :', e);
       }
@@ -26821,34 +26825,31 @@ console.log('[studio v3] prêt');
         : `Publie « ${variantName} » sur le catalogue (visible sur scan.html)`;
     }
 
-    /* ─── Heuristique : dérive automatiquement un swatch URL pour la variante
-       depuis les matériaux qui lui sont appliqués. Évite à l'utilisateur de
-       devoir uploader manuellement un swatch via V38.
-       Priorité :
-         1. La première part où la variante DIFFÈRE de Base (= la finition qui
-            caractérise la variante : garnissage refait, coque changée, etc.)
-         2. Fallback : ordre arbitraire des parts les plus visibles
-            (garnissage > coque > assise > dossier > piétement > plateau > logo)
-         3. Fallback ultime : la première part avec un materialId valide
-       Retourne thumbnail_url || albedo_url || null. */
-    function deriveSwatchUrl(variantIdx) {
-      const variant = (window._v25 && window._v25.variants && window._v25.variants[variantIdx]) || null;
-      if (!variant || !variant.studio_state || !variant.studio_state.parts) return null;
+    /* ─── Heuristique : dérive automatiquement un swatch URL depuis un map
+       de parts (variantParts ou baseParts).
+       Si baseParts est fourni en référence : on cherche la première part qui
+       diffère (= la finition qui caractérise la variante).
+       Sinon : on prend la part la plus visible par ordre de priorité.
 
-      const variantParts = variant.studio_state.parts;
-      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
-      const baseParts = (baseState && baseState.parts) || {};
+       v77.1 — Priorité inversée vers albedo_url EN PREMIER : l'utilisateur
+       préfère voir un APLAT de tissu/matière (texture brute, tile seamless)
+       plutôt qu'un render PBR sphérique de thumbnail_url. L'aplat est plus
+       lisible pour reconnaître le motif/fibre/grain. */
+    function deriveSwatchFromParts(variantParts, baseParts) {
+      if (!variantParts || typeof variantParts !== 'object') return null;
 
       let chosenMatId = null;
 
-      /* (1) Trouver la première part qui diffère de Base */
-      for (const key of Object.keys(variantParts)) {
-        const vMatId = variantParts[key] && variantParts[key].materialId;
-        const bMatId = baseParts[key] && baseParts[key].materialId;
-        if (vMatId && vMatId !== bMatId) { chosenMatId = vMatId; break; }
+      /* (1) Trouver la première part qui diffère de Base (si baseParts fourni) */
+      if (baseParts && typeof baseParts === 'object') {
+        for (const key of Object.keys(variantParts)) {
+          const vMatId = variantParts[key] && variantParts[key].materialId;
+          const bMatId = baseParts[key] && baseParts[key].materialId;
+          if (vMatId && vMatId !== bMatId) { chosenMatId = vMatId; break; }
+        }
       }
 
-      /* (2) Fallback prioritaire si pas de diff (variante identique à Base ou Base vide) */
+      /* (2) Fallback priorité visuelle */
       if (!chosenMatId) {
         const priority = ['garnissage', 'coque', 'assise', 'dossier', 'piétement', 'pietement', 'plateau', 'tablette', 'logo'];
         for (const pkey of priority) {
@@ -26860,7 +26861,7 @@ console.log('[studio v3] prêt');
         }
       }
 
-      /* (3) Fallback ultime : n'importe quelle part avec un materialId */
+      /* (3) Ultime fallback : n'importe quelle part */
       if (!chosenMatId) {
         for (const key of Object.keys(variantParts)) {
           if (variantParts[key] && variantParts[key].materialId) {
@@ -26872,14 +26873,23 @@ console.log('[studio v3] prêt');
 
       if (!chosenMatId) return null;
 
-      /* Lookup matériau dans allMaterials (exposé en getter via window) */
       const mats = (window.allMaterials && Array.isArray(window.allMaterials)) ? window.allMaterials : [];
       const mat = mats.find(m => m.id === chosenMatId);
       if (!mat) {
         console.warn('[v77 deriveSwatch] materialId introuvable dans allMaterials :', chosenMatId);
         return null;
       }
-      return mat.thumbnail_url || mat.albedo_url || null;
+      /* v77.1 — albedo_url EN PREMIER (aplat seamless), thumbnail_url en fallback (sphère PBR) */
+      return mat.albedo_url || mat.thumbnail_url || null;
+    }
+
+    /* Wrapper rétrocompat pour les appels existants par index */
+    function deriveSwatchUrl(variantIdx) {
+      const variant = (window._v25 && window._v25.variants && window._v25.variants[variantIdx]) || null;
+      if (!variant || !variant.studio_state) return null;
+      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
+      const baseParts = (baseState && baseState.parts) || {};
+      return deriveSwatchFromParts(variant.studio_state.parts, baseParts);
     }
 
     /* ─── Action publish ─── */
@@ -26925,20 +26935,38 @@ console.log('[studio v3] prêt');
       const wasPublished = variant.published === true;
       const previousSwatch = (variant.studio_state && variant.studio_state.textureSwatchUrl) || null;
 
-      /* ÉTAPE 3 — Marquer comme publié + dériver le swatch finition */
+      /* ÉTAPE 3 — Marquer comme publié + dériver le swatch finition de la
+         variante ET de Base (la Base aussi mérite sa vignette dans la
+         section Finition de scan.html). */
       variant.published = true;
       if (!variant.studio_state) variant.studio_state = {};
 
       const derivedSwatch = deriveSwatchUrl(ctx2.idx);
       if (derivedSwatch) {
         variant.studio_state.textureSwatchUrl = derivedSwatch;
-        console.log('[v77 publish] swatch auto-dérivé pour variante', ctx2.idx + 1, ':', derivedSwatch);
+        console.log('[v77 publish] swatch variante', ctx2.idx + 1, '(aplat) :', derivedSwatch);
       } else {
-        console.warn('[v77 publish] swatch non dérivable · variant.studio_state.parts =',
+        console.warn('[v77 publish] swatch variante non dérivable · variant.studio_state.parts =',
           variant.studio_state.parts, '· allMaterials.length =',
           (window.allMaterials && window.allMaterials.length) || 0);
         if (!previousSwatch) {
-          toast('Aucun matériau détecté pour la vignette finition. Édite la variante puis re-publie.', 'info', 5500);
+          toast('Aucun matériau détecté pour la vignette de la variante. Édite-la puis re-publie.', 'info', 5500);
+        }
+      }
+
+      /* v77.2 — Swatch Base : dérivé depuis productRow.studio_state.parts.
+         Pas de référence pour diff (Base est la référence elle-même), donc
+         on prend la part la plus visible par priorité. */
+      const baseState = (window._v18 && window._v18.productRow && window._v18.productRow.studio_state) || null;
+      const previousBaseSwatch = (baseState && baseState.textureSwatchUrl) || null;
+      let derivedBaseSwatch = null;
+      if (baseState && baseState.parts) {
+        derivedBaseSwatch = deriveSwatchFromParts(baseState.parts, null);
+        if (derivedBaseSwatch) {
+          baseState.textureSwatchUrl = derivedBaseSwatch;
+          console.log('[v77 publish] swatch Base (aplat) :', derivedBaseSwatch);
+        } else {
+          console.warn('[v77 publish] swatch Base non dérivable · baseState.parts =', baseState.parts);
         }
       }
 
@@ -26948,33 +26976,49 @@ console.log('[studio v3] prêt');
         variant.published = wasPublished; /* rollback */
         if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
         else delete variant.studio_state.textureSwatchUrl;
+        if (baseState) {
+          if (previousBaseSwatch !== null) baseState.textureSwatchUrl = previousBaseSwatch;
+          else delete baseState.textureSwatchUrl;
+        }
         return;
       }
 
-      /* ÉTAPE 4 — UPDATE DB avec variants.published=true + textureSwatchUrl */
+      /* ÉTAPE 4 — UPDATE DB : variants (avec published + swatch variante)
+         ET studio_state (avec swatch Base). Une seule requête. */
       try {
         toast('Finalisation de la publication…', 'info', 1800);
+        const updatePayload = { variants: window._v25.variants };
+        if (derivedBaseSwatch && baseState) {
+          updatePayload.studio_state = baseState;
+        }
         const { error } = await supa
           .from('products')
-          .update({ variants: window._v25.variants })
+          .update(updatePayload)
           .eq('id', ctx2.productId);
         if (error) throw error;
 
         /* Mirror vers productRow pour V42 watcher (pattern V74.1) */
         if (window._v18 && window._v18.productRow) {
           window._v18.productRow.variants = window._v25.variants;
+          if (derivedBaseSwatch && baseState) {
+            window._v18.productRow.studio_state = baseState;
+          }
         }
         /* Trigger V42 final pour propager vers products.colors[] */
         if (window._v42 && typeof window._v42.sync === 'function') {
           await window._v42.sync(true);
         }
 
-        toast(`« ${variant.name || 'Variante'} » publiée sur le catalogue ✓ · scan.html à jour`, 'ok', 4000);
+        toast(`« ${variant.name || 'Variante'} » publiée ✓ · Base + variante mises à jour sur scan.html`, 'ok', 4000);
         updateState();
       } catch (e) {
         variant.published = wasPublished; /* rollback */
         if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
         else delete variant.studio_state.textureSwatchUrl;
+        if (baseState) {
+          if (previousBaseSwatch !== null) baseState.textureSwatchUrl = previousBaseSwatch;
+          else delete baseState.textureSwatchUrl;
+        }
         console.error('[v77 publish] UPDATE final :', e);
         toast('Erreur publication : ' + (e.message || ''), 'err', 4500);
         updateState();
@@ -26997,11 +27041,31 @@ console.log('[studio v3] prêt');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
-     FIX 4 — Exports : download local AUSSI en mode lié
+     FIX 4 — Exports : download local ALSO en mode lié, MAIS uniquement
+     déclenché par un clic manuel sur Export GLB/USDZ/OBJ/SketchUp.
+     ─────────────────────────────────────────────────────────────────────
+     v77.2 — Refactor : on wrappe directement window._v19.runExport au
+     lieu de poller passivement window._v19.exports.
+
+     Pourquoi :
+     - Le watcher polling se déclenchait à tort lors d'un publish (V49 écrit
+       dans _v19.exports.glb/usdz mais via sa propre pipeline, sans passer
+       par runExport) et au hydrateFromState au boot (qui copiait des
+       _uploadedAt historiques).
+     - V49 n'appelle PAS runExport (elle a sa propre fonction genBlob +
+       uploadAtPath interne). Donc un wrap de runExport ne fire que sur les
+       clics utilisateur dans le burger menu, ce qui est exactement le
+       comportement voulu.
+
+     Comportement final :
+     - Click manuel "Export GLB" en mode sandbox → V19 télécharge localement
+       directement (comportement V19 natif).
+     - Click manuel "Export GLB" en mode lié → V19 upload bucket, mon hook
+       détecte le nouveau _uploadedAt et trigger AUSSI download local.
+     - Click "Publier sur le catalogue" ou "Publier nouvelle variante" → V49
+       exporte tout, MAIS sans passer par runExport → AUCUN download local.
      ───────────────────────────────────────────────────────────────────── */
   function hookExportsForLocalDownload() {
-    /* On wrappe runExport pour déclencher un downloadBlob après l'upload.
-       Détection : window._v19 doit être présent. */
     if (!window._v19 || typeof window._v19.runExport !== 'function') {
       setTimeout(hookExportsForLocalDownload, 1000);
       return;
@@ -27009,44 +27073,15 @@ console.log('[studio v3] prêt');
     if (window._v19.runExport.__v77) return;
 
     const original = window._v19.runExport;
-    /* On ne peut pas intercepter le blob généré dans runExport (qui est
-       interne au scope V19). Stratégie alternative : exposer une API V77
-       qui interpose un downloadBlob global déclenché manuellement après
-       chaque export OU patcher au niveau du wireButtons pour faire
-       l'export en TWO passes (sandbox-style + lié).
 
-       Approche retenue : wrapper runExport. En mode lié, on extrait le
-       blob via uploadToBucket en-dehors (impossible sans accès au scope
-       privé). Solution simple : on monitore window._v19.exports puis on
-       déclenche le download.
-
-       Plus simple : on remplace runExport par une version qui appelle
-       l'original puis recharge le fichier uploadé depuis l'URL pour le
-       télécharger localement. Mais ça double le coût bande passante.
-
-       SOLUTION : on patche directement V19 en exposant downloadBlob
-       globalement (qu'on injecte) et on étend runExport.
-    */
-
-    /* Approche pragmatique : on observe les changements de window._v19.exports
-       et on télécharge depuis l'URL uploadée. Coût = re-fetch depuis le bucket. */
-    const seen = {};
-    function watchExports() {
-      const exports = window._v19?.exports || {};
-      Object.keys(exports).forEach(key => {
-        if (key.endsWith('_uploadedAt')) return;
-        const url = exports[key];
-        const stamp = exports[key + '_uploadedAt'];
-        if (!url || !stamp) return;
-        const sig = key + '|' + stamp;
-        if (seen[sig]) return;
-        seen[sig] = true;
-        /* Download local depuis l'URL */
-        downloadFromUrl(url, defaultName(key));
-      });
+    /* Helpers locaux pour le download */
+    function defaultName(format) {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = { glb: 'glb', usdz: 'usdz', obj: 'obj', dae: 'dae' }[format] || format;
+      const baseName = (document.getElementById('tbName')?.value || 'modele').trim()
+                       .replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 40) || 'modele';
+      return `${baseName}_${stamp}.${ext}`;
     }
-    setInterval(watchExports, 1000);
-
     function downloadFromUrl(url, filename) {
       fetch(url)
         .then(r => r.blob())
@@ -27059,20 +27094,32 @@ console.log('[studio v3] prêt');
           a.click();
           a.remove();
           setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
-          console.log('[v77] download local après upload :', filename);
+          console.log('[v77] download local après upload manuel :', filename);
         })
         .catch(err => console.warn('[v77] download local échec :', err));
     }
-    function defaultName(format) {
-      const stamp = new Date().toISOString().slice(0, 10);
-      const ext = { glb: 'glb', usdz: 'usdz', obj: 'obj', dae: 'dae' }[format] || format;
-      const baseName = (document.getElementById('tbName')?.value || 'modele').trim()
-                       .replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 40) || 'modele';
-      return `${baseName}_${stamp}.${ext}`;
-    }
 
+    window._v19.runExport = async function(format, ...rest) {
+      const productId = window._v18 && window._v18.productId;
+      /* Snapshot du stamp avant l'export */
+      const beforeStamp = window._v19.exports && window._v19.exports[format + '_uploadedAt'];
+
+      const result = await original.apply(this, [format, ...rest]);
+
+      /* Après : si on est en mode lié ET qu'un nouveau upload a eu lieu
+         (nouveau _uploadedAt stamp), on déclenche AUSSI le download local.
+         En sandbox, V19 fait déjà le download natif → on ne touche pas. */
+      if (productId) {
+        const afterStamp = window._v19.exports && window._v19.exports[format + '_uploadedAt'];
+        const afterUrl = window._v19.exports && window._v19.exports[format];
+        if (afterStamp && afterStamp !== beforeStamp && afterUrl) {
+          downloadFromUrl(afterUrl, defaultName(format));
+        }
+      }
+      return result;
+    };
     window._v19.runExport.__v77 = true;
-    console.log('[v77] download local après upload armé ✓');
+    console.log('[v77] hook runExport pour download local après upload manuel armé ✓ · publish via V49 NON impacté');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
