@@ -25652,6 +25652,32 @@ console.log('[studio v3] prêt');
        ont été retirées : maintenant cachées via display:none ci-dessus.
        Les onglets actifs sont ceux clonés par V12 dans .tb-mat-zone.) */
 
+    /* ═══ V75.2 — Dimensions L/H/P déplacées dans Géométrie ═══ */
+    /* V35 a déjà les inputs dimensions dans son panel Géométrie. La double
+       saisie dans la topbar surchargeait visuellement et n'apportait rien.
+       On cache la zone .tb-dims (le JS qui écrit dans tbDimL/H/P fonctionne
+       toujours : les inputs sont cachés mais présents dans le DOM, et V35
+       synchronise ses propres inputs avec le state). */
+    .topbar .tb-dims { display: none !important; }
+
+    /* ═══ V75.2 — Vignettes lib non cachées par le bouton AR ═══ */
+    /* Le bouton AR est fixed bottom à hauteur ~56px (--bottombar-h). On
+       réserve l'espace en bas de la zone scrollable pour que les dernières
+       vignettes restent visibles malgré le bouton. */
+    .rightpanel .lib-grid { padding-bottom: 80px !important; }
+
+    /* ═══ V75.2 — Alignement chips matériaux sur le bord gauche du search ═══ */
+    /* Le .lib-search a margin 18px sur les côtés (input aligné à 18px de
+       la bordure container). Le .lib-filters avait été cassé par un padding
+       0 20px en V75 → chips à 38px du bord. On rétablit padding horizontal 0
+       + margin 18px pour que les chips s'alignent pixel-perfect avec le
+       cadre search. */
+    .rightpanel .lib-filters {
+      padding: 8px 0 12px !important;
+      margin: 0 18px 0 !important;
+      gap: 6px !important;
+    }
+
     /* ═══ HEAD = identité de la part active ═══ */
     .rightpanel .mat-head {
       padding: 22px 20px 18px !important;
@@ -26020,7 +26046,7 @@ console.log('[studio v3] prêt');
       letter-spacing: 0.04em !important;
     }
     .rightpanel .lib-search input::placeholder { color: var(--rp-faint) !important; }
-    .rightpanel .lib-filters { padding: 0 20px 12px !important; gap: 6px !important; }
+    .rightpanel .lib-filters { /* alignement géré plus haut en V75.2 */ gap: 6px !important; }
     .rightpanel .lib-chip {
       background: transparent !important;
       border: 1px solid var(--rp-line-mid) !important;
@@ -26251,6 +26277,193 @@ console.log('[studio v3] prêt');
   wireTabsForScene();
 
   console.log('[studio v75] rightpanel unifié (skin catalogue · Jost uppercase · pills) actif ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v76 — SECTION "RÉCENTS" RENDUE FONCTIONNELLE
+   ─────────────────────────────────────────────────────────────────────────
+   La section .lib-recent affichait 5 vignettes codées en dur dans le HTML
+   (reliquat du mockup d'origine). Elle ne réagissait pas aux matériaux
+   réellement appliqués via Supabase.
+
+   V76 :
+   1. Hook sur applyMaterialFromSupabase : après chaque application réussie,
+      push le matériau dans window._v76.recents (max 5, dédup par id, plus
+      récent en tête).
+   2. Persistance localStorage clé "tadamhome_recent_materials".
+      Scope global (tous produits confondus) — décision archi : on raisonne
+      en "telle matière je l'ai utilisée la semaine dernière sur un autre
+      projet, je veux la retrouver".
+   3. Re-render de .lib-recent à chaque update : background-image depuis
+      thumbnail_url, tooltip avec nom + subcategory, click → réapplique.
+   4. Marqueur .current sur la vignette qui correspond à la matière active
+      sur la part en cours.
+   5. Si aucun récent : masquer la section entière (pas de 5 placeholders
+      orphelins). Le compteur "Récents · N" reflète le vrai count.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v76RecentMaterials() {
+  if (window.__v76Init) return;
+  window.__v76Init = true;
+
+  const STORAGE_KEY = 'tadamhome_recent_materials';
+  const MAX_RECENTS = 5;
+
+  window._v76 = window._v76 || {};
+
+  /* ───── Storage I/O ───── */
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.slice(0, MAX_RECENTS) : [];
+    } catch (e) {
+      console.warn('[v76] localStorage load échec, reset :', e);
+      try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+      return [];
+    }
+  }
+  function save(arr) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr.slice(0, MAX_RECENTS)));
+    } catch (e) {
+      console.warn('[v76] localStorage save échec :', e);
+    }
+  }
+
+  /* ───── Track un matériau appliqué ───── */
+  function track(material) {
+    if (!material || !material.id) return;
+    const recents = window._v76.recents;
+    const idx = recents.findIndex(r => r.id === material.id);
+    if (idx >= 0) recents.splice(idx, 1); /* dédup */
+    recents.unshift({
+      id: material.id,
+      name: material.name || '—',
+      thumbnail_url: material.thumbnail_url || material.albedo_url || '',
+      subcategory: material.subcategory || '',
+      ref_code: material.ref_code || '',
+      base_color: material.base_color || '',
+    });
+    while (recents.length > MAX_RECENTS) recents.pop();
+    save(recents);
+    render();
+  }
+
+  /* ───── Render dans le DOM ───── */
+  function render() {
+    const container = document.querySelector('.lib-recent');
+    if (!container) return;
+    const section = container.closest('.lib-section');
+    const recents = window._v76.recents;
+
+    /* Si vide, on cache la section entière (pas de 5 placeholders orphelins) */
+    if (recents.length === 0) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = '';
+
+    /* Update du compteur dans le titre "Récents · N" */
+    const titleSpan = section && section.querySelector('.lib-section-title span');
+    if (titleSpan) titleSpan.textContent = recents.length;
+
+    /* Quel matériau est actif sur la part courante ? */
+    let currentId = null;
+    try {
+      const activeKey = (typeof activePartKey !== 'undefined') ? activePartKey : null;
+      if (activeKey && typeof partMaterialChoices === 'object' && partMaterialChoices) {
+        currentId = (partMaterialChoices[activeKey] || {}).id || null;
+      }
+    } catch (_) {}
+
+    /* Construit le HTML */
+    container.innerHTML = recents.map(r => {
+      const isCurrent = (r.id === currentId);
+      const safeTip = (r.name + (r.subcategory ? ' · ' + r.subcategory : '')).replace(/"/g, '&quot;');
+      const bg = r.thumbnail_url
+        ? `background-image:url('${r.thumbnail_url}');background-size:cover;background-position:center;`
+        : `background:${r.base_color || '#888'};`;
+      return `<div class="lib-recent-item${isCurrent ? ' current' : ''}"
+                   data-mat-id="${r.id}"
+                   data-tooltip="${safeTip}"
+                   style="${bg}"></div>`;
+    }).join('');
+
+    /* Wire clicks → réapplique le matériau */
+    container.querySelectorAll('.lib-recent-item').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.matId;
+        if (!id) return;
+        if (typeof window.applyMaterialFromSupabase === 'function') {
+          window.applyMaterialFromSupabase(id);
+        } else if (typeof applyMaterialFromSupabase === 'function') {
+          applyMaterialFromSupabase(id);
+        }
+      };
+    });
+  }
+
+  /* ───── Hook applyMaterialFromSupabase ───── */
+  function hookApply() {
+    let original;
+    if (typeof window.applyMaterialFromSupabase === 'function') {
+      original = window.applyMaterialFromSupabase;
+    } else if (typeof applyMaterialFromSupabase === 'function') {
+      original = applyMaterialFromSupabase;
+      window.applyMaterialFromSupabase = original;
+    } else {
+      return false;
+    }
+    if (original.__v76) return true;
+
+    const wrapped = async function(matId, cardEl) {
+      const result = await original.apply(this, arguments);
+      try {
+        let mat = null;
+        if (typeof allMaterials !== 'undefined' && Array.isArray(allMaterials)) {
+          mat = allMaterials.find(m => m.id === matId);
+        }
+        if (mat) track(mat);
+      } catch (e) {
+        console.warn('[v76] track après apply échec :', e);
+      }
+      return result;
+    };
+    wrapped.__v76 = true;
+    try { applyMaterialFromSupabase = wrapped; } catch (_) {}
+    window.applyMaterialFromSupabase = wrapped;
+    return true;
+  }
+
+  /* ───── Init ───── */
+  window._v76.recents = load();
+  window._v76.track = track;
+  window._v76.render = render;
+  window._v76.clear = () => { window._v76.recents = []; save([]); render(); };
+
+  let attempts = 0;
+  function tryInit() {
+    attempts++;
+    const hooked = hookApply();
+    render();
+    if (!hooked && attempts < 40) setTimeout(tryInit, 500);
+  }
+  tryInit();
+
+  /* Re-render périodique léger pour catcher les cas où le DOM est repeuplé
+     (ex : si un autre module re-render la biblio) */
+  setInterval(() => {
+    const container = document.querySelector('.lib-recent');
+    if (!container) return;
+    /* Détection grossière : si le nombre de DOM children ne matche pas, on re-render */
+    if (container.children.length !== window._v76.recents.length) {
+      render();
+    }
+  }, 2000);
+
+  console.log('[studio v76] récents matériaux fonctionnels (localStorage, max ' + MAX_RECENTS + ') ✓');
 })();
 </script>
 
