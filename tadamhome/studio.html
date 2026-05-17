@@ -9136,49 +9136,14 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
           </div>
         </section>
 
-        <!-- ═══ FICHIERS 3D ═══ -->
-        <section class="v27-section">
-          <div class="v27-section-eyebrow">Fichiers 3D</div>
-          <div class="v27-section-help">
-            L'OBJ est nécessaire pour éditer le modèle dans le studio.<br>
-            GLB sert à l'AR Android / Web. USDZ sert à l'AR iOS Safari.
-          </div>
-          <div class="v27-grid-3">
-
-            <!-- GLB -->
-            <div class="v27-file-slot" id="v27SlotGlb" data-format="glb" tabindex="0">
-              <button type="button" class="v27-file-slot-clear" data-clear="glb" title="Retirer">×</button>
-              <div class="v27-file-slot-head">
-                <span class="v27-file-slot-format">GLB</span>
-                <span class="v27-file-slot-tag">AR Web</span>
-              </div>
-              <div class="v27-file-slot-cta" data-cta>Cliquer pour ajouter</div>
-              <div class="v27-file-slot-meta" data-meta style="display:none"></div>
-            </div>
-
-            <!-- OBJ — pré-rempli au drop -->
-            <div class="v27-file-slot is-filled is-locked" id="v27SlotObj" data-format="obj">
-              <div class="v27-file-slot-head">
-                <span class="v27-file-slot-format">OBJ</span>
-                <span class="v27-file-slot-tag">Studio</span>
-              </div>
-              <div class="v27-file-slot-cta" data-cta>✓ Chargé</div>
-              <div class="v27-file-slot-meta" data-meta>—</div>
-            </div>
-
-            <!-- USDZ -->
-            <div class="v27-file-slot" id="v27SlotUsdz" data-format="usdz" tabindex="0">
-              <button type="button" class="v27-file-slot-clear" data-clear="usdz" title="Retirer">×</button>
-              <div class="v27-file-slot-head">
-                <span class="v27-file-slot-format">USDZ</span>
-                <span class="v27-file-slot-tag">AR iOS</span>
-              </div>
-              <div class="v27-file-slot-cta" data-cta>Cliquer pour ajouter</div>
-              <div class="v27-file-slot-meta" data-meta style="display:none"></div>
-            </div>
-
-          </div>
-        </section>
+        <!-- ═══ FICHIERS 3D ═══
+             Supprimé depuis V70.1 : OBJ est uploadé automatiquement par V34
+             au moment de la création du produit (déjà chargé en mémoire au
+             drop). GLB / USDZ sont auto-exportés par V49 depuis la scène
+             three.js au moment de la publication. La modale V27 est purement
+             éditoriale, pas un upload manager. Override possible via la
+             modale admin "Éditer le produit" qui garde ses slots fichiers 3D.
+        -->
 
         <!-- ═══ PHOTO DE COUVERTURE ═══ -->
         <section class="v27-section">
@@ -9220,21 +9185,7 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     `;
     document.body.appendChild(backdrop);
 
-    /* ─── Inputs file cachés (3 : GLB, USDZ, photo) ─── */
-    if (!document.getElementById('v27InputGlb')) {
-      const inGlb = document.createElement('input');
-      inGlb.type = 'file'; inGlb.accept = '.glb,model/gltf-binary';
-      inGlb.style.display = 'none'; inGlb.id = 'v27InputGlb';
-      document.body.appendChild(inGlb);
-      inGlb.addEventListener('change', (e) => handleFilePick('glb', e.target.files[0]));
-    }
-    if (!document.getElementById('v27InputUsdz')) {
-      const inUsdz = document.createElement('input');
-      inUsdz.type = 'file'; inUsdz.accept = '.usdz,model/vnd.usdz+zip';
-      inUsdz.style.display = 'none'; inUsdz.id = 'v27InputUsdz';
-      document.body.appendChild(inUsdz);
-      inUsdz.addEventListener('change', (e) => handleFilePick('usdz', e.target.files[0]));
-    }
+    /* ─── Inputs file cachés (Photo + Finition) ─── */
     if (!document.getElementById('v27InputPhoto')) {
       const inPhoto = document.createElement('input');
       inPhoto.type = 'file'; inPhoto.accept = 'image/jpeg,image/png,image/webp';
@@ -9249,24 +9200,6 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
       document.body.appendChild(inFin);
       inFin.addEventListener('change', (e) => handleFinitionPick(e.target.files[0]));
     }
-
-    /* ─── Wire les slots GLB / USDZ → click ouvre l'input correspondant ─── */
-    document.getElementById('v27SlotGlb').addEventListener('click', (e) => {
-      if (e.target.closest('[data-clear]')) return;
-      document.getElementById('v27InputGlb').click();
-    });
-    document.getElementById('v27SlotUsdz').addEventListener('click', (e) => {
-      if (e.target.closest('[data-clear]')) return;
-      document.getElementById('v27InputUsdz').click();
-    });
-
-    /* Boutons "×" pour vider un slot */
-    backdrop.querySelectorAll('[data-clear]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        clearFileSlot(btn.dataset.clear);
-      });
-    });
 
     /* ─── Photo : click + drag&drop sur la drop-zone ─── */
     const photoDrop = document.getElementById('v27PhotoDrop');
@@ -9328,36 +9261,10 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     });
   }
 
-  /* ═══ Helpers pour les slots fichiers 3D ═══ */
-  function handleFilePick(format, file) {
-    if (!file) return;
-    window._v27.attachments = window._v27.attachments || {};
-    window._v27.attachments[format] = file;
-    const slot = document.getElementById(format === 'glb' ? 'v27SlotGlb' : 'v27SlotUsdz');
-    if (!slot) return;
-    slot.classList.add('is-filled');
-    const cta  = slot.querySelector('[data-cta]');
-    const meta = slot.querySelector('[data-meta]');
-    if (cta)  cta.textContent  = '✓ Sélectionné';
-    if (meta) {
-      meta.style.display = '';
-      meta.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
-    }
-  }
-
-  function clearFileSlot(format) {
-    if (window._v27.attachments) delete window._v27.attachments[format];
-    const slot = document.getElementById(format === 'glb' ? 'v27SlotGlb' : 'v27SlotUsdz');
-    if (!slot) return;
-    slot.classList.remove('is-filled');
-    const cta  = slot.querySelector('[data-cta]');
-    const meta = slot.querySelector('[data-meta]');
-    if (cta)  cta.textContent  = 'Cliquer pour ajouter';
-    if (meta) { meta.style.display = 'none'; meta.textContent = ''; }
-    /* Reset l'input pour permettre de re-sélectionner le même fichier */
-    const input = document.getElementById(format === 'glb' ? 'v27InputGlb' : 'v27InputUsdz');
-    if (input) input.value = '';
-  }
+  /* ═══ Helpers pour les drop-zones (Photo + Finition) ═══ */
+  /* Note (v70.1) : les fonctions handleFilePick / clearFileSlot pour GLB+USDZ
+     ont été retirées avec la section "Fichiers 3D". OBJ → V34 auto-upload au
+     create. GLB/USDZ → V49 auto-export à la publication. */
 
   function handlePhotoPick(file) {
     if (!file) return;
@@ -9419,10 +9326,9 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     }
     window._v27.pendingFile = file;
     window._v27.modalOpen = true;
-    window._v27.attachments = { obj: file };  /* OBJ pré-rempli au drop */
+    window._v27.attachments = { obj: file };  /* OBJ référencé pour V34, pas affiché */
 
-    /* Reset visuel des autres slots (GLB / USDZ / Photo) en cas de réouverture */
-    ['glb', 'usdz'].forEach(fmt => clearFileSlot(fmt));
+    /* Reset visuel des slots Photo et Finition (en cas de réouverture) */
     const photoThumb = document.getElementById('v27PhotoThumb');
     const photoLabel = document.getElementById('v27PhotoThumbLabel');
     const photoTitle = document.getElementById('v27PhotoDropTitle');
@@ -9445,12 +9351,6 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     if (finitionSub)   finitionSub.textContent   = 'JPG / PNG / WebP — photo macro 5×5 cm, fond neutre';
     const finitionInput = document.getElementById('v27InputFinition');
     if (finitionInput) finitionInput.value = '';
-
-    /* Renseigner le slot OBJ avec le fichier dropé */
-    const objMeta = document.querySelector('#v27SlotObj [data-meta]');
-    if (objMeta) {
-      objMeta.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
-    }
 
     backdrop.classList.add('open');
     updateBrandDatalist();
@@ -23652,8 +23552,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       /* v69.9 — Fixes UX panneau catalogue : sticky toolbar/alpha-bar, lisibilité texte sur fond sombre,
          overflow-x masqué pour empêcher les résidus des éléments natifs du studio de transparaître à droite,
          burger aligné à gauche avec le label "CATÉGORIE". --v69-bg sert de fond opaque sur les zones sticky. */
+      /* v70.1 — padding-top retiré (était 18px) pour coller le toolbar
+         immédiatement sous les onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE. Évite la
+         bande visible dans laquelle les vignettes apparaissent au scroll.
+         Padding-bottom conservé pour respiration en fin de liste. */
       #v69-cat-content {
-        padding: 18px 0 28px; font-family: 'Jost',sans-serif;
+        padding: 0 0 28px; font-family: 'Jost',sans-serif;
         color: rgba(245,242,236,0.9); box-sizing: border-box;
         overflow-y: auto; overflow-x: hidden;            /* bug 2 : pas de débordement à droite */
         position: relative; width: 100%;
@@ -23663,7 +23567,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       #v69-cat-content .v69-label { font-size: 10px; letter-spacing: 0.18em; color: rgba(245,242,236,0.55); text-transform: uppercase; margin-bottom: 10px; padding: 0 20px; }
       #v69-toolbar {
         display: flex; align-items: stretch; gap: 0;
-        margin-bottom: 14px; padding: 6px 0 8px;
+        margin-bottom: 14px; padding: 10px 0 8px;
         border-bottom: 1px solid rgba(255,255,255,0.08);
         position: sticky; top: 0; z-index: 5;             /* bug 5 : toujours visible au scroll vertical */
         background: var(--v69-bg, #2A2620);               /* bug 3 : fond opaque pour masquer le contenu qui scrolle dessous */
@@ -24725,28 +24629,29 @@ console.log('[studio v3] prêt');
 
 
 /* ════════════════════════════════════════════════════════════════════════
-   v70 — V27 ATTACHMENTS → UPLOAD SUPABASE APRÈS CRÉATION DU PRODUIT
+   v70.1 — V27 ATTACHMENTS → UPLOAD SUPABASE APRÈS CRÉATION DU PRODUIT
    ─────────────────────────────────────────────────────────────────────────
-   Pendant que la modale V27 collecte les fichiers du nouveau modèle (OBJ
-   déjà géré par V34, plus GLB / USDZ / photo / finition optionnels), tout
-   est stocké dans window._v27.attachments. Ce module surveille l'apparition
-   d'un productId fraîchement créé et upload chaque attachment au bon endroit
-   sur Supabase Storage, puis met à jour les colonnes correspondantes de la
-   table products.
+   La modale V27 collecte 2 attachments éditoriaux optionnels au drop d'OBJ :
+   - Photo de couverture (catalogue)
+   - Finition (swatch matière de base)
 
-   Ordre des opérations :
-   1. createNewProduct (V26) INSERT le produit → productId apparaît
-   2. V34 watcher (1.5s) → upload OBJ source + déclenche V49 auto-export
-   3. V49 (5-10s) → génère GLB/USDZ depuis la scène three.js et écrit les
-      URLs dans products.model_glb_url / model_usdz_url
-   4. V70 (ce module, 12s) → upload les attachments V27 utilisateur :
-      - GLB / USDZ utilisateur : ÉCRASE ce que V49 a auto-généré (l'archi
-        a choisi explicitement de fournir son propre GLB → c'est lui qui gagne)
-      - Photo de couverture : upload + maj de la colonne photo (auto-détectée)
-      - Finition (base) : upload + maj de studio_state.textureSwatchUrl + colors[0]
+   OBJ et GLB/USDZ ne sont PAS gérés ici parce que :
+   - L'OBJ est uploadé automatiquement par V34 au moment de la création
+     (V34 prend le fichier dropé en mémoire et le pousse sur Storage).
+   - GLB et USDZ sont auto-exportés par V49 depuis la scène three.js au
+     moment de la publication. Demander à l'archi de fournir ces fichiers
+     à l'avance n'a pas de sens — il ne sait pas encore à quoi son modèle
+     ressemblera après config matière.
 
-   Si V70 démarre AVANT que V49 finisse, c'est juste une race condition : la
-   dernière écriture gagne. Le délai de 12s est large pour V49.
+   Override possible via la modale admin "Éditer le produit" qui garde ses
+   slots fichiers 3D pour les power-users qui veulent fournir un GLB
+   custom (qualité supérieure, matériaux exotiques, etc.).
+
+   Pipeline :
+   1. createNewProduct (V26) INSERT → productId apparaît
+   2. V34 watcher (1.5s) → upload OBJ source automatiquement
+   3. V70 (12s) → upload photo + finition (compression auto, V42.sync()
+      pour projeter colors[] vers scan.html)
    ════════════════════════════════════════════════════════════════════════ */
 (function v70WireV27Attachments() {
   if (window.__v70Init) return;
@@ -24754,13 +24659,7 @@ console.log('[studio v3] prêt');
 
   const BUCKET = 'models';
   const PHOTO_FIELDS = ['cover_url', 'image_url', 'thumbnail_url', 'photo_url'];
-  const POST_CREATE_DELAY_MS = 12000; /* attendre que V49 finisse l'auto-export */
-
-  /* Map format → config DB + path Storage (mêmes conventions qu'admin v34.2) */
-  const MODEL_FORMAT_CONFIG = {
-    glb:  { dbField: 'model_glb_url',  path: (id) => `glb-models/${id}/model.glb`,   mime: 'model/gltf-binary' },
-    usdz: { dbField: 'model_usdz_url', path: (id) => `usdz-models/${id}/model.usdz`, mime: 'model/vnd.usdz+zip' },
-  };
+  const POST_CREATE_DELAY_MS = 12000; /* attendre que V34 + V49 aient fini */
 
   let isProcessing = false;
   let lastProcessedId = null;
@@ -24790,40 +24689,6 @@ console.log('[studio v3] prêt');
       reader.onerror = () => reject(new Error('FileReader a échoué'));
       reader.readAsDataURL(file);
     });
-  }
-
-  /* ─── Upload modèle 3D (GLB ou USDZ) ─── */
-  async function uploadModel3D(format, file, productId) {
-    const conf = MODEL_FORMAT_CONFIG[format];
-    if (!conf || !file) return null;
-    if (typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible');
-
-    const path = conf.path(productId);
-    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, {
-      contentType: conf.mime, upsert: true, cacheControl: '3600',
-    });
-    if (upErr) throw upErr;
-
-    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
-    const url = pub.publicUrl + '?v=' + Date.now();
-
-    /* Maj de la colonne DB correspondante */
-    try {
-      const { error: dbErr } = await sb.from('products')
-        .update({ [conf.dbField]: url })
-        .eq('id', productId);
-      if (dbErr) {
-        console.warn(`[v70] colonne ${conf.dbField} absente — fichier sur Storage uniquement.`, dbErr.message);
-      } else if (window._v18?.productRow) {
-        window._v18.productRow[conf.dbField] = url;
-      }
-    } catch (e) {
-      console.warn(`[v70] update DB ${conf.dbField} a échoué`, e.message);
-    }
-
-    console.log(`[v70] ✓ ${format.toUpperCase()} uploadé :`, url);
-    return url;
   }
 
   /* ─── Upload photo de couverture ─── */
@@ -24920,15 +24785,13 @@ console.log('[studio v3] prêt');
     return url;
   }
 
-  /* ─── Pipeline principal : process tous les attachments d'un coup ─── */
+  /* ─── Pipeline principal : process photo + finition ─── */
   async function processAttachments(productId) {
     if (isProcessing) return;
     if (lastProcessedId === productId) return;
 
     const attachments = (window._v27 && window._v27.attachments) || {};
     const tasks = [];
-    if (attachments.glb)      tasks.push(['glb', attachments.glb]);
-    if (attachments.usdz)     tasks.push(['usdz', attachments.usdz]);
     if (attachments.photo)    tasks.push(['photo', attachments.photo]);
     if (attachments.finition) tasks.push(['finition', attachments.finition]);
 
@@ -24942,7 +24805,7 @@ console.log('[studio v3] prêt');
 
     const total = tasks.length;
     if (typeof toast === 'function') {
-      toast(`📦 Upload de ${total} fichier${total > 1 ? 's' : ''} attaché${total > 1 ? 's' : ''}…`, 'info', 3000);
+      toast(`📦 Upload ${total === 1 ? 'du fichier attaché' : 'des ' + total + ' fichiers attachés'}…`, 'info', 3000);
     }
 
     let done = 0;
@@ -24950,15 +24813,9 @@ console.log('[studio v3] prêt');
 
     for (const [fmt, file] of tasks) {
       try {
-        if (fmt === 'glb' || fmt === 'usdz') {
-          await uploadModel3D(fmt, file, productId);
-        } else if (fmt === 'photo') {
-          await uploadPhoto(file, productId);
-        } else if (fmt === 'finition') {
-          await uploadFinition(file, productId);
-        }
+        if (fmt === 'photo')         await uploadPhoto(file, productId);
+        else if (fmt === 'finition') await uploadFinition(file, productId);
         done++;
-        /* Vider l'attachment pour ne pas le ré-uploader si un autre cycle se déclenche */
         delete attachments[fmt];
       } catch (e) {
         errors.push(`${fmt.toUpperCase()}: ${e.message || e}`);
@@ -24978,7 +24835,7 @@ console.log('[studio v3] prêt');
       }
     }
 
-    /* Forcer un refresh des UI qui lisent productRow (carte catalogue V29, etc.) */
+    /* Forcer un refresh des UI qui lisent productRow */
     if (window._v26 && typeof window._v26.updateProductSectionUI === 'function') {
       try { window._v26.updateProductSectionUI(); } catch (_) {}
     }
@@ -25016,12 +24873,108 @@ console.log('[studio v3] prêt');
   /* ─── Expose ─── */
   window._v70 = {
     processAttachments,        /* trigger manuel : window._v70.processAttachments(productId) */
-    uploadModel3D, uploadPhoto, uploadFinition,
+    uploadPhoto, uploadFinition,
     compressImage,
-    config: { BUCKET, POST_CREATE_DELAY_MS, PHOTO_FIELDS, MODEL_FORMAT_CONFIG },
+    config: { BUCKET, POST_CREATE_DELAY_MS, PHOTO_FIELDS },
   };
 
-  console.log('[studio v70] V27 attachments → upload Supabase câblé ✓ (délai post-création ' + (POST_CREATE_DELAY_MS / 1000) + 's)');
+  console.log('[studio v70.1] V27 attachments (photo + finition) → upload Supabase câblé ✓ (délai ' + (POST_CREATE_DELAY_MS / 1000) + 's)');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v71 — BOUTON AR FLOTTANT (visible quand rightpanel masqué)
+   ─────────────────────────────────────────────────────────────────────────
+   Quand l'archi masque le panneau de droite (toggle "Masquer la fiche" qui
+   ajoute .app.hide-mat sur <body class="app">), le bouton "Voir en réalité
+   augmentée" disparaît avec son panneau parent. On clone ce bouton dans une
+   version fixée en bas-droite de l'écran, visible uniquement dans ce mode.
+
+   Le clone garde la classe .v50-ar-btn-rp donc il hérite automatiquement de
+   l'état disabled géré par V50.updateButtonState() (grisé si pas de modèle
+   chargé ou pas encore de productId). Pas de re-implémentation de la logique.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v71FloatingARButton() {
+  if (window.__v71Init) return;
+  window.__v71Init = true;
+
+  /* CSS injecté : position fixée + show/hide conditionnel */
+  const style = document.createElement('style');
+  style.textContent = `
+    .v71-ar-float {
+      position: fixed !important;
+      bottom: 22px !important;
+      right: 22px !important;
+      z-index: 9000;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 13px 24px !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
+      display: none !important;        /* caché par défaut */
+    }
+    /* Visible UNIQUEMENT quand le rightpanel est masqué */
+    .app.hide-mat .v71-ar-float {
+      display: flex !important;
+    }
+    /* Sur mobile, on rétrécit un peu et on ajuste les marges */
+    @media (max-width: 560px) {
+      .v71-ar-float {
+        bottom: 14px !important;
+        right: 14px !important;
+        padding: 11px 18px !important;
+        font-size: 10px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  function injectFloatingButton() {
+    if (document.getElementById('v71ARBtnFloat')) return true;
+
+    const btn = document.createElement('button');
+    btn.id = 'v71ARBtnFloat';
+    /* Classes : .v50-ar-btn-rp pour hériter du style ET du updateButtonState
+       de V50 (synchro disabled auto). .v71-ar-float pour le positionnement
+       fixe et l'affichage conditionnel. */
+    btn.className = 'v50-ar-btn-rp v71-ar-float';
+    btn.type = 'button';
+    btn.title = 'Voir le modèle en réalité augmentée';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
+      </svg>
+      <span>Voir en réalité augmentée</span>
+    `;
+    /* Forward click vers le bouton AR canonique du rightpanel — il a déjà
+       toute la logique launchAR câblée. Si le bouton canonique n'existe pas
+       encore, on tente après un délai. */
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const original = document.getElementById('v50ARBtnRP');
+      if (original && !original.disabled) {
+        original.click();
+      } else if (!original) {
+        console.warn('[v71] bouton AR canonique introuvable au moment du click');
+      }
+    };
+    document.body.appendChild(btn);
+    return true;
+  }
+
+  /* Attendre que V50 ait fini son init, puis injecter */
+  function tryInit() {
+    if (injectFloatingButton()) return;
+    setTimeout(tryInit, 600);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(tryInit, 800));
+  } else {
+    setTimeout(tryInit, 800);
+  }
+
+  console.log('[studio v71] bouton AR flottant prêt (visible quand rightpanel masqué)');
 })();
 </script>
 
