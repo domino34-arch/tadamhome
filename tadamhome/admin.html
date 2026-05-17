@@ -1280,6 +1280,9 @@ const MESHY_EP = 'https://api.meshy.ai';
 
 const {createClient} = supabase;
 const sb = createClient(SUPA_URL, SUPA_KEY);
+/* Exposé globalement pour que les patches IIFE (admin v34.2, v34.5, etc.)
+   puissent accéder au client via window.sb depuis leur scope isolé. */
+window.sb = sb;
 
 let allProducts   = [];
 let allEditorials = [];
