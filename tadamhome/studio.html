@@ -22843,13 +22843,24 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
   /* ───── 1. Mode + état d'ouverture initiale ───── */
   const url = new URL(window.location.href);
   const pathCatalogue = url.pathname.replace(/\/+$/, '').endsWith('/studio/catalogue');
-  const paramCatalogue = url.searchParams.get('catalogue') === '1';
-  const hasId = !!url.searchParams.get('id');
+  /* v69.23 — Si l'URL n'a NI param `catalogue` explicite NI `id` produit,
+     considérer qu'on veut le mode catalogue par défaut (page d'accueil
+     du studio = browse). Sinon respecter explicit catalogue=0 ou =1. */
+  const explicitCatalogueParam = url.searchParams.get('catalogue');
+  const hasIdEarly = !!url.searchParams.get('id');
+  const paramCatalogue = explicitCatalogueParam === '1'
+                      || (explicitCatalogueParam === null && !hasIdEarly && !pathCatalogue);
+  /* Reflète dans l'URL si on a auto-activé (pour cohérence partage / bookmark) */
+  if (paramCatalogue && explicitCatalogueParam === null && !pathCatalogue) {
+    url.searchParams.set('catalogue', '1');
+    try { window.history.replaceState(null, '', url.toString()); } catch (_) {}
+  }
+  const hasId = hasIdEarly;
   const isPureBrowseMode = (pathCatalogue || paramCatalogue) && !hasId;
   const shouldAutoOpen = paramCatalogue || pathCatalogue;
   window._studioMode = isPureBrowseMode ? 'browse' : 'edit';
 
-  console.log('[studio v69.8] mode=' + window._studioMode + ' · autoOpen=' + shouldAutoOpen + ' · hasId=' + hasId);
+  console.log('[studio v69.23] mode=' + window._studioMode + ' · autoOpen=' + shouldAutoOpen + ' · hasId=' + hasId);
 
   /* ───── 2. Bloque _v68.persist UNIQUEMENT en mode browse pur ───── */
   if (isPureBrowseMode) {
@@ -24060,6 +24071,64 @@ console.log('[studio v3] prêt');
   console.log('[v69.17] iPad UX + AR aligned ✓ · mode=' +
               (document.body.classList.contains('ipad-mode') ? 'iPad' : 'desktop') +
               ' · ' + window.innerWidth + 'x' + window.innerHeight);
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v69.22 — Auto-switch sur le tab MATÉRIAU au click sur le modèle 3D
+   ───────────────────────────────────────────────────────────────────────
+   Quand l'utilisateur clique sur une partie du modèle dans le viewer
+   (ex: assise, dossier), handleSceneClick fait le raycaster intersect,
+   sélectionne la part via selectPartReal et met à jour les infos dans le
+   panneau Matériau. Mais si l'utilisateur est sur l'onglet GÉOMÉTRIE ou
+   SCÈNE, le panneau Matériau est invisible/inactif — les mises à jour ne
+   sont pas vues.
+   
+   On hook handleSceneClick pour simuler un click sur le 1er .mat-tab
+   (= MATÉRIAU) après chaque sélection viewer. Le module v12 gère .active,
+   le module v35 gère showMaterialView/showGeomView/showSceneView.
+   Idempotent : si le tab Matériau est déjà actif, on ne re-click pas.
+   Ne s'active pas en pipette mode (l'utilisateur applique une matière,
+   pas la peine de changer de panneau).
+   ═══════════════════════════════════════════════════════════════════════ */
+(function v69_22_AutoOpenMaterialOnPartClick() {
+  if (window.__v69_22) return;
+  window.__v69_22 = true;
+
+  function activateMaterialTab() {
+    const matTab = document.querySelector('.tb-mat-zone .mat-tabs .mat-tab')
+                || document.querySelector('.rp-view-edit .mat-tabs .mat-tab')
+                || document.querySelector('.mat-tabs .mat-tab');
+    if (!matTab) return;
+    if (matTab.classList.contains('active')) return; /* déjà actif, no-op */
+    matTab.click();
+  }
+
+  function hookSceneClick() {
+    if (typeof window.handleSceneClick !== 'function') return false;
+    if (window.handleSceneClick.__v69_22) return true;
+    const orig = window.handleSceneClick;
+    window.handleSceneClick = function(e) {
+      const r = orig.apply(this, arguments);
+      try {
+        /* Ne pas changer de tab en pipette mode (l'utilisateur transfère
+           une matière, le panneau Matériau n'est pas le focus immédiat). */
+        if (typeof pipetteMode === 'undefined' || !pipetteMode) {
+          activateMaterialTab();
+        }
+      } catch (err) {
+        console.warn('[v69.22] activateMaterialTab échec', err);
+      }
+      return r;
+    };
+    window.handleSceneClick.__v69_22 = true;
+    console.log('[v69.22] handleSceneClick hooké : auto-tab Matériau au click viewer 3D ✓');
+    return true;
+  }
+
+  if (!hookSceneClick()) {
+    const t = setInterval(() => { if (hookSceneClick()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 20000);
+  }
 })();
 </script>
 
