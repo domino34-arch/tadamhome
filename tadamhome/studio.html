@@ -516,11 +516,15 @@ button{font-family:inherit;cursor:pointer}
   background:var(--gold);
 }
 .mat-close{
+  /* v70.1 — masqué : croix sans intérêt UX (le toggle "Masquer la fiche"
+     du topbar fait déjà le job, et le X dans le rightpanel donne l'impression
+     de fermer le contenu plutôt que tout le panneau). */
+  display:none !important;
   width:28px;height:28px;
   border:none;
   background:transparent;
   color:var(--ink-muted);
-  display:flex;align-items:center;justify-content:center;
+  align-items:center;justify-content:center;
 }
 .mat-close:hover{color:var(--ink)}
 .mat-close svg{width:11px;height:11px}
@@ -2787,6 +2791,28 @@ button{font-family:inherit;cursor:pointer}
   white-space: nowrap;
   scrollbar-width: thin;
   scrollbar-color: rgba(184,150,90,0.35) transparent;
+}
+/* v70.1 — Sticky horizontal du groupe Parties/Mesh/Pipette : ils restent
+   toujours visibles à gauche même quand on scrolle la bottombar pour atteindre
+   les variantes / actions à droite. Background opaque pour masquer ce qui
+   scrolle dessous, padding-right pour la respiration, z-index pour passer
+   au-dessus des boutons qui défilent. */
+.bottombar .mode-group {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  z-index: 3;
+  padding-right: 10px;
+  /* Petite ombre douce vers la droite pour signaler que le contenu continue */
+  box-shadow: 6px 0 8px -6px rgba(0,0,0,0.10);
+}
+.bottombar .mode-group + .mode-sep {
+  /* Le séparateur après le groupe sticky doit aussi être sticky pour rester
+     collé visuellement. Position calculée sur la largeur du mode-group. */
+  position: sticky;
+  left: var(--mode-group-w, 0);
+  background: var(--bg);
+  z-index: 2;
 }
 .bottombar::-webkit-scrollbar { height: 4px; }
 .bottombar::-webkit-scrollbar-track { background: transparent; }
@@ -23218,15 +23244,46 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
       if (!pub || !pub.publicUrl) throw new Error('publicUrl indisponible');
       const cachedUrl = pub.publicUrl + '?v=' + Date.now();
+
+      /* v70.1 — bugfix : inclure customLabels (V24 renommages) ET
+         groupComposition (V23 sous-groupes) dans studio_state.
+         Avant : persistStructure ré-écrasait studio_state avec seulement
+         { obj_source_url, parts } via Object.assign. Si l'auto-save n'avait
+         pas encore eu le temps de pousser les customLabels en base, ces
+         derniers étaient perdus → au refresh, retour aux noms par défaut. */
+      const stateExtras = {};
+      if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+        stateExtras.customLabels = Object.assign({}, window._v21.customLabels);
+        console.log('[v68.6] inclusion customLabels :', Object.keys(stateExtras.customLabels).length, 'renommages');
+      }
+      if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+        const comp = {};
+        Object.keys(window._v23.composition).forEach(k => {
+          const sgs = window._v23.composition[k];
+          if (!Array.isArray(sgs)) return;
+          comp[k] = sgs.map(sg => ({
+            originalKey: sg.originalKey,
+            label: sg.label,
+            meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+          }));
+        });
+        if (Object.keys(comp).length > 0) {
+          stateExtras.groupComposition = comp;
+          console.log('[v68.6] inclusion groupComposition :', Object.keys(comp).length, 'compositions');
+        }
+      }
+
       const newState = Object.assign({}, row.studio_state || {}, {
         obj_source_url: cachedUrl,
         parts: newParts,
-      });
+      }, stateExtras);
       const payload = { studio_state: newState, variants: row.variants };
       const { error } = await sb.from('products').update(payload).eq('id', productId);
       if (error) throw error;
       row.studio_state = newState;
-      console.log('[v68.6] studio_state mis à jour : parts=' + Object.keys(newParts).length);
+      console.log('[v68.6] studio_state mis à jour : parts=' + Object.keys(newParts).length
+        + (stateExtras.customLabels ? ' · customLabels=' + Object.keys(stateExtras.customLabels).length : '')
+        + (stateExtras.groupComposition ? ' · groupComposition=' + Object.keys(stateExtras.groupComposition).length : ''));
       if (typeof toast === 'function') {
         toast('Structure sauvegardée ✓ (' + groupKeys.length + ' groupes · ' + sizeMo + ' Mo)', 'ok', 4500);
       }
@@ -24975,6 +25032,286 @@ console.log('[studio v3] prêt');
   }
 
   console.log('[studio v71] bouton AR flottant prêt (visible quand rightpanel masqué)');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v72 — CLICK MODÈLE → OUVRE LE PANNEAU MATÉRIAU SI MASQUÉ
+   ─────────────────────────────────────────────────────────────────────────
+   Complète v69.22 (qui active le tab Matériau au click sur une part) en
+   ouvrant aussi le panneau de droite si l'archi l'avait masqué via le
+   toggle "Masquer la fiche". Raccourci pratique : un click sur le modèle
+   sort de l'état "viewer plein écran" et redonne accès aux matériaux.
+   Idempotent, no-op si le panneau est déjà visible. Ne s'active pas en
+   pipette mode (parité avec v69.22).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v72ClickModelOpensMatPanel() {
+  if (window.__v72Init) return;
+  window.__v72Init = true;
+
+  function openMatPanelIfHidden() {
+    const app = document.getElementById('app') || document.querySelector('.app');
+    if (!app) return;
+    if (!app.classList.contains('mat-hidden') && !app.classList.contains('hide-mat')) return;
+    /* Préférer le toggle officiel pour que l'état du bouton du topbar reste sync */
+    if (typeof window.togglePanel === 'function') {
+      try { window.togglePanel('mat'); return; } catch (_) {}
+    }
+    /* Fallback : retirer la classe manuellement (les 2 noms existent dans
+       différentes parties du code, on retire les deux par sûreté) */
+    app.classList.remove('mat-hidden');
+    app.classList.remove('hide-mat');
+  }
+
+  function hookSceneClick() {
+    if (typeof window.handleSceneClick !== 'function') return false;
+    if (window.handleSceneClick.__v72) return true;
+    const orig = window.handleSceneClick;
+    window.handleSceneClick = function(e) {
+      const r = orig.apply(this, arguments);
+      try {
+        if (typeof pipetteMode === 'undefined' || !pipetteMode) {
+          openMatPanelIfHidden();
+        }
+      } catch (err) {
+        console.warn('[v72] openMatPanelIfHidden échec', err);
+      }
+      return r;
+    };
+    window.handleSceneClick.__v72 = true;
+    console.log('[v72] handleSceneClick hooké : auto-ouverture panneau matériau ✓');
+    return true;
+  }
+
+  if (!hookSceneClick()) {
+    const t = setInterval(() => { if (hookSceneClick()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v73 — VOLET FLOTTANT VARIANTES (au lieu des chips inline en bottombar)
+   ─────────────────────────────────────────────────────────────────────────
+   Les chips Base / Variante 1 / Variante 2 + "+Nouvelle variante" prenaient
+   beaucoup de place dans la bottombar, surtout sur écrans étroits avec le
+   rightpanel ouvert. On les déplace dans un volet flottant qui s'ouvre au
+   click sur un nouveau bouton "VARIANTES" dans la bottombar.
+
+   Important : on ne CLONE PAS les chips, on les DÉPLACE (appendChild) dans
+   le volet. L'élément #varChipsContainer garde son id donc V25 et tous les
+   modules qui le ciblent continuent de fonctionner. Les event handlers sur
+   les chips existants restent attachés.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v73VariantsDrawer() {
+  if (window.__v73Init) return;
+  window.__v73Init = true;
+
+  /* CSS injecté */
+  const style = document.createElement('style');
+  style.textContent = `
+    .v73-drawer {
+      position: fixed;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg, #F5F2EC);
+      border: 1px solid var(--line, #D8D2C7);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+      z-index: 4500;
+      max-width: calc(100vw - 36px);
+      flex-wrap: wrap;
+    }
+    .v73-drawer.v73-open { display: flex; }
+    .v73-drawer::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      width: 12px; height: 12px;
+      background: var(--bg, #F5F2EC);
+      border-right: 1px solid var(--line, #D8D2C7);
+      border-bottom: 1px solid var(--line, #D8D2C7);
+      transform: rotate(45deg);
+      left: var(--v73-arrow-x, 32px);
+    }
+    .v73-drawer .var-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink-muted, #9C9388);
+      margin-right: 4px;
+    }
+    .v73-drawer .var-chip {
+      padding: 6px 12px;
+      background: var(--panel, #FBF9F5);
+      border: 1px solid var(--line, #D8D2C7);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-soft, #6B6358);
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .v73-drawer .var-chip:hover { border-color: var(--gold, #B8965A); }
+    .v73-drawer .var-chip.active {
+      background: var(--ink, #2A2620);
+      color: var(--bg, #F5F2EC);
+      border-color: var(--ink, #2A2620);
+    }
+    .v73-drawer .var-add {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px dashed var(--line, #D8D2C7);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-muted, #9C9388);
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .v73-drawer .var-add:hover {
+      border-color: var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+      border-style: solid;
+    }
+    #v73-toggle.v73-active {
+      background: var(--ink, #2A2620);
+      color: var(--bg, #F5F2EC);
+      border-color: var(--ink, #2A2620);
+    }
+    #v73-toggle .v73-count {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      background: var(--gold, #B8965A);
+      color: #fff;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+    #v73-toggle.v73-active .v73-count {
+      background: var(--gold, #B8965A);
+      color: var(--ink, #2A2620);
+    }
+  `;
+  document.head.appendChild(style);
+
+  let drawer = null;
+  let toggleBtn = null;
+
+  function getActiveVariantLabel() {
+    const active = (drawer && drawer.querySelector('.var-chip.active'))
+                || document.querySelector('.var-chip.active');
+    return active ? (active.textContent || '').trim() : 'Base';
+  }
+  function getVariantCount() {
+    if (window._v25 && Array.isArray(window._v25.variants)) {
+      return 1 + window._v25.variants.length;
+    }
+    return Math.max(1, document.querySelectorAll('.var-chip').length);
+  }
+  function updateToggleLabel() {
+    if (!toggleBtn) return;
+    const count = getVariantCount();
+    const active = getActiveVariantLabel();
+    toggleBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-right:6px;vertical-align:middle;opacity:0.7">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+      </svg>Variantes · ${active}<span class="v73-count">${count}</span>
+    `;
+  }
+  function positionDrawer() {
+    if (!drawer || !toggleBtn) return;
+    const rect = toggleBtn.getBoundingClientRect();
+    const drawerRect = drawer.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    let left = rect.left;
+    if (left + drawerRect.width > viewportW - 12) {
+      left = Math.max(12, viewportW - drawerRect.width - 12);
+    }
+    const top = rect.top - drawerRect.height - 10;
+    drawer.style.left = left + 'px';
+    drawer.style.top = top + 'px';
+    const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - left - 6, drawerRect.width - 28));
+    drawer.style.setProperty('--v73-arrow-x', arrowX + 'px');
+  }
+  function openDrawer() {
+    if (!drawer) return;
+    drawer.classList.add('v73-open');
+    toggleBtn?.classList.add('v73-active');
+    requestAnimationFrame(positionDrawer);
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove('v73-open');
+    toggleBtn?.classList.remove('v73-active');
+  }
+  function toggleDrawer() {
+    if (!drawer) return;
+    if (drawer.classList.contains('v73-open')) closeDrawer();
+    else openDrawer();
+  }
+
+  function init() {
+    const bottombar = document.querySelector('.bottombar');
+    if (!bottombar) return false;
+    const varLabel    = bottombar.querySelector('.var-label');
+    const baseChip    = bottombar.querySelector('.var-chip[data-variant-id="base"]');
+    const varContainer = document.getElementById('varChipsContainer');
+    const newVarBtn   = document.getElementById('btnNewVariant');
+    if (!varLabel || !baseChip || !varContainer || !newVarBtn) return false;
+    if (document.getElementById('v73-toggle')) return true;
+
+    drawer = document.createElement('div');
+    drawer.id = 'v73-variants-drawer';
+    drawer.className = 'v73-drawer';
+    drawer.appendChild(varLabel);
+    drawer.appendChild(baseChip);
+    drawer.appendChild(varContainer);
+    drawer.appendChild(newVarBtn);
+    document.body.appendChild(drawer);
+
+    toggleBtn = document.createElement('button');
+    toggleBtn.id = 'v73-toggle';
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn-secondary-bottom';
+    toggleBtn.style.flexShrink = '0';
+    toggleBtn.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      toggleDrawer();
+    };
+    bottombar.appendChild(toggleBtn);
+    updateToggleLabel();
+
+    document.addEventListener('click', (e) => {
+      if (!drawer.classList.contains('v73-open')) return;
+      if (drawer.contains(e.target) || toggleBtn.contains(e.target)) return;
+      closeDrawer();
+    });
+    window.addEventListener('resize', () => {
+      if (drawer.classList.contains('v73-open')) positionDrawer();
+    });
+    drawer.addEventListener('click', (e) => {
+      if (e.target.closest('.var-chip')) setTimeout(updateToggleLabel, 30);
+    });
+    setInterval(updateToggleLabel, 1500);
+
+    console.log('[studio v73] volet variantes prêt · bouton + ' + getVariantCount() + ' chips déplacés');
+    return true;
+  }
+
+  if (!init()) {
+    const t = setInterval(() => { if (init()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+
+  window._v73 = { open: openDrawer, close: closeDrawer, toggle: toggleDrawer };
 })();
 </script>
 
