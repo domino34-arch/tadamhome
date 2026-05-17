@@ -4424,6 +4424,462 @@ document.addEventListener('keydown', (e) => {
   }
 })();
 
+
+/* ════════════════════════════════════════════════════════════════════════
+   v34.7 — VIGNETTES FINITIONS · MODULE DE FIABILITÉ
+   ─────────────────────────────────────────────────────────────────────────
+   Le module v34.6 fonctionne mais reste parfois bloqué sur "Chargement…"
+   à l'ouverture de la modal. Causes probables :
+   - Timing : refreshVariantThumbs() appelé avant que window.allProducts
+     soit peuplé après un refresh produit (loadProducts est async).
+   - Modal ré-ouverte trop vite : refreshFileZones n'est appelé qu'à
+     l'ouverture, pas si l'utilisateur ouvre Edit puis ferme puis ré-ouvre
+     un autre produit sans recharger.
+   - getProduct(id) renvoie undefined si la liste n'est pas chargée.
+
+   Ce module patch tout ça :
+   1. MutationObserver sur la modal : à chaque fois qu'elle s'ouvre
+      (.modal-overlay.active), on déclenche refreshVariantThumbs.
+   2. Retry exponentiel : si grid contient encore "Chargement…" après
+      le premier appel, on retry à 200ms / 500ms / 1s / 2s.
+   3. Si window.allProducts manque, on tente sb.from('products')
+      .select() direct sur l'id de la modal pour avoir les données.
+   4. Logs explicites en console pour diagnostiquer.
+   ════════════════════════════════════════════════════════════════════════ */
+(function adminVignettesV347() {
+  if (window.__adminVignettesV347) return;
+  window.__adminVignettesV347 = true;
+
+  function getModalId() {
+    return document.getElementById('edProductId')?.value || null;
+  }
+
+  function getGrid() {
+    return document.getElementById('edVariantsGrid');
+  }
+
+  function gridIsLoading(grid) {
+    if (!grid) return false;
+    const txt = grid.textContent.trim().toLowerCase();
+    return txt === 'chargement…' || txt === 'chargement...';
+  }
+
+  function getProductCached(id) {
+    return (window.allProducts || []).find(p => p.id === id);
+  }
+
+  /* Fetch direct depuis Supabase si window.allProducts n'a pas encore les données */
+  async function fetchProductFresh(id) {
+    const sb = (typeof window.sb !== 'undefined' && window.sb) ? window.sb : null;
+    if (!sb) return null;
+    try {
+      const { data, error } = await sb.from('products')
+        .select('id, name, category, categorie, colors, variants, studio_state')
+        .eq('id', id).single();
+      if (error) {
+        console.warn('[admin v34.7] fetch produit échec', error);
+        return null;
+      }
+      /* Injection dans le cache global */
+      if (window.allProducts && Array.isArray(window.allProducts)) {
+        const idx = window.allProducts.findIndex(p => p.id === id);
+        if (idx >= 0) {
+          /* Merge non-destructif : on garde les champs existants */
+          window.allProducts[idx] = { ...window.allProducts[idx], ...data };
+        } else {
+          window.allProducts.push(data);
+        }
+      }
+      return data;
+    } catch (e) {
+      console.warn('[admin v34.7] fetch produit exception', e);
+      return null;
+    }
+  }
+
+  async function forceRefresh(id) {
+    if (!id) return;
+    /* 1. Tentative immédiate avec le cache */
+    if (typeof window.refreshVariantThumbs === 'function') {
+      try { window.refreshVariantThumbs(id); } catch (e) {
+        console.warn('[admin v34.7] refreshVariantThumbs throw', e);
+      }
+    }
+    const grid = getGrid();
+    if (!grid) return;
+    if (!gridIsLoading(grid)) return; /* succès */
+
+    /* 2. Le cache manque ou refresh n'a pas changé "Chargement…" → fetch fresh */
+    console.log('[admin v34.7] grid encore en Chargement, fetch direct produit', id);
+    const fresh = await fetchProductFresh(id);
+    if (fresh && typeof window.refreshVariantThumbs === 'function') {
+      try { window.refreshVariantThumbs(id); } catch (e) {
+        console.warn('[admin v34.7] refresh post-fetch throw', e);
+      }
+    }
+    if (!gridIsLoading(grid)) {
+      console.log('[admin v34.7] grid populé après fetch ✓');
+      return;
+    }
+
+    /* 3. Échec persistant → afficher un message d'erreur explicite */
+    grid.innerHTML = `
+      <div class="ed-variants-empty" style="color: #c45">
+        Impossible de charger les vignettes finitions.<br>
+        Recharge la page ou vérifie ta connexion Supabase.<br>
+        <small style="opacity:0.6">Produit ID : ${id.slice(0,8)}…</small>
+      </div>
+    `;
+    console.warn('[admin v34.7] échec final force refresh pour', id);
+  }
+
+  /* Retry séquence : 0ms, 200ms, 500ms, 1.2s, 2.5s */
+  const RETRY_DELAYS = [0, 200, 500, 1200, 2500];
+  let activeId = null;
+  let retryTimers = [];
+
+  function clearRetries() {
+    retryTimers.forEach(t => clearTimeout(t));
+    retryTimers = [];
+  }
+
+  function scheduleRetries(id) {
+    clearRetries();
+    activeId = id;
+    RETRY_DELAYS.forEach((delay, i) => {
+      retryTimers.push(setTimeout(() => {
+        if (activeId !== id) return; /* modal changed entre temps */
+        const grid = getGrid();
+        if (grid && !gridIsLoading(grid)) return; /* succès, skip */
+        console.log(`[admin v34.7] retry ${i+1}/${RETRY_DELAYS.length} pour`, id);
+        forceRefresh(id);
+      }, delay));
+    });
+  }
+
+  /* MutationObserver sur la modal pour détecter les ouvertures */
+  function observeModal() {
+    const modal = document.getElementById('editProductModal');
+    if (!modal) { setTimeout(observeModal, 300); return; }
+
+    /* Cas 1 : .modal-overlay.active class change */
+    function checkOpen() {
+      const isOpen = modal.classList.contains('active') ||
+                     modal.style.display === 'flex' ||
+                     modal.style.display === 'block' ||
+                     !modal.hasAttribute('hidden');
+      if (!isOpen) return;
+      const id = getModalId();
+      if (!id) return;
+      if (id === activeId) return; /* déjà en cours */
+      scheduleRetries(id);
+    }
+    const mo = new MutationObserver(checkOpen);
+    mo.observe(modal, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+
+    /* Cas 2 : changement du champ #edProductId (modal ré-ouverte sur autre produit) */
+    const productIdInput = document.getElementById('edProductId');
+    if (productIdInput) {
+      const moInput = new MutationObserver(checkOpen);
+      moInput.observe(productIdInput, { attributes: true, attributeFilter: ['value'] });
+      /* Aussi sur change event au cas où la valeur est settée via .value = */
+      productIdInput.addEventListener('change', checkOpen);
+      /* Polling très léger pour catcher les .value = setters silencieux */
+      let lastVal = productIdInput.value;
+      setInterval(() => {
+        if (productIdInput.value !== lastVal) {
+          lastVal = productIdInput.value;
+          checkOpen();
+        }
+      }, 800);
+    }
+
+    checkOpen(); /* check initial */
+    console.log('[admin v34.7] vignettes finitions · retry/observer armé ✓');
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(observeModal, 300);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(observeModal, 300));
+  }
+
+  /* Exposition API pour debug console */
+  window._adminV347 = {
+    forceRefresh,
+    fetchProductFresh,
+    getModalId,
+    getGrid,
+    activeId: () => activeId,
+  };
+})();
+
+/* ════════════════════════════════════════════════════════════════════════
+   v34.7 — Expose refreshVariantThumbs en global pour que le module ci-dessus
+   puisse l'appeler. La fonction est en scope IIFE dans v34.6.
+   On la ré-exporte via window.refreshVariantThumbs au boot v34.6.
+   On le fait avec une petite injection à la volée si pas déjà fait.
+   ════════════════════════════════════════════════════════════════════════ */
+(function exposeRefreshVariantThumbsV347() {
+  /* Le module v34.6 ne l'expose pas en global. On le trouve via une astuce :
+     l'event 'change' du file input des variants appelle onVariantThumbSelected
+     qui à la fin appelle refreshVariantThumbs(id). On n'a pas de hook clean.
+
+     Plus simple : on duplique la logique refreshVariantThumbs ici sous le
+     nom window.refreshVariantThumbs si pas déjà présent. La duplication est
+     limitée (lecture + render, pas d'upload) donc OK. */
+  if (typeof window.refreshVariantThumbs === 'function') return;
+
+  function deduceMatFromCategory(cat) {
+    const c = String(cat || '').toLowerCase();
+    if (/cuir/.test(c)) return 'Cuir';
+    if (/bois|table|bureau|rangement/.test(c)) return 'Bois';
+    if (/m[ée]tal/.test(c)) return 'Métal';
+    if (/sofa|canap[ée]|fauteuil|chaise|lit/.test(c)) return 'Tissu';
+    if (/luminaire/.test(c)) return 'Finition';
+    return 'Finition';
+  }
+
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  window.refreshVariantThumbs = function(id) {
+    const grid = document.getElementById('edVariantsGrid');
+    if (!grid) return;
+    const p = (window.allProducts || []).find(x => x.id === id);
+    if (!p) {
+      grid.innerHTML = '<div class="ed-variants-empty">Produit introuvable</div>';
+      return;
+    }
+
+    const colors = Array.isArray(p.colors) ? p.colors : [];
+    const variants = Array.isArray(p.variants) ? p.variants : [];
+
+    const items = [];
+    items.push({
+      label: 'Base',
+      mat: (colors[0] && colors[0].mat) || deduceMatFromCategory(p.category || p.categorie || ''),
+      hex: '',
+      url: (colors[0] && (colors[0].texture || colors[0].swatch_url || colors[0].swatch || colors[0].image))
+           || (p.studio_state && p.studio_state.textureSwatchUrl)
+           || '',
+      sourceKind: 'base',
+      sourceIdx: -1,
+    });
+    variants.forEach((v, i) => {
+      const projected = colors[i + 1];
+      items.push({
+        label: v.name || `Variante ${i + 1}`,
+        mat: (projected && projected.mat) || deduceMatFromCategory(p.category || p.categorie || ''),
+        hex: (v.studio_state && v.studio_state.swatchHex) || '',
+        url: (projected && (projected.texture || projected.swatch_url || projected.swatch || projected.image))
+             || (v.studio_state && v.studio_state.textureSwatchUrl)
+             || '',
+        sourceKind: 'variant',
+        sourceIdx: i,
+      });
+    });
+
+    if (items.length === 1 && !items[0].url) {
+      grid.innerHTML = `
+        <div class="ed-variants-empty">
+          Aucune variante créée dans le studio.<br>
+          La vignette "Base" apparaîtra ici après la première application de texture dans le studio,
+          ou tu peux cliquer ci-dessous pour uploader manuellement une vignette personnalisée.
+        </div>
+        <div class="ed-variant-card" data-idx="0" data-kind="base" data-sidx="-1" style="margin-top:14px;max-width:140px">
+          <div class="ed-variant-thumb">
+            <input type="file" accept="image/*" data-vidx="0">
+            <span class="ed-variant-placeholder">Cliquer<br>pour ajouter</span>
+            <div class="ed-variant-bar"></div>
+          </div>
+          <div class="ed-variant-label">Base</div>
+        </div>
+      `;
+    } else {
+      grid.innerHTML = items.map((it, i) => {
+        const labelHTML = it.mat
+          ? `<span class="ed-variant-mat">${escAttr(it.mat)}</span> ${escAttr(it.label)}`
+          : escAttr(it.label);
+        const swatch = it.hex ? `<span class="ed-variant-swatch" style="background:${escAttr(it.hex)}"></span>` : '';
+        return `
+          <div class="ed-variant-card ${it.url ? 'has-img' : ''}"
+               data-idx="${i}" data-kind="${escAttr(it.sourceKind)}" data-sidx="${it.sourceIdx}">
+            <div class="ed-variant-thumb" ${it.url ? `style="background-image:url('${escAttr(it.url)}')"` : ''}>
+              ${swatch}
+              <input type="file" accept="image/*" data-vidx="${i}">
+              <button class="ed-variant-remove" type="button" title="Retirer la vignette">×</button>
+              <span class="ed-variant-placeholder">Cliquer<br>pour ajouter</span>
+              <div class="ed-variant-bar"></div>
+            </div>
+            <div class="ed-variant-label" title="${escAttr(it.label)}">${labelHTML}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* Wire handlers — appel à onVariantThumbSelected / Remove du v34.6 via
+       événements custom car les fonctions sont en scope privé.
+       Plus simple : on déclenche un click programmatique sur les inputs
+       internes du v34.6, mais on doit re-câbler les change listeners.
+       Sécurité : on tente d'utiliser les handlers exposés en global s'ils
+       existent, sinon fallback minimal. */
+    grid.querySelectorAll('input[type="file"][data-vidx]').forEach(inp => {
+      inp.addEventListener('change', async (e) => {
+        const card = inp.closest('.ed-variant-card');
+        const sourceKind = card?.dataset.kind;
+        const sourceIdx = parseInt(card?.dataset.sidx, 10);
+
+        const file = e.target.files[0];
+        if (!file) return;
+        const sb = (typeof window.sb !== 'undefined') ? window.sb : null;
+        if (!sb) { window.toast?.('Supabase indisponible', 'err'); return; }
+
+        card.classList.add('uploading');
+        try {
+          /* Compress 600px JPEG 0.85 — pareil que v34.6 */
+          const blob = await compressVignette(file);
+          const path = `finish-thumbnails/${id}/${sourceKind === 'base' ? 'base' : 'v' + sourceIdx}-${Date.now()}.jpg`;
+          const { error: upErr } = await sb.storage
+            .from('models')
+            .upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '31536000' });
+          if (upErr) throw upErr;
+          const { data: pubData } = sb.storage.from('models').getPublicUrl(path);
+          const url = pubData.publicUrl + '?v=' + Date.now();
+
+          const { data: row, error: e1 } = await sb.from('products')
+            .select('studio_state, variants, colors').eq('id', id).single();
+          if (e1) throw e1;
+
+          const payload = {};
+          const projection = Array.isArray(row.colors) ? JSON.parse(JSON.stringify(row.colors)) : [];
+
+          if (sourceKind === 'base') {
+            const state = row.studio_state || {};
+            state.textureSwatchUrl = url;
+            payload.studio_state = state;
+            if (projection[0]) projection[0].texture = url;
+            else projection[0] = { name: 'Base', mat: 'Tissu', texture: url, glb: row.model_glb_url || null, usdz: row.model_usdz_url || null };
+            payload.colors = projection;
+          } else {
+            const variants = Array.isArray(row.variants) ? JSON.parse(JSON.stringify(row.variants)) : [];
+            if (!variants[sourceIdx]) throw new Error('Variante index ' + sourceIdx + ' introuvable');
+            if (!variants[sourceIdx].studio_state) variants[sourceIdx].studio_state = {};
+            variants[sourceIdx].studio_state.textureSwatchUrl = url;
+            payload.variants = variants;
+            const colIdx = sourceIdx + 1;
+            if (projection[colIdx]) projection[colIdx].texture = url;
+            payload.colors = projection;
+          }
+
+          const { error: e2 } = await sb.from('products').update(payload).eq('id', id);
+          if (e2) throw e2;
+
+          /* Mirror en mémoire */
+          if (window.allProducts) {
+            const cached = window.allProducts.find(x => x.id === id);
+            if (cached) {
+              if (payload.studio_state) cached.studio_state = payload.studio_state;
+              if (payload.variants) cached.variants = payload.variants;
+              if (payload.colors) cached.colors = payload.colors;
+            }
+          }
+          window.toast?.('Vignette uploadée ✓', 'ok');
+          window.refreshVariantThumbs(id);
+          if (typeof window.loadProducts === 'function') setTimeout(window.loadProducts, 200);
+        } catch (err) {
+          console.error('[admin v34.7] upload vignette échec', err);
+          window.toast?.('Erreur upload : ' + (err.message || err), 'err', 5000);
+          card.classList.remove('uploading');
+        } finally {
+          e.target.value = '';
+        }
+      });
+    });
+
+    grid.querySelectorAll('.ed-variant-remove').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const card = btn.closest('.ed-variant-card');
+        const sourceKind = card?.dataset.kind;
+        const sourceIdx = parseInt(card?.dataset.sidx, 10);
+        if (!confirm('Retirer cette vignette finition ?')) return;
+
+        const sb = (typeof window.sb !== 'undefined') ? window.sb : null;
+        if (!sb) return;
+        try {
+          const { data: row, error: e1 } = await sb.from('products')
+            .select('studio_state, variants, colors').eq('id', id).single();
+          if (e1) throw e1;
+          const payload = {};
+          const projection = Array.isArray(row.colors) ? JSON.parse(JSON.stringify(row.colors)) : [];
+          if (sourceKind === 'base') {
+            const state = row.studio_state || {};
+            delete state.textureSwatchUrl;
+            payload.studio_state = state;
+            if (projection[0]) projection[0].texture = null;
+            payload.colors = projection;
+          } else {
+            const variants = Array.isArray(row.variants) ? JSON.parse(JSON.stringify(row.variants)) : [];
+            if (variants[sourceIdx]?.studio_state) {
+              delete variants[sourceIdx].studio_state.textureSwatchUrl;
+            }
+            payload.variants = variants;
+            const colIdx = sourceIdx + 1;
+            if (projection[colIdx]) projection[colIdx].texture = null;
+            payload.colors = projection;
+          }
+          const { error: e2 } = await sb.from('products').update(payload).eq('id', id);
+          if (e2) throw e2;
+          if (window.allProducts) {
+            const cached = window.allProducts.find(x => x.id === id);
+            if (cached) {
+              if (payload.studio_state) cached.studio_state = payload.studio_state;
+              if (payload.variants) cached.variants = payload.variants;
+              if (payload.colors) cached.colors = payload.colors;
+            }
+          }
+          window.toast?.('Vignette retirée', 'ok');
+          window.refreshVariantThumbs(id);
+        } catch (err) {
+          console.error('[admin v34.7] remove vignette échec', err);
+          window.toast?.('Erreur : ' + (err.message || err), 'err', 5000);
+        }
+      });
+    });
+  };
+
+  /* Helper compression (équivalent au v34.6) */
+  async function compressVignette(file, maxDim = 600, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => { img.src = reader.result; };
+      reader.onerror = () => reject(new Error('FileReader échec'));
+      img.onload = () => {
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (!blob) reject(new Error('toBlob échec'));
+          else resolve(blob);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('Image load échec'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  console.log('[admin v34.7] window.refreshVariantThumbs exposé en global avec handlers complets ✓');
+})();
+
 </script>
 
 </body>
