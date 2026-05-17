@@ -5387,21 +5387,19 @@ selectPartReal = function(key) {
   });
 };
 
-flashHighlightPart = function(key, color = 0xFF2222, duration = 600) {
+flashHighlightPart = function(key, color = 0xB8965A, duration = 220) {
   const mat = partMaterials[key];
   if (!mat || !mat.emissive) return;
-  /* v77.5 — Filtre rouge supprimé. Le rouge (0xFF2222) était jugé trop
-     agressif et persistant. Remplacé par un flash gold subtil et court :
-     - couleur = gold brand (0xB8965A) au lieu du rouge
-     - intensité = 0.35 (au lieu de 0.9) — très discret
-     - durée = 220ms (au lieu de 600ms) — flash vraiment transitoire
-     Comportement préservé pour les autres couleurs (mesh bleu, pipette vert). */
-  if (color === 0xFF2222) {
+  /* v77.6 — Default complet en gold subtle, plus de trace de rouge dans le code.
+     Les appelants qui passent une couleur explicite (mesh bleu 0x2266FF,
+     pipette vert 0x22DD22) restent inchangés. Si quelqu'un passe encore
+     0xFF2222 par accident ou code legacy, on l'intercepte en gold aussi. */
+  if (color === 0xFF2222 || color === 0xFF7A1A || color === 0xFF8800) {
     color = 0xB8965A;
     duration = 220;
   }
-  const isRedReplaced = (color === 0xB8965A && duration === 220);
-  const peakIntensity = isRedReplaced ? 0.35 : 0.9;
+  const isGoldFlash = (color === 0xB8965A);
+  const peakIntensity = isGoldFlash ? 0.35 : 0.9;
   mat.emissive.setHex(color);
   mat.emissiveIntensity = peakIntensity;
   const t0 = performance.now();
@@ -5715,7 +5713,10 @@ renderTree = function(parts) {
         cn.onclick = (ev) => {
           ev.stopPropagation();
           selectPartReal(p.key);
-          if (mesh.material && mesh.material.emissive) {
+          /* v77.6 — Flash orange retiré (l'utilisateur ne veut plus de rouge/orange).
+             selectPartReal déclenche déjà flashHighlightPart qui produit un flash
+             gold subtle via le fix v77.5. */
+          if (false && mesh.material && mesh.material.emissive) {
             mesh.material.emissive.setHex(0xFF8800);
             mesh.material.emissiveIntensity = 0.9;
             const t0 = performance.now();
@@ -7093,32 +7094,19 @@ console.log('[studio v20] UI v20 prête — viewer agrandi, sol 3D, boutons grou
     return key;
   }
 
-  /* ─── Highlights : applique l'emissive sur tous les parts sélectionnés ─── */
+  /* ─── Highlights : v77.6 — Plus AUCUN emissif persistant sur les parts
+     sélectionnés. L'utilisateur a explicitement demandé : "je ne veux plus
+     une seul trace de ce filtre". La sélection est entièrement gérée par
+     les .tree-row.selected dans le panneau de gauche.
+     Les flashs transitoires (gold via flashHighlightPart, bleu mesh,
+     vert pipette) restent inchangés ailleurs. */
   function updateMultiSelectVisuals() {
-    /* On nettoie d'abord tous les parts NON sélectionnés
-       (l'origSelectPartReal n'a nettoyé que les autres-que-active) */
+    /* On nettoie TOUS les emissifs des meshes connus, sélectionnés ou pas */
     Object.keys(meshGroups || {}).forEach(k => {
-      if (S.selectedParts.has(k)) return;
       (meshGroups[k] || []).forEach(mesh => {
         if (mesh.material && mesh.material.emissive) {
           mesh.material.emissive.setHex(0x000000);
           mesh.material.emissiveIntensity = 0;
-        }
-      });
-    });
-    /* Puis on rallume les sélectionnés (actif en orange vif, autres en doré subtil) */
-    S.selectedParts.forEach(key => {
-      const meshes = meshGroups[key] || [];
-      const isActive = key === S.lastClickedKey;
-      meshes.forEach(mesh => {
-        if (mesh.material && mesh.material.emissive) {
-          if (isActive) {
-            mesh.material.emissive.setHex(0xFF7A1A);
-            mesh.material.emissiveIntensity = 0.35;
-          } else {
-            mesh.material.emissive.setHex(0xB8965A);
-            mesh.material.emissiveIntensity = 0.22;
-          }
         }
       });
     });
@@ -8074,11 +8062,13 @@ console.log('[studio v22] clic droit → Grouper / Dégrouper / Supprimer / Isol
           `;
           mrow.onclick = (ev) => {
             ev.stopPropagation();
-            /* Flash visuel sur le mesh */
+            /* v77.6 — Flash visuel sur le mesh : passe de orange (0xFF8800) à
+               bleu (0x2266FF) conformément à la convention utilisateur
+               "mesh = bleu". */
             if (mesh.material && mesh.material.emissive) {
               const prevHex = mesh.material.emissive.getHex();
               const prevI = mesh.material.emissiveIntensity;
-              mesh.material.emissive.setHex(0xFF8800);
+              mesh.material.emissive.setHex(0x2266FF);
               mesh.material.emissiveIntensity = 0.9;
               setTimeout(() => {
                 mesh.material.emissive.setHex(prevHex);
@@ -25419,7 +25409,7 @@ console.log('[studio v3] prêt');
   if (window.__v74) return;
   window.__v74 = true;
 
-  const COLORS = { GROUP: 0xFF2222, MESH: 0x2266FF };
+  const COLORS = { GROUP: 0xB8965A, MESH: 0x2266FF };
   const DURATION = 700;
 
   /* ─── 1. Patcher selectPartReal : neutraliser l'emissif persistant ─── */
