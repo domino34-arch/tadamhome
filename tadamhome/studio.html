@@ -26465,6 +26465,485 @@ console.log('[studio v3] prêt');
 
   console.log('[studio v76] récents matériaux fonctionnels (localStorage, max ' + MAX_RECENTS + ') ✓');
 })();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v77 — 5 fixes UX panneaux Paramètres / Géométrie / Catalogue / Exports
+   ─────────────────────────────────────────────────────────────────────────
+   1. Catalogue (V69 panel) : vignettes produits non occultées par le bouton
+      AR → padding-bottom 80px sur #v69-cat-content.
+
+   2. Géométrie (V35 panel) :
+      - Le contenu .mat-head (MATIÈRE ACTIVE · GARNISSAGE / BOUCLETTE / BLEU
+        NUIT) leakait sous le panel Géométrie dans certains contextes.
+        On force le masquage via une classe .rp-geom-active sur la rightpanel.
+      - Ajout d'une section "Dimensions" en TÊTE du panel avec inputs L/H/P
+        proxy vers tbDimL/H/P (la source de scale du modèle).
+
+   3. Paramètres :
+      - Suppression de la section V59 "VARIANTES & CATALOGUE" en bas.
+      - Ajout du bouton "Enregistrer comme nouvelle variante" juste sous
+        "Enregistrer comme nouveau produit", grisé tant que variants[] vide.
+
+   4. Exports : en mode lié, on télécharge ALSO en local après upload bucket
+      (pour les archis qui veulent une copie GLB/USDZ/OBJ/DAE sur disque).
+
+   5. "Sauvegarder l'état" : retire disabled + BIENTÔT, wire sur
+      window.forceStudioSave (manual flush V18).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v77UxFixes() {
+  if (window.__v77Init) return;
+  window.__v77Init = true;
+  window._v77 = {};
+
+  /* ─────────────────────────────────────────────────────────────────────
+     CSS additions
+     ───────────────────────────────────────────────────────────────────── */
+  const css = `
+    /* 1. Catalogue panel : breathing room en bas pour le bouton AR fixed */
+    .rightpanel #v69-cat-content { padding-bottom: 80px !important; }
+
+    /* 2a. Quand le panel Géométrie est actif, on force le masquage de
+          .mat-head et .mat-body pour éviter tout leak (la classe est
+          ajoutée par notre patch de showGeomView ci-dessous). */
+    .rightpanel.v77-geom-active .mat-head,
+    .rightpanel.v77-geom-active .mat-body { display: none !important; }
+
+    /* 2b. Section Dimensions : même skin que les autres sections géom */
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 32px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-row:last-child { margin-bottom: 0; }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-key {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--rp-gold, #B8965A);
+      text-align: center;
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input {
+      background: var(--rp-elev, #322D26);
+      border: 1px solid var(--rp-line-mid, rgba(184,150,90,0.18));
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--rp-ink, #F5F2EC);
+      padding: 8px 10px;
+      outline: none;
+      width: 100%;
+      letter-spacing: 0.02em;
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input:focus {
+      border-color: var(--rp-gold, #B8965A);
+      background: rgba(184,150,90,0.06);
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input::placeholder {
+      color: var(--rp-faint, rgba(245,242,236,0.35));
+    }
+    .rp-geom-panel .geom-section.v77-dims input::-webkit-outer-spin-button,
+    .rp-geom-panel .geom-section.v77-dims input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-unit {
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--rp-faint, rgba(245,242,236,0.4));
+      text-transform: uppercase;
+      text-align: left;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-hint {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 12px;
+      color: var(--rp-faint, rgba(245,242,236,0.4));
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+
+    /* 3. Bouton "Enregistrer comme nouvelle variante" : état grisé */
+    .admin-action.v77-disabled-variant {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* 5. Bouton "Sauvegarder l'état" : retirer style disabled visuel */
+    #v77SaveStateBtn:not(:disabled) {
+      opacity: 1;
+      cursor: pointer;
+    }
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 2a — Patch showGeomView/showMaterialView/showSceneView de V35
+     pour toggle la classe .v77-geom-active sur la rightpanel.
+     ───────────────────────────────────────────────────────────────────── */
+  function patchGeomViewToggle() {
+    const rp = document.getElementById('rightpanel');
+    if (!rp) { setTimeout(patchGeomViewToggle, 500); return; }
+
+    /* On observe les clics sur les onglets (V12 clone topbar + V75 hide
+       rightpanel). Plutôt que de wrapper les fonctions V35 (closure
+       interne), on monitor par MutationObserver l'état .active des tabs. */
+    const tabsSelectors = ['.tb-mat-zone .mat-tabs', '.rp-view-edit .mat-tabs'];
+    let tabsRoot = null;
+    for (const sel of tabsSelectors) {
+      const found = document.querySelector(sel);
+      if (found) { tabsRoot = found; break; }
+    }
+    if (!tabsRoot) { setTimeout(patchGeomViewToggle, 500); return; }
+
+    function syncGeomClass() {
+      const tabs = tabsRoot.querySelectorAll('.mat-tab');
+      let geomActive = false;
+      tabs.forEach((tab, idx) => {
+        if (idx === 1 && tab.classList.contains('active')) geomActive = true;
+      });
+      rp.classList.toggle('v77-geom-active', geomActive);
+    }
+
+    /* Observer sur les classes des tabs (pour détecter changement .active) */
+    const mo = new MutationObserver(syncGeomClass);
+    tabsRoot.querySelectorAll('.mat-tab').forEach(tab => {
+      mo.observe(tab, { attributes: true, attributeFilter: ['class'] });
+    });
+    /* Sync initial */
+    syncGeomClass();
+    /* Re-sync sur clic direct (au cas où classList change après notre observer) */
+    tabsRoot.querySelectorAll('.mat-tab').forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(syncGeomClass, 50));
+    });
+
+    console.log('[v77] geom-view class sync armé sur', tabsRoot);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 2b — Injection d'une section Dimensions en tête du panel Géom
+     ───────────────────────────────────────────────────────────────────── */
+  function injectDimensionsSection() {
+    const geomPanel = document.getElementById('rpGeomPanel');
+    if (!geomPanel) { setTimeout(injectDimensionsSection, 500); return; }
+    if (geomPanel.querySelector('.v77-dims')) return; /* déjà injecté */
+
+    const section = document.createElement('div');
+    section.className = 'geom-section v77-dims';
+    section.innerHTML = `
+      <div class="geom-label">Dimensions</div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">L</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimL" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">H</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimH" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">P</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimP" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-hint">
+        Largeur × Hauteur × Profondeur (centimètres). S'applique au modèle 3D.
+      </div>
+    `;
+    /* Insertion en TÊTE du panel (avant Position) */
+    geomPanel.insertBefore(section, geomPanel.firstChild);
+
+    /* ─── Proxy bidirectionnel vers les inputs cachés tbDimL/H/P ─── */
+    const pairs = [
+      ['v77DimL', 'tbDimL'],
+      ['v77DimH', 'tbDimH'],
+      ['v77DimP', 'tbDimP'],
+    ];
+
+    /* Source actuelle : tbDim* est rempli au load du modèle. On copie au montage. */
+    pairs.forEach(([gId, tbId]) => {
+      const g = document.getElementById(gId);
+      const tb = document.getElementById(tbId);
+      if (!g || !tb) return;
+      g.value = tb.value || '';
+
+      /* Géom → tb (saisie utilisateur dans Géométrie) */
+      g.addEventListener('input', () => {
+        tb.value = g.value;
+        tb.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      g.addEventListener('change', () => {
+        tb.value = g.value;
+        tb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+
+    /* tb → Géom (resync quand un nouveau modèle se charge et remplit tbDim*) */
+    pairs.forEach(([gId, tbId]) => {
+      const g = document.getElementById(gId);
+      const tb = document.getElementById(tbId);
+      if (!g || !tb) return;
+      ['input', 'change'].forEach(evt => {
+        tb.addEventListener(evt, () => {
+          /* Évite la boucle : ne resync que si la valeur diffère */
+          if (g.value !== tb.value) g.value = tb.value;
+        });
+      });
+    });
+
+    /* Polling léger pour catcher les writes programmatiques sur tbDim*
+       (ex : au load model, certains modules écrivent .value sans dispatcher) */
+    setInterval(() => {
+      pairs.forEach(([gId, tbId]) => {
+        const g = document.getElementById(gId);
+        const tb = document.getElementById(tbId);
+        if (!g || !tb) return;
+        if (g.value !== tb.value && document.activeElement !== g) {
+          g.value = tb.value;
+        }
+      });
+    }, 1500);
+
+    console.log('[v77] section Dimensions injectée dans Géométrie ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 3 — Suppression V59 + ajout bouton "Enregistrer nouvelle variante"
+     ───────────────────────────────────────────────────────────────────── */
+  function removeV59Section() {
+    /* La V59 section a data-attribute ou un titre identifiable */
+    const sections = document.querySelectorAll('.admin-section');
+    sections.forEach(s => {
+      const title = s.querySelector('.admin-section-title');
+      if (title && title.textContent.trim().toUpperCase().includes('VARIANTES & CATALOGUE')) {
+        s.style.display = 'none'; /* préservation soft : ne pas remove du DOM
+                                     au cas où V59 réinjecte. */
+        s.dataset.v77Hidden = '1';
+      }
+    });
+  }
+
+  function injectVariantButton() {
+    /* On veut placer le bouton DANS la section "Produit" (V26),
+       juste après le bouton "Enregistrer comme nouveau produit". */
+    const createBtn = document.getElementById('adminBtnCreateProduct');
+    if (!createBtn) { setTimeout(injectVariantButton, 500); return; }
+    if (document.getElementById('v77BtnCreateVariant')) return; /* déjà injecté */
+
+    const btn = document.createElement('button');
+    btn.className = 'admin-action primary';
+    btn.id = 'v77BtnCreateVariant';
+    btn.innerHTML = `
+      <span class="admin-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 H15 V18 H5 Z M9 8 H19 V22 H9 Z"/></svg></span>
+      <span class="admin-action-label">Enregistrer comme nouvelle variante</span>
+      <span class="admin-action-hint">→ Variante</span>
+    `;
+    createBtn.parentNode.insertBefore(btn, createBtn.nextSibling);
+
+    function updateState() {
+      const variants = (window._v25?.variants) || [];
+      const hasVariant = Array.isArray(variants) && variants.length > 0;
+      if (hasVariant) {
+        btn.classList.remove('v77-disabled-variant');
+        btn.title = 'Crée une nouvelle variante à partir de l\'état actuel du studio';
+      } else {
+        btn.classList.add('v77-disabled-variant');
+        btn.title = 'Crée d\'abord une variante via le bouton "+ Nouvelle variante" en bas de l\'écran';
+      }
+    }
+
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.classList.contains('v77-disabled-variant')) return;
+      /* Délègue à la fonction de création de variante existante (V73/V25) */
+      if (typeof window.createNewVariant === 'function') {
+        window.createNewVariant();
+      } else if (window._v73 && typeof window._v73.createVariant === 'function') {
+        window._v73.createVariant();
+      } else {
+        /* Fallback : clique sur le bouton "+ Nouvelle variante" du bottombar */
+        const fallbackBtn = document.querySelector('[data-action="new-variant"]')
+                         || document.querySelector('.btn-new-variant')
+                         || [...document.querySelectorAll('button')].find(b =>
+                              /nouvelle variante/i.test(b.textContent));
+        if (fallbackBtn) fallbackBtn.click();
+        else toast('Création de variante indisponible — utilise le drawer Variantes', 'err', 4000);
+      }
+    };
+
+    /* Update initial + poll léger */
+    updateState();
+    setInterval(updateState, 1500);
+
+    console.log('[v77] bouton "Enregistrer nouvelle variante" injecté ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 4 — Exports : download local AUSSI en mode lié
+     ───────────────────────────────────────────────────────────────────── */
+  function hookExportsForLocalDownload() {
+    /* On wrappe runExport pour déclencher un downloadBlob après l'upload.
+       Détection : window._v19 doit être présent. */
+    if (!window._v19 || typeof window._v19.runExport !== 'function') {
+      setTimeout(hookExportsForLocalDownload, 1000);
+      return;
+    }
+    if (window._v19.runExport.__v77) return;
+
+    const original = window._v19.runExport;
+    /* On ne peut pas intercepter le blob généré dans runExport (qui est
+       interne au scope V19). Stratégie alternative : exposer une API V77
+       qui interpose un downloadBlob global déclenché manuellement après
+       chaque export OU patcher au niveau du wireButtons pour faire
+       l'export en TWO passes (sandbox-style + lié).
+
+       Approche retenue : wrapper runExport. En mode lié, on extrait le
+       blob via uploadToBucket en-dehors (impossible sans accès au scope
+       privé). Solution simple : on monitore window._v19.exports puis on
+       déclenche le download.
+
+       Plus simple : on remplace runExport par une version qui appelle
+       l'original puis recharge le fichier uploadé depuis l'URL pour le
+       télécharger localement. Mais ça double le coût bande passante.
+
+       SOLUTION : on patche directement V19 en exposant downloadBlob
+       globalement (qu'on injecte) et on étend runExport.
+    */
+
+    /* Approche pragmatique : on observe les changements de window._v19.exports
+       et on télécharge depuis l'URL uploadée. Coût = re-fetch depuis le bucket. */
+    const seen = {};
+    function watchExports() {
+      const exports = window._v19?.exports || {};
+      Object.keys(exports).forEach(key => {
+        if (key.endsWith('_uploadedAt')) return;
+        const url = exports[key];
+        const stamp = exports[key + '_uploadedAt'];
+        if (!url || !stamp) return;
+        const sig = key + '|' + stamp;
+        if (seen[sig]) return;
+        seen[sig] = true;
+        /* Download local depuis l'URL */
+        downloadFromUrl(url, defaultName(key));
+      });
+    }
+    setInterval(watchExports, 1000);
+
+    function downloadFromUrl(url, filename) {
+      fetch(url)
+        .then(r => r.blob())
+        .then(blob => {
+          const a = document.createElement('a');
+          const objUrl = URL.createObjectURL(blob);
+          a.href = objUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+          console.log('[v77] download local après upload :', filename);
+        })
+        .catch(err => console.warn('[v77] download local échec :', err));
+    }
+    function defaultName(format) {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = { glb: 'glb', usdz: 'usdz', obj: 'obj', dae: 'dae' }[format] || format;
+      const baseName = (document.getElementById('tbName')?.value || 'modele').trim()
+                       .replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 40) || 'modele';
+      return `${baseName}_${stamp}.${ext}`;
+    }
+
+    window._v19.runExport.__v77 = true;
+    console.log('[v77] download local après upload armé ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 5 — "Sauvegarder l'état" devient fonctionnel
+     ───────────────────────────────────────────────────────────────────── */
+  function wireSaveStateButton() {
+    /* Le bouton est .admin-action[disabled] avec label "Sauvegarder l'état" */
+    const buttons = document.querySelectorAll('.admin-action');
+    let saveBtn = null;
+    buttons.forEach(b => {
+      const lbl = b.querySelector('.admin-action-label');
+      if (lbl && /sauvegarder.*état/i.test(lbl.textContent)) saveBtn = b;
+    });
+    if (!saveBtn) { setTimeout(wireSaveStateButton, 500); return; }
+    if (saveBtn.dataset.v77Wired === '1') return;
+
+    saveBtn.id = 'v77SaveStateBtn';
+    saveBtn.removeAttribute('disabled');
+    saveBtn.dataset.v77Wired = '1';
+
+    /* Update hint : Bientôt → Maintenant (label) */
+    const hint = saveBtn.querySelector('.admin-action-hint');
+    if (hint) hint.textContent = 'Manuel';
+
+    saveBtn.onclick = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      /* Mode sandbox = pas de productId, donc forceStudioSave n'écrit rien */
+      const productId = window._v18?.productId;
+      if (!productId) {
+        if (typeof toast === 'function') {
+          toast('Mode sandbox : sauvegarde indisponible. Crée d\'abord un produit.', 'err', 4500);
+        }
+        return;
+      }
+      if (typeof window.forceStudioSave === 'function') {
+        if (typeof toast === 'function') toast('Sauvegarde en cours…', 'info', 1800);
+        try {
+          await window.forceStudioSave();
+          if (typeof toast === 'function') toast('État sauvegardé ✓', 'ok', 2200);
+        } catch (err) {
+          console.error('[v77] save échec :', err);
+          if (typeof toast === 'function') toast('Erreur sauvegarde : ' + (err.message || ''), 'err', 4000);
+        }
+      } else {
+        if (typeof toast === 'function') toast('Sauvegarde indisponible (V18 non chargé)', 'err', 3000);
+      }
+    };
+
+    console.log('[v77] bouton "Sauvegarder l\'état" wired ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     Init — toutes les opérations sont idempotentes et auto-retry.
+     ───────────────────────────────────────────────────────────────────── */
+  function init() {
+    patchGeomViewToggle();
+    injectDimensionsSection();
+    removeV59Section();
+    injectVariantButton();
+    hookExportsForLocalDownload();
+    wireSaveStateButton();
+
+    /* Re-tentatives périodiques pour les éléments injectés tardivement */
+    setInterval(() => {
+      removeV59Section();
+      injectVariantButton();
+      wireSaveStateButton();
+    }, 3000);
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 200);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 200));
+  }
+
+  console.log('[studio v77] 5 fixes UX (catalogue/géom/variantes/exports/save) montés ✓');
+})();
 </script>
 
 </body>
