@@ -26743,21 +26743,109 @@ console.log('[studio v3] prêt');
     btn.className = 'admin-action primary';
     btn.id = 'v77BtnCreateVariant';
     btn.innerHTML = `
-      <span class="admin-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 H15 V18 H5 Z M9 8 H19 V22 H9 Z"/></svg></span>
-      <span class="admin-action-label">Enregistrer comme nouvelle variante</span>
-      <span class="admin-action-hint">→ Variante</span>
+      <span class="admin-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 H15 V18 H5 Z M9 8 H19 V22 H9 Z M14 12 L17 15 L22 10"/></svg></span>
+      <span class="admin-action-label" id="v77BtnVariantLabel">Enregistrer et publier nouvelle variante</span>
+      <span class="admin-action-hint" id="v77BtnVariantHint">→ Catalogue</span>
     `;
     createBtn.parentNode.insertBefore(btn, createBtn.nextSibling);
 
+    /* ─── État dynamique ─── */
+    function getActiveVariantContext() {
+      const productId = window._v18 && window._v18.productId;
+      const variants = (window._v25 && window._v25.variants) || [];
+      const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+      const idx = variants.findIndex(v => v.id === activeId); /* -1 si base */
+      const variant = idx >= 0 ? variants[idx] : null;
+      return { productId, variants, activeId, idx, variant };
+    }
+
     function updateState() {
-      const variants = (window._v25?.variants) || [];
-      const hasVariant = Array.isArray(variants) && variants.length > 0;
-      if (hasVariant) {
-        btn.classList.remove('v77-disabled-variant');
-        btn.title = 'Crée une nouvelle variante à partir de l\'état actuel du studio';
-      } else {
+      const labelEl = document.getElementById('v77BtnVariantLabel');
+      const hintEl = document.getElementById('v77BtnVariantHint');
+      const ctx = getActiveVariantContext();
+
+      /* Cas 1 : pas de produit lié → grisé */
+      if (!ctx.productId) {
         btn.classList.add('v77-disabled-variant');
-        btn.title = 'Crée d\'abord une variante via le bouton "+ Nouvelle variante" en bas de l\'écran';
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Lie un produit';
+        btn.title = 'Crée d\'abord un produit pour pouvoir publier ses variantes';
+        return;
+      }
+      /* Cas 2 : aucune variante créée → grisé */
+      if (ctx.variants.length === 0) {
+        btn.classList.add('v77-disabled-variant');
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Crée une variante';
+        btn.title = 'Crée d\'abord une variante via "+ Nouvelle variante" en bas du studio';
+        return;
+      }
+      /* Cas 3 : active = Base → grisé (on ne publie pas la Base) */
+      if (ctx.idx < 0) {
+        btn.classList.add('v77-disabled-variant');
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Sélectionne une variante';
+        btn.title = 'Sélectionne une variante (pas la Base) pour la publier';
+        return;
+      }
+      /* Cas 4 : active = variante éditable → enabled, affiche l'index 1-based */
+      btn.classList.remove('v77-disabled-variant');
+      const displayNum = ctx.idx + 1;
+      const variantName = (ctx.variant && ctx.variant.name) || `Variante ${displayNum}`;
+      if (labelEl) labelEl.textContent = `Enregistrer et publier nouvelle variante (${displayNum})`;
+      if (hintEl) {
+        hintEl.textContent = ctx.variant && ctx.variant.published ? 'Déjà publiée' : '→ Catalogue';
+      }
+      btn.title = ctx.variant && ctx.variant.published
+        ? `« ${variantName} » est déjà publiée. Cliquer republie l'état actuel.`
+        : `Publie « ${variantName} » sur le catalogue (visible sur scan.html)`;
+    }
+
+    /* ─── Action publish ─── */
+    async function doPublish() {
+      const ctx = getActiveVariantContext();
+      if (!ctx.productId || !ctx.variant) return;
+
+      const variant = ctx.variant;
+      const wasPublished = variant.published === true;
+
+      /* On marque comme publié immédiatement (l'état actuel de studio_state
+         est déjà à jour côté window._v25.variants grâce à V62 + V42). */
+      variant.published = true;
+
+      const supa = window.sb;
+      if (!supa) {
+        toast('Client Supabase indisponible', 'err', 3500);
+        variant.published = wasPublished; /* rollback */
+        return;
+      }
+
+      try {
+        if (typeof toast === 'function') toast('Publication en cours…', 'info', 1800);
+        /* Update DB avec la full variants array (suit le pattern V59) */
+        const { error } = await supa
+          .from('products')
+          .update({ variants: window._v25.variants })
+          .eq('id', ctx.productId);
+        if (error) throw error;
+
+        /* V74.1 — Mirror vers window._v18.productRow.variants pour que V42
+           syncColors voit le changement et propage vers products.colors[]
+           (consommé par scan.html). */
+        if (window._v18 && window._v18.productRow) {
+          window._v18.productRow.variants = window._v25.variants;
+        }
+        if (window._v42 && typeof window._v42.sync === 'function') {
+          await window._v42.sync(true);
+        }
+
+        toast(`« ${variant.name || 'Variante'} » publiée sur le catalogue ✓`, 'ok', 3000);
+        updateState();
+      } catch (e) {
+        variant.published = wasPublished; /* rollback */
+        console.error('[v77 publish]', e);
+        toast('Erreur publication : ' + (e.message || ''), 'err', 4500);
+        updateState();
       }
     }
 
@@ -26765,27 +26853,15 @@ console.log('[studio v3] prêt');
       e.preventDefault();
       e.stopPropagation();
       if (btn.classList.contains('v77-disabled-variant')) return;
-      /* Délègue à la fonction de création de variante existante (V73/V25) */
-      if (typeof window.createNewVariant === 'function') {
-        window.createNewVariant();
-      } else if (window._v73 && typeof window._v73.createVariant === 'function') {
-        window._v73.createVariant();
-      } else {
-        /* Fallback : clique sur le bouton "+ Nouvelle variante" du bottombar */
-        const fallbackBtn = document.querySelector('[data-action="new-variant"]')
-                         || document.querySelector('.btn-new-variant')
-                         || [...document.querySelectorAll('button')].find(b =>
-                              /nouvelle variante/i.test(b.textContent));
-        if (fallbackBtn) fallbackBtn.click();
-        else toast('Création de variante indisponible — utilise le drawer Variantes', 'err', 4000);
-      }
+      doPublish();
     };
 
-    /* Update initial + poll léger */
+    /* Update initial + poll léger (state des variantes peut bouger
+       indépendamment : V73 drawer, V62 routing, etc.) */
     updateState();
-    setInterval(updateState, 1500);
+    setInterval(updateState, 1200);
 
-    console.log('[v77] bouton "Enregistrer nouvelle variante" injecté ✓');
+    console.log('[v77] bouton "Enregistrer et publier nouvelle variante" injecté (publication éditoriale) ✓');
   }
 
   /* ─────────────────────────────────────────────────────────────────────
