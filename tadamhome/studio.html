@@ -13667,17 +13667,18 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       if (!window._v39.booted) return;
       if (!window._v38 || !window._v38.openModal) return;
 
-      /* 1. Nouvelle création de PRODUIT (la sandbox → lié) */
+      /* 1. Nouvelle création de PRODUIT (la sandbox → lié)
+         ─── DÉSACTIVÉ depuis V70 ───
+         Avec la V27 refondue, l'archi renseigne photo + finition + GLB/USDZ
+         directement au drop d'OBJ. Le pop-up "Compléter ta fiche catalogue"
+         devient redondant et casse le flow (l'archi voit son modèle puis se
+         retrouve devant une modale lui demandant des trucs déjà fournis).
+         On garde le tracking de lastProductId pour le pop-up swatch, qui lui
+         reste pertinent au moment de la création d'une nouvelle variante. */
       const curProductId = (window._v18 && window._v18.productId) || null;
       if (!window._v39.lastProductId && curProductId) {
         window._v39.lastProductId = curProductId;
-        /* Délai un peu plus long pour laisser le pipeline v34 (upload OBJ + GLB + USDZ)
-           commencer en arrière-plan, sans bloquer */
-        setTimeout(() => {
-          if (window._v38 && window._v38.openModal) {
-            window._v38.openModal('all-after-create');
-          }
-        }, 1500);
+        /* (intentionnellement vide : pas de openModal('all-after-create')) */
       } else if (curProductId !== window._v39.lastProductId) {
         window._v39.lastProductId = curProductId;
       }
@@ -24878,35 +24879,41 @@ console.log('[studio v3] prêt');
     if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
     const url = pub.publicUrl + '?v=' + Date.now();
 
-    /* Maj studio_state.textureSwatchUrl + miroir sur colors[0] (parité scan.html) */
+    /* SOURCE DE VÉRITÉ : studio_state.textureSwatchUrl
+       La projection colors[0].texture (que lit scan.html) est gérée par V42
+       qui dérive proprement {name, mat, texture, glb, usdz} depuis studio_state.
+       On ne touche PAS colors[] ici : on appelle juste V42.sync après. */
     const product = window._v18?.productRow || {};
     const studioState = { ...(product.studio_state || {}), textureSwatchUrl: url };
-    const colors = Array.isArray(product.colors) ? [...product.colors] : [];
-    colors[0] = { ...(colors[0] || {}), texture: url, swatch_url: url };
 
     try {
       const { error: dbErr } = await sb.from('products')
-        .update({ studio_state: studioState, colors })
+        .update({ studio_state: studioState })
         .eq('id', productId);
-      if (dbErr) {
-        /* Fallback : tenter studio_state seul si colors est absent du schéma */
-        try {
-          await sb.from('products')
-            .update({ studio_state: studioState })
-            .eq('id', productId);
-          console.warn('[v70] colors absent du schéma — seul studio_state.textureSwatchUrl écrit');
-        } catch (e2) {
-          console.warn('[v70] update DB finition échec :', e2.message);
-        }
-      }
+      if (dbErr) throw dbErr;
     } catch (e) {
-      console.warn('[v70] update DB finition exception :', e.message);
+      console.warn('[v70] update DB studio_state.textureSwatchUrl échec :', e.message);
+      throw e;
     }
 
-    /* Sync local */
+    /* Sync local : la row en mémoire doit refléter le nouveau studio_state
+       pour que V42.buildColorsArray lise la bonne valeur. */
     if (window._v18?.productRow) {
       window._v18.productRow.studio_state = studioState;
-      window._v18.productRow.colors = colors;
+    }
+
+    /* Déclenche la projection V42 → products.colors pour que scan.html voie
+       la finition. V42 relit la row depuis la DB, construit colors[] au bon
+       format ({name, mat, texture, glb, usdz}) et UPDATE products.colors. */
+    if (window._v42 && typeof window._v42.sync === 'function') {
+      try {
+        await window._v42.sync(true);
+        console.log('[v70] ✓ V42 sync déclenché → colors[] projeté pour scan.html');
+      } catch (e) {
+        console.warn('[v70] V42 sync a échoué (la finition est uploadée mais scan.html ne la verra pas) :', e.message);
+      }
+    } else {
+      console.warn('[v70] window._v42.sync indisponible — colors[] non projeté, scan.html ne verra pas la finition');
     }
 
     console.log('[v70] ✓ Finition (base) uploadée :', url);
