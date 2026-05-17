@@ -1384,6 +1384,13 @@ function showPanel(name){
   /* Active state sur l'icône du rail (via data-panel) */
   const activeIcon=document.querySelector('.nav-icon[data-panel="'+name+'"]');
   if(activeIcon) activeIcon.classList.add('active');
+  /* v70.1 — Sur le panel "texture" (studio embarqué), on cache le topbar
+     admin pour ne pas le superposer à la propre topbar du studio + libérer
+     l'espace vertical. Sur tous les autres panels, on le restaure. */
+  const topbarEl = document.querySelector('.topbar');
+  if (topbarEl) {
+    topbarEl.style.display = (name === 'texture') ? 'none' : '';
+  }
   /* Deep-link support : ?panel=catalogue */
   if(history.replaceState){
     const url=new URL(location.href);
