@@ -27586,6 +27586,38 @@ console.log('[studio v3] prêt');
   /* Re-patch périodique au cas où un module re-définit navAdmin plus tard */
   setInterval(patchNavAdmin, 2000);
 
+  /* ─── Rediriger le bouton "Aide" (?) vers la visite guidée ─── */
+  function wireAideToTour() {
+    const aideBtn = document.querySelector('.nav-rail .nav-icon[data-tooltip="Aide"]');
+    if (!aideBtn) return false;
+    if (aideBtn.dataset.v78Wired === '1') return true;
+    aideBtn.dataset.v78Wired = '1';
+    /* Supprimer l'onclick original (qui appellait navAdmin) en clonant le node */
+    const clone = aideBtn.cloneNode(true);
+    clone.dataset.v78Wired = '1';
+    clone.setAttribute('data-tooltip', 'Relancer la visite guidée');
+    aideBtn.parentNode.replaceChild(clone, aideBtn);
+    clone.style.cursor = 'pointer';
+    clone.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.startStudioTour === 'function') {
+        console.log('[v78] bouton Aide → lancement visite guidée');
+        window.startStudioTour();
+      } else {
+        console.warn('[v78] startStudioTour pas encore défini, retry dans 500ms');
+        setTimeout(() => {
+          if (typeof window.startStudioTour === 'function') window.startStudioTour();
+        }, 500);
+      }
+    });
+    return true;
+  }
+  if (!wireAideToTour()) {
+    const intv2 = setInterval(() => { if (wireAideToTour()) clearInterval(intv2); }, 400);
+    setTimeout(() => clearInterval(intv2), 10000);
+  }
+
   /* ─── Activité : helpers d'enregistrement (inchangé) ─── */
   const KEY_ACTIVITY = 'tadam.architect.activity';
   const KEY_EXPORTS  = 'tadam.architect.exports';
@@ -28173,41 +28205,52 @@ console.log('[studio v3] prêt');
   window.startStudioTour = open;
   window.closeStudioTour = close;
 
-  /* ─── Auto-lancement si ?tour=1 ou ?tour=force ─── */
+  /* ─── Auto-lancement si ?tour=X est présent (n'importe quelle valeur) ─── */
   function maybeAutoStart() {
     const url = new URL(window.location.href);
     const tourParam = url.searchParams.get('tour');
-    if (!tourParam) return;
-
-    const force = tourParam === 'force';
-    if (!force) {
-      /* Si déjà vu, on ne relance pas automatiquement */
-      let seen = false;
-      try { seen = !!localStorage.getItem(STORAGE_KEY); } catch (_) {}
-      if (seen) {
-        console.log('[v79] tour déjà vu, ignore ?tour=1 (utilise ?tour=force pour forcer)');
-        return;
-      }
+    if (!tourParam) {
+      console.log('[v79] pas de ?tour= dans l\'URL → tour non lancé (tape startStudioTour() pour le forcer)');
+      return;
     }
 
-    /* Lancement après que le DOM soit prêt avec retry */
+    console.log('[v79] ?tour=' + tourParam + ' détecté → lancement programmé après chargement complet');
+
+    /* Lancement après que le DOM soit prêt avec retry. Si ?tour=X est
+       présent dans l'URL, on lance le tour QUELLE QUE SOIT la valeur
+       (1, force, yes, true, etc.) et on ignore le flag "déjà vu". L'idée :
+       si quelqu'un a explicitement mis ?tour= dans son URL, il veut le tour. */
     function tryStart(attempt) {
-      if (attempt > 8) { open(); return; }   /* Lance quand même au bout de 8 tentatives */
+      if (attempt > 12) {
+        console.warn('[v79] timeout DOM (12 tentatives) → lancement quand même');
+        open();
+        return;
+      }
       const ready = document.querySelector('.nav-rail') && document.querySelector('.topbar')
                  && document.querySelector('.leftpanel') && document.querySelector('.viewport');
-      if (ready) { open(); return; }
+      if (ready) {
+        console.log('[v79] DOM prêt après ' + attempt + ' tentative(s) → ouverture du tour');
+        open();
+        return;
+      }
+      console.log('[v79] DOM pas encore prêt (tentative ' + (attempt + 1) + '/12)');
       setTimeout(() => tryStart(attempt + 1), 350);
     }
 
     if (document.readyState === 'complete') {
+      console.log('[v79] document.readyState=complete → start dans 800ms');
       setTimeout(() => tryStart(0), 800);
     } else {
-      window.addEventListener('load', () => setTimeout(() => tryStart(0), 800));
+      console.log('[v79] document.readyState=' + document.readyState + ' → attente du load');
+      window.addEventListener('load', () => {
+        console.log('[v79] load event reçu → start dans 800ms');
+        setTimeout(() => tryStart(0), 800);
+      });
     }
   }
   maybeAutoStart();
 
-  console.log('[studio v79] visite guidée armée (?tour=1 / ?tour=force / startStudioTour())');
+  console.log('[studio v79] visite guidée armée · ?tour=1 (ou force) dans l\'URL pour lancer · ou startStudioTour() depuis la console');
 })();
 </script>
 
