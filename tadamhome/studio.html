@@ -27274,6 +27274,700 @@ console.log('[studio v3] prêt');
 
   console.log('[studio v77] 5 fixes UX (catalogue/géom/variantes/exports/save) montés ✓');
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v78 — BETA TESTER BADGE + ACTIVITÉ POUR ARCHITECTE
+   ───────────────────────────────────────────────────────────────────────
+   Quand l'URL contient ?betatester=NOM, on :
+   - Affiche un badge "BETA · NOM" en bas à droite du studio (discret)
+   - On enregistre l'activité (ouverture d'un produit, sauvegarde, export…)
+     dans localStorage 'tadam.architect.activity' pour que le dashboard
+     architect-v2.html puisse l'afficher dans son "Activité récente".
+   - On enregistre aussi les exports locaux (déclenchés par v77 ou v50)
+     dans 'tadam.architect.exports' pour la section "Exports récents" du
+     dashboard.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function v78BetaTester() {
+  if (window.__v78Init) return;
+  window.__v78Init = true;
+
+  /* Lecture de la query string */
+  const url = new URL(window.location.href);
+  const betatester = url.searchParams.get('betatester');
+  if (!betatester) return;   /* Pas un beta tester, on n'injecte rien */
+
+  /* ─── Badge discret en bas à droite ─── */
+  const css = document.createElement('style');
+  css.setAttribute('data-v78', 'beta-badge');
+  css.textContent = `
+    .v78-badge {
+      position: fixed;
+      bottom: 14px; right: 14px;
+      z-index: 6500;
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 11px;
+      background: rgba(26,26,26,0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: rgba(184,150,90,0.95);
+      font-family: 'Jost', sans-serif;
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      border-left: 2px solid #B8965A;
+      pointer-events: none;
+      user-select: none;
+      opacity: 0.78;
+      transition: opacity 0.2s;
+    }
+    .v78-badge:hover { opacity: 1; }
+    .v78-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #B8965A;
+      animation: v78pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes v78pulse {
+      0%, 100% { opacity: 0.35; transform: scale(0.85); }
+      50%      { opacity: 1;    transform: scale(1.15); }
+    }
+  `;
+  document.head.appendChild(css);
+
+  function injectBadge() {
+    if (document.querySelector('.v78-badge')) return;
+    if (!document.body) { setTimeout(injectBadge, 200); return; }
+    const badge = document.createElement('div');
+    badge.className = 'v78-badge';
+    const pretty = betatester.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    badge.textContent = 'Beta · ' + pretty;
+    badge.title = 'Tu es en mode beta tester';
+    document.body.appendChild(badge);
+  }
+  injectBadge();
+
+  /* ─── Activité : helpers d'enregistrement ─── */
+  const KEY_ACTIVITY = 'tadam.architect.activity';
+  const KEY_EXPORTS  = 'tadam.architect.exports';
+  const MAX_ITEMS = 30;
+
+  function pushActivity(title, detail) {
+    try {
+      const raw = localStorage.getItem(KEY_ACTIVITY);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.unshift({ ts: Date.now(), title, detail });
+      while (arr.length > MAX_ITEMS) arr.pop();
+      localStorage.setItem(KEY_ACTIVITY, JSON.stringify(arr));
+    } catch (_) {}
+  }
+  function pushExport(name, format, url) {
+    try {
+      const raw = localStorage.getItem(KEY_EXPORTS);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.unshift({ ts: Date.now(), name, format, url });
+      while (arr.length > MAX_ITEMS) arr.pop();
+      localStorage.setItem(KEY_EXPORTS, JSON.stringify(arr));
+    } catch (_) {}
+  }
+  window._v78 = { pushActivity, pushExport };
+
+  /* ─── Hook : ouverture d'un produit (V18 récupère productRow) ─── */
+  let lastProductId = null;
+  setInterval(() => {
+    if (window._v18 && window._v18.productId && window._v18.productId !== lastProductId) {
+      lastProductId = window._v18.productId;
+      const name = (window._v18.productRow && window._v18.productRow.name) || 'Modèle';
+      pushActivity('Ouverture · ' + name, 'Studio · édition');
+    }
+  }, 2500);
+
+  /* ─── Hook : download local (v77 et v50/v67 déclenchent des liens <a download>) ─── */
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[download]');
+    if (!a || !a.href) return;
+    const name = a.getAttribute('download') || a.textContent.trim() || 'export';
+    const m = /\.([a-z0-9]{2,5})(\?|$)/i.exec(a.href) || /\.([a-z0-9]{2,5})$/i.exec(name);
+    const format = m ? m[1].toLowerCase() : 'bin';
+    pushExport(name, format, a.href);
+  }, true);
+
+  console.log('[studio v78] mode beta tester actif pour : ' + betatester);
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v79 — VISITE GUIDÉE de l'interface studio (TOUR ONBOARDING)
+   ───────────────────────────────────────────────────────────────────────
+   Tour interactif qui met en lumière chaque zone clé du studio l'une après
+   l'autre. Lancé automatiquement par ?tour=1 dans l'URL, ou manuellement
+   via window.startStudioTour().
+
+   13 étapes adaptées à la version actuelle (v70-v77) :
+    1. Bienvenue (popup centré, intro beta tester)
+    2. Nav-rail (.nav-rail) — Navigation principale
+    3. Topbar (.topbar) — Identité du modèle (nom, marque, dimensions)
+    4. Arborescence (.leftpanel) — Parties du meuble
+    5. Viewport (.viewport) — Vue 3D + drag-drop fichiers
+    6. Panneau Matériau (.rightpanel) — Édition + Bibliothèque
+    7. Récents (.lib-recent) — Matières utilisées récemment (v76)
+    8. Bottombar (.bottombar) — Outils d'édition + Variantes (v73)
+    9. Catalogue (#v69-cat-btn) — Switch entre produits
+   10. AR / QR (.v50-ar-btn-rp) — Voir en réalité augmentée
+   11. État sauvegarde (.tb-save-box) — Auto-save Supabase
+   12. Exports (.rp-views) — Téléchargement GLB/USDZ/OBJ/DAE
+   13. C'est tout (popup centré + remerciements)
+
+   Technique : overlay fixe + spotlight rectangulaire via box-shadow inset
+   large (technique standard, marche partout) + popup positionné
+   automatiquement (droite/gauche/bas/haut selon place). Transitions 350ms.
+
+   Activation :
+   - ?tour=1 → auto au boot (après 800ms + retry si DOM pas prêt)
+   - ?tour=force → idem mais ignore le flag "déjà vu"
+   - window.startStudioTour() depuis la console
+
+   Contrôles : Précédent / Suivant / Passer + flèches clavier ← → + Échap.
+   Auto-skip d'une étape si l'élément cible n'existe pas (cas où le studio
+   n'a pas encore de produit chargé). Sauvegarde le flag "vu" dans
+   localStorage (tadam.studio.tourSeenAt). Nettoie ?tour de l'URL à la fin.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function v79StudioTour() {
+  if (window.__v79Init) return;
+  window.__v79Init = true;
+
+  const STORAGE_KEY = 'tadam.studio.tourSeenAt';
+  const FLAG_DISMISSED = 'tadam.studio.tourDismissed';
+
+  /* ─── Définition des étapes ─── */
+  const STEPS = [
+    {
+      id: 'welcome',
+      target: null,    /* null = popup centré, pas de spotlight */
+      eyebrow: 'Visite guidée · 13 étapes · 2 min',
+      title: 'Bienvenue dans le studio.',
+      body: 'On va parcourir ensemble chaque zone de l\'interface — arborescence, vue 3D, matériaux, variantes, AR. Tu pourras quitter à tout moment avec Échap ou Passer.',
+    },
+    {
+      id: 'nav-rail',
+      target: '.nav-rail',
+      eyebrow: 'Zone 1 sur 11',
+      title: 'Navigation principale',
+      body: 'La colonne de gauche regroupe la navigation entre tes outils : atelier, studio, catalogue, wall. Tu reviendras au tableau de bord depuis ici.',
+    },
+    {
+      id: 'topbar',
+      target: '.topbar',
+      eyebrow: 'Zone 2 sur 11',
+      title: 'Identité du modèle',
+      body: 'Catégorie à gauche, puis nom + marque, dimensions L×H×P (cm) et état de sauvegarde. Tout est éditable. La pastille verte indique que ton travail est enregistré dans Supabase.',
+    },
+    {
+      id: 'leftpanel',
+      target: '.leftpanel',
+      eyebrow: 'Zone 3 sur 11',
+      title: 'Arborescence du meuble',
+      body: 'Le modèle est segmenté en parties : piétement, assise, dossier, coque… Clique sur une partie pour la sélectionner et éditer son matériau. L\'icône œil masque, le cadenas verrouille. "Auto-segmenter" en bas détecte les parties automatiquement selon la catégorie.',
+    },
+    {
+      id: 'viewport',
+      target: '.viewport',
+      eyebrow: 'Zone 4 sur 11',
+      title: 'Vue 3D interactive',
+      body: 'Glisse pour orbiter, molette pour zoomer, clic-droit pour panner. Tu peux glisser-déposer ici un fichier OBJ, FBX ou 3DS directement depuis 3DS Max — le studio l\'importe et le redresse en Z-up automatiquement. Cliquer sur une partie 3D ouvre son panneau matériau.',
+    },
+    {
+      id: 'rightpanel',
+      target: '.rightpanel',
+      eyebrow: 'Zone 5 sur 11',
+      title: 'Panneau matériau & bibliothèque',
+      body: 'Trois onglets : Matériau (édite la matière de la partie sélectionnée), Géométrie (dimensions, projection UV, options) et Scène. La bibliothèque te donne accès aux matières référencées avec leurs textures haute définition.',
+    },
+    {
+      id: 'recents',
+      target: '.lib-recent',
+      eyebrow: 'Zone 6 sur 11',
+      title: 'Matières récemment utilisées',
+      body: 'Les 5 dernières matières que tu as appliquées, tous projets confondus. Pratique pour réutiliser sans re-fouiller la bibliothèque — par exemple si tu travailles une finition bouclette sur plusieurs meubles.',
+    },
+    {
+      id: 'bottombar',
+      target: '.bottombar',
+      eyebrow: 'Zone 7 sur 11',
+      title: 'Outils d\'édition & Variantes',
+      body: 'En bas de l\'arbo : Mesh / Groupe / Pivot, le bouton "Auto-segmenter" qui découpe le modèle, "Persister la structure" qui écrit la segmentation dans le GLB source, et les chips de variantes (Base, Variante 1, +Nouvelle variante) — chaque variante est un set de matériaux qui partage la même géométrie.',
+    },
+    {
+      id: 'catalogue',
+      target: '#v69-cat-btn',
+      eyebrow: 'Zone 8 sur 11',
+      title: 'Catalogue',
+      body: 'Le bouton CATALOGUE doré en haut à droite ouvre une vignette de tous les produits déjà publiés. Click sur un produit → tu bascules dessus sans quitter le studio. Idéal pour comparer ou cloner un setup de matières.',
+    },
+    {
+      id: 'ar',
+      target: '.v50-ar-btn-rp',
+      eyebrow: 'Zone 9 sur 11',
+      title: 'Voir en réalité augmentée',
+      body: 'Ce bouton génère un QR code à scanner avec l\'iPhone ou l\'iPad de ton client. L\'AR s\'ouvre directement dans Safari (USDZ) ou Chrome (GLB/Scene Viewer) — aucune installation requise. Parfait pour valider une finition avec un client en rendez-vous.',
+    },
+    {
+      id: 'save',
+      target: '.tb-save-box',
+      eyebrow: 'Zone 10 sur 11',
+      title: 'État de sauvegarde',
+      body: 'La pastille te dit en temps réel si ton travail est enregistré. Tous les changements de matière, variante, dimension sont auto-sauvegardés dans Supabase quelques secondes après modification. Tu peux aussi forcer un flush manuel via le bouton "Sauvegarder l\'état" dans le panneau Paramètres.',
+    },
+    {
+      id: 'exports',
+      target: '.rp-views, .rightpanel',
+      eyebrow: 'Zone 11 sur 11',
+      title: 'Exports locaux',
+      body: 'Dans le panneau de droite (onglet Paramètres / Exports), tu peux télécharger ton modèle texturé en GLB, USDZ, OBJ ou DAE (Collada). DAE réimporte parfaitement dans 3DS Max avec les matériaux. L\'export FBX direct arrive — en attendant, DAE fait le pont.',
+    },
+    {
+      id: 'end',
+      target: null,
+      eyebrow: 'C\'est tout !',
+      title: 'Bonne exploration.',
+      body: 'Tu peux relancer cette visite à tout moment depuis ton tableau de bord. Pour toute question, bug ou suggestion d\'amélioration, le bouton "Envoyer un retour" t\'ouvre un email pré-rempli. Merci pour ton temps !',
+      ctaPrimary: { label: 'Commencer', action: 'end' },
+    },
+  ];
+
+  /* ─── Styles ─── */
+  const css = document.createElement('style');
+  css.setAttribute('data-v79', 'tour');
+  css.textContent = `
+    .v79-overlay {
+      position: fixed; inset: 0;
+      z-index: 9000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+    .v79-overlay.v79-show {
+      pointer-events: auto;
+      opacity: 1;
+    }
+    .v79-spotlight {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 200px; height: 100px;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 9999px rgba(20, 18, 16, 0.78);
+      border: 1.5px solid rgba(184, 150, 90, 0.85);
+      transition:
+        top 0.35s cubic-bezier(.4,.2,.2,1),
+        left 0.35s cubic-bezier(.4,.2,.2,1),
+        width 0.35s cubic-bezier(.4,.2,.2,1),
+        height 0.35s cubic-bezier(.4,.2,.2,1),
+        opacity 0.28s ease;
+      pointer-events: none;
+    }
+    .v79-spotlight.v79-no-target {
+      width: 1px; height: 1px;
+      opacity: 0;
+      box-shadow: 0 0 0 9999px rgba(20, 18, 16, 0.86);
+    }
+    .v79-popup {
+      position: absolute;
+      width: 360px; max-width: calc(100vw - 36px);
+      background: #F5F2EC;
+      color: #2A2620;
+      box-shadow: 0 16px 42px rgba(0,0,0,0.38), 0 4px 10px rgba(0,0,0,0.18);
+      border-top: 3px solid #B8965A;
+      padding: 22px 26px 20px;
+      font-family: 'Jost', -apple-system, system-ui, sans-serif;
+      transition: top 0.35s cubic-bezier(.4,.2,.2,1), left 0.35s cubic-bezier(.4,.2,.2,1);
+      pointer-events: auto;
+    }
+    .v79-popup.v79-center {
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 440px;
+    }
+    .v79-eyebrow {
+      font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase;
+      color: #8C7340; font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .v79-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px; font-weight: 500;
+      letter-spacing: 0.005em; line-height: 1.15;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    .v79-body {
+      font-size: 13px; line-height: 1.55;
+      color: #4a4640;
+      margin-bottom: 18px;
+    }
+    .v79-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .v79-progress {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 10px; letter-spacing: 0.06em;
+      color: #7a7570;
+    }
+    .v79-actions { display: flex; gap: 8px; }
+    .v79-btn {
+      font-family: 'Jost', sans-serif;
+      font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #4a4640;
+    }
+    .v79-btn:hover { color: #1a1a1a; }
+    .v79-btn.v79-skip {
+      color: #9a958e;
+      margin-right: 6px;
+    }
+    .v79-btn.v79-skip:hover { color: #4a4640; }
+    .v79-btn.v79-prev {
+      border-color: #D8D2C7;
+      color: #4a4640;
+    }
+    .v79-btn.v79-prev:hover {
+      border-color: #B8965A;
+      color: #B8965A;
+    }
+    .v79-btn.v79-prev.v79-disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .v79-btn.v79-next {
+      background: #B8965A;
+      color: #1a1a1a;
+      border-color: #B8965A;
+    }
+    .v79-btn.v79-next:hover {
+      filter: brightness(1.10);
+    }
+    @media (max-width: 720px) {
+      .v79-popup {
+        width: calc(100vw - 28px);
+        left: 14px !important;
+        padding: 18px 20px 16px;
+      }
+      .v79-popup.v79-center {
+        top: 50% !important;
+        left: 14px !important;
+        transform: translateY(-50%);
+      }
+      .v79-title { font-size: 20px; }
+      .v79-body { font-size: 12px; }
+    }
+  `;
+  document.head.appendChild(css);
+
+  /* ─── State ─── */
+  const state = {
+    open: false,
+    index: 0,
+    overlay: null,
+    spotlight: null,
+    popup: null,
+    onResize: null,
+    onScroll: null,
+    onKey: null,
+  };
+
+  /* ─── Construction du DOM ─── */
+  function build() {
+    if (state.overlay) return;
+    state.overlay = document.createElement('div');
+    state.overlay.className = 'v79-overlay';
+
+    state.spotlight = document.createElement('div');
+    state.spotlight.className = 'v79-spotlight';
+    state.overlay.appendChild(state.spotlight);
+
+    state.popup = document.createElement('div');
+    state.popup.className = 'v79-popup';
+    state.overlay.appendChild(state.popup);
+
+    document.body.appendChild(state.overlay);
+  }
+
+  /* ─── Recherche d'un élément (avec fallback selectors) ─── */
+  function findTarget(selectorStr) {
+    if (!selectorStr) return null;
+    const selectors = selectorStr.split(',').map(s => s.trim()).filter(Boolean);
+    for (const sel of selectors) {
+      try {
+        const el = document.querySelector(sel);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) return el;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /* ─── Positionnement du popup intelligemment ─── */
+  function placePopup(targetRect) {
+    const popup = state.popup;
+    popup.classList.remove('v79-center');
+    /* Mesure popup APRÈS qu'il ait son contenu */
+    const popupW = popup.offsetWidth;
+    const popupH = popup.offsetHeight;
+    const margin = 18;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+
+    /* Si pas de cible → centrer */
+    if (!targetRect) {
+      popup.classList.add('v79-center');
+      popup.style.top = '';
+      popup.style.left = '';
+      return;
+    }
+
+    /* Préférence : à droite */
+    let placed = false;
+    if (targetRect.right + margin + popupW < vpW - 8) {
+      popup.style.left = (targetRect.right + margin) + 'px';
+      popup.style.top = Math.max(8, Math.min(vpH - popupH - 8, targetRect.top + (targetRect.height - popupH) / 2)) + 'px';
+      placed = true;
+    }
+    /* Sinon à gauche */
+    if (!placed && targetRect.left - margin - popupW > 8) {
+      popup.style.left = (targetRect.left - margin - popupW) + 'px';
+      popup.style.top = Math.max(8, Math.min(vpH - popupH - 8, targetRect.top + (targetRect.height - popupH) / 2)) + 'px';
+      placed = true;
+    }
+    /* Sinon en bas */
+    if (!placed && targetRect.bottom + margin + popupH < vpH - 8) {
+      popup.style.top = (targetRect.bottom + margin) + 'px';
+      popup.style.left = Math.max(8, Math.min(vpW - popupW - 8, targetRect.left + (targetRect.width - popupW) / 2)) + 'px';
+      placed = true;
+    }
+    /* Sinon en haut */
+    if (!placed && targetRect.top - margin - popupH > 8) {
+      popup.style.top = (targetRect.top - margin - popupH) + 'px';
+      popup.style.left = Math.max(8, Math.min(vpW - popupW - 8, targetRect.left + (targetRect.width - popupW) / 2)) + 'px';
+      placed = true;
+    }
+    /* Dernier recours : centrer */
+    if (!placed) {
+      popup.classList.add('v79-center');
+      popup.style.top = '';
+      popup.style.left = '';
+    }
+  }
+
+  /* ─── Positionnement du spotlight ─── */
+  function placeSpotlight(targetRect) {
+    const sp = state.spotlight;
+    if (!targetRect) {
+      sp.classList.add('v79-no-target');
+      return;
+    }
+    sp.classList.remove('v79-no-target');
+    const pad = 6;
+    const t = Math.max(0, targetRect.top - pad);
+    const l = Math.max(0, targetRect.left - pad);
+    const w = Math.min(window.innerWidth, targetRect.width + pad * 2);
+    const h = Math.min(window.innerHeight, targetRect.height + pad * 2);
+    /* Conversion en top/left absolus (centrer reset via transform) */
+    sp.style.transform = 'none';
+    sp.style.top = t + 'px';
+    sp.style.left = l + 'px';
+    sp.style.width = w + 'px';
+    sp.style.height = h + 'px';
+  }
+
+  /* ─── Rendu de l'étape courante ─── */
+  function render() {
+    const step = STEPS[state.index];
+    if (!step) { close(); return; }
+
+    /* Auto-skip si target non trouvé (sauf étape "welcome" et "end" qui sont centrées) */
+    let target = step.target ? findTarget(step.target) : null;
+    if (step.target && !target) {
+      /* Skip vers l'étape suivante automatiquement */
+      console.log('[tour] cible manquante pour étape "' + step.id + '" → skip');
+      if (state.index < STEPS.length - 1) {
+        state.index++;
+        setTimeout(render, 50);
+      } else {
+        close();
+      }
+      return;
+    }
+
+    /* Construire popup */
+    const isLast = state.index === STEPS.length - 1;
+    const isFirst = state.index === 0;
+    state.popup.innerHTML = `
+      <div class="v79-eyebrow">${escapeHtml(step.eyebrow || '')}</div>
+      <div class="v79-title">${escapeHtml(step.title || '')}</div>
+      <div class="v79-body">${escapeHtml(step.body || '')}</div>
+      <div class="v79-controls">
+        <div class="v79-progress">${String(state.index + 1).padStart(2, '0')} / ${String(STEPS.length).padStart(2, '0')}</div>
+        <div class="v79-actions">
+          ${isLast ? '' : '<button class="v79-btn v79-skip" data-action="skip">Passer</button>'}
+          <button class="v79-btn v79-prev ${isFirst ? 'v79-disabled' : ''}" data-action="prev">← Précédent</button>
+          <button class="v79-btn v79-next" data-action="next">${isLast ? 'Terminer ✓' : 'Suivant →'}</button>
+        </div>
+      </div>
+    `;
+
+    /* Wire actions */
+    state.popup.querySelectorAll('.v79-btn').forEach(b => {
+      const a = b.dataset.action;
+      b.addEventListener('click', () => {
+        if (a === 'next') {
+          if (isLast) close({ completed: true });
+          else { state.index++; render(); }
+        } else if (a === 'prev') {
+          if (state.index > 0) { state.index--; render(); }
+        } else if (a === 'skip') {
+          close({ skipped: true });
+        }
+      });
+    });
+
+    /* Placement */
+    if (target) {
+      const r = target.getBoundingClientRect();
+      placeSpotlight(r);
+      /* Délai pour que popup ait sa taille avant placement */
+      requestAnimationFrame(() => placePopup(r));
+    } else {
+      placeSpotlight(null);
+      requestAnimationFrame(() => placePopup(null));
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  /* ─── Re-positionnement sur resize/scroll ─── */
+  function repositionCurrent() {
+    if (!state.open) return;
+    const step = STEPS[state.index];
+    if (!step) return;
+    const target = step.target ? findTarget(step.target) : null;
+    if (target) {
+      const r = target.getBoundingClientRect();
+      placeSpotlight(r);
+      placePopup(r);
+    } else {
+      placeSpotlight(null);
+      placePopup(null);
+    }
+  }
+
+  /* ─── Open / Close ─── */
+  function open() {
+    if (state.open) return;
+    build();
+    state.open = true;
+    state.index = 0;
+    requestAnimationFrame(() => {
+      state.overlay.classList.add('v79-show');
+      render();
+    });
+
+    state.onResize = () => repositionCurrent();
+    state.onScroll = () => repositionCurrent();
+    state.onKey = (e) => {
+      if (e.key === 'Escape') close({ skipped: true });
+      else if (e.key === 'ArrowRight') {
+        if (state.index < STEPS.length - 1) { state.index++; render(); }
+        else close({ completed: true });
+      } else if (e.key === 'ArrowLeft') {
+        if (state.index > 0) { state.index--; render(); }
+      }
+    };
+    window.addEventListener('resize', state.onResize);
+    window.addEventListener('scroll', state.onScroll, true);
+    document.addEventListener('keydown', state.onKey);
+  }
+
+  function close(opts) {
+    if (!state.open) return;
+    state.open = false;
+    state.overlay.classList.remove('v79-show');
+    setTimeout(() => {
+      if (state.overlay && state.overlay.parentNode) {
+        state.overlay.parentNode.removeChild(state.overlay);
+      }
+      state.overlay = null;
+      state.spotlight = null;
+      state.popup = null;
+    }, 320);
+
+    if (state.onResize) window.removeEventListener('resize', state.onResize);
+    if (state.onScroll) window.removeEventListener('scroll', state.onScroll, true);
+    if (state.onKey) document.removeEventListener('keydown', state.onKey);
+
+    /* Marquer comme vu */
+    try { localStorage.setItem(STORAGE_KEY, new Date().toISOString()); } catch (_) {}
+
+    /* Nettoyer ?tour de l'URL pour ne pas relancer au refresh */
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('tour')) {
+        url.searchParams.delete('tour');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch (_) {}
+  }
+
+  /* ─── API publique ─── */
+  window.startStudioTour = open;
+  window.closeStudioTour = close;
+
+  /* ─── Auto-lancement si ?tour=1 ou ?tour=force ─── */
+  function maybeAutoStart() {
+    const url = new URL(window.location.href);
+    const tourParam = url.searchParams.get('tour');
+    if (!tourParam) return;
+
+    const force = tourParam === 'force';
+    if (!force) {
+      /* Si déjà vu, on ne relance pas automatiquement */
+      let seen = false;
+      try { seen = !!localStorage.getItem(STORAGE_KEY); } catch (_) {}
+      if (seen) {
+        console.log('[v79] tour déjà vu, ignore ?tour=1 (utilise ?tour=force pour forcer)');
+        return;
+      }
+    }
+
+    /* Lancement après que le DOM soit prêt avec retry */
+    function tryStart(attempt) {
+      if (attempt > 8) { open(); return; }   /* Lance quand même au bout de 8 tentatives */
+      const ready = document.querySelector('.nav-rail') && document.querySelector('.topbar')
+                 && document.querySelector('.leftpanel') && document.querySelector('.viewport');
+      if (ready) { open(); return; }
+      setTimeout(() => tryStart(attempt + 1), 350);
+    }
+
+    if (document.readyState === 'complete') {
+      setTimeout(() => tryStart(0), 800);
+    } else {
+      window.addEventListener('load', () => setTimeout(() => tryStart(0), 800));
+    }
+  }
+  maybeAutoStart();
+
+  console.log('[studio v79] visite guidée armée (?tour=1 / ?tour=force / startStudioTour())');
+})();
 </script>
 
 </body>
