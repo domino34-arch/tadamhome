@@ -27673,10 +27673,10 @@ console.log('[studio v3] prêt');
    l'autre. Lancé automatiquement par ?tour=1 dans l'URL, ou manuellement
    via window.startStudioTour().
 
-   13 étapes adaptées à la version actuelle (v70-v77) :
+   12 étapes adaptées à la version actuelle (v70-v77) :
     1. Bienvenue (popup centré, intro beta tester)
     2. Nav-rail (.nav-rail) — Navigation principale
-    3. Topbar (.topbar) — Identité du modèle (nom, marque, dimensions)
+    3. Topbar (.topbar) — Identité du modèle + état de sauvegarde
     4. Arborescence (.leftpanel) — Parties du meuble
     5. Viewport (.viewport) — Vue 3D + drag-drop fichiers
     6. Panneau Matériau (.rightpanel) — Édition + Bibliothèque
@@ -27684,9 +27684,11 @@ console.log('[studio v3] prêt');
     8. Bottombar (.bottombar) — Outils d'édition + Variantes (v73)
     9. Catalogue (#v69-cat-btn) — Switch entre produits
    10. AR / QR (.v50-ar-btn-rp) — Voir en réalité augmentée
-   11. État sauvegarde (.tb-save-box) — Auto-save Supabase
-   12. Exports (.rp-views) — Téléchargement GLB/USDZ/OBJ/DAE
-   13. C'est tout (popup centré + remerciements)
+   11. Paramètres / Exports (.admin-panel) — Auto-ouvre le panneau gauche
+   12. C'est tout (popup centré + remerciements)
+
+   Quelques étapes utilisent un hook `beforeShow` pour préparer l'état du
+   studio (ex: ouvrir l'admin-panel) et `afterHide` pour le nettoyer.
 
    Technique : overlay fixe + spotlight rectangulaire via box-shadow inset
    large (technique standard, marche partout) + popup positionné
@@ -27714,96 +27716,133 @@ console.log('[studio v3] prêt');
     {
       id: 'welcome',
       target: null,    /* null = popup centré, pas de spotlight */
-      eyebrow: 'Visite guidée · 13 étapes · 2 min',
+      eyebrow: 'Visite guidée · 12 étapes · 2 min',
       title: 'Bienvenue dans le studio.',
-      body: 'On va parcourir ensemble chaque zone de l\'interface — arborescence, vue 3D, matériaux, variantes, AR. Tu pourras quitter à tout moment avec Échap ou Passer.',
+      body: 'On va parcourir ensemble chaque zone de l\'interface — arborescence, vue 3D, matériaux, variantes, AR, exports. Tu pourras quitter à tout moment avec Échap ou Passer.',
     },
     {
       id: 'nav-rail',
       target: '.nav-rail',
-      eyebrow: 'Zone 1 sur 11',
+      eyebrow: 'Zone 1 sur 10',
       title: 'Navigation principale',
-      body: 'La colonne de gauche regroupe la navigation entre tes outils : atelier, studio, catalogue, wall. Tu reviendras au tableau de bord depuis ici.',
+      body: 'La colonne sombre à gauche regroupe la navigation entre les outils TadamHome (catalogue, matériaux, sols, icônes…). Le bouton burger en haut ouvre le panneau Paramètres. Le bouton ? en bas relance cette visite à tout moment.',
     },
     {
       id: 'topbar',
       target: '.topbar',
-      eyebrow: 'Zone 2 sur 11',
+      eyebrow: 'Zone 2 sur 10',
       title: 'Identité du modèle',
-      body: 'Catégorie à gauche, puis nom + marque, dimensions L×H×P (cm) et état de sauvegarde. Tout est éditable. La pastille verte indique que ton travail est enregistré dans Supabase.',
+      body: 'La barre du haut affiche la catégorie à gauche, puis nom + marque du modèle. Quand un produit est chargé, ses dimensions L×H×P (cm) et l\'état de sauvegarde apparaissent à droite. Tout est éditable en place. À l\'extrême droite, les onglets Matériau / Géométrie / Scène donnent accès au panneau d\'édition.',
     },
     {
       id: 'leftpanel',
       target: '.leftpanel',
-      eyebrow: 'Zone 3 sur 11',
+      eyebrow: 'Zone 3 sur 10',
       title: 'Arborescence du meuble',
-      body: 'Le modèle est segmenté en parties : piétement, assise, dossier, coque… Clique sur une partie pour la sélectionner et éditer son matériau. L\'icône œil masque, le cadenas verrouille. "Auto-segmenter" en bas détecte les parties automatiquement selon la catégorie.',
+      body: 'Le modèle est segmenté en parties : piétement, assise, dossier, coque… Clique sur une partie pour la sélectionner et éditer son matériau. L\'icône œil masque, le cadenas verrouille. Le bouton "Auto-segmenter" en bas détecte les parties automatiquement selon la catégorie.',
     },
     {
       id: 'viewport',
       target: '.viewport',
-      eyebrow: 'Zone 4 sur 11',
+      eyebrow: 'Zone 4 sur 10',
       title: 'Vue 3D interactive',
       body: 'Glisse pour orbiter, molette pour zoomer, clic-droit pour panner. Tu peux glisser-déposer ici un fichier OBJ, FBX ou 3DS directement depuis 3DS Max — le studio l\'importe et le redresse en Z-up automatiquement. Cliquer sur une partie 3D ouvre son panneau matériau.',
     },
     {
       id: 'rightpanel',
       target: '.rightpanel',
-      eyebrow: 'Zone 5 sur 11',
+      eyebrow: 'Zone 5 sur 10',
       title: 'Panneau matériau & bibliothèque',
       body: 'Trois onglets : Matériau (édite la matière de la partie sélectionnée), Géométrie (dimensions, projection UV, options) et Scène. La bibliothèque te donne accès aux matières référencées avec leurs textures haute définition.',
+      beforeShow: closeCatalogueIfOpen,
     },
     {
       id: 'recents',
       target: '.lib-recent',
-      eyebrow: 'Zone 6 sur 11',
+      eyebrow: 'Zone 6 sur 10',
       title: 'Matières récemment utilisées',
       body: 'Les 5 dernières matières que tu as appliquées, tous projets confondus. Pratique pour réutiliser sans re-fouiller la bibliothèque — par exemple si tu travailles une finition bouclette sur plusieurs meubles.',
+      beforeShow: closeCatalogueIfOpen,
     },
     {
       id: 'bottombar',
       target: '.bottombar',
-      eyebrow: 'Zone 7 sur 11',
+      eyebrow: 'Zone 7 sur 10',
       title: 'Outils d\'édition & Variantes',
-      body: 'En bas de l\'arbo : Mesh / Groupe / Pivot, le bouton "Auto-segmenter" qui découpe le modèle, "Persister la structure" qui écrit la segmentation dans le GLB source, et les chips de variantes (Base, Variante 1, +Nouvelle variante) — chaque variante est un set de matériaux qui partage la même géométrie.',
+      body: 'En bas de l\'arbo : Mesh / Groupe / Pivot, le bouton "Auto-segmenter" qui découpe le modèle, "Sauvegarder les groupes" qui écrit la segmentation dans le GLB source, et les chips de variantes (Base, Variante 1, +Nouvelle variante) — chaque variante est un set de matériaux qui partage la même géométrie.',
     },
     {
       id: 'catalogue',
       target: '#v69-cat-btn',
-      eyebrow: 'Zone 8 sur 11',
+      eyebrow: 'Zone 8 sur 10',
       title: 'Catalogue',
       body: 'Le bouton CATALOGUE doré en haut à droite ouvre une vignette de tous les produits déjà publiés. Click sur un produit → tu bascules dessus sans quitter le studio. Idéal pour comparer ou cloner un setup de matières.',
     },
     {
       id: 'ar',
       target: '.v50-ar-btn-rp',
-      eyebrow: 'Zone 9 sur 11',
+      eyebrow: 'Zone 9 sur 10',
       title: 'Voir en réalité augmentée',
       body: 'Ce bouton génère un QR code à scanner avec l\'iPhone ou l\'iPad de ton client. L\'AR s\'ouvre directement dans Safari (USDZ) ou Chrome (GLB/Scene Viewer) — aucune installation requise. Parfait pour valider une finition avec un client en rendez-vous.',
-    },
-    {
-      id: 'save',
-      target: '.tb-save-box',
-      eyebrow: 'Zone 10 sur 11',
-      title: 'État de sauvegarde',
-      body: 'La pastille te dit en temps réel si ton travail est enregistré. Tous les changements de matière, variante, dimension sont auto-sauvegardés dans Supabase quelques secondes après modification. Tu peux aussi forcer un flush manuel via le bouton "Sauvegarder l\'état" dans le panneau Paramètres.',
+      beforeShow: closeCatalogueIfOpen,
     },
     {
       id: 'exports',
-      target: '.rp-views, .rightpanel',
-      eyebrow: 'Zone 11 sur 11',
-      title: 'Exports locaux',
-      body: 'Dans le panneau de droite (onglet Paramètres / Exports), tu peux télécharger ton modèle texturé en GLB, USDZ, OBJ ou DAE (Collada). DAE réimporte parfaitement dans 3DS Max avec les matériaux. L\'export FBX direct arrive — en attendant, DAE fait le pont.',
+      target: '.admin-panel.open',
+      eyebrow: 'Zone 10 sur 10',
+      title: 'Paramètres & exports',
+      body: 'Le panneau Paramètres glisse depuis la gauche (ouvert par le burger en haut du nav-rail). Tu y trouves : la catégorie du modèle, le chargement d\'un OBJ, et les exports — GLB, USDZ, OBJ et DAE (Collada). DAE réimporte parfaitement dans 3DS Max avec les matériaux. L\'export FBX direct arrive — en attendant, DAE fait le pont.',
+      beforeShow: openAdminPanelIfNeeded,
+      afterHide: closeAdminPanelIfWeOpenedIt,
     },
     {
       id: 'end',
       target: null,
       eyebrow: 'C\'est tout !',
       title: 'Bonne exploration.',
-      body: 'Tu peux relancer cette visite à tout moment depuis ton tableau de bord. Pour toute question, bug ou suggestion d\'amélioration, le bouton "Envoyer un retour" t\'ouvre un email pré-rempli. Merci pour ton temps !',
-      ctaPrimary: { label: 'Commencer', action: 'end' },
+      body: 'Tu peux relancer cette visite à tout moment via le bouton ? en bas du nav-rail à gauche. Pour toute question, bug ou suggestion d\'amélioration, le bouton "Envoyer un retour" sur ton tableau de bord t\'ouvre un email pré-rempli. Merci pour ton temps !',
     },
   ];
+
+  /* ─── Helpers pour les hooks beforeShow / afterHide ─── */
+  let _tourOpenedAdminPanel = false;
+
+  function closeCatalogueIfOpen() {
+    /* Le catalogue v69 est ouvert si #v69-cat-btn a un fond sombre (#1a1a1a).
+       On le ferme en simulant un click sur le bouton. */
+    const catBtn = document.getElementById('v69-cat-btn');
+    if (!catBtn) return Promise.resolve();
+    const bg = (catBtn.style.background || '').toLowerCase();
+    const isOpen = bg.includes('rgb(26') || bg.includes('#1a1a1a') || bg === '#1a1a1a';
+    if (isOpen) {
+      catBtn.click();
+      return new Promise(r => setTimeout(r, 250));
+    }
+    return Promise.resolve();
+  }
+
+  function openAdminPanelIfNeeded() {
+    if (typeof window.toggleAdminPanel !== 'function') return Promise.resolve();
+    const panel = document.getElementById('adminPanel');
+    if (!panel) return Promise.resolve();
+    const alreadyOpen = panel.classList.contains('open');
+    if (alreadyOpen) {
+      _tourOpenedAdminPanel = false;   /* il était déjà ouvert, on ne le fermera pas */
+      return Promise.resolve();
+    }
+    window.toggleAdminPanel();
+    _tourOpenedAdminPanel = true;
+    return new Promise(r => setTimeout(r, 420));   /* anim 360ms + marge */
+  }
+
+  function closeAdminPanelIfWeOpenedIt() {
+    if (!_tourOpenedAdminPanel) return Promise.resolve();
+    if (typeof window.closeAdminPanel === 'function') {
+      window.closeAdminPanel();
+    }
+    _tourOpenedAdminPanel = false;
+    return new Promise(r => setTimeout(r, 380));
+  }
 
   /* ─── Styles ─── */
   const css = document.createElement('style');
@@ -28060,9 +28099,25 @@ console.log('[studio v3] prêt');
   }
 
   /* ─── Rendu de l'étape courante ─── */
-  function render() {
+  let _prevStepIndex = -1;
+
+  async function render() {
+    /* Si on change d'étape : déclencher afterHide de l'étape précédente */
+    if (_prevStepIndex >= 0 && _prevStepIndex !== state.index) {
+      const prev = STEPS[_prevStepIndex];
+      if (prev && typeof prev.afterHide === 'function') {
+        try { await prev.afterHide(); } catch (e) { console.warn('[v79] afterHide erreur:', e); }
+      }
+    }
+    _prevStepIndex = state.index;
+
     const step = STEPS[state.index];
     if (!step) { close(); return; }
+
+    /* Exécuter beforeShow (peut ouvrir/fermer un panneau) */
+    if (typeof step.beforeShow === 'function') {
+      try { await step.beforeShow(); } catch (e) { console.warn('[v79] beforeShow erreur:', e); }
+    }
 
     /* Auto-skip si target non trouvé (sauf étape "welcome" et "end" qui sont centrées) */
     let target = step.target ? findTarget(step.target) : null;
@@ -28150,6 +28205,7 @@ console.log('[studio v3] prêt');
     build();
     state.open = true;
     state.index = 0;
+    _prevStepIndex = -1;
     requestAnimationFrame(() => {
       state.overlay.classList.add('v79-show');
       render();
@@ -28171,10 +28227,17 @@ console.log('[studio v3] prêt');
     document.addEventListener('keydown', state.onKey);
   }
 
-  function close(opts) {
+  async function close(opts) {
     if (!state.open) return;
+
+    /* Déclencher afterHide de l'étape courante avant de fermer */
+    const currentStep = STEPS[state.index];
+    if (currentStep && typeof currentStep.afterHide === 'function') {
+      try { await currentStep.afterHide(); } catch (e) { console.warn('[v79] afterHide (close) erreur:', e); }
+    }
+
     state.open = false;
-    state.overlay.classList.remove('v79-show');
+    if (state.overlay) state.overlay.classList.remove('v79-show');
     setTimeout(() => {
       if (state.overlay && state.overlay.parentNode) {
         state.overlay.parentNode.removeChild(state.overlay);
@@ -28187,6 +28250,8 @@ console.log('[studio v3] prêt');
     if (state.onResize) window.removeEventListener('resize', state.onResize);
     if (state.onScroll) window.removeEventListener('scroll', state.onScroll, true);
     if (state.onKey) document.removeEventListener('keydown', state.onKey);
+
+    _prevStepIndex = -1;
 
     /* Marquer comme vu */
     try { localStorage.setItem(STORAGE_KEY, new Date().toISOString()); } catch (_) {}
