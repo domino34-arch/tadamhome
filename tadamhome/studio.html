@@ -516,11 +516,15 @@ button{font-family:inherit;cursor:pointer}
   background:var(--gold);
 }
 .mat-close{
+  /* v70.1 — masqué : croix sans intérêt UX (le toggle "Masquer la fiche"
+     du topbar fait déjà le job, et le X dans le rightpanel donne l'impression
+     de fermer le contenu plutôt que tout le panneau). */
+  display:none !important;
   width:28px;height:28px;
   border:none;
   background:transparent;
   color:var(--ink-muted);
-  display:flex;align-items:center;justify-content:center;
+  align-items:center;justify-content:center;
 }
 .mat-close:hover{color:var(--ink)}
 .mat-close svg{width:11px;height:11px}
@@ -890,13 +894,25 @@ button{font-family:inherit;cursor:pointer}
   color:var(--ink);
   line-height:1.1;
   letter-spacing:0.005em;
+  /* v74.3 — Toujours réserver 2 lignes pour que les vignettes soient alignées
+     dans la grille 2-col, peu importe la longueur du nom. line-clamp tronque
+     avec ellipsis si le nom dépasse vraiment 2 lignes (rare). min-height
+     remplit le vide pour les noms courts (1 ligne) → bottom des cartes aligné. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(14px * 1.1 * 2); /* font-size × line-height × 2 lignes */
 }
 .lib-card-sub{
+  /* v74.3 — Réserver une hauteur minimale même quand .lib-card-sub n'est pas
+     rendu, pour que les cartes avec/sans sub gardent la même hauteur totale. */
   margin-top:1px;
   font-size:9px;
   letter-spacing:0.14em;
   text-transform:uppercase;
   color:var(--ink-muted);
+  min-height: calc(9px * 1.4);
 }
 .lib-card.is-current .lib-card-thumb{
   border:2px solid var(--gold);
@@ -2788,6 +2804,28 @@ button{font-family:inherit;cursor:pointer}
   scrollbar-width: thin;
   scrollbar-color: rgba(184,150,90,0.35) transparent;
 }
+/* v70.1 — Sticky horizontal du groupe Parties/Mesh/Pipette : ils restent
+   toujours visibles à gauche même quand on scrolle la bottombar pour atteindre
+   les variantes / actions à droite. Background opaque pour masquer ce qui
+   scrolle dessous, padding-right pour la respiration, z-index pour passer
+   au-dessus des boutons qui défilent. */
+.bottombar .mode-group {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  z-index: 3;
+  padding-right: 10px;
+  /* Petite ombre douce vers la droite pour signaler que le contenu continue */
+  box-shadow: 6px 0 8px -6px rgba(0,0,0,0.10);
+}
+.bottombar .mode-group + .mode-sep {
+  /* Le séparateur après le groupe sticky doit aussi être sticky pour rester
+     collé visuellement. Position calculée sur la largeur du mode-group. */
+  position: sticky;
+  left: var(--mode-group-w, 0);
+  background: var(--bg);
+  z-index: 2;
+}
 .bottombar::-webkit-scrollbar { height: 4px; }
 .bottombar::-webkit-scrollbar-track { background: transparent; }
 .bottombar::-webkit-scrollbar-thumb { background: rgba(184,150,90,0.35); border-radius: 2px; }
@@ -3029,12 +3067,13 @@ button{font-family:inherit;cursor:pointer}
 .v27-modal {
   background: var(--bg);
   border: 1px solid var(--line);
-  width: 460px;
+  width: 720px;
   max-width: calc(100vw - 40px);
   max-height: 90vh;
   overflow-y: auto;
   transform: scale(0.96);
   transition: transform 0.24s cubic-bezier(.4,.2,.2,1);
+  position: relative;
 }
 .v27-modal-backdrop.open .v27-modal {
   transform: scale(1);
@@ -3160,6 +3199,300 @@ button{font-family:inherit;cursor:pointer}
 .v27-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   V27.5 — Refonte modale = miroir de la fiche éditoriale admin
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Close X en haut-droite de la modale (parité admin) */
+.v27-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  z-index: 2;
+}
+.v27-close:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.v27-close svg { width: 12px; height: 12px; }
+
+/* Sections internes (mêmes codes que .admin-section côté admin) */
+.v27-section {
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--line-light, rgba(0,0,0,0.06));
+}
+.v27-section:last-of-type { border-bottom: none; }
+
+.v27-section-eyebrow {
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.v27-section-eyebrow::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--gold);
+  display: inline-block;
+}
+
+.v27-section-help {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: -4px 0 14px;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+}
+
+/* Grilles internes aux sections */
+.v27-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.v27-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+/* En reprenant .v27-field existant, on neutralise sa marge dans les grilles */
+.v27-grid-2 .v27-field,
+.v27-grid-3 .v27-field {
+  margin-bottom: 0;
+}
+
+/* Slots fichiers 3D (drop-zone style admin) */
+.v27-file-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 22px 12px;
+  min-height: 130px;
+  background: rgba(184, 150, 90, 0.04);
+  border: 1px dashed rgba(184, 150, 90, 0.45);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.v27-file-slot:hover {
+  background: rgba(184, 150, 90, 0.08);
+  border-color: var(--gold);
+}
+.v27-file-slot.is-filled {
+  background: rgba(184, 150, 90, 0.10);
+  border-style: solid;
+  border-color: var(--gold);
+}
+.v27-file-slot.is-locked {
+  cursor: default;
+}
+.v27-file-slot-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.v27-file-slot-format {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.v27-file-slot-tag {
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.v27-file-slot-cta {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-muted);
+  letter-spacing: 0.005em;
+}
+.v27-file-slot.is-filled .v27-file-slot-cta {
+  color: var(--gold);
+  font-style: normal;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.v27-file-slot-meta {
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+.v27-file-slot-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(0,0,0,0.04);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.v27-file-slot.is-filled:not(.is-locked) .v27-file-slot-clear {
+  display: flex;
+}
+.v27-file-slot-clear:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* Photo de couverture : thumbnail à gauche + drop-zone à droite */
+.v27-photo-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+.v27-photo-thumb {
+  aspect-ratio: 1 / 1;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(184, 150, 90, 0.06),
+    rgba(184, 150, 90, 0.06) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.v27-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+.v27-photo-drop {
+  border: 1px dashed rgba(184, 150, 90, 0.45);
+  background: rgba(184, 150, 90, 0.04);
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.18s;
+}
+.v27-photo-drop:hover {
+  background: rgba(184, 150, 90, 0.08);
+  border-color: var(--gold);
+}
+.v27-photo-drop-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.v27-photo-drop-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.005em;
+  line-height: 1.45;
+}
+
+/* Section header (eyebrow + nom + marque) plus aéré au-dessus des sections */
+.v27-modal-head-clean {
+  padding: 22px 28px 8px;
+  border-bottom: none;
+}
+.v27-modal-head-clean .v27-modal-eyebrow { margin-bottom: 4px; }
+.v27-modal-head-clean .v27-modal-title { font-size: 26px; }
+
+/* Footer dans la même teinte cream que la modale admin */
+.v27-modal-foot-clean {
+  padding: 16px 28px 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+/* Bouton primary noir (parité admin "ENREGISTRER") */
+.v27-btn.primary-dark {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.v27-btn.primary-dark:hover {
+  background: #000;
+  border-color: #000;
+}
+
+/* Responsive : sur mobile, les grilles 3-col deviennent 1-col */
+@media (max-width: 560px) {
+  .v27-modal { width: calc(100vw - 24px); }
+  .v27-grid-2,
+  .v27-grid-3 { grid-template-columns: 1fr; gap: 10px; }
+  .v27-photo-row { grid-template-columns: 1fr; }
+  .v27-photo-thumb { aspect-ratio: 3 / 2; }
+  .v27-section { padding: 16px 20px; }
+  .v27-modal-head-clean { padding: 18px 20px 6px; }
+  .v27-modal-foot-clean { padding: 14px 20px 18px; }
 }
 
 /* État verrouillé des inputs dimensions */
@@ -4052,6 +4385,9 @@ function toast(msg, type='ok', dur=3500) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), dur);
 }
+/* V77 — expose toast globalement pour que les modules en <script> non-module
+   (V77 et suivants) puissent l'utiliser via window.toast. */
+window.toast = toast;
 
 /* ─── imports Three ─── */
 let THREE, OBJLoader, OrbitControls;
@@ -4093,6 +4429,15 @@ const partMaterials = {};
 const partMaterialChoices = {};
 let activePartKey   = null;
 let allMaterials    = [];
+/* V77 — expose allMaterials globalement pour que V76 (script non-module)
+   puisse retrouver les infos matière (thumbnail_url, name, etc.) au moment
+   où il track une application dans la liste des récents.
+   La référence est ré-évaluée à chaque accès puisqu'elle est mutable :
+   on définit un getter pour toujours pointer sur la dernière valeur. */
+Object.defineProperty(window, 'allMaterials', {
+  get() { return allMaterials; },
+  configurable: true
+});
 let currentLibCategory = '';
 
 /* ═════════════════════════ THREE INIT ═════════════════════════ */
@@ -4321,7 +4666,10 @@ function selectPartReal(key) {
   document.querySelectorAll('.tree-row').forEach(r => r.classList.toggle('selected', r.dataset.key === key));
 
   Object.entries(partMaterials).forEach(([k, mat]) => {
-    mat.emissive && mat.emissive.setHex(k === key ? 0x2A1A00 : 0x000000);
+    /* v74.2 — Plus d'emissif persistant. V74 module pose un flash transitoire
+       à la place via flashHighlightPart(). On clear systématiquement. */
+    mat.emissive && mat.emissive.setHex(0x000000);
+    if (mat) mat.emissiveIntensity = 0;
   });
 
   const eyebrow = document.querySelector('.mat-eyebrow');
@@ -4457,7 +4805,7 @@ function renderLibrary() {
       <button class="lib-card${isCur}" data-mat-id="${m.id}">
         <div class="lib-card-thumb" style="${bgStyle}"></div>
         <div class="lib-card-name">${escapeHtml(m.name || '—')}</div>
-        ${sub ? '<div class="lib-card-sub">' + escapeHtml(sub) + '</div>' : ''}
+        <div class="lib-card-sub">${sub ? escapeHtml(sub) : ''}</div>
       </button>
     `;
   }).join('');
@@ -4589,7 +4937,7 @@ if (libSearchInput) {
       const thumb = m.thumbnail_url || m.albedo_url || '';
       const sub = [m.subcategory, m.ref_code].filter(Boolean).join(' · ');
       const bgStyle = thumb ? `background-image:url('${thumb}');background-size:cover;background-position:center` : `background:${m.base_color || '#888'}`;
-      return `<button class="lib-card" data-mat-id="${m.id}"><div class="lib-card-thumb" style="${bgStyle}"></div><div class="lib-card-name">${escapeHtml(m.name||'—')}</div>${sub?'<div class="lib-card-sub">'+escapeHtml(sub)+'</div>':''}</button>`;
+      return `<button class="lib-card" data-mat-id="${m.id}"><div class="lib-card-thumb" style="${bgStyle}"></div><div class="lib-card-name">${escapeHtml(m.name||'—')}</div><div class="lib-card-sub">${sub?escapeHtml(sub):''}</div></button>`;
     }).join('');
     grid.querySelectorAll('.lib-card').forEach(card => {
       card.onclick = () => applyMaterialFromSupabase(card.dataset.matId, card);
@@ -4643,7 +4991,9 @@ const partProjection = {};
 function flashHighlightPart(key) {
   const mat = partMaterials[key];
   if (!mat || !mat.emissive) return;
-  const baseEmissive = 0x442200;
+  /* v74.2 — Ancienne version qui laissait un emissif amber 0x442200 à intensité
+     0.5 après décai. On décai vers 0x000000 / intensity 0 à la place pour
+     éviter le "filtre rouge persistant" sur les parts sélectionnées. */
   const flashEmissive = 0x884422;
   mat.emissive.setHex(flashEmissive);
   mat.emissiveIntensity = 1.0;
@@ -4651,11 +5001,11 @@ function flashHighlightPart(key) {
   function decay() {
     const t = (performance.now() - t0) / 600;
     if (t >= 1) {
-      mat.emissive.setHex(baseEmissive);
-      mat.emissiveIntensity = 0.5;
+      mat.emissive.setHex(0x000000);
+      mat.emissiveIntensity = 0;
       return;
     }
-    mat.emissiveIntensity = 1.0 - 0.5 * t;
+    mat.emissiveIntensity = 1.0 - 1.0 * t;
     requestAnimationFrame(decay);
   }
   requestAnimationFrame(decay);
@@ -4663,10 +5013,12 @@ function flashHighlightPart(key) {
 
 const _origSelectPart = selectPartReal;
 selectPartReal = function(key) {
+  /* v74.2 — Plus d'emissif persistant 0x442200 / 0.5. V74 module wrappe
+     cette fonction et déclenche un flash rouge transitoire à la place. */
   Object.entries(partMaterials).forEach(([k, mat]) => {
     if (mat.emissive) {
-      mat.emissive.setHex(k === key ? 0x442200 : 0x000000);
-      mat.emissiveIntensity = k === key ? 0.5 : 0;
+      mat.emissive.setHex(0x000000);
+      mat.emissiveIntensity = 0;
     }
   });
   activePartKey = key;
@@ -5035,16 +5387,26 @@ selectPartReal = function(key) {
   });
 };
 
-flashHighlightPart = function(key, color = 0xFF2222, duration = 600) {
+flashHighlightPart = function(key, color = 0xB8965A, duration = 220) {
   const mat = partMaterials[key];
   if (!mat || !mat.emissive) return;
+  /* v77.6 — Default complet en gold subtle, plus de trace de rouge dans le code.
+     Les appelants qui passent une couleur explicite (mesh bleu 0x2266FF,
+     pipette vert 0x22DD22) restent inchangés. Si quelqu'un passe encore
+     0xFF2222 par accident ou code legacy, on l'intercepte en gold aussi. */
+  if (color === 0xFF2222 || color === 0xFF7A1A || color === 0xFF8800) {
+    color = 0xB8965A;
+    duration = 220;
+  }
+  const isGoldFlash = (color === 0xB8965A);
+  const peakIntensity = isGoldFlash ? 0.35 : 0.9;
   mat.emissive.setHex(color);
-  mat.emissiveIntensity = 0.9;
+  mat.emissiveIntensity = peakIntensity;
   const t0 = performance.now();
   function decay() {
     const t = (performance.now() - t0) / duration;
     if (t >= 1) { mat.emissive.setHex(0x000000); mat.emissiveIntensity = 0; return; }
-    mat.emissiveIntensity = 0.9 * (1 - t);
+    mat.emissiveIntensity = peakIntensity * (1 - t);
     requestAnimationFrame(decay);
   }
   requestAnimationFrame(decay);
@@ -5351,7 +5713,10 @@ renderTree = function(parts) {
         cn.onclick = (ev) => {
           ev.stopPropagation();
           selectPartReal(p.key);
-          if (mesh.material && mesh.material.emissive) {
+          /* v77.6 — Flash orange retiré (l'utilisateur ne veut plus de rouge/orange).
+             selectPartReal déclenche déjà flashHighlightPart qui produit un flash
+             gold subtle via le fix v77.5. */
+          if (false && mesh.material && mesh.material.emissive) {
             mesh.material.emissive.setHex(0xFF8800);
             mesh.material.emissiveIntensity = 0.9;
             const t0 = performance.now();
@@ -6729,32 +7094,19 @@ console.log('[studio v20] UI v20 prête — viewer agrandi, sol 3D, boutons grou
     return key;
   }
 
-  /* ─── Highlights : applique l'emissive sur tous les parts sélectionnés ─── */
+  /* ─── Highlights : v77.6 — Plus AUCUN emissif persistant sur les parts
+     sélectionnés. L'utilisateur a explicitement demandé : "je ne veux plus
+     une seul trace de ce filtre". La sélection est entièrement gérée par
+     les .tree-row.selected dans le panneau de gauche.
+     Les flashs transitoires (gold via flashHighlightPart, bleu mesh,
+     vert pipette) restent inchangés ailleurs. */
   function updateMultiSelectVisuals() {
-    /* On nettoie d'abord tous les parts NON sélectionnés
-       (l'origSelectPartReal n'a nettoyé que les autres-que-active) */
+    /* On nettoie TOUS les emissifs des meshes connus, sélectionnés ou pas */
     Object.keys(meshGroups || {}).forEach(k => {
-      if (S.selectedParts.has(k)) return;
       (meshGroups[k] || []).forEach(mesh => {
         if (mesh.material && mesh.material.emissive) {
           mesh.material.emissive.setHex(0x000000);
           mesh.material.emissiveIntensity = 0;
-        }
-      });
-    });
-    /* Puis on rallume les sélectionnés (actif en orange vif, autres en doré subtil) */
-    S.selectedParts.forEach(key => {
-      const meshes = meshGroups[key] || [];
-      const isActive = key === S.lastClickedKey;
-      meshes.forEach(mesh => {
-        if (mesh.material && mesh.material.emissive) {
-          if (isActive) {
-            mesh.material.emissive.setHex(0xFF7A1A);
-            mesh.material.emissiveIntensity = 0.35;
-          } else {
-            mesh.material.emissive.setHex(0xB8965A);
-            mesh.material.emissiveIntensity = 0.22;
-          }
         }
       });
     });
@@ -7710,11 +8062,13 @@ console.log('[studio v22] clic droit → Grouper / Dégrouper / Supprimer / Isol
           `;
           mrow.onclick = (ev) => {
             ev.stopPropagation();
-            /* Flash visuel sur le mesh */
+            /* v77.6 — Flash visuel sur le mesh : passe de orange (0xFF8800) à
+               bleu (0x2266FF) conformément à la convention utilisateur
+               "mesh = bleu". */
             if (mesh.material && mesh.material.emissive) {
               const prevHex = mesh.material.emissive.getHex();
               const prevI = mesh.material.emissiveIntensity;
-              mesh.material.emissive.setHex(0xFF8800);
+              mesh.material.emissive.setHex(0x2266FF);
               mesh.material.emissiveIntensity = 0.9;
               setTimeout(() => {
                 mesh.material.emissive.setHex(prevHex);
@@ -8780,17 +9134,35 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     backdrop.id = 'v27Modal';
     backdrop.innerHTML = `
       <div class="v27-modal" role="dialog" aria-labelledby="v27Title" aria-modal="true">
-        <div class="v27-modal-head">
+        <button class="v27-close" id="v27BtnClose" title="Fermer" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>
+        </button>
+
+        <div class="v27-modal-head v27-modal-head-clean">
           <div class="v27-modal-eyebrow">Nouveau modèle</div>
           <div class="v27-modal-title" id="v27Title">Informations du modèle 3D</div>
           <div class="v27-modal-subtitle" id="v27Subtitle">—</div>
         </div>
-        <div class="v27-modal-body">
-          <div class="v27-field">
-            <label class="v27-field-label" for="v27Name">Nom du modèle<span class="required">*</span></label>
-            <input id="v27Name" type="text" placeholder="ex. Aria B-5310" autocomplete="off">
+
+        <!-- ═══ IDENTITÉ ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Identité</div>
+          <div class="v27-grid-2">
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27Name">Nom<span class="required">*</span></label>
+              <input id="v27Name" type="text" placeholder="ex. Aria B-5310" autocomplete="off">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27Brand">Marque / Enseigne<span class="required">*</span></label>
+              <input id="v27Brand" type="text" list="brandList" autocomplete="off" placeholder="ex. Paged">
+            </div>
           </div>
-          <div class="v27-field-row">
+        </section>
+
+        <!-- ═══ CLASSIFICATION & PRIX ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Classification &amp; Prix</div>
+          <div class="v27-grid-2">
             <div class="v27-field">
               <label class="v27-field-label" for="v27Category">Catégorie<span class="required">*</span></label>
               <select id="v27Category">
@@ -8799,46 +9171,143 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
             </div>
             <div class="v27-field">
               <label class="v27-field-label" for="v27Price">Prix (€)</label>
-              <input id="v27Price" type="number" step="0.01" min="0" placeholder="optionnel">
+              <input id="v27Price" type="number" step="0.01" min="0" placeholder="ex. 450">
             </div>
           </div>
-          <div class="v27-field">
-            <label class="v27-field-label" for="v27Brand">Marque<span class="required">*</span></label>
-            <input id="v27Brand" type="text" list="brandList" autocomplete="off" placeholder="ex. Paged">
-          </div>
-          <div class="v27-field">
-            <label class="v27-field-label">Dimensions (cm)<span class="required">*</span></label>
-            <div class="v27-field-dims">
-              <div class="v27-dim-cell">
-                <input id="v27DimL" type="number" step="0.1" min="0" placeholder="Largeur">
-                <span class="v27-dim-suffix">L</span>
-              </div>
-              <div class="v27-dim-cell">
-                <input id="v27DimH" type="number" step="0.1" min="0" placeholder="Hauteur">
-                <span class="v27-dim-suffix">H</span>
-              </div>
-              <div class="v27-dim-cell">
-                <input id="v27DimP" type="number" step="0.1" min="0" placeholder="Profondeur">
-                <span class="v27-dim-suffix">P</span>
-              </div>
+        </section>
+
+        <!-- ═══ DIMENSIONS ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Dimensions (cm)</div>
+          <div class="v27-grid-3">
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimL">Largeur (L)<span class="required">*</span></label>
+              <input id="v27DimL" type="number" step="0.1" min="0" placeholder="L">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimH">Hauteur (H)<span class="required">*</span></label>
+              <input id="v27DimH" type="number" step="0.1" min="0" placeholder="H">
+            </div>
+            <div class="v27-field">
+              <label class="v27-field-label" for="v27DimP">Profondeur (P)<span class="required">*</span></label>
+              <input id="v27DimP" type="number" step="0.1" min="0" placeholder="P">
             </div>
           </div>
-        </div>
-        <div class="v27-modal-foot">
+        </section>
+
+        <!-- ═══ FICHIERS 3D ═══
+             Supprimé depuis V70.1 : OBJ est uploadé automatiquement par V34
+             au moment de la création du produit (déjà chargé en mémoire au
+             drop). GLB / USDZ sont auto-exportés par V49 depuis la scène
+             three.js au moment de la publication. La modale V27 est purement
+             éditoriale, pas un upload manager. Override possible via la
+             modale admin "Éditer le produit" qui garde ses slots fichiers 3D.
+        -->
+
+        <!-- ═══ PHOTO DE COUVERTURE ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Photo de couverture</div>
+          <div class="v27-photo-row">
+            <div class="v27-photo-thumb" id="v27PhotoThumb">
+              <span id="v27PhotoThumbLabel">Aucune photo</span>
+            </div>
+            <div class="v27-photo-drop" id="v27PhotoDrop" tabindex="0">
+              <div class="v27-photo-drop-title" id="v27PhotoDropTitle">Glisser ou cliquer pour téléverser</div>
+              <div class="v27-photo-drop-sub" id="v27PhotoDropSub">JPG / PNG / WebP — compressé à 1200px max, ~0.85 qualité</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ FINITION (matériau principal du modèle, base) ═══ -->
+        <section class="v27-section">
+          <div class="v27-section-eyebrow">Finition</div>
+          <div class="v27-section-help">
+            Visuel macro du matériau principal du modèle dans sa version de base.<br>
+            Les swatches additionnels (variantes) s'ajoutent depuis le studio après configuration.
+          </div>
+          <div class="v27-photo-row v27-finition-row">
+            <div class="v27-photo-thumb v27-finition-thumb" id="v27FinitionThumb">
+              <span id="v27FinitionThumbLabel">Aucun swatch</span>
+            </div>
+            <div class="v27-photo-drop" id="v27FinitionDrop" tabindex="0">
+              <div class="v27-photo-drop-title" id="v27FinitionDropTitle">Glisser ou cliquer pour téléverser</div>
+              <div class="v27-photo-drop-sub" id="v27FinitionDropSub">JPG / PNG / WebP — photo macro 5×5 cm, fond neutre</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="v27-modal-foot v27-modal-foot-clean">
           <button class="v27-btn" id="v27BtnCancel">Annuler</button>
-          <button class="v27-btn primary" id="v27BtnConfirm">Continuer</button>
+          <button class="v27-btn primary-dark" id="v27BtnConfirm">Continuer</button>
         </div>
       </div>
     `;
     document.body.appendChild(backdrop);
 
-    /* Wire les boutons */
-    document.getElementById('v27BtnCancel').onclick = (e) => {
-      e.preventDefault(); cancelModal();
-    };
-    document.getElementById('v27BtnConfirm').onclick = (e) => {
-      e.preventDefault(); confirmModal();
-    };
+    /* ─── Inputs file cachés (Photo + Finition) ─── */
+    if (!document.getElementById('v27InputPhoto')) {
+      const inPhoto = document.createElement('input');
+      inPhoto.type = 'file'; inPhoto.accept = 'image/jpeg,image/png,image/webp';
+      inPhoto.style.display = 'none'; inPhoto.id = 'v27InputPhoto';
+      document.body.appendChild(inPhoto);
+      inPhoto.addEventListener('change', (e) => handlePhotoPick(e.target.files[0]));
+    }
+    if (!document.getElementById('v27InputFinition')) {
+      const inFin = document.createElement('input');
+      inFin.type = 'file'; inFin.accept = 'image/jpeg,image/png,image/webp';
+      inFin.style.display = 'none'; inFin.id = 'v27InputFinition';
+      document.body.appendChild(inFin);
+      inFin.addEventListener('change', (e) => handleFinitionPick(e.target.files[0]));
+    }
+
+    /* ─── Photo : click + drag&drop sur la drop-zone ─── */
+    const photoDrop = document.getElementById('v27PhotoDrop');
+    photoDrop.addEventListener('click', () => document.getElementById('v27InputPhoto').click());
+    ['dragenter', 'dragover'].forEach(evt => {
+      photoDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        photoDrop.style.background = 'rgba(184, 150, 90, 0.14)';
+        photoDrop.style.borderColor = 'var(--gold)';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      photoDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        photoDrop.style.background = '';
+        photoDrop.style.borderColor = '';
+      });
+    });
+    photoDrop.addEventListener('drop', (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) handlePhotoPick(f);
+    });
+
+    /* ─── Finition : click + drag&drop ─── */
+    const finitionDrop = document.getElementById('v27FinitionDrop');
+    finitionDrop.addEventListener('click', () => document.getElementById('v27InputFinition').click());
+    ['dragenter', 'dragover'].forEach(evt => {
+      finitionDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        finitionDrop.style.background = 'rgba(184, 150, 90, 0.14)';
+        finitionDrop.style.borderColor = 'var(--gold)';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      finitionDrop.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        finitionDrop.style.background = '';
+        finitionDrop.style.borderColor = '';
+      });
+    });
+    finitionDrop.addEventListener('drop', (e) => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) handleFinitionPick(f);
+    });
+
+    /* Wire les boutons header/footer */
+    document.getElementById('v27BtnClose').onclick  = (e) => { e.preventDefault(); cancelModal(); };
+    document.getElementById('v27BtnCancel').onclick = (e) => { e.preventDefault(); cancelModal(); };
+    document.getElementById('v27BtnConfirm').onclick = (e) => { e.preventDefault(); confirmModal(); };
 
     /* Backdrop click = annulation */
     backdrop.addEventListener('click', (e) => {
@@ -8851,6 +9320,61 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     });
   }
 
+  /* ═══ Helpers pour les drop-zones (Photo + Finition) ═══ */
+  /* Note (v70.1) : les fonctions handleFilePick / clearFileSlot pour GLB+USDZ
+     ont été retirées avec la section "Fichiers 3D". OBJ → V34 auto-upload au
+     create. GLB/USDZ → V49 auto-export à la publication. */
+
+  function handlePhotoPick(file) {
+    if (!file) return;
+    window._v27.attachments = window._v27.attachments || {};
+    window._v27.attachments.photo = file;
+
+    /* Preview dans la thumbnail */
+    const thumb = document.getElementById('v27PhotoThumb');
+    const label = document.getElementById('v27PhotoThumbLabel');
+    const dropTitle = document.getElementById('v27PhotoDropTitle');
+    const dropSub   = document.getElementById('v27PhotoDropSub');
+    if (!thumb) return;
+
+    /* Nettoyer l'éventuelle preview précédente */
+    thumb.querySelectorAll('img').forEach(el => el.remove());
+    const img = document.createElement('img');
+    img.alt = 'Aperçu photo de couverture';
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+    thumb.appendChild(img);
+    if (label) label.style.display = 'none';
+
+    if (dropTitle) dropTitle.textContent = '✓ Photo sélectionnée';
+    if (dropSub)   dropSub.textContent   = `${file.name} · ${(file.size / 1024).toFixed(0)} KB — cliquer pour remplacer`;
+  }
+
+  function handleFinitionPick(file) {
+    if (!file) return;
+    window._v27.attachments = window._v27.attachments || {};
+    window._v27.attachments.finition = file;
+
+    const thumb = document.getElementById('v27FinitionThumb');
+    const label = document.getElementById('v27FinitionThumbLabel');
+    const dropTitle = document.getElementById('v27FinitionDropTitle');
+    const dropSub   = document.getElementById('v27FinitionDropSub');
+    if (!thumb) return;
+
+    thumb.querySelectorAll('img').forEach(el => el.remove());
+    const img = document.createElement('img');
+    img.alt = 'Aperçu swatch finition';
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+    thumb.appendChild(img);
+    if (label) label.style.display = 'none';
+
+    if (dropTitle) dropTitle.textContent = '✓ Finition sélectionnée';
+    if (dropSub)   dropSub.textContent   = `${file.name} · ${(file.size / 1024).toFixed(0)} KB — cliquer pour remplacer`;
+  }
+
   /* ═══ Ouvrir / fermer la modal ═══ */
   function openModal(file) {
     injectModal();
@@ -8861,6 +9385,32 @@ console.log('[studio v26] création de produit depuis le studio (sandbox → li�
     }
     window._v27.pendingFile = file;
     window._v27.modalOpen = true;
+    window._v27.attachments = { obj: file };  /* OBJ référencé pour V34, pas affiché */
+
+    /* Reset visuel des slots Photo et Finition (en cas de réouverture) */
+    const photoThumb = document.getElementById('v27PhotoThumb');
+    const photoLabel = document.getElementById('v27PhotoThumbLabel');
+    const photoTitle = document.getElementById('v27PhotoDropTitle');
+    const photoSub   = document.getElementById('v27PhotoDropSub');
+    if (photoThumb) photoThumb.querySelectorAll('img').forEach(el => el.remove());
+    if (photoLabel) photoLabel.style.display = '';
+    if (photoTitle) photoTitle.textContent = 'Glisser ou cliquer pour téléverser';
+    if (photoSub)   photoSub.textContent   = 'JPG / PNG / WebP — compressé à 1200px max, ~0.85 qualité';
+    const photoInput = document.getElementById('v27InputPhoto');
+    if (photoInput) photoInput.value = '';
+
+    /* Reset Finition */
+    const finitionThumb = document.getElementById('v27FinitionThumb');
+    const finitionLabel = document.getElementById('v27FinitionThumbLabel');
+    const finitionTitle = document.getElementById('v27FinitionDropTitle');
+    const finitionSub   = document.getElementById('v27FinitionDropSub');
+    if (finitionThumb) finitionThumb.querySelectorAll('img').forEach(el => el.remove());
+    if (finitionLabel) finitionLabel.style.display = '';
+    if (finitionTitle) finitionTitle.textContent = 'Glisser ou cliquer pour téléverser';
+    if (finitionSub)   finitionSub.textContent   = 'JPG / PNG / WebP — photo macro 5×5 cm, fond neutre';
+    const finitionInput = document.getElementById('v27InputFinition');
+    if (finitionInput) finitionInput.value = '';
+
     backdrop.classList.add('open');
     updateBrandDatalist();
     /* Focus auto sur le nom */
@@ -10267,7 +10817,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     if (window._v18.restoring) return; /* pas pendant la restoration */
     const pid = window._v18.productId;
     try {
-      const { data, error } = await sb.from('products').select('studio_state').eq('id', pid).single();
+      /* v74.1 — bugfix loop : on lit aussi `variants` pour pouvoir les
+         renvoyer tels quels dans l'UPDATE et bypasser V62. Sans variants
+         dans le payload, V62 route { studio_state: ... } vers la variante
+         active → studio_state de base jamais enrichi → V34 retente toutes
+         les 5s → boucle infinie qui pourrit variants[active].studio_state. */
+      const { data, error } = await sb.from('products').select('studio_state, variants').eq('id', pid).single();
       if (error || !data) return;
       const s = data.studio_state || {};
       let changed = false;
@@ -10324,7 +10879,13 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       }
       
       if (changed) {
-        const { error: uerr } = await sb.from('products').update({ studio_state: s }).eq('id', pid);
+        /* v74.1 — Bypass V62 en incluant variants dans le payload. V62 check
+           !('variants' in payload) pour décider s'il route — la présence de
+           variants désactive le routing, l'update va bien sur studio_state
+           de base. On renvoie les variants exactement comme lus pour ne pas
+           écraser de modifs concurrentes. */
+        const updatePayload = { studio_state: s, variants: data.variants };
+        const { error: uerr } = await sb.from('products').update(updatePayload).eq('id', pid);
         if (uerr) throw uerr;
         if (window._v18.productRow) window._v18.productRow.studio_state = s;
         console.log('[v34 sync 5s] state enrichi en base :', updates.join(', '));
@@ -12497,6 +13058,23 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       else delete window._v25.variants[idx].studio_state.textureSwatchUrl;
       const { error } = await sb.from('products').update({ variants: window._v25.variants }).eq('id', productId);
       if (error) throw error;
+      /* v74.1 — BUGFIX : mirror window._v25.variants vers window._v18.productRow.variants.
+         Sans ça, le watcher V42 (qui hash row.variants[i].studio_state.textureSwatchUrl)
+         ne détecte pas le changement → colors[] reste obsolète → scan.html ne voit
+         pas le nouveau swatch tant qu'on ne refresh pas la page. */
+      if (window._v18.productRow) {
+        window._v18.productRow.variants = window._v25.variants;
+      }
+    }
+    /* v74.1 — Trigger V42 sync immédiatement, sans attendre le polling 2s du
+       watcher. Garantit que products.colors[] est à jour avant que l'archi
+       ouvre la page scan pour vérifier. */
+    if (window._v42 && typeof window._v42.sync === 'function') {
+      try {
+        await window._v42.sync(true);
+      } catch (e) {
+        console.warn('[v38] V42.sync après writeSwatch a échoué :', e.message || e);
+      }
     }
     return true;
   }
@@ -13076,17 +13654,18 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       if (!window._v39.booted) return;
       if (!window._v38 || !window._v38.openModal) return;
 
-      /* 1. Nouvelle création de PRODUIT (la sandbox → lié) */
+      /* 1. Nouvelle création de PRODUIT (la sandbox → lié)
+         ─── DÉSACTIVÉ depuis V70 ───
+         Avec la V27 refondue, l'archi renseigne photo + finition + GLB/USDZ
+         directement au drop d'OBJ. Le pop-up "Compléter ta fiche catalogue"
+         devient redondant et casse le flow (l'archi voit son modèle puis se
+         retrouve devant une modale lui demandant des trucs déjà fournis).
+         On garde le tracking de lastProductId pour le pop-up swatch, qui lui
+         reste pertinent au moment de la création d'une nouvelle variante. */
       const curProductId = (window._v18 && window._v18.productId) || null;
       if (!window._v39.lastProductId && curProductId) {
         window._v39.lastProductId = curProductId;
-        /* Délai un peu plus long pour laisser le pipeline v34 (upload OBJ + GLB + USDZ)
-           commencer en arrière-plan, sans bloquer */
-        setTimeout(() => {
-          if (window._v38 && window._v38.openModal) {
-            window._v38.openModal('all-after-create');
-          }
-        }, 1500);
+        /* (intentionnellement vide : pas de openModal('all-after-create')) */
       } else if (curProductId !== window._v39.lastProductId) {
         window._v39.lastProductId = curProductId;
       }
@@ -15062,13 +15641,15 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     .v50-ar-btn:hover:not(:disabled) { filter: brightness(1.10); }
     .v50-ar-btn:active:not(:disabled) { transform: scale(0.97); }
+    /* v70.1 — État disabled lisible (parité .v50-ar-btn-rp) */
     .v50-ar-btn:disabled {
-      background: transparent;
-      color: var(--ink-muted, #9C9388);
+      background: var(--panel-2, #F8F4EC);
+      color: var(--ink-soft, #6B6358);
       border-color: var(--line, #D8D2C7);
       cursor: not-allowed;
-      opacity: 0.6;
+      opacity: 1;
     }
+    .v50-ar-btn:disabled svg { opacity: 0.55; }
     .v50-ar-btn svg { width: 14px; height: 14px; }
     .v50-ar-btn-dot {
       width: 6px; height: 6px;
@@ -15100,13 +15681,20 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
     }
     .v50-ar-btn-rp:hover:not(:disabled) { filter: brightness(1.10); }
     .v50-ar-btn-rp:active:not(:disabled) { transform: scale(0.99); }
+    /* v70.1 — État disabled lisible : avant on avait opacity:0.5 + fond
+       transparent + bordure pointillée + couleur muted, ce qui rendait le
+       bouton quasi invisible quand on n'a pas de modèle chargé (surtout
+       sur fond sombre du catalogue ouvert). On garde le signal "non
+       cliquable" (cursor + désaturation modérée) mais on rétablit la
+       lisibilité (background opaque, contraste correct, opacity:1). */
     .v50-ar-btn-rp:disabled {
-      background: transparent;
-      color: var(--ink-muted, #9C9388);
-      border: 1px dashed var(--line, #D8D2C7);
+      background: var(--panel-2, #F8F4EC);
+      color: var(--ink-soft, #6B6358);
+      border: 1px solid var(--line, #D8D2C7);
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 1;
     }
+    .v50-ar-btn-rp:disabled svg { opacity: 0.55; }
     .v50-ar-btn-rp svg { width: 16px; height: 16px; }
 
     /* Overlay loading */
@@ -22726,15 +23314,46 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
       if (!pub || !pub.publicUrl) throw new Error('publicUrl indisponible');
       const cachedUrl = pub.publicUrl + '?v=' + Date.now();
+
+      /* v70.1 — bugfix : inclure customLabels (V24 renommages) ET
+         groupComposition (V23 sous-groupes) dans studio_state.
+         Avant : persistStructure ré-écrasait studio_state avec seulement
+         { obj_source_url, parts } via Object.assign. Si l'auto-save n'avait
+         pas encore eu le temps de pousser les customLabels en base, ces
+         derniers étaient perdus → au refresh, retour aux noms par défaut. */
+      const stateExtras = {};
+      if (window._v21 && window._v21.customLabels && Object.keys(window._v21.customLabels).length > 0) {
+        stateExtras.customLabels = Object.assign({}, window._v21.customLabels);
+        console.log('[v68.6] inclusion customLabels :', Object.keys(stateExtras.customLabels).length, 'renommages');
+      }
+      if (window._v23 && window._v23.composition && Object.keys(window._v23.composition).length > 0) {
+        const comp = {};
+        Object.keys(window._v23.composition).forEach(k => {
+          const sgs = window._v23.composition[k];
+          if (!Array.isArray(sgs)) return;
+          comp[k] = sgs.map(sg => ({
+            originalKey: sg.originalKey,
+            label: sg.label,
+            meshNames: sg.meshNames || (sg.meshes ? sg.meshes.map(m => m.name).filter(Boolean) : []),
+          }));
+        });
+        if (Object.keys(comp).length > 0) {
+          stateExtras.groupComposition = comp;
+          console.log('[v68.6] inclusion groupComposition :', Object.keys(comp).length, 'compositions');
+        }
+      }
+
       const newState = Object.assign({}, row.studio_state || {}, {
         obj_source_url: cachedUrl,
         parts: newParts,
-      });
+      }, stateExtras);
       const payload = { studio_state: newState, variants: row.variants };
       const { error } = await sb.from('products').update(payload).eq('id', productId);
       if (error) throw error;
       row.studio_state = newState;
-      console.log('[v68.6] studio_state mis à jour : parts=' + Object.keys(newParts).length);
+      console.log('[v68.6] studio_state mis à jour : parts=' + Object.keys(newParts).length
+        + (stateExtras.customLabels ? ' · customLabels=' + Object.keys(stateExtras.customLabels).length : '')
+        + (stateExtras.groupComposition ? ' · groupComposition=' + Object.keys(stateExtras.groupComposition).length : ''));
       if (typeof toast === 'function') {
         toast('Structure sauvegardée ✓ (' + groupKeys.length + ' groupes · ' + sizeMo + ' Mo)', 'ok', 4500);
       }
@@ -22765,7 +23384,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
 
     const persistBtn = document.createElement('button');
     persistBtn.id = 'v68-6-persist-btn';
-    persistBtn.textContent = 'PERSISTER STRUCTURE';
+    persistBtn.textContent = 'SAUVEGARDER LES GROUPES';
     /* Reprend le style des autres boutons de la barre du bas */
     const computed = window.getComputedStyle(autoSegBtn);
     persistBtn.style.cssText = `
@@ -23060,8 +23679,12 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       /* v69.9 — Fixes UX panneau catalogue : sticky toolbar/alpha-bar, lisibilité texte sur fond sombre,
          overflow-x masqué pour empêcher les résidus des éléments natifs du studio de transparaître à droite,
          burger aligné à gauche avec le label "CATÉGORIE". --v69-bg sert de fond opaque sur les zones sticky. */
+      /* v70.1 — padding-top retiré (était 18px) pour coller le toolbar
+         immédiatement sous les onglets MATÉRIAU/GÉOMÉTRIE/SCÈNE. Évite la
+         bande visible dans laquelle les vignettes apparaissent au scroll.
+         Padding-bottom conservé pour respiration en fin de liste. */
       #v69-cat-content {
-        padding: 18px 0 28px; font-family: 'Jost',sans-serif;
+        padding: 0 0 28px; font-family: 'Jost',sans-serif;
         color: rgba(245,242,236,0.9); box-sizing: border-box;
         overflow-y: auto; overflow-x: hidden;            /* bug 2 : pas de débordement à droite */
         position: relative; width: 100%;
@@ -23071,7 +23694,7 @@ console.log('[studio v30] workflow publication catalogue (brouillon/publié) ✓
       #v69-cat-content .v69-label { font-size: 10px; letter-spacing: 0.18em; color: rgba(245,242,236,0.55); text-transform: uppercase; margin-bottom: 10px; padding: 0 20px; }
       #v69-toolbar {
         display: flex; align-items: stretch; gap: 0;
-        margin-bottom: 14px; padding: 6px 0 8px;
+        margin-bottom: 14px; padding: 10px 0 8px;
         border-bottom: 1px solid rgba(255,255,255,0.08);
         position: sticky; top: 0; z-index: 5;             /* bug 5 : toujours visible au scroll vertical */
         background: var(--v69-bg, #2A2620);               /* bug 3 : fond opaque pour masquer le contenu qui scrolle dessous */
@@ -23536,14 +24159,15 @@ console.log('[studio v3] prêt');
       z-index: 100 !important;
       box-sizing: border-box !important;
     }
-    /* Loader / désactivé */
+    /* Loader / désactivé — v70.1 lisible : fond opaque, contraste correct */
     #v50ARBtnRP:disabled {
-      background: transparent !important;
-      color: var(--ink-muted, #9C9388) !important;
-      border: 1px dashed var(--line, #D8D2C7) !important;
+      background: var(--panel-2, #F8F4EC) !important;
+      color: var(--ink-soft, #6B6358) !important;
+      border: 1px solid var(--line, #D8D2C7) !important;
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 1;
     }
+    #v50ARBtnRP:disabled svg { opacity: 0.55; }
 
     /* === iPad : tree-w garde 240px (lisibilité), mat-w légèrement réduit (340) === */
     body.ipad-mode {
@@ -24131,668 +24755,2524 @@ console.log('[studio v3] prêt');
   }
 })();
 
-/* ═══════════════════════════════════════════════════════════════════════
-   v69.24 — MODE BETA ARCHITECTE (François Ivain et autres beta-testeurs)
-   ───────────────────────────────────────────────────────────────────────
-   Activé par ?betatester=<slug> dans l'URL. Slug reconnu actuellement :
-     - francois-ivain   → "François Ivain"
-   
-   Comportement :
-   - Masque les icônes nav-rail admin (Matériaux / Sols / Icônes / Aide / Compte).
-     Conserve : Catalogue, Studio Texture.
-   - Masque les sections "Lié au catalogue" et "Variantes & catalogue" dans le
-     panneau Paramètres (le beta-testeur ne publie rien).
-   - Masque le bouton "Envoyer au catalogue".
-   - Étend l'import : accepte .obj, .3ds, .fbx en plus du .obj actuel.
-     Note : .max n'est pas supportable côté web (format propriétaire binaire).
-   - Garde l'export GLB / USDZ / OBJ / DAE (Sketchup).
-   - Ajoute une note "Pour FBX → exporter en COLLADA puis 3DS Max" dans la
-     section Exports (le FBXExporter n'existe pas en JS open-source fiable).
-   - Préserve le param `betatester` quand le module v69 catalogue navigue
-     vers ?id=X&catalogue=1 (sinon le beta sortirait du mode au 1er click).
-   - Badge "Beta · {Prénom Nom}" en bas du viewer.
-   ═══════════════════════════════════════════════════════════════════════ */
-(function v69_24_BetaArchitect() {
-  if (window.__v69_24) return;
-  window.__v69_24 = true;
 
-  const KNOWN_TESTERS = {
-    'francois-ivain': { firstName: 'François', lastName: 'Ivain' },
-    /* Ajouter ici les futurs beta-testeurs */
-  };
+/* ════════════════════════════════════════════════════════════════════════
+   v70.1 — V27 ATTACHMENTS → UPLOAD SUPABASE APRÈS CRÉATION DU PRODUIT
+   ─────────────────────────────────────────────────────────────────────────
+   La modale V27 collecte 2 attachments éditoriaux optionnels au drop d'OBJ :
+   - Photo de couverture (catalogue)
+   - Finition (swatch matière de base)
 
-  const url = new URL(window.location.href);
-  const slug = (url.searchParams.get('betatester') || '').toLowerCase().trim();
-  const tester = slug && KNOWN_TESTERS[slug];
-  if (!tester) return; /* Pas de mode beta, fin. */
+   OBJ et GLB/USDZ ne sont PAS gérés ici parce que :
+   - L'OBJ est uploadé automatiquement par V34 au moment de la création
+     (V34 prend le fichier dropé en mémoire et le pousse sur Storage).
+   - GLB et USDZ sont auto-exportés par V49 depuis la scène three.js au
+     moment de la publication. Demander à l'archi de fournir ces fichiers
+     à l'avance n'a pas de sens — il ne sait pas encore à quoi son modèle
+     ressemblera après config matière.
 
-  window._betaTester = { slug, ...tester };
-  document.body.classList.add('beta-architect-mode');
-  console.log('[v69.24] mode BETA architecte activé · ' + tester.firstName + ' ' + tester.lastName + ' (' + slug + ')');
+   Override possible via la modale admin "Éditer le produit" qui garde ses
+   slots fichiers 3D pour les power-users qui veulent fournir un GLB
+   custom (qualité supérieure, matériaux exotiques, etc.).
 
-  /* ───── 1. CSS : masquage des UI non pertinentes ───── */
-  const css = document.createElement('style');
-  css.textContent = `
-    /* Nav rail : masquer Matériaux, Sols, Icônes, Aide, Compte.
-       Garder Catalogue + Studio Texture. */
-    body.beta-architect-mode .nav-icon[data-tooltip="Matériaux"],
-    body.beta-architect-mode .nav-icon[data-tooltip="Sols"],
-    body.beta-architect-mode .nav-icon[data-tooltip="Icônes"],
-    body.beta-architect-mode .nav-icon[data-tooltip="Aide"],
-    body.beta-architect-mode .nav-icon[data-tooltip="Compte"] { display: none !important; }
+   Pipeline :
+   1. createNewProduct (V26) INSERT → productId apparaît
+   2. V34 watcher (1.5s) → upload OBJ source automatiquement
+   3. V70 (12s) → upload photo + finition (compression auto, V42.sync()
+      pour projeter colors[] vers scan.html)
+   ════════════════════════════════════════════════════════════════════════ */
+(function v70WireV27Attachments() {
+  if (window.__v70Init) return;
+  window.__v70Init = true;
 
-    /* Panneau Paramètres : masquer sections Catalogue + Variantes + bouton publier */
-    body.beta-architect-mode #v59Section { display: none !important; }
-    body.beta-architect-mode #adminBtnPublish { display: none !important; }
+  const BUCKET = 'models';
+  const PHOTO_FIELDS = ['cover_url', 'image_url', 'thumbnail_url', 'photo_url'];
+  const POST_CREATE_DELAY_MS = 12000; /* attendre que V34 + V49 aient fini */
 
-    /* La section "Catalogue" du panneau Paramètres (lié au produit) — détectée
-       par son admin-section-title contenant "Catalogue" qui n'est PAS dans
-       l'arborescence du modèle 3D. Approche : masquer toute admin-section dont
-       le titre est "Catalogue" exact ou "Édition" (parce que Édition contient
-       publier). Plus chirurgical : on cible adminBtnPublish ci-dessus, et on
-       laisse les exports visibles. La sub-section "Variantes & catalogue" du
-       v59 est déjà masquée. */
-    body.beta-architect-mode .admin-section.beta-hidden { display: none !important; }
+  let isProcessing = false;
+  let lastProcessedId = null;
 
-    /* Badge Beta */
-    .v69-24-badge {
-      position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
-      z-index: 9000; pointer-events: none;
-      font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 500;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      padding: 4px 12px; background: rgba(28,27,24,0.78); color: #B8965A;
-      display: flex; align-items: center; gap: 7px;
-    }
-    .v69-24-badge::before {
-      content: ''; width: 5px; height: 5px; background: #B8965A; border-radius: 50%;
-      box-shadow: 0 0 6px rgba(184,150,90,0.7);
-    }
-
-    /* Note "Pour FBX" dans section Exports */
-    .v69-24-fbx-note {
-      font-family: 'Jost', sans-serif; font-size: 10px; color: var(--ink-soft, #8a8580);
-      font-style: italic; line-height: 1.5;
-      padding: 10px 12px; margin-top: 6px;
-      background: rgba(184,150,90,0.06); border-left: 2px solid rgba(184,150,90,0.4);
-    }
-    .v69-24-fbx-note b { color: var(--gold, #B8965A); font-weight: 500; font-style: normal; }
-  `;
-  document.head.appendChild(css);
-
-  /* ───── 2. Masquer la section "Catalogue" du panneau Paramètres ─────
-     Recherche par titre car pas d'id stable. */
-  function hideCatalogSection() {
-    document.querySelectorAll('.admin-section').forEach(sec => {
-      const title = sec.querySelector('.admin-section-title');
-      if (!title) return;
-      const text = (title.textContent || '').trim().toLowerCase();
-      if (text === 'catalogue') sec.classList.add('beta-hidden');
+  /* ─── Helper : compression image (1200px / 600px max, JPEG ~0.85) ─── */
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(blob => {
+            if (!blob) return reject(new Error('canvas.toBlob a renvoyé null'));
+            resolve(blob);
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = () => reject(new Error('Image illisible'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('FileReader a échoué'));
+      reader.readAsDataURL(file);
     });
   }
-  hideCatalogSection();
-  /* Re-tente plus tard si le DOM n'est pas encore prêt */
-  setTimeout(hideCatalogSection, 500);
-  setTimeout(hideCatalogSection, 2000);
 
-  /* ───── 3. Badge en bas du viewer ───── */
-  const badge = document.createElement('div');
-  badge.className = 'v69-24-badge';
-  badge.textContent = `Beta · ${tester.firstName} ${tester.lastName}`;
-  document.body.appendChild(badge);
+  /* ─── Upload photo de couverture ─── */
+  async function uploadPhoto(file, productId) {
+    if (!file || typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible ou fichier vide');
 
-  /* ───── 4. Préserver le param betatester dans la navigation ─────
-     Hook history.pushState et history.replaceState pour rajouter le param
-     s'il n'est pas dans la nouvelle URL. */
-  ['pushState', 'replaceState'].forEach(method => {
-    const orig = window.history[method];
-    window.history[method] = function(state, title, url) {
-      if (url) {
-        try {
-          const u = new URL(url, window.location.href);
-          if (!u.searchParams.has('betatester')) {
-            u.searchParams.set('betatester', slug);
-            arguments[2] = u.pathname + u.search + u.hash;
-          }
-        } catch (_) {}
-      }
-      return orig.apply(this, arguments);
-    };
-  });
+    const compressed = await compressImage(file, 1200, 0.85);
+    const path = `photos/${productId}/cover.jpg`;
 
-  /* ───── 5. Ajouter une note "Pour FBX" dans la section Exports ───── */
-  function injectFBXNote() {
-    /* Trouver le bouton Export SketchUp (.dae) puis insérer la note après */
-    const daeBtn = document.querySelector('[data-admin-export="dae"]');
-    if (!daeBtn) return false;
-    if (daeBtn.parentElement.querySelector('.v69-24-fbx-note')) return true; /* déjà fait */
-    const note = document.createElement('div');
-    note.className = 'v69-24-fbx-note';
-    note.innerHTML = `<b>Pour un FBX</b> : exporte en <b>COLLADA (.dae)</b> ci-dessus, ouvre-le dans 3DS Max ou Maya, puis re-sauve en FBX. L'export FBX direct depuis navigateur n'est pas fiable (pas de format ouvert).`;
-    daeBtn.parentElement.insertBefore(note, daeBtn.nextSibling);
-    return true;
-  }
-  if (!injectFBXNote()) {
-    const t = setInterval(() => { if (injectFBXNote()) clearInterval(t); }, 500);
-    setTimeout(() => clearInterval(t), 15000);
-  }
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, compressed, {
+      contentType: 'image/jpeg', upsert: true, cacheControl: '3600',
+    });
+    if (upErr) throw upErr;
 
-  /* ───── 6. Élargir le bouton "Charger un OBJ" → .obj/.3ds/.fbx ───── */
-  let loadersCache = null;
-  async function ensureLoaders() {
-    if (loadersCache) return loadersCache;
-    loadersCache = {};
-    try {
-      const m = await import('three/addons/loaders/TDSLoader.js');
-      loadersCache.tds = m.TDSLoader;
-    } catch (e) { console.warn('[v69.24] TDSLoader indisponible', e); }
-    try {
-      const m = await import('three/addons/loaders/FBXLoader.js');
-      loadersCache.fbx = m.FBXLoader;
-    } catch (e) { console.warn('[v69.24] FBXLoader indisponible', e); }
-    try {
-      const m = await import('three/addons/loaders/OBJLoader.js');
-      loadersCache.obj = m.OBJLoader;
-    } catch (e) { console.warn('[v69.24] OBJLoader indisponible', e); }
-    return loadersCache;
-  }
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
+    const url = pub.publicUrl + '?v=' + Date.now();
 
-  /* Charge un fichier .3ds ou .fbx et applique le résultat comme `currentObject`
-     en passant par le pipeline standard du studio (replaceObject). */
-  async function loadNonObjFile(file) {
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (ext === 'obj') return false; /* laisser le handler natif gérer */
-    if (!['3ds', 'fbx'].includes(ext)) {
-      if (typeof toast === 'function') toast('Format non supporté : .' + ext + '. Utilise .obj, .3ds ou .fbx.', 'err', 5000);
-      return true; /* on a "géré" en refusant */
-    }
-    if (typeof toast === 'function') toast('Chargement .' + ext.toUpperCase() + '…', 'info', 3000);
-    const L = await ensureLoaders();
-    if (!L[ext === '3ds' ? 'tds' : 'fbx']) {
-      if (typeof toast === 'function') toast('Loader .' + ext + ' indisponible. Réessaye dans quelques secondes.', 'err', 4000);
-      return true;
-    }
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const Loader = L[ext === '3ds' ? 'tds' : 'fbx'];
-      const loader = new Loader();
-      let object;
-      if (ext === '3ds') {
-        /* TDSLoader.parse(buffer, texturePath) */
-        object = loader.parse(arrayBuffer, '');
-      } else {
-        /* FBXLoader.parse(buffer, ...) */
-        object = loader.parse(arrayBuffer, '');
-      }
-      if (!object) throw new Error('Parse vide');
-
-      /* Appliquer comme currentObject via le hook standard (replaceObject)
-         si disponible, sinon fallback direct sur scene. */
-      if (typeof window.replaceObject === 'function') {
-        window.replaceObject(object);
-      } else if (typeof replaceObject === 'function') {
-        replaceObject(object);
-      } else {
-        /* Fallback brute-force */
-        if (typeof scene !== 'undefined' && typeof currentObject !== 'undefined') {
-          if (currentObject) scene.remove(currentObject);
-          window.currentObject = object;
-          scene.add(object);
-        } else {
-          throw new Error('replaceObject / scene indisponible');
+    /* Détecter quelle colonne photo existe et la mettre à jour */
+    let updated = false;
+    for (const field of PHOTO_FIELDS) {
+      try {
+        const { error: dbErr } = await sb.from('products')
+          .update({ [field]: url })
+          .eq('id', productId);
+        if (!dbErr) {
+          if (window._v18?.productRow) window._v18.productRow[field] = url;
+          console.log(`[v70] ✓ Photo uploadée + colonne ${field} mise à jour :`, url);
+          updated = true;
+          break;
         }
-      }
-      if (typeof toast === 'function') toast(`.${ext.toUpperCase()} chargé ✓`, 'ok', 3000);
-      console.log('[v69.24] modèle .' + ext + ' chargé via Loader spécifique');
-    } catch (err) {
-      console.error('[v69.24] échec chargement .' + ext, err);
-      if (typeof toast === 'function') toast(`Erreur .${ext.toUpperCase()} : ${err.message || err}`, 'err', 6000);
+      } catch (_) { /* essayer la suivante */ }
     }
-    return true;
+    if (!updated) {
+      console.warn('[v70] aucune colonne photo (cover_url/image_url/...) acceptée — fichier sur Storage uniquement');
+    }
+    return url;
   }
 
-  /* Modifier le label du bouton + le accept de l'input fichier */
-  function extendObjLoader() {
-    const btn = document.getElementById('adminLoadObj');
-    if (!btn) return false;
-    if (btn.dataset.v6924) return true;
-    const label = btn.querySelector('.admin-action-label');
-    const hint = btn.querySelector('.admin-action-hint');
-    if (label) label.textContent = 'Charger un modèle 3D';
-    if (hint) hint.textContent = '.OBJ · .3DS · .FBX';
+  /* ─── Upload finition (swatch de base) ─── */
+  async function uploadFinition(file, productId) {
+    if (!file || typeof sb === 'undefined' || !sb) throw new Error('Supabase indisponible ou fichier vide');
 
-    /* Intercepter le click pour ouvrir un file picker custom acceptant + de formats.
-       Le handler natif (ligne 5652+) ouvre déjà un picker mais en .obj uniquement. */
-    btn.addEventListener('click', (e) => {
-      /* On laisse passer le handler natif pour les .obj — mais on hook l'input
-         dès qu'il est créé pour autoriser plus de formats. */
-      setTimeout(() => {
-        const inputs = document.querySelectorAll('input[type="file"]');
-        inputs.forEach(inp => {
-          if (inp.dataset.v6924Hooked) return;
-          /* Élargir l'accept si c'est le picker OBJ */
-          const acc = (inp.accept || '').toLowerCase();
-          if (acc.includes('.obj') || acc === '' || acc.includes('model')) {
-            inp.accept = '.obj,.3ds,.fbx';
-            inp.dataset.v6924Hooked = '1';
-            /* Hook change pour router vers nos loaders si non-obj */
-            inp.addEventListener('change', async function(ev) {
-              const f = ev.target.files && ev.target.files[0];
-              if (!f) return;
-              const ext = (f.name.split('.').pop() || '').toLowerCase();
-              if (ext === 'obj') return; /* laisser passer au handler natif */
-              /* Bloquer le handler natif et faire notre traitement */
-              ev.stopPropagation();
-              ev.stopImmediatePropagation();
-              await loadNonObjFile(f);
-              ev.target.value = '';
-            }, true);
-          }
-        });
-      }, 100);
+    const compressed = await compressImage(file, 600, 0.85);
+    const path = `finish-thumbnails/${productId}/base-${Date.now()}.jpg`;
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, compressed, {
+      contentType: 'image/jpeg', upsert: true, cacheControl: '3600',
     });
+    if (upErr) throw upErr;
 
-    btn.dataset.v6924 = '1';
-    return true;
-  }
-  if (!extendObjLoader()) {
-    const t = setInterval(() => { if (extendObjLoader()) clearInterval(t); }, 500);
-    setTimeout(() => clearInterval(t), 15000);
-  }
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) throw new Error('Pas d\'URL publique');
+    const url = pub.publicUrl + '?v=' + Date.now();
 
-  console.log('[v69.24] beta mode UI installée · 3DS/FBX import prêt · FBX export = note COLLADA');
-})();
+    /* SOURCE DE VÉRITÉ : studio_state.textureSwatchUrl
+       La projection colors[0].texture (que lit scan.html) est gérée par V42
+       qui dérive proprement {name, mat, texture, glb, usdz} depuis studio_state.
+       On ne touche PAS colors[] ici : on appelle juste V42.sync après. */
+    const product = window._v18?.productRow || {};
+    const studioState = { ...(product.studio_state || {}), textureSwatchUrl: url };
 
-/* ═══════════════════════════════════════════════════════════════════════
-   v69.25 — VISITE GUIDÉE de l'interface studio
-   ───────────────────────────────────────────────────────────────────────
-   Tour interactif qui met en lumière chaque zone clé du studio l'une après
-   l'autre. Lancé automatiquement par ?tour=1 dans l'URL, ou manuellement
-   via window.startStudioTour().
-   
-   Composition : overlay sombre qui masque tout sauf un "spotlight" rectangulaire
-   sur l'élément ciblé (via box-shadow inset très large), popup flottant à côté
-   avec titre + texte + Précédent / Suivant / Passer / Terminer.
-   
-   Auto-skip si l'élément cible n'existe pas dans le DOM (cas où l'utilisateur
-   n'a pas encore chargé de produit et certains assets sont masqués).
-   
-   Sauvegarde le flag "tour vu" en localStorage pour ne pas redéclencher
-   automatiquement.
-   ═══════════════════════════════════════════════════════════════════════ */
-(function v69_25_StudioTour() {
-  if (window.__v69_25) return;
-  window.__v69_25 = true;
-
-  const STORAGE_KEY = 'tadam.studio.tourSeenAt';
-
-  /* Étapes du tour. Chaque step :
-       - selector : sélecteur CSS de la zone à mettre en lumière (null = popup centré)
-       - title    : titre du popup
-       - text     : description
-       - pad      : padding du spotlight autour de l'élément (px, default 6)
-  */
-  const STEPS = [
-    {
-      selector: null,
-      title: 'Bienvenue dans le studio',
-      text: 'Un atelier complet pour préparer vos modèles 3D : importer un fichier, appliquer des matières, exporter vers les formats de votre suite habituelle.\n\nCette visite dure environ deux minutes et présente chaque zone de l\'interface.',
-      cta: 'Commencer',
-    },
-    {
-      selector: '.nav-rail',
-      title: 'Navigation principale',
-      text: 'À gauche, la barre de navigation. Vous y trouvez l\'accès au catalogue, au studio texture et à l\'aide.',
-    },
-    {
-      selector: '.topbar',
-      title: 'Barre supérieure',
-      text: 'En haut : la catégorie et le nom du modèle, ses dimensions (L × H × P), l\'état de sauvegarde, les modes de vue et le bouton catalogue.',
-    },
-    {
-      selector: '.leftpanel',
-      title: 'Arborescence du modèle',
-      text: 'La liste des parties du modèle 3D (assise, dossier, piétement, etc.). Cliquez sur l\'une d\'elles pour la sélectionner et modifier sa matière.\n\nL\'œil masque, le cadenas verrouille.',
-    },
-    {
-      selector: '.viewport',
-      title: 'Vue 3D interactive',
-      text: 'Cliquez-glissez pour faire tourner la vue, molette pour zoomer. Vous pouvez aussi cliquer directement sur une partie du modèle pour la sélectionner — le panneau matière s\'ouvrira automatiquement.',
-    },
-    {
-      selector: '.rightpanel',
-      title: 'Panneau d\'édition',
-      text: 'L\'édition de la partie sélectionnée : matière active, couleur, rugosité, métal, projection UV, rotation, répétition.\n\nTrois onglets en haut : MATÉRIAU · GÉOMÉTRIE · SCÈNE.',
-    },
-    {
-      selector: '#v69-cat-btn, .v50-ar-btn-rp',
-      title: 'Catalogue et réalité augmentée',
-      text: 'Le bouton CATALOGUE (doré, en haut) ouvre la bibliothèque des modèles existants.\n\nLe bouton VOIR EN RA (en bas) lance la visualisation sur iPhone/Android via le QR code.',
-    },
-    {
-      selector: null,
-      title: 'C\'est tout pour la visite',
-      text: 'Vous pouvez relancer ce tour à tout moment depuis votre dashboard, ou en appelant <b>startStudioTour()</b> dans la console.\n\nBon travail !',
-      cta: 'Terminer',
-    },
-  ];
-
-  let currentStep = 0;
-  let overlay = null;
-  let spotlight = null;
-  let popup = null;
-  let cleanupResizeListener = null;
-
-  function injectStyles() {
-    if (document.getElementById('v69-25-tour-styles')) return;
-    const css = document.createElement('style');
-    css.id = 'v69-25-tour-styles';
-    css.textContent = `
-      .v69-25-overlay {
-        position: fixed; inset: 0; z-index: 99998;
-        pointer-events: auto; opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .v69-25-overlay.visible { opacity: 1; }
-      .v69-25-spotlight {
-        position: fixed; pointer-events: none;
-        box-shadow: 0 0 0 9999px rgba(20,18,16,0.78);
-        border: 1px solid rgba(184,150,90,0.65);
-        transition: top 0.35s cubic-bezier(.4,.2,.2,1),
-                    left 0.35s cubic-bezier(.4,.2,.2,1),
-                    width 0.35s cubic-bezier(.4,.2,.2,1),
-                    height 0.35s cubic-bezier(.4,.2,.2,1);
-        z-index: 99999;
-      }
-      .v69-25-spotlight.no-target {
-        top: 50%; left: 50%; width: 0; height: 0;
-        transform: translate(-50%, -50%);
-        border: none; box-shadow: 0 0 0 9999px rgba(20,18,16,0.85);
-      }
-      .v69-25-popup {
-        position: fixed; z-index: 100000;
-        max-width: 380px; min-width: 280px;
-        background: #f6f3ed; color: #1a1a1a;
-        font-family: 'Jost', sans-serif;
-        padding: 22px 24px 18px;
-        box-shadow: 0 18px 48px rgba(0,0,0,0.4);
-        opacity: 0; transform: translateY(8px);
-        transition: opacity 0.3s, transform 0.3s, top 0.35s, left 0.35s;
-      }
-      .v69-25-popup.visible { opacity: 1; transform: translateY(0); }
-      .v69-25-popup.centered {
-        top: 50% !important; left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-      }
-      .v69-25-popup-meta {
-        font-size: 9px; font-weight: 500; letter-spacing: 0.22em;
-        text-transform: uppercase; color: #8c7340;
-        margin-bottom: 10px;
-        display: flex; align-items: center; justify-content: space-between;
-      }
-      .v69-25-popup-meta .progress {
-        font-family: 'Cormorant Garamond', serif;
-        font-size: 14px; font-weight: 400; letter-spacing: 0.05em;
-        color: #7a7570; font-style: italic;
-      }
-      .v69-25-popup h3 {
-        font-family: 'Cormorant Garamond', serif;
-        font-weight: 400; font-size: 22px; line-height: 1.15;
-        letter-spacing: -0.005em; margin-bottom: 10px;
-      }
-      .v69-25-popup p {
-        font-family: 'Jost', sans-serif; font-size: 13px;
-        color: #4a4640; line-height: 1.55;
-        white-space: pre-wrap;
-        margin-bottom: 18px;
-      }
-      .v69-25-popup p b { color: #8c7340; font-weight: 500; }
-      .v69-25-popup-actions {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 10px;
-        padding-top: 14px; border-top: 1px solid #e6e1d4;
-      }
-      .v69-25-skip {
-        font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        color: #9a958e; cursor: pointer;
-        background: none; border: none; padding: 0;
-      }
-      .v69-25-skip:hover { color: #1a1a1a; }
-      .v69-25-nav {
-        display: flex; gap: 6px;
-      }
-      .v69-25-btn {
-        font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        padding: 9px 14px; cursor: pointer;
-        background: none; border: 1px solid #d9d4c8; color: #1a1a1a;
-      }
-      .v69-25-btn:hover { border-color: #B8965A; color: #8c7340; }
-      .v69-25-btn.primary {
-        background: #1a1a1a; color: #B8965A; border-color: #1a1a1a;
-      }
-      .v69-25-btn.primary:hover { background: #B8965A; color: #fff; border-color: #B8965A; }
-      @media (max-width: 720px) {
-        .v69-25-popup { max-width: calc(100vw - 32px); padding: 18px 20px 14px; }
-        .v69-25-popup h3 { font-size: 18px; }
-      }
-    `;
-    document.head.appendChild(css);
-  }
-
-  function buildDOM() {
-    overlay = document.createElement('div');
-    overlay.className = 'v69-25-overlay';
-    spotlight = document.createElement('div');
-    spotlight.className = 'v69-25-spotlight no-target';
-    popup = document.createElement('div');
-    popup.className = 'v69-25-popup';
-    popup.innerHTML = `
-      <div class="v69-25-popup-meta">
-        <span>Visite guidée</span>
-        <span class="progress" id="v6925Progress">1 / ${STEPS.length}</span>
-      </div>
-      <h3 id="v6925Title"></h3>
-      <p id="v6925Text"></p>
-      <div class="v69-25-popup-actions">
-        <button class="v69-25-skip" id="v6925Skip">Passer</button>
-        <div class="v69-25-nav">
-          <button class="v69-25-btn" id="v6925Prev">← Précédent</button>
-          <button class="v69-25-btn primary" id="v6925Next">Suivant →</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    document.body.appendChild(spotlight);
-    document.body.appendChild(popup);
-
-    document.getElementById('v6925Prev').onclick = () => goTo(currentStep - 1);
-    document.getElementById('v6925Next').onclick = () => goTo(currentStep + 1);
-    document.getElementById('v6925Skip').onclick = () => endTour(true);
-
-    /* Échap pour quitter, flèches pour naviguer */
-    document.addEventListener('keydown', onKeyDown);
-    /* Repositionner sur resize / scroll */
-    const onResize = () => positionForStep(STEPS[currentStep]);
-    window.addEventListener('resize', onResize);
-    window.addEventListener('scroll', onResize, true);
-    cleanupResizeListener = () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('scroll', onResize, true);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-
-    /* Click sur l'overlay (en dehors de la zone spotlight) ne fait rien
-       — éviter les fermetures accidentelles */
-  }
-
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { e.preventDefault(); endTour(true); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); goTo(currentStep + 1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(currentStep - 1); }
-  }
-
-  function findTarget(selector) {
-    if (!selector) return null;
-    /* Le sélecteur peut contenir plusieurs cibles séparées par virgule.
-       On prend la première qui existe et est visible. */
-    const candidates = selector.split(',').map(s => s.trim());
-    for (const sel of candidates) {
-      const el = document.querySelector(sel);
-      if (el && el.offsetParent !== null) return el;
+    try {
+      const { error: dbErr } = await sb.from('products')
+        .update({ studio_state: studioState })
+        .eq('id', productId);
+      if (dbErr) throw dbErr;
+    } catch (e) {
+      console.warn('[v70] update DB studio_state.textureSwatchUrl échec :', e.message);
+      throw e;
     }
-    return null;
+
+    /* Sync local : la row en mémoire doit refléter le nouveau studio_state
+       pour que V42.buildColorsArray lise la bonne valeur. */
+    if (window._v18?.productRow) {
+      window._v18.productRow.studio_state = studioState;
+    }
+
+    /* Déclenche la projection V42 → products.colors pour que scan.html voie
+       la finition. V42 relit la row depuis la DB, construit colors[] au bon
+       format ({name, mat, texture, glb, usdz}) et UPDATE products.colors. */
+    if (window._v42 && typeof window._v42.sync === 'function') {
+      try {
+        await window._v42.sync(true);
+        console.log('[v70] ✓ V42 sync déclenché → colors[] projeté pour scan.html');
+      } catch (e) {
+        console.warn('[v70] V42 sync a échoué (la finition est uploadée mais scan.html ne la verra pas) :', e.message);
+      }
+    } else {
+      console.warn('[v70] window._v42.sync indisponible — colors[] non projeté, scan.html ne verra pas la finition');
+    }
+
+    console.log('[v70] ✓ Finition (base) uploadée :', url);
+    return url;
   }
 
-  function positionForStep(step) {
-    if (!step) return;
-    const target = findTarget(step.selector);
+  /* ─── Pipeline principal : process photo + finition ─── */
+  async function processAttachments(productId) {
+    if (isProcessing) return;
+    if (lastProcessedId === productId) return;
 
-    if (!target) {
-      /* Popup centré, spotlight invisible */
-      spotlight.classList.add('no-target');
-      spotlight.style.top = '50%';
-      spotlight.style.left = '50%';
-      spotlight.style.width = '0px';
-      spotlight.style.height = '0px';
-      popup.classList.add('centered');
-      popup.style.top = '';
-      popup.style.left = '';
+    const attachments = (window._v27 && window._v27.attachments) || {};
+    const tasks = [];
+    if (attachments.photo)    tasks.push(['photo', attachments.photo]);
+    if (attachments.finition) tasks.push(['finition', attachments.finition]);
+
+    if (tasks.length === 0) {
+      lastProcessedId = productId;
       return;
     }
 
-    spotlight.classList.remove('no-target');
-    popup.classList.remove('centered');
+    isProcessing = true;
+    lastProcessedId = productId;
 
-    const r = target.getBoundingClientRect();
-    const pad = step.pad != null ? step.pad : 6;
-    const sLeft = Math.max(0, r.left - pad);
-    const sTop = Math.max(0, r.top - pad);
-    const sWidth = Math.min(window.innerWidth - sLeft, r.width + 2 * pad);
-    const sHeight = Math.min(window.innerHeight - sTop, r.height + 2 * pad);
-
-    spotlight.style.left = sLeft + 'px';
-    spotlight.style.top = sTop + 'px';
-    spotlight.style.width = sWidth + 'px';
-    spotlight.style.height = sHeight + 'px';
-
-    /* Positionner le popup : à droite du spotlight si place, sinon gauche,
-       sinon en bas, sinon en haut, sinon centré. */
-    const popupWidth = 380;
-    const popupHeight = 280;
-    const margin = 16;
-    let px, py;
-
-    if (sLeft + sWidth + popupWidth + margin < window.innerWidth) {
-      /* À droite */
-      px = sLeft + sWidth + margin;
-      py = Math.max(margin, Math.min(window.innerHeight - popupHeight - margin, sTop + sHeight / 2 - popupHeight / 2));
-    } else if (sLeft - popupWidth - margin > 0) {
-      /* À gauche */
-      px = sLeft - popupWidth - margin;
-      py = Math.max(margin, Math.min(window.innerHeight - popupHeight - margin, sTop + sHeight / 2 - popupHeight / 2));
-    } else if (sTop + sHeight + popupHeight + margin < window.innerHeight) {
-      /* En dessous */
-      py = sTop + sHeight + margin;
-      px = Math.max(margin, Math.min(window.innerWidth - popupWidth - margin, sLeft + sWidth / 2 - popupWidth / 2));
-    } else {
-      /* Au-dessus ou centré */
-      py = Math.max(margin, sTop - popupHeight - margin);
-      px = Math.max(margin, Math.min(window.innerWidth - popupWidth - margin, sLeft + sWidth / 2 - popupWidth / 2));
+    const total = tasks.length;
+    if (typeof toast === 'function') {
+      toast(`📦 Upload ${total === 1 ? 'du fichier attaché' : 'des ' + total + ' fichiers attachés'}…`, 'info', 3000);
     }
 
-    popup.style.left = px + 'px';
-    popup.style.top = py + 'px';
-  }
+    let done = 0;
+    const errors = [];
 
-  function renderStep() {
-    const step = STEPS[currentStep];
-    if (!step) return;
-    document.getElementById('v6925Progress').textContent = (currentStep + 1) + ' / ' + STEPS.length;
-    document.getElementById('v6925Title').textContent = step.title;
-    document.getElementById('v6925Text').innerHTML = step.text;
-    const prev = document.getElementById('v6925Prev');
-    const next = document.getElementById('v6925Next');
-    prev.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
-    if (currentStep === STEPS.length - 1) {
-      next.textContent = step.cta || 'Terminer ✓';
-    } else if (currentStep === 0 && step.cta) {
-      next.textContent = step.cta + ' →';
-    } else {
-      next.textContent = 'Suivant →';
-    }
-    positionForStep(step);
-  }
-
-  function goTo(index) {
-    if (index < 0) return;
-    if (index >= STEPS.length) { endTour(false); return; }
-    currentStep = index;
-    renderStep();
-  }
-
-  function endTour(skipped) {
-    try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch (_) {}
-    if (overlay) {
-      overlay.classList.remove('visible');
-      popup.classList.remove('visible');
-    }
-    setTimeout(() => {
-      if (overlay) overlay.remove();
-      if (spotlight) spotlight.remove();
-      if (popup) popup.remove();
-      overlay = spotlight = popup = null;
-    }, 350);
-    if (cleanupResizeListener) { cleanupResizeListener(); cleanupResizeListener = null; }
-    /* Nettoyer ?tour=1 de l'URL pour ne pas redéclencher si on rafraîchit */
-    try {
-      const u = new URL(window.location.href);
-      if (u.searchParams.has('tour')) {
-        u.searchParams.delete('tour');
-        window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+    for (const [fmt, file] of tasks) {
+      try {
+        if (fmt === 'photo')         await uploadPhoto(file, productId);
+        else if (fmt === 'finition') await uploadFinition(file, productId);
+        done++;
+        delete attachments[fmt];
+      } catch (e) {
+        errors.push(`${fmt.toUpperCase()}: ${e.message || e}`);
+        console.error(`[v70] upload ${fmt} a échoué`, e);
       }
-    } catch (_) {}
-    console.log('[v69.25] tour ' + (skipped ? 'passé' : 'terminé') + ' à l\'étape ' + (currentStep + 1) + '/' + STEPS.length);
-  }
-
-  function startTour() {
-    if (overlay) return; /* déjà en cours */
-    injectStyles();
-    buildDOM();
-    currentStep = 0;
-    renderStep();
-    requestAnimationFrame(() => {
-      overlay.classList.add('visible');
-      popup.classList.add('visible');
-    });
-    console.log('[v69.25] tour démarré · ' + STEPS.length + ' étapes');
-  }
-
-  /* Exposer pour appel manuel */
-  window.startStudioTour = startTour;
-
-  /* Auto-déclenchement si ?tour=1 dans l'URL */
-  function maybeAutoStart() {
-    const url = new URL(window.location.href);
-    const tourParam = url.searchParams.get('tour');
-    if (tourParam === '1' || tourParam === 'force') {
-      /* Attendre que le studio soit suffisamment chargé pour que les
-         sélecteurs cibles existent. */
-      setTimeout(() => {
-        if (document.querySelector('.topbar') && document.querySelector('.rightpanel')) {
-          startTour();
-        } else {
-          /* Retry */
-          setTimeout(() => { if (!overlay) startTour(); }, 2000);
-        }
-      }, 800);
     }
+
+    isProcessing = false;
+
+    if (typeof toast === 'function') {
+      if (errors.length === 0) {
+        toast(`✓ ${done} fichier${done > 1 ? 's' : ''} attaché${done > 1 ? 's' : ''} au produit`, 'ok', 4000);
+      } else if (done > 0) {
+        toast(`Uploads : ${done}/${total} OK · ${errors.length} échec${errors.length > 1 ? 's' : ''}`, 'err', 6000);
+      } else {
+        toast(`Uploads échoués : ${errors.join(' · ')}`, 'err', 7000);
+      }
+    }
+
+    /* Forcer un refresh des UI qui lisent productRow */
+    if (window._v26 && typeof window._v26.updateProductSectionUI === 'function') {
+      try { window._v26.updateProductSectionUI(); } catch (_) {}
+    }
+  }
+
+  /* ─── Détection production de produit : watcher de productId ─── */
+  /* On note l'?id= initial pour distinguer "ouverture d'un produit existant"
+     (pas d'attachments à uploader, V27 jamais ouverte) de "création" (V27
+     vient d'être confirmée, attachments présents). */
+  const initialUrlId = new URLSearchParams(location.search).get('id') || null;
+  if (initialUrlId) lastProcessedId = initialUrlId;
+
+  let pendingProductId = null;
+  let pendingSince = 0;
+
+  const watcher = setInterval(() => {
+    const id = window._v18 && window._v18.productId;
+    if (!id) return;
+    if (id === lastProcessedId) return;
+
+    if (id !== pendingProductId) {
+      pendingProductId = id;
+      pendingSince = Date.now();
+      console.log('[v70] Nouveau productId détecté →', id, '· attente de', POST_CREATE_DELAY_MS / 1000, 's avant upload V27 attachments');
+      return;
+    }
+
+    /* Si on a attendu assez longtemps, on traite */
+    if (Date.now() - pendingSince >= POST_CREATE_DELAY_MS) {
+      pendingProductId = null;
+      processAttachments(id).catch(e => console.error('[v70] processAttachments fatal :', e));
+    }
+  }, 1000);
+
+  /* ─── Expose ─── */
+  window._v70 = {
+    processAttachments,        /* trigger manuel : window._v70.processAttachments(productId) */
+    uploadPhoto, uploadFinition,
+    compressImage,
+    config: { BUCKET, POST_CREATE_DELAY_MS, PHOTO_FIELDS },
+  };
+
+  console.log('[studio v70.1] V27 attachments (photo + finition) → upload Supabase câblé ✓ (délai ' + (POST_CREATE_DELAY_MS / 1000) + 's)');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v71 — BOUTON AR FLOTTANT (visible quand rightpanel masqué)
+   ─────────────────────────────────────────────────────────────────────────
+   Quand l'archi masque le panneau de droite (toggle "Masquer la fiche" qui
+   ajoute .app.hide-mat sur <body class="app">), le bouton "Voir en réalité
+   augmentée" disparaît avec son panneau parent. On clone ce bouton dans une
+   version fixée en bas-droite de l'écran, visible uniquement dans ce mode.
+
+   Le clone garde la classe .v50-ar-btn-rp donc il hérite automatiquement de
+   l'état disabled géré par V50.updateButtonState() (grisé si pas de modèle
+   chargé ou pas encore de productId). Pas de re-implémentation de la logique.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v71FloatingARButton() {
+  if (window.__v71Init) return;
+  window.__v71Init = true;
+
+  /* CSS injecté : position fixée + show/hide conditionnel */
+  const style = document.createElement('style');
+  style.textContent = `
+    .v71-ar-float {
+      position: fixed !important;
+      bottom: 22px !important;
+      right: 22px !important;
+      z-index: 9000;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 13px 24px !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
+      display: none !important;        /* caché par défaut */
+    }
+    /* Visible UNIQUEMENT quand le rightpanel est masqué */
+    .app.hide-mat .v71-ar-float {
+      display: flex !important;
+    }
+    /* Sur mobile, on rétrécit un peu et on ajuste les marges */
+    @media (max-width: 560px) {
+      .v71-ar-float {
+        bottom: 14px !important;
+        right: 14px !important;
+        padding: 11px 18px !important;
+        font-size: 10px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  function injectFloatingButton() {
+    if (document.getElementById('v71ARBtnFloat')) return true;
+
+    const btn = document.createElement('button');
+    btn.id = 'v71ARBtnFloat';
+    /* Classes : .v50-ar-btn-rp pour hériter du style ET du updateButtonState
+       de V50 (synchro disabled auto). .v71-ar-float pour le positionnement
+       fixe et l'affichage conditionnel. */
+    btn.className = 'v50-ar-btn-rp v71-ar-float';
+    btn.type = 'button';
+    btn.title = 'Voir le modèle en réalité augmentée';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
+      </svg>
+      <span>Voir en réalité augmentée</span>
+    `;
+    /* Forward click vers le bouton AR canonique du rightpanel — il a déjà
+       toute la logique launchAR câblée. Si le bouton canonique n'existe pas
+       encore, on tente après un délai. */
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const original = document.getElementById('v50ARBtnRP');
+      if (original && !original.disabled) {
+        original.click();
+      } else if (!original) {
+        console.warn('[v71] bouton AR canonique introuvable au moment du click');
+      }
+    };
+    document.body.appendChild(btn);
+    return true;
+  }
+
+  /* Attendre que V50 ait fini son init, puis injecter */
+  function tryInit() {
+    if (injectFloatingButton()) return;
+    setTimeout(tryInit, 600);
   }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', maybeAutoStart);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(tryInit, 800));
   } else {
-    maybeAutoStart();
+    setTimeout(tryInit, 800);
   }
+
+  console.log('[studio v71] bouton AR flottant prêt (visible quand rightpanel masqué)');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v72 — CLICK MODÈLE → OUVRE LE PANNEAU MATÉRIAU SI MASQUÉ
+   ─────────────────────────────────────────────────────────────────────────
+   Complète v69.22 (qui active le tab Matériau au click sur une part) en
+   ouvrant aussi le panneau de droite si l'archi l'avait masqué via le
+   toggle "Masquer la fiche". Raccourci pratique : un click sur le modèle
+   sort de l'état "viewer plein écran" et redonne accès aux matériaux.
+   Idempotent, no-op si le panneau est déjà visible. Ne s'active pas en
+   pipette mode (parité avec v69.22).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v72ClickModelOpensMatPanel() {
+  if (window.__v72Init) return;
+  window.__v72Init = true;
+
+  function openMatPanelIfHidden() {
+    const app = document.getElementById('app') || document.querySelector('.app');
+    if (!app) return;
+    if (!app.classList.contains('mat-hidden') && !app.classList.contains('hide-mat')) return;
+    /* Préférer le toggle officiel pour que l'état du bouton du topbar reste sync */
+    if (typeof window.togglePanel === 'function') {
+      try { window.togglePanel('mat'); return; } catch (_) {}
+    }
+    /* Fallback : retirer la classe manuellement (les 2 noms existent dans
+       différentes parties du code, on retire les deux par sûreté) */
+    app.classList.remove('mat-hidden');
+    app.classList.remove('hide-mat');
+  }
+
+  function hookSceneClick() {
+    if (typeof window.handleSceneClick !== 'function') return false;
+    if (window.handleSceneClick.__v72) return true;
+    const orig = window.handleSceneClick;
+    window.handleSceneClick = function(e) {
+      const r = orig.apply(this, arguments);
+      try {
+        if (typeof pipetteMode === 'undefined' || !pipetteMode) {
+          openMatPanelIfHidden();
+        }
+      } catch (err) {
+        console.warn('[v72] openMatPanelIfHidden échec', err);
+      }
+      return r;
+    };
+    window.handleSceneClick.__v72 = true;
+    console.log('[v72] handleSceneClick hooké : auto-ouverture panneau matériau ✓');
+    return true;
+  }
+
+  if (!hookSceneClick()) {
+    const t = setInterval(() => { if (hookSceneClick()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v73 — VOLET FLOTTANT VARIANTES (au lieu des chips inline en bottombar)
+   ─────────────────────────────────────────────────────────────────────────
+   Les chips Base / Variante 1 / Variante 2 + "+Nouvelle variante" prenaient
+   beaucoup de place dans la bottombar, surtout sur écrans étroits avec le
+   rightpanel ouvert. On les déplace dans un volet flottant qui s'ouvre au
+   click sur un nouveau bouton "VARIANTES" dans la bottombar.
+
+   Important : on ne CLONE PAS les chips, on les DÉPLACE (appendChild) dans
+   le volet. L'élément #varChipsContainer garde son id donc V25 et tous les
+   modules qui le ciblent continuent de fonctionner. Les event handlers sur
+   les chips existants restent attachés.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v73VariantsDrawer() {
+  if (window.__v73Init) return;
+  window.__v73Init = true;
+
+  /* CSS injecté */
+  const style = document.createElement('style');
+  style.textContent = `
+    .v73-drawer {
+      position: fixed;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg, #F5F2EC);
+      border: 1px solid var(--line, #D8D2C7);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+      z-index: 4500;
+      max-width: calc(100vw - 36px);
+      flex-wrap: wrap;
+    }
+    .v73-drawer.v73-open { display: flex; }
+    .v73-drawer::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      width: 12px; height: 12px;
+      background: var(--bg, #F5F2EC);
+      border-right: 1px solid var(--line, #D8D2C7);
+      border-bottom: 1px solid var(--line, #D8D2C7);
+      transform: rotate(45deg);
+      left: var(--v73-arrow-x, 32px);
+    }
+    .v73-drawer .var-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink-muted, #9C9388);
+      margin-right: 4px;
+    }
+    .v73-drawer .var-chip {
+      padding: 6px 12px;
+      background: var(--panel, #FBF9F5);
+      border: 1px solid var(--line, #D8D2C7);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-soft, #6B6358);
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .v73-drawer .var-chip:hover { border-color: var(--gold, #B8965A); }
+    .v73-drawer .var-chip.active {
+      background: var(--ink, #2A2620);
+      color: var(--bg, #F5F2EC);
+      border-color: var(--ink, #2A2620);
+    }
+    .v73-drawer .var-add {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px dashed var(--line, #D8D2C7);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-muted, #9C9388);
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .v73-drawer .var-add:hover {
+      border-color: var(--gold, #B8965A);
+      color: var(--gold, #B8965A);
+      border-style: solid;
+    }
+    #v73-toggle.v73-active {
+      background: var(--ink, #2A2620);
+      color: var(--bg, #F5F2EC);
+      border-color: var(--ink, #2A2620);
+    }
+    #v73-toggle .v73-count {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      background: var(--gold, #B8965A);
+      color: #fff;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+    #v73-toggle.v73-active .v73-count {
+      background: var(--gold, #B8965A);
+      color: var(--ink, #2A2620);
+    }
+  `;
+  document.head.appendChild(style);
+
+  let drawer = null;
+  let toggleBtn = null;
+
+  function getActiveVariantLabel() {
+    const active = (drawer && drawer.querySelector('.var-chip.active'))
+                || document.querySelector('.var-chip.active');
+    return active ? (active.textContent || '').trim() : 'Base';
+  }
+  function getVariantCount() {
+    if (window._v25 && Array.isArray(window._v25.variants)) {
+      return 1 + window._v25.variants.length;
+    }
+    return Math.max(1, document.querySelectorAll('.var-chip').length);
+  }
+  function updateToggleLabel() {
+    if (!toggleBtn) return;
+    const count = getVariantCount();
+    const active = getActiveVariantLabel();
+    toggleBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-right:6px;vertical-align:middle;opacity:0.7">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+      </svg>Variantes · ${active}<span class="v73-count">${count}</span>
+    `;
+  }
+  function positionDrawer() {
+    if (!drawer || !toggleBtn) return;
+    const rect = toggleBtn.getBoundingClientRect();
+    const drawerRect = drawer.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    let left = rect.left;
+    if (left + drawerRect.width > viewportW - 12) {
+      left = Math.max(12, viewportW - drawerRect.width - 12);
+    }
+    const top = rect.top - drawerRect.height - 10;
+    drawer.style.left = left + 'px';
+    drawer.style.top = top + 'px';
+    const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - left - 6, drawerRect.width - 28));
+    drawer.style.setProperty('--v73-arrow-x', arrowX + 'px');
+  }
+  function openDrawer() {
+    if (!drawer) return;
+    drawer.classList.add('v73-open');
+    toggleBtn?.classList.add('v73-active');
+    requestAnimationFrame(positionDrawer);
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove('v73-open');
+    toggleBtn?.classList.remove('v73-active');
+  }
+  function toggleDrawer() {
+    if (!drawer) return;
+    if (drawer.classList.contains('v73-open')) closeDrawer();
+    else openDrawer();
+  }
+
+  function init() {
+    const bottombar = document.querySelector('.bottombar');
+    if (!bottombar) return false;
+    const varLabel    = bottombar.querySelector('.var-label');
+    const baseChip    = bottombar.querySelector('.var-chip[data-variant-id="base"]');
+    const varContainer = document.getElementById('varChipsContainer');
+    const newVarBtn   = document.getElementById('btnNewVariant');
+    if (!varLabel || !baseChip || !varContainer || !newVarBtn) return false;
+    if (document.getElementById('v73-toggle')) return true;
+
+    drawer = document.createElement('div');
+    drawer.id = 'v73-variants-drawer';
+    drawer.className = 'v73-drawer';
+    drawer.appendChild(varLabel);
+    drawer.appendChild(baseChip);
+    drawer.appendChild(varContainer);
+    drawer.appendChild(newVarBtn);
+    document.body.appendChild(drawer);
+
+    toggleBtn = document.createElement('button');
+    toggleBtn.id = 'v73-toggle';
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn-secondary-bottom';
+    toggleBtn.style.flexShrink = '0';
+    toggleBtn.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      toggleDrawer();
+    };
+    bottombar.appendChild(toggleBtn);
+    updateToggleLabel();
+
+    document.addEventListener('click', (e) => {
+      if (!drawer.classList.contains('v73-open')) return;
+      if (drawer.contains(e.target) || toggleBtn.contains(e.target)) return;
+      closeDrawer();
+    });
+    window.addEventListener('resize', () => {
+      if (drawer.classList.contains('v73-open')) positionDrawer();
+    });
+    drawer.addEventListener('click', (e) => {
+      if (e.target.closest('.var-chip')) setTimeout(updateToggleLabel, 30);
+    });
+    setInterval(updateToggleLabel, 1500);
+
+    console.log('[studio v73] volet variantes prêt · bouton + ' + getVariantCount() + ' chips déplacés');
+    return true;
+  }
+
+  if (!init()) {
+    const t = setInterval(() => { if (init()) clearInterval(t); }, 500);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+
+  window._v73 = { open: openDrawer, close: closeDrawer, toggle: toggleDrawer };
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v74 — SÉLECTION = FLASH COULEUR (pas d'émissif persistant)
+   ─────────────────────────────────────────────────────────────────────────
+   Problème : selectPartReal posait un emissif persistant 0x2A1A00 sur la
+   part sélectionnée, qui restait après l'action et obscurcissait le
+   matériau. V37 (mode MESH) faisait pareil avec un emissif gold 0xB8965A
+   sur le mesh cliqué.
+
+   Solution : transformer la sélection en flash transitoire avec un code
+   couleur clair par type d'action :
+
+     - GROUPE (PARTIES)  → flash ROUGE   (0xFF2222) · 700 ms
+     - MESH              → flash BLEU    (0x2266FF) · 700 ms
+     - PIPETTE           → flash VERT    (0x22DD22) · 800 ms  ← déjà ok
+
+   Le state de sélection reste visible dans la tree (.tree-row.selected),
+   et pour MESH dans l'overlay flottant "Mesh sélectionné" de V37. L'utilisateur
+   a donc toujours un retour visuel persistant — mais en UI, pas sur le mesh.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v74FlashSelection() {
+  if (window.__v74) return;
+  window.__v74 = true;
+
+  const COLORS = { GROUP: 0xB8965A, MESH: 0x2266FF };
+  const DURATION = 700;
+
+  /* ─── 1. Patcher selectPartReal : neutraliser l'emissif persistant ─── */
+  function patchSelectPartReal() {
+    if (typeof window.selectPartReal !== 'function') return false;
+    if (window.selectPartReal.__v74) return true;
+
+    const original = window.selectPartReal;
+    window.selectPartReal = function(key) {
+      const r = original.apply(this, arguments);
+      try {
+        /* Forcer tous les emissifs à 0 (selectPartReal vient de poser 0x2A1A00
+           sur la part active, on l'écrase pour ne garder que le flash) */
+        if (typeof partMaterials === 'object' && partMaterials) {
+          Object.values(partMaterials).forEach(mat => {
+            if (mat && mat.emissive) {
+              mat.emissive.setHex(0x000000);
+              mat.emissiveIntensity = 0;
+            }
+          });
+        }
+        /* V77 — Plus de flash rouge à la sélection : l'utilisateur trouvait
+           le filtre rouge désagréable. On garde le force-à-0 des emissifs
+           (utile pour neutraliser le 0x2A1A00 que selectPartReal pose) mais
+           on ne déclenche pas le flash GROUP. Les flashes MESH (bleu) et
+           PIPETTE (vert) restent inchangés dans leurs modules respectifs. */
+        /* if (typeof window.flashHighlightPart === 'function' && key) {
+          window.flashHighlightPart(key, COLORS.GROUP, DURATION);
+        } */
+      } catch (e) {
+        console.warn('[v74] wrap selectPartReal échec :', e);
+      }
+      return r;
+    };
+    window.selectPartReal.__v74 = true;
+    /* Sync de la variable locale au scope racine (utilisée par certains modules
+       qui ont chopé une ref avant nous) */
+    if (typeof selectPartReal !== 'undefined') {
+      try { selectPartReal = window.selectPartReal; } catch (_) {}
+    }
+    return true;
+  }
+
+  /* ─── 2. V37 mesh mode : transformer highlight gold persistant en flash bleu ─── */
+  /* Stratégie : V37 expose window._v37.selectedMesh. On le watch — quand un mesh
+     vient d'être assigné, on switch l'emissif du cloned material vers bleu et on
+     lance un décai vers 0. La logique d'isolation de V37 marche toujours
+     (selectedMesh reste pour le bouton "Isoler"). */
+  let lastWatchedMesh = null;
+  let flashTokens = new WeakMap(); /* mesh -> token pour éviter double-flash */
+
+  function flashMeshBlue(mesh) {
+    if (!mesh || !mesh.material || !mesh.material.emissive) return;
+    const mat = mesh.material;
+    /* Token unique pour cancel toute animation précédente sur ce mesh */
+    const token = Symbol('v74-flash');
+    flashTokens.set(mesh, token);
+
+    mat.emissive.setHex(COLORS.MESH);
+    mat.emissiveIntensity = 0.9;
+    const t0 = performance.now();
+    function decay() {
+      /* Si un autre flash a été déclenché entre-temps, on s'arrête */
+      if (flashTokens.get(mesh) !== token) return;
+      /* Si le mesh n'est plus sélectionné, on stop */
+      if (!mesh.material || !mesh.material.emissive) return;
+      const t = (performance.now() - t0) / DURATION;
+      if (t >= 1) {
+        mat.emissive.setHex(0x000000);
+        mat.emissiveIntensity = 0;
+        return;
+      }
+      mat.emissiveIntensity = 0.9 * (1 - t);
+      requestAnimationFrame(decay);
+    }
+    requestAnimationFrame(decay);
+  }
+
+  /* Watcher : poll window._v37.selectedMesh */
+  setInterval(() => {
+    if (!window._v37 || window._v37.mode !== 'mesh') {
+      lastWatchedMesh = null;
+      return;
+    }
+    const m = window._v37.selectedMesh;
+    if (m && m !== lastWatchedMesh) {
+      lastWatchedMesh = m;
+      /* Petit délai pour laisser V37 finir son clone + setHex 0xB8965A,
+         puis on écrase avec le bleu et on lance le décai */
+      setTimeout(() => flashMeshBlue(m), 30);
+    } else if (!m) {
+      lastWatchedMesh = null;
+    }
+  }, 100);
+
+  /* ─── Init avec retry si selectPartReal pas encore défini ─── */
+  if (!patchSelectPartReal()) {
+    const t = setInterval(() => { if (patchSelectPartReal()) clearInterval(t); }, 400);
+    setTimeout(() => clearInterval(t), 20000);
+  }
+
+  console.log('[studio v74] sélection = flash couleur · groupe ROUGE · mesh BLEU · pipette VERT ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v74.2 — SYNC IMMÉDIAT CUSTOM_LABELS VERS BASE (bypass V62)
+   ─────────────────────────────────────────────────────────────────────────
+   Problème : quand l'archi renomme un groupe (V24, double-click sur tree-row)
+   en étant sur une VARIANTE, V18 doSave pousse studio_state, V62 intercepte
+   et route vers variants[active].studio_state. Conséquence : customLabels
+   se retrouve dans variants[i].studio_state, jamais dans Base. Au refresh,
+   detectParts lit row.studio_state.customLabels (Base) → vide → noms perdus.
+
+   Le V34 sync 5s récupère ce cas (il merge window._v21.customLabels vers Base,
+   et avec le bypass V62 du v74.1, ça arrive bien en base), mais avec un délai
+   de 5s. Si l'archi rafraîchit la page entre le rename et le tour V34 suivant,
+   les noms sont perdus.
+
+   Fix : on poll window._v21.customLabels toutes les 600 ms, on détecte les
+   changements (par diff stringify), et on UPDATE directement Base avec le
+   bypass V62 (payload contient variants → V62 ne route pas). Premier tour
+   skippé pour ne pas écrire la valeur initiale chargée depuis la DB.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v74_2CustomLabelsSync() {
+  if (window.__v74_2) return;
+  window.__v74_2 = true;
+
+  let lastSnapshot = null;
+  let firstPass = true;
+  let inFlight = false;
+
+  function snapshot() {
+    const labels = (window._v21 && window._v21.customLabels) || {};
+    return JSON.stringify(labels);
+  }
+
+  async function pushToBase() {
+    if (inFlight) return;
+    if (typeof sb === 'undefined' || !sb) return;
+    const productId = window._v18 && window._v18.productId;
+    if (!productId) return;
+    const localLabels = (window._v21 && window._v21.customLabels) || {};
+    if (Object.keys(localLabels).length === 0) return;
+
+    inFlight = true;
+    try {
+      /* Read studio_state + variants pour bypass V62 */
+      const { data, error } = await sb.from('products')
+        .select('studio_state, variants')
+        .eq('id', productId).single();
+      if (error || !data) return;
+      const baseState = data.studio_state || {};
+      const existing = baseState.customLabels || {};
+
+      /* Merge : on ajoute / remplace seulement, jamais supprimer (V21
+         supprime un label seulement quand un groupe disparait, c'est
+         géré ailleurs). */
+      let changed = false;
+      Object.keys(localLabels).forEach(k => {
+        if (existing[k] !== localLabels[k]) {
+          existing[k] = localLabels[k];
+          changed = true;
+        }
+      });
+      if (!changed) return;
+
+      baseState.customLabels = existing;
+      /* Bypass V62 : inclure variants dans le payload */
+      const payload = { studio_state: baseState, variants: data.variants };
+      const { error: uerr } = await sb.from('products').update(payload).eq('id', productId);
+      if (uerr) throw uerr;
+
+      /* Mirror local */
+      if (window._v18 && window._v18.productRow) {
+        window._v18.productRow.studio_state = baseState;
+      }
+      console.log('[v74.2] customLabels → Base (immédiat) ·', Object.keys(localLabels).length, 'noms');
+    } catch (e) {
+      console.warn('[v74.2] push customLabels échec :', e && (e.message || e));
+    } finally {
+      inFlight = false;
+    }
+  }
+
+  /* Watcher 600 ms : skip 1er tour pour ignorer la valeur initiale chargée */
+  setInterval(() => {
+    const snap = snapshot();
+    if (firstPass) {
+      lastSnapshot = snap;
+      firstPass = false;
+      return;
+    }
+    if (snap !== lastSnapshot) {
+      lastSnapshot = snap;
+      pushToBase().catch(() => {});
+    }
+  }, 600);
+
+  /* Expose pour flush manuel */
+  window._v74_2 = { pushNow: pushToBase };
+
+  console.log('[studio v74.2] sync immédiat customLabels → Base (bypass V62) actif ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v75 — RIGHTPANEL UNIFIÉ : skin catalogue pour Matériau / Géométrie / Scène
+   ─────────────────────────────────────────────────────────────────────────
+   Le panneau de droite avait un skin cream/Cormorant Garamond, différent du
+   panneau catalogue (dark warm + Jost uppercase). On unifie : fond #2A2620,
+   tabs en pills, éléments de section en eyebrow muted + tiret, displays
+   en Jost 600 uppercase comme les cards "AUREA / NOTE M-4060".
+
+   Stratégie : override CSS, on ne TOUCHE PAS aux classes existantes (.mat-*,
+   .rp-view-edit, .geom-*, .lib-*) donc tous les hooks JS continuent de
+   fonctionner. Spécificité atteinte via .rightpanel parent.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v75UnifiedRightpanelSkin() {
+  if (window.__v75Init) return;
+  window.__v75Init = true;
+
+  const css = document.createElement('style');
+  css.setAttribute('data-v75', 'unified-rightpanel');
+  css.textContent = `
+    /* ═══ TOKENS sur le rightpanel ═══ */
+    .rightpanel {
+      --rp-bg:       #2A2620;
+      --rp-elev:     rgba(255,255,255,0.02);
+      --rp-line:     rgba(255,255,255,0.06);
+      --rp-line-mid: rgba(255,255,255,0.16);
+      --rp-gold:     #B8965A;
+      --rp-gold-2:   rgba(184,150,90,0.3);
+      --rp-ink:      rgba(245,242,236,0.95);
+      --rp-ink-2:    rgba(245,242,236,0.85);
+      --rp-muted:    rgba(245,242,236,0.55);
+      --rp-faint:    rgba(245,242,236,0.35);
+      --rp-on-gold:  #1a1a1a;
+
+      background: var(--rp-bg) !important;
+      border-left: 1px solid rgba(0,0,0,0.35) !important;
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+    }
+    .rightpanel .rp-view-edit,
+    .rightpanel .rp-view-library {
+      background: var(--rp-bg) !important;
+    }
+
+    /* ═══ V75 — Pas de duplication des tabs Matériau/Géométrie/Scène ═══ */
+    /* L'organisation par défaut : V12 clone .mat-tabs dans .tb-mat-zone
+       (topbar). On laisse cette organisation en place et on masque la
+       version dans le rightpanel. Les hooks JS (V35, V69.22, V75 scène)
+       sont câblés sur la version topbar ou utilisent un fallback. */
+    .rightpanel .mat-tabs { display: none !important; }
+
+    /* (Les anciennes règles V75 qui stylisaient les pills .rightpanel .mat-tab
+       ont été retirées : maintenant cachées via display:none ci-dessus.
+       Les onglets actifs sont ceux clonés par V12 dans .tb-mat-zone.) */
+
+    /* ═══ V75.2 — Dimensions L/H/P déplacées dans Géométrie ═══ */
+    /* V35 a déjà les inputs dimensions dans son panel Géométrie. La double
+       saisie dans la topbar surchargeait visuellement et n'apportait rien.
+       On cache la zone .tb-dims (le JS qui écrit dans tbDimL/H/P fonctionne
+       toujours : les inputs sont cachés mais présents dans le DOM, et V35
+       synchronise ses propres inputs avec le state). */
+    .topbar .tb-dims { display: none !important; }
+
+    /* ═══ V75.2 — Vignettes lib non cachées par le bouton AR ═══ */
+    /* Le bouton AR est fixed bottom à hauteur ~56px (--bottombar-h). On
+       réserve l'espace en bas de la zone scrollable pour que les dernières
+       vignettes restent visibles malgré le bouton. */
+    .rightpanel .lib-grid { padding-bottom: 80px !important; }
+
+    /* ═══ V75.2 — Alignement chips matériaux sur le bord gauche du search ═══ */
+    /* Le .lib-search a margin 18px sur les côtés (input aligné à 18px de
+       la bordure container). Le .lib-filters avait été cassé par un padding
+       0 20px en V75 → chips à 38px du bord. On rétablit padding horizontal 0
+       + margin 18px pour que les chips s'alignent pixel-perfect avec le
+       cadre search. */
+    .rightpanel .lib-filters {
+      padding: 8px 0 12px !important;
+      margin: 0 18px 0 !important;
+      gap: 6px !important;
+    }
+
+    /* ═══ HEAD = identité de la part active ═══ */
+    .rightpanel .mat-head {
+      padding: 22px 20px 18px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+      background: var(--rp-bg) !important;
+    }
+    /* Eyebrow muted + tiret extensible */
+    .rightpanel .mat-eyebrow {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 16px !important;
+    }
+    .rightpanel .mat-eyebrow::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .mat-name-row {
+      display: flex !important;
+      gap: 14px !important;
+      align-items: center !important;
+    }
+    .rightpanel .mat-swatch-big {
+      width: 60px !important;
+      height: 60px !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      flex-shrink: 0 !important;
+      cursor: pointer !important;
+      transition: border-color 0.15s !important;
+    }
+    .rightpanel .mat-swatch-big:hover { border-color: var(--rp-gold) !important; }
+    /* Le bloc texte à droite du swatch : on transforme Cormorant italic en
+       Jost uppercase 600 (pattern catalogue AUREA / NOTE M-4060) */
+    .rightpanel .mat-name {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+      line-height: 1.3 !important;
+    }
+    .rightpanel .mat-subname {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      line-height: 1.3 !important;
+      margin-top: 3px !important;
+    }
+    .rightpanel .mat-meta {
+      margin-top: 8px !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.10em !important;
+      color: var(--rp-faint) !important;
+      line-height: 1.7 !important;
+      text-transform: uppercase !important;
+    }
+    .rightpanel .mat-meta b {
+      color: var(--rp-muted) !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.18em !important;
+    }
+    .rightpanel .btn-library {
+      width: 100% !important;
+      margin-top: 14px !important;
+      padding: 11px 14px !important;
+      background: var(--rp-gold) !important;
+      border: 1px solid var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      transition: filter 0.15s !important;
+    }
+    .rightpanel .btn-library:hover { filter: brightness(1.08) !important; }
+    .rightpanel .btn-library svg { width: 12px !important; height: 12px !important; }
+
+    /* ═══ BODY scrollable ═══ */
+    .rightpanel .mat-body {
+      background: var(--rp-bg) !important;
+      color: var(--rp-ink) !important;
+      padding: 0 20px 28px !important;
+    }
+    .rightpanel .mat-body::-webkit-scrollbar { width: 4px; }
+    .rightpanel .mat-body::-webkit-scrollbar-thumb { background: rgba(184,150,90,0.25); }
+    .rightpanel .mat-body::-webkit-scrollbar-track { background: transparent; }
+
+    /* ═══ SECTION ═══ */
+    .rightpanel .mat-section {
+      padding: 22px 0 18px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+    }
+    .rightpanel .mat-section:last-child {
+      border-bottom: none !important;
+      padding-bottom: 8px !important;
+    }
+    .rightpanel .mat-section-title {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 16px !important;
+    }
+    .rightpanel .mat-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .mat-section-title .extra {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.16em !important;
+      color: var(--rp-faint) !important;
+      font-weight: 400 !important;
+      flex: 0 0 auto !important;
+      order: 3 !important; /* après le tiret */
+    }
+    .rightpanel .mat-section-title::after { order: 2; }
+
+    /* ═══ ROW (label · value · slider/swatch) ═══ */
+    .rightpanel .mat-row {
+      gap: 12px !important;
+      padding: 10px 0 !important;
+      margin-bottom: 0 !important;
+      border-top: 1px dashed transparent !important;
+    }
+    .rightpanel .mat-row + .mat-row { border-top-color: var(--rp-line) !important; }
+    .rightpanel .mat-label {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+    }
+    .rightpanel .mat-value {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+    .rightpanel .mat-swatch {
+      width: 26px !important;
+      height: 26px !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      cursor: pointer !important;
+      transition: border-color 0.15s !important;
+    }
+    .rightpanel .mat-swatch:hover { border-color: var(--rp-gold) !important; }
+
+    /* ═══ SLIDER ═══ */
+    .rightpanel .mat-slider {
+      grid-column: 1 / -1 !important;
+      height: 2px !important;
+      background: var(--rp-line-mid) !important;
+      position: relative !important;
+      cursor: pointer !important;
+      margin-top: 6px !important;
+    }
+    .rightpanel .mat-slider-fill { background: var(--rp-gold) !important; height: 100% !important; }
+    .rightpanel .mat-slider-thumb {
+      background: var(--rp-gold) !important;
+      width: 10px !important;
+      height: 10px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    /* ═══ PROJ + ROTATE grids ═══ */
+    .rightpanel .proj-grid,
+    .rightpanel .rotate-grid {
+      gap: 6px !important;
+    }
+    .rightpanel .proj-btn,
+    .rightpanel .rotate-btn {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      transition: all 0.15s !important;
+    }
+    .rightpanel .proj-btn:hover,
+    .rightpanel .rotate-btn:hover {
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-gold) !important;
+    }
+    .rightpanel .proj-btn.active,
+    .rightpanel .rotate-btn.active {
+      background: var(--rp-gold) !important;
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-weight: 600 !important;
+    }
+    .rightpanel .proj-btn svg { stroke: currentColor !important; }
+
+    /* ═══ UV row (axe + slider + value) ═══ */
+    .rightpanel .uv-row { gap: 12px !important; padding: 6px 0 !important; }
+    .rightpanel .uv-axis {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      color: var(--rp-gold) !important;
+      width: 18px !important;
+      text-align: center !important;
+    }
+    .rightpanel .uv-value {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.10em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+
+    /* ═══ GÉOMÉTRIE panel (V35) ═══ */
+    .rightpanel .rp-geom-panel {
+      background: var(--rp-bg) !important;
+      color: var(--rp-ink) !important;
+      padding: 22px 20px 28px !important;
+      font-family: 'Jost', sans-serif !important;
+    }
+    .rightpanel .rp-geom-panel .geom-section { margin-bottom: 22px !important; padding-bottom: 18px !important; border-bottom: 1px solid var(--rp-line) !important; }
+    .rightpanel .rp-geom-panel .geom-section:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+    .rightpanel .rp-geom-panel .geom-label {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-muted) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      margin-bottom: 14px !important;
+    }
+    .rightpanel .rp-geom-panel .geom-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rp-line);
+    }
+    .rightpanel .rp-geom-panel .geom-input-row {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+    }
+    .rightpanel .rp-geom-panel .geom-axis-tag {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.18em !important;
+      border-right-color: var(--rp-line-mid) !important;
+      /* On garde les teintes x/y/z mais désaturées sur dark */
+    }
+    .rightpanel .rp-geom-panel .geom-axis-tag.x { color: #d57676 !important; }
+    .rightpanel .rp-geom-panel .geom-axis-tag.y { color: #6cbb7e !important; }
+    .rightpanel .rp-geom-panel .geom-axis-tag.z { color: #7799d4 !important; }
+    .rightpanel .rp-geom-panel .geom-input-row input {
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.04em !important;
+    }
+    .rightpanel .rp-geom-panel .geom-input-row input:focus { background: rgba(184,150,90,0.08) !important; }
+    .rightpanel .rp-geom-panel .geom-input-suffix {
+      color: var(--rp-faint) !important;
+      border-left-color: var(--rp-line) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+    }
+    .rightpanel .rp-geom-panel .geom-buttons button,
+    .rightpanel .rp-geom-panel button:not(.geom-axis-tag) {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      transition: all 0.15s !important;
+    }
+    .rightpanel .rp-geom-panel .geom-buttons button:hover,
+    .rightpanel .rp-geom-panel button:not(.geom-axis-tag):hover {
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-gold) !important;
+    }
+
+    /* ═══ LIBRARY view (.rp-view-library) ═══ */
+    .rightpanel .rp-view-library { background: var(--rp-bg) !important; color: var(--rp-ink) !important; }
+    .rightpanel .lib-head {
+      padding: 14px 20px 12px !important;
+      border-bottom: 1px solid var(--rp-line) !important;
+      background: var(--rp-bg) !important;
+    }
+    .rightpanel .lib-back {
+      background: transparent !important;
+      color: var(--rp-ink-2) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+    }
+    .rightpanel .lib-back:hover { border-color: var(--rp-gold) !important; color: var(--rp-gold) !important; }
+    .rightpanel .lib-title {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+    }
+    .rightpanel .lib-title small {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      font-weight: 400 !important;
+      display: block !important;
+      margin-top: 3px !important;
+    }
+    .rightpanel .lib-search input {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 11px !important;
+      letter-spacing: 0.04em !important;
+    }
+    .rightpanel .lib-search input::placeholder { color: var(--rp-faint) !important; }
+    .rightpanel .lib-filters { /* alignement géré plus haut en V75.2 */ gap: 6px !important; }
+    .rightpanel .lib-chip {
+      background: transparent !important;
+      border: 1px solid var(--rp-line-mid) !important;
+      color: var(--rp-ink-2) !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.16em !important;
+      text-transform: uppercase !important;
+      padding: 5px 10px !important;
+    }
+    .rightpanel .lib-chip:hover { border-color: var(--rp-gold) !important; color: var(--rp-gold) !important; }
+    .rightpanel .lib-chip.active {
+      background: var(--rp-gold) !important;
+      border-color: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+      font-weight: 600 !important;
+    }
+    .rightpanel .lib-card {
+      background: var(--rp-elev) !important;
+      border: 1px solid var(--rp-line) !important;
+      transition: all 0.18s !important;
+    }
+    .rightpanel .lib-card:hover {
+      background: rgba(184,150,90,0.06) !important;
+      border-color: var(--rp-gold-2) !important;
+    }
+    .rightpanel .lib-card-thumb {
+      border-color: var(--rp-line-mid) !important;
+    }
+    /* TYPO Library cards — pattern catalogue exact */
+    .rightpanel .lib-card-name {
+      font-family: 'Jost', sans-serif !important;
+      font-style: normal !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.12em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-ink) !important;
+      line-height: 1.3 !important;
+      min-height: calc(10px * 1.3 * 2) !important;
+      padding: 0 6px !important;
+    }
+    .rightpanel .lib-card-sub {
+      font-family: 'Jost', sans-serif !important;
+      font-size: 8px !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.18em !important;
+      text-transform: uppercase !important;
+      color: var(--rp-gold) !important;
+      padding: 0 6px !important;
+      min-height: calc(8px * 1.4) !important;
+    }
+    .rightpanel .lib-card.is-current::after {
+      content: 'EN COURS' !important;
+      position: absolute !important;
+      top: 6px !important;
+      right: 6px !important;
+      font-family: 'Jost', sans-serif !important;
+      font-size: 7px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      padding: 3px 6px !important;
+      background: var(--rp-gold) !important;
+      color: var(--rp-on-gold) !important;
+    }
+    .rightpanel .lib-card.is-current .lib-card-thumb {
+      border: 1px solid var(--rp-gold) !important;
+    }
+
+    /* ═══ SCÈNE placeholder (injecté en JS plus bas) ═══ */
+    .rightpanel .v75-scene-empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--rp-ink);
+      font-family: 'Jost', sans-serif;
+    }
+    .v75-scene-empty .v75-empty-icon {
+      width: 52px; height: 52px;
+      margin: 0 auto 22px;
+      border: 1px dashed var(--rp-gold-2);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--rp-gold);
+    }
+    .v75-scene-empty .v75-empty-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.4; }
+    .v75-scene-empty .v75-empty-title {
+      font-family: 'Jost', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--rp-ink);
+      margin-bottom: 10px;
+    }
+    .v75-scene-empty .v75-empty-text {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--rp-muted);
+      line-height: 1.7;
+      max-width: 280px;
+      margin: 0 auto 18px;
+    }
+    .v75-scene-empty .v75-soon {
+      display: inline-block;
+      padding: 5px 11px;
+      background: var(--rp-gold);
+      color: var(--rp-on-gold);
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+    .v75-scene-empty .v75-roadmap {
+      margin-top: 28px;
+      text-align: left;
+      border-top: 1px solid var(--rp-line);
+      padding-top: 18px;
+    }
+    .v75-scene-empty .v75-roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--rp-ink-2);
+    }
+    .v75-scene-empty .v75-roadmap-item + .v75-roadmap-item { border-top: 1px dashed var(--rp-line); }
+    .v75-scene-empty .v75-roadmap-num {
+      width: 26px; height: 26px;
+      border: 1px solid var(--rp-gold-2);
+      color: var(--rp-gold);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+  `;
+  document.head.appendChild(css);
+
+  /* ─── Injecter le placeholder Scène quand le 3ème tab est cliqué ─── */
+  function buildSceneEmpty() {
+    const wrap = document.createElement('div');
+    wrap.className = 'v75-scene-empty';
+    wrap.id = 'v75-scene-content';
+    wrap.innerHTML = `
+      <div class="v75-empty-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 16l5-5 4 4 8-8M16 7h5v5"/>
+        </svg>
+      </div>
+      <div class="v75-empty-title">Ambiance de scène</div>
+      <div class="v75-empty-text">
+        Pilotage de l'éclairage, de la caméra et du fond pour les rendus catalogue et AR. En cours de design.
+      </div>
+      <span class="v75-soon">À venir</span>
+      <div class="v75-roadmap">
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">01</span><span>Lumière directionnelle</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">02</span><span>Fond et sol</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">03</span><span>Caméras prédéfinies</span></div>
+        <div class="v75-roadmap-item"><span class="v75-roadmap-num">04</span><span>Capture HD catalogue</span></div>
+      </div>
+    `;
+    return wrap;
+  }
+
+  function showSceneEmpty() {
+    /* On masque mat-head + mat-body et on insère le placeholder dans rp-view-edit */
+    const view = document.querySelector('.rp-view-edit');
+    if (!view) return;
+    const head = view.querySelector('.mat-head');
+    const body = view.querySelector('.mat-body');
+    const geom = view.querySelector('.rp-geom-panel');
+    if (head) head.style.display = 'none';
+    if (body) body.style.display = 'none';
+    if (geom) geom.style.display = 'none';
+    let sceneEl = document.getElementById('v75-scene-content');
+    if (!sceneEl) {
+      sceneEl = buildSceneEmpty();
+      view.appendChild(sceneEl);
+    }
+    sceneEl.style.display = 'block';
+  }
+
+  function hideSceneEmpty() {
+    const el = document.getElementById('v75-scene-content');
+    if (el) el.style.display = 'none';
+  }
+
+  /* Hook sur les tabs : on intercepte les clicks et on switche scène/restore.
+     V75.1 — on cible la zone topbar (V12 clone) en priorité, fallback sur
+     rightpanel. Comme on cache les tabs du rightpanel via CSS, c'est la
+     version topbar qui reçoit les clicks utilisateur. */
+  function wireTabsForScene() {
+    const tabsContainer = document.querySelector('.tb-mat-zone .mat-tabs')
+                       || document.querySelector('.rp-view-edit .mat-tabs');
+    if (!tabsContainer) { setTimeout(wireTabsForScene, 500); return; }
+    const tabs = tabsContainer.querySelectorAll('.mat-tab');
+    if (tabs.length < 3) { setTimeout(wireTabsForScene, 500); return; }
+    if (tabsContainer.dataset.v75Wired === '1') return;
+    tabsContainer.dataset.v75Wired = '1';
+
+    tabs.forEach((tab, idx) => {
+      tab.addEventListener('click', () => {
+        /* Update active state pour le visuel (la topbar V12 affiche un
+           underline gold sur le tab actif) */
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (idx === 2) {
+          showSceneEmpty();
+        } else {
+          hideSceneEmpty();
+          /* Pour idx 0 et 1, V35 gère déjà mat/geom — on ne fait rien d'autre */
+        }
+      });
+    });
+    console.log('[studio v75] hook scène placeholder câblé sur', tabsContainer.closest('.tb-mat-zone') ? 'topbar' : 'rightpanel', '✓');
+  }
+  wireTabsForScene();
+
+  console.log('[studio v75] rightpanel unifié (skin catalogue · Jost uppercase · pills) actif ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v76 — SECTION "RÉCENTS" RENDUE FONCTIONNELLE
+   ─────────────────────────────────────────────────────────────────────────
+   La section .lib-recent affichait 5 vignettes codées en dur dans le HTML
+   (reliquat du mockup d'origine). Elle ne réagissait pas aux matériaux
+   réellement appliqués via Supabase.
+
+   V76 :
+   1. Hook sur applyMaterialFromSupabase : après chaque application réussie,
+      push le matériau dans window._v76.recents (max 5, dédup par id, plus
+      récent en tête).
+   2. Persistance localStorage clé "tadamhome_recent_materials".
+      Scope global (tous produits confondus) — décision archi : on raisonne
+      en "telle matière je l'ai utilisée la semaine dernière sur un autre
+      projet, je veux la retrouver".
+   3. Re-render de .lib-recent à chaque update : background-image depuis
+      thumbnail_url, tooltip avec nom + subcategory, click → réapplique.
+   4. Marqueur .current sur la vignette qui correspond à la matière active
+      sur la part en cours.
+   5. Si aucun récent : masquer la section entière (pas de 5 placeholders
+      orphelins). Le compteur "Récents · N" reflète le vrai count.
+   ════════════════════════════════════════════════════════════════════════ */
+(function v76RecentMaterials() {
+  if (window.__v76Init) return;
+  window.__v76Init = true;
+
+  const STORAGE_KEY = 'tadamhome_recent_materials';
+  const MAX_RECENTS = 5;
+
+  window._v76 = window._v76 || {};
+
+  /* ───── Storage I/O ───── */
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.slice(0, MAX_RECENTS) : [];
+    } catch (e) {
+      console.warn('[v76] localStorage load échec, reset :', e);
+      try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+      return [];
+    }
+  }
+  function save(arr) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr.slice(0, MAX_RECENTS)));
+    } catch (e) {
+      console.warn('[v76] localStorage save échec :', e);
+    }
+  }
+
+  /* ───── Track un matériau appliqué ───── */
+  function track(material) {
+    if (!material || !material.id) return;
+    const recents = window._v76.recents;
+    const idx = recents.findIndex(r => r.id === material.id);
+    if (idx >= 0) recents.splice(idx, 1); /* dédup */
+    recents.unshift({
+      id: material.id,
+      name: material.name || '—',
+      thumbnail_url: material.thumbnail_url || material.albedo_url || '',
+      subcategory: material.subcategory || '',
+      ref_code: material.ref_code || '',
+      base_color: material.base_color || '',
+    });
+    while (recents.length > MAX_RECENTS) recents.pop();
+    save(recents);
+    render();
+  }
+
+  /* ───── Render dans le DOM ───── */
+  function render() {
+    const container = document.querySelector('.lib-recent');
+    if (!container) return;
+    const section = container.closest('.lib-section');
+    const recents = window._v76.recents;
+
+    /* Si vide, on cache la section entière (pas de 5 placeholders orphelins) */
+    if (recents.length === 0) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = '';
+
+    /* Update du compteur dans le titre "Récents · N" */
+    const titleSpan = section && section.querySelector('.lib-section-title span');
+    if (titleSpan) titleSpan.textContent = recents.length;
+
+    /* Quel matériau est actif sur la part courante ? */
+    let currentId = null;
+    try {
+      const activeKey = (typeof activePartKey !== 'undefined') ? activePartKey : null;
+      if (activeKey && typeof partMaterialChoices === 'object' && partMaterialChoices) {
+        currentId = (partMaterialChoices[activeKey] || {}).id || null;
+      }
+    } catch (_) {}
+
+    /* Construit le HTML */
+    container.innerHTML = recents.map(r => {
+      const isCurrent = (r.id === currentId);
+      const safeTip = (r.name + (r.subcategory ? ' · ' + r.subcategory : '')).replace(/"/g, '&quot;');
+      const bg = r.thumbnail_url
+        ? `background-image:url('${r.thumbnail_url}');background-size:cover;background-position:center;`
+        : `background:${r.base_color || '#888'};`;
+      return `<div class="lib-recent-item${isCurrent ? ' current' : ''}"
+                   data-mat-id="${r.id}"
+                   data-tooltip="${safeTip}"
+                   style="${bg}"></div>`;
+    }).join('');
+
+    /* Wire clicks → réapplique le matériau */
+    container.querySelectorAll('.lib-recent-item').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.matId;
+        if (!id) return;
+        if (typeof window.applyMaterialFromSupabase === 'function') {
+          window.applyMaterialFromSupabase(id);
+        } else if (typeof applyMaterialFromSupabase === 'function') {
+          applyMaterialFromSupabase(id);
+        }
+      };
+    });
+  }
+
+  /* ───── Hook applyMaterialFromSupabase ───── */
+  function hookApply() {
+    let original;
+    if (typeof window.applyMaterialFromSupabase === 'function') {
+      original = window.applyMaterialFromSupabase;
+    } else if (typeof applyMaterialFromSupabase === 'function') {
+      original = applyMaterialFromSupabase;
+      window.applyMaterialFromSupabase = original;
+    } else {
+      return false;
+    }
+    if (original.__v76) return true;
+
+    const wrapped = async function(matId, cardEl) {
+      const result = await original.apply(this, arguments);
+      try {
+        let mat = null;
+        if (typeof allMaterials !== 'undefined' && Array.isArray(allMaterials)) {
+          mat = allMaterials.find(m => m.id === matId);
+        }
+        if (mat) track(mat);
+      } catch (e) {
+        console.warn('[v76] track après apply échec :', e);
+      }
+      return result;
+    };
+    wrapped.__v76 = true;
+    try { applyMaterialFromSupabase = wrapped; } catch (_) {}
+    window.applyMaterialFromSupabase = wrapped;
+    return true;
+  }
+
+  /* ───── Init ───── */
+  window._v76.recents = load();
+  window._v76.track = track;
+  window._v76.render = render;
+  window._v76.clear = () => { window._v76.recents = []; save([]); render(); };
+
+  let attempts = 0;
+  function tryInit() {
+    attempts++;
+    const hooked = hookApply();
+    render();
+    if (!hooked && attempts < 40) setTimeout(tryInit, 500);
+  }
+  tryInit();
+
+  /* Re-render périodique léger pour catcher les cas où le DOM est repeuplé
+     (ex : si un autre module re-render la biblio) */
+  setInterval(() => {
+    const container = document.querySelector('.lib-recent');
+    if (!container) return;
+    /* Détection grossière : si le nombre de DOM children ne matche pas, on re-render */
+    if (container.children.length !== window._v76.recents.length) {
+      render();
+    }
+  }, 2000);
+
+  console.log('[studio v76] récents matériaux fonctionnels (localStorage, max ' + MAX_RECENTS + ') ✓');
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   v77 — 5 fixes UX panneaux Paramètres / Géométrie / Catalogue / Exports
+   ─────────────────────────────────────────────────────────────────────────
+   1. Catalogue (V69 panel) : vignettes produits non occultées par le bouton
+      AR → padding-bottom 80px sur #v69-cat-content.
+
+   2. Géométrie (V35 panel) :
+      - Le contenu .mat-head (MATIÈRE ACTIVE · GARNISSAGE / BOUCLETTE / BLEU
+        NUIT) leakait sous le panel Géométrie dans certains contextes.
+        On force le masquage via une classe .rp-geom-active sur la rightpanel.
+      - Ajout d'une section "Dimensions" en TÊTE du panel avec inputs L/H/P
+        proxy vers tbDimL/H/P (la source de scale du modèle).
+
+   3. Paramètres :
+      - Suppression de la section V59 "VARIANTES & CATALOGUE" en bas.
+      - Ajout du bouton "Enregistrer comme nouvelle variante" juste sous
+        "Enregistrer comme nouveau produit", grisé tant que variants[] vide.
+
+   4. Exports : en mode lié, on télécharge ALSO en local après upload bucket
+      (pour les archis qui veulent une copie GLB/USDZ/OBJ/DAE sur disque).
+
+   5. "Sauvegarder l'état" : retire disabled + BIENTÔT, wire sur
+      window.forceStudioSave (manual flush V18).
+   ════════════════════════════════════════════════════════════════════════ */
+(function v77UxFixes() {
+  if (window.__v77Init) return;
+  window.__v77Init = true;
+  window._v77 = {};
+
+  /* Alias local : V77 est dans un <script> non-module, n'a pas accès direct
+     à toast() (qui est module-scoped). On le récupère via window.toast
+     (exposé en haut du module). Fallback no-op pour ne jamais throw. */
+  const toast = (msg, type, dur) => {
+    if (typeof window.toast === 'function') return window.toast(msg, type, dur);
+    console.log('[toast]', type || 'info', msg);
+  };
+
+  /* ─────────────────────────────────────────────────────────────────────
+     CSS additions
+     ───────────────────────────────────────────────────────────────────── */
+  const css = `
+    /* 1. Catalogue panel : breathing room en bas pour le bouton AR fixed */
+    .rightpanel #v69-cat-content { padding-bottom: 80px !important; }
+
+    /* 2a. Quand le panel Géométrie est actif, on force le masquage de
+          .mat-head et .mat-body pour éviter tout leak (la classe est
+          ajoutée par notre patch de showGeomView ci-dessous). */
+    .rightpanel.v77-geom-active .mat-head,
+    .rightpanel.v77-geom-active .mat-body { display: none !important; }
+
+    /* 2b. Section Dimensions : même skin que les autres sections géom */
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 32px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-row:last-child { margin-bottom: 0; }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-key {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--rp-gold, #B8965A);
+      text-align: center;
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input {
+      background: var(--rp-elev, #322D26);
+      border: 1px solid var(--rp-line-mid, rgba(184,150,90,0.18));
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--rp-ink, #F5F2EC);
+      padding: 8px 10px;
+      outline: none;
+      width: 100%;
+      letter-spacing: 0.02em;
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input:focus {
+      border-color: var(--rp-gold, #B8965A);
+      background: rgba(184,150,90,0.06);
+    }
+    .rp-geom-panel .geom-section.v77-dims input.v77-dim-input::placeholder {
+      color: var(--rp-faint, rgba(245,242,236,0.35));
+    }
+    .rp-geom-panel .geom-section.v77-dims input::-webkit-outer-spin-button,
+    .rp-geom-panel .geom-section.v77-dims input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-unit {
+      font-family: 'Jost', sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--rp-faint, rgba(245,242,236,0.4));
+      text-transform: uppercase;
+      text-align: left;
+    }
+    .rp-geom-panel .geom-section.v77-dims .v77-dim-hint {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 12px;
+      color: var(--rp-faint, rgba(245,242,236,0.4));
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+
+    /* 3. Bouton "Enregistrer comme nouvelle variante" : état grisé */
+    .admin-action.v77-disabled-variant {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* 5. Bouton "Sauvegarder l'état" : retirer style disabled visuel */
+    #v77SaveStateBtn:not(:disabled) {
+      opacity: 1;
+      cursor: pointer;
+    }
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 2a — Patch showGeomView/showMaterialView/showSceneView de V35
+     pour toggle la classe .v77-geom-active sur la rightpanel.
+     ───────────────────────────────────────────────────────────────────── */
+  function patchGeomViewToggle() {
+    const rp = document.getElementById('rightpanel');
+    if (!rp) { setTimeout(patchGeomViewToggle, 500); return; }
+
+    /* On observe les clics sur les onglets (V12 clone topbar + V75 hide
+       rightpanel). Plutôt que de wrapper les fonctions V35 (closure
+       interne), on monitor par MutationObserver l'état .active des tabs. */
+    const tabsSelectors = ['.tb-mat-zone .mat-tabs', '.rp-view-edit .mat-tabs'];
+    let tabsRoot = null;
+    for (const sel of tabsSelectors) {
+      const found = document.querySelector(sel);
+      if (found) { tabsRoot = found; break; }
+    }
+    if (!tabsRoot) { setTimeout(patchGeomViewToggle, 500); return; }
+
+    function syncGeomClass() {
+      const tabs = tabsRoot.querySelectorAll('.mat-tab');
+      let geomActive = false;
+      tabs.forEach((tab, idx) => {
+        if (idx === 1 && tab.classList.contains('active')) geomActive = true;
+      });
+      rp.classList.toggle('v77-geom-active', geomActive);
+    }
+
+    /* Observer sur les classes des tabs (pour détecter changement .active) */
+    const mo = new MutationObserver(syncGeomClass);
+    tabsRoot.querySelectorAll('.mat-tab').forEach(tab => {
+      mo.observe(tab, { attributes: true, attributeFilter: ['class'] });
+    });
+    /* Sync initial */
+    syncGeomClass();
+    /* Re-sync sur clic direct (au cas où classList change après notre observer) */
+    tabsRoot.querySelectorAll('.mat-tab').forEach(tab => {
+      tab.addEventListener('click', () => setTimeout(syncGeomClass, 50));
+    });
+
+    console.log('[v77] geom-view class sync armé sur', tabsRoot);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 2b — Injection d'une section Dimensions en tête du panel Géom
+     ───────────────────────────────────────────────────────────────────── */
+  function injectDimensionsSection() {
+    const geomPanel = document.getElementById('rpGeomPanel');
+    if (!geomPanel) { setTimeout(injectDimensionsSection, 500); return; }
+    if (geomPanel.querySelector('.v77-dims')) return; /* déjà injecté */
+
+    const section = document.createElement('div');
+    section.className = 'geom-section v77-dims';
+    section.innerHTML = `
+      <div class="geom-label">Dimensions</div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">L</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimL" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">H</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimH" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-row">
+        <span class="v77-dim-key">P</span>
+        <input type="number" step="0.1" min="0" class="v77-dim-input" id="v77DimP" placeholder="—">
+        <span class="v77-dim-unit">CM</span>
+      </div>
+      <div class="v77-dim-hint">
+        Largeur × Hauteur × Profondeur (centimètres). S'applique au modèle 3D.
+      </div>
+    `;
+    /* Insertion en TÊTE du panel (avant Position) */
+    geomPanel.insertBefore(section, geomPanel.firstChild);
+
+    /* ─── Proxy bidirectionnel vers les inputs cachés tbDimL/H/P ─── */
+    const pairs = [
+      ['v77DimL', 'tbDimL'],
+      ['v77DimH', 'tbDimH'],
+      ['v77DimP', 'tbDimP'],
+    ];
+
+    /* Source actuelle : tbDim* est rempli au load du modèle. On copie au montage. */
+    pairs.forEach(([gId, tbId]) => {
+      const g = document.getElementById(gId);
+      const tb = document.getElementById(tbId);
+      if (!g || !tb) return;
+      g.value = tb.value || '';
+
+      /* Géom → tb (saisie utilisateur dans Géométrie) */
+      g.addEventListener('input', () => {
+        tb.value = g.value;
+        tb.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      g.addEventListener('change', () => {
+        tb.value = g.value;
+        tb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+
+    /* tb → Géom (resync quand un nouveau modèle se charge et remplit tbDim*) */
+    pairs.forEach(([gId, tbId]) => {
+      const g = document.getElementById(gId);
+      const tb = document.getElementById(tbId);
+      if (!g || !tb) return;
+      ['input', 'change'].forEach(evt => {
+        tb.addEventListener(evt, () => {
+          /* Évite la boucle : ne resync que si la valeur diffère */
+          if (g.value !== tb.value) g.value = tb.value;
+        });
+      });
+    });
+
+    /* Polling léger pour catcher les writes programmatiques sur tbDim*
+       (ex : au load model, certains modules écrivent .value sans dispatcher) */
+    setInterval(() => {
+      pairs.forEach(([gId, tbId]) => {
+        const g = document.getElementById(gId);
+        const tb = document.getElementById(tbId);
+        if (!g || !tb) return;
+        if (g.value !== tb.value && document.activeElement !== g) {
+          g.value = tb.value;
+        }
+      });
+    }, 1500);
+
+    console.log('[v77] section Dimensions injectée dans Géométrie ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 3 — Suppression V59 + ajout bouton "Enregistrer nouvelle variante"
+     ───────────────────────────────────────────────────────────────────── */
+  function removeV59Section() {
+    /* La V59 section a data-attribute ou un titre identifiable */
+    const sections = document.querySelectorAll('.admin-section');
+    sections.forEach(s => {
+      const title = s.querySelector('.admin-section-title');
+      if (title && title.textContent.trim().toUpperCase().includes('VARIANTES & CATALOGUE')) {
+        s.style.display = 'none'; /* préservation soft : ne pas remove du DOM
+                                     au cas où V59 réinjecte. */
+        s.dataset.v77Hidden = '1';
+      }
+    });
+  }
+
+  function injectVariantButton() {
+    /* On veut placer le bouton DANS la section "Produit" (V26),
+       juste après le bouton "Enregistrer comme nouveau produit". */
+    const createBtn = document.getElementById('adminBtnCreateProduct');
+    if (!createBtn) { setTimeout(injectVariantButton, 500); return; }
+    if (document.getElementById('v77BtnCreateVariant')) return; /* déjà injecté */
+
+    const btn = document.createElement('button');
+    btn.className = 'admin-action primary';
+    btn.id = 'v77BtnCreateVariant';
+    btn.innerHTML = `
+      <span class="admin-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 H15 V18 H5 Z M9 8 H19 V22 H9 Z M14 12 L17 15 L22 10"/></svg></span>
+      <span class="admin-action-label" id="v77BtnVariantLabel">Enregistrer et publier nouvelle variante</span>
+      <span class="admin-action-hint" id="v77BtnVariantHint">→ Catalogue</span>
+    `;
+    createBtn.parentNode.insertBefore(btn, createBtn.nextSibling);
+
+    /* ─── État dynamique ─── */
+    function getActiveVariantContext() {
+      const productId = window._v18 && window._v18.productId;
+      const variants = (window._v25 && window._v25.variants) || [];
+      const activeId = (window._v25 && window._v25.activeVariantId) || 'base';
+      const idx = variants.findIndex(v => v.id === activeId); /* -1 si base */
+      const variant = idx >= 0 ? variants[idx] : null;
+      return { productId, variants, activeId, idx, variant };
+    }
+
+    function updateState() {
+      const labelEl = document.getElementById('v77BtnVariantLabel');
+      const hintEl = document.getElementById('v77BtnVariantHint');
+      const ctx = getActiveVariantContext();
+
+      /* Cas 1 : pas de produit lié → grisé */
+      if (!ctx.productId) {
+        btn.classList.add('v77-disabled-variant');
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Lie un produit';
+        btn.title = 'Crée d\'abord un produit pour pouvoir publier ses variantes';
+        return;
+      }
+      /* Cas 2 : aucune variante créée → grisé */
+      if (ctx.variants.length === 0) {
+        btn.classList.add('v77-disabled-variant');
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Crée une variante';
+        btn.title = 'Crée d\'abord une variante via "+ Nouvelle variante" en bas du studio';
+        return;
+      }
+      /* Cas 3 : active = Base → grisé (on ne publie pas la Base) */
+      if (ctx.idx < 0) {
+        btn.classList.add('v77-disabled-variant');
+        if (labelEl) labelEl.textContent = 'Enregistrer et publier nouvelle variante';
+        if (hintEl) hintEl.textContent = '→ Sélectionne une variante';
+        btn.title = 'Sélectionne une variante (pas la Base) pour la publier';
+        return;
+      }
+      /* Cas 4 : active = variante éditable → enabled, affiche l'index 1-based */
+      btn.classList.remove('v77-disabled-variant');
+      const displayNum = ctx.idx + 1;
+      const variantName = (ctx.variant && ctx.variant.name) || `Variante ${displayNum}`;
+      if (labelEl) labelEl.textContent = `Enregistrer et publier nouvelle variante (${displayNum})`;
+      if (hintEl) {
+        hintEl.textContent = ctx.variant && ctx.variant.published ? 'Déjà publiée' : '→ Catalogue';
+      }
+      btn.title = ctx.variant && ctx.variant.published
+        ? `« ${variantName} » est déjà publiée. Cliquer republie l'état actuel.`
+        : `Publie « ${variantName} » sur le catalogue (visible sur scan.html)`;
+    }
+
+    /* ─── Heuristique : dérive automatiquement un swatch URL depuis un map
+       de parts (variantParts ou baseParts).
+       Si baseParts est fourni en référence : on cherche la première part qui
+       diffère (= la finition qui caractérise la variante).
+       Sinon : on prend la part la plus visible par ordre de priorité.
+
+       v77.1 — Priorité inversée vers albedo_url EN PREMIER : l'utilisateur
+       préfère voir un APLAT de tissu/matière (texture brute, tile seamless)
+       plutôt qu'un render PBR sphérique de thumbnail_url. L'aplat est plus
+       lisible pour reconnaître le motif/fibre/grain. */
+    function deriveSwatchFromParts(variantParts, baseParts) {
+      if (!variantParts || typeof variantParts !== 'object') return null;
+
+      let chosenMatId = null;
+
+      /* (1) Trouver la première part qui diffère de Base (si baseParts fourni) */
+      if (baseParts && typeof baseParts === 'object') {
+        for (const key of Object.keys(variantParts)) {
+          const vMatId = variantParts[key] && variantParts[key].materialId;
+          const bMatId = baseParts[key] && baseParts[key].materialId;
+          if (vMatId && vMatId !== bMatId) { chosenMatId = vMatId; break; }
+        }
+      }
+
+      /* (2) Fallback priorité visuelle */
+      if (!chosenMatId) {
+        const priority = ['garnissage', 'coque', 'assise', 'dossier', 'piétement', 'pietement', 'plateau', 'tablette', 'logo'];
+        for (const pkey of priority) {
+          const matchedKey = Object.keys(variantParts).find(k => k.toLowerCase() === pkey.toLowerCase());
+          if (matchedKey && variantParts[matchedKey] && variantParts[matchedKey].materialId) {
+            chosenMatId = variantParts[matchedKey].materialId;
+            break;
+          }
+        }
+      }
+
+      /* (3) Ultime fallback : n'importe quelle part */
+      if (!chosenMatId) {
+        for (const key of Object.keys(variantParts)) {
+          if (variantParts[key] && variantParts[key].materialId) {
+            chosenMatId = variantParts[key].materialId;
+            break;
+          }
+        }
+      }
+
+      if (!chosenMatId) return null;
+
+      const mats = (window.allMaterials && Array.isArray(window.allMaterials)) ? window.allMaterials : [];
+      const mat = mats.find(m => m.id === chosenMatId);
+      if (!mat) {
+        console.warn('[v77 deriveSwatch] materialId introuvable dans allMaterials :', chosenMatId);
+        return null;
+      }
+      /* v77.1 — albedo_url EN PREMIER (aplat seamless), thumbnail_url en fallback (sphère PBR) */
+      return mat.albedo_url || mat.thumbnail_url || null;
+    }
+
+    /* Wrapper rétrocompat pour les appels existants par index */
+    function deriveSwatchUrl(variantIdx) {
+      const variant = (window._v25 && window._v25.variants && window._v25.variants[variantIdx]) || null;
+      if (!variant || !variant.studio_state) return null;
+      const baseState = window._v18 && window._v18.productRow && window._v18.productRow.studio_state;
+      const baseParts = (baseState && baseState.parts) || {};
+      return deriveSwatchFromParts(variant.studio_state.parts, baseParts);
+    }
+
+    /* ─── Action publish ─── */
+    async function doPublish() {
+      const ctx = getActiveVariantContext();
+      if (!ctx.productId || !ctx.variant) return;
+
+      /* ÉTAPE 1 — Régénérer les GLB+USDZ via V49 exportAllVariants
+         ─────────────────────────────────────────────────────────────────
+         Sans ça, scan.html charge le GLB obsolète du bucket (qui date
+         d'avant les changements de matériaux). V49 régénère :
+         - Base   → {productId}/model.glb (+ .usdz) → products.model_glb_url
+         - Var. N → {productId}/variants/{vId}.glb → variants[N].studio_state.exports.glb
+         puis V42 propage vers products.colors[].glb.
+         V49 a un hash check (skip si rien n'a changé) donc c'est idempotent. */
+      if (window._v49 && typeof window._v49.exportAllVariants === 'function') {
+        if (window._v49.isExporting) {
+          toast('Export déjà en cours, patiente la fin…', 'info', 3000);
+          return;
+        }
+        try {
+          /* V49 affiche son propre overlay plein écran avec progression */
+          await window._v49.exportAllVariants(ctx.productId);
+          console.log('[v77 publish] V49 exportAllVariants terminé · GLB+USDZ régénérés');
+        } catch (e) {
+          console.error('[v77 publish] V49 exportAllVariants échoué :', e);
+          toast('Régénération 3D échouée : ' + (e.message || '') + ' · publication annulée', 'err', 6000);
+          return;
+        }
+      } else {
+        console.warn('[v77 publish] V49 indisponible, publish sans régénération GLB (les vignettes resteront sur des modèles obsolètes)');
+      }
+
+      /* ÉTAPE 2 — Re-lecture du contexte après V49 (qui a peut-être muté
+         window._v25.variants et window._v18.productRow). On récupère la
+         variante à publier dans son nouvel état. */
+      const ctx2 = getActiveVariantContext();
+      if (!ctx2.variant) {
+        toast('Variante perdue après export, retente', 'err', 4000);
+        return;
+      }
+      const variant = ctx2.variant;
+      const wasPublished = variant.published === true;
+      const previousSwatch = (variant.studio_state && variant.studio_state.textureSwatchUrl) || null;
+
+      /* ÉTAPE 3 — Marquer comme publié + dériver le swatch finition de la
+         variante ET de Base (la Base aussi mérite sa vignette dans la
+         section Finition de scan.html). */
+      variant.published = true;
+      if (!variant.studio_state) variant.studio_state = {};
+
+      const derivedSwatch = deriveSwatchUrl(ctx2.idx);
+      if (derivedSwatch) {
+        variant.studio_state.textureSwatchUrl = derivedSwatch;
+        console.log('[v77 publish] swatch variante', ctx2.idx + 1, '(aplat) :', derivedSwatch);
+      } else {
+        console.warn('[v77 publish] swatch variante non dérivable · variant.studio_state.parts =',
+          variant.studio_state.parts, '· allMaterials.length =',
+          (window.allMaterials && window.allMaterials.length) || 0);
+        if (!previousSwatch) {
+          toast('Aucun matériau détecté pour la vignette de la variante. Édite-la puis re-publie.', 'info', 5500);
+        }
+      }
+
+      /* v77.2 — Swatch Base : dérivé depuis productRow.studio_state.parts.
+         Pas de référence pour diff (Base est la référence elle-même), donc
+         on prend la part la plus visible par priorité. */
+      const baseState = (window._v18 && window._v18.productRow && window._v18.productRow.studio_state) || null;
+      const previousBaseSwatch = (baseState && baseState.textureSwatchUrl) || null;
+      let derivedBaseSwatch = null;
+      if (baseState && baseState.parts) {
+        derivedBaseSwatch = deriveSwatchFromParts(baseState.parts, null);
+        if (derivedBaseSwatch) {
+          baseState.textureSwatchUrl = derivedBaseSwatch;
+          console.log('[v77 publish] swatch Base (aplat) :', derivedBaseSwatch);
+        } else {
+          console.warn('[v77 publish] swatch Base non dérivable · baseState.parts =', baseState.parts);
+        }
+      }
+
+      const supa = window.sb;
+      if (!supa) {
+        toast('Client Supabase indisponible', 'err', 3500);
+        variant.published = wasPublished; /* rollback */
+        if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
+        else delete variant.studio_state.textureSwatchUrl;
+        if (baseState) {
+          if (previousBaseSwatch !== null) baseState.textureSwatchUrl = previousBaseSwatch;
+          else delete baseState.textureSwatchUrl;
+        }
+        return;
+      }
+
+      /* ÉTAPE 4 — UPDATE DB : variants (avec published + swatch variante)
+         ET studio_state (avec swatch Base). Une seule requête. */
+      try {
+        toast('Finalisation de la publication…', 'info', 1800);
+        const updatePayload = { variants: window._v25.variants };
+        if (derivedBaseSwatch && baseState) {
+          updatePayload.studio_state = baseState;
+        }
+        const { error } = await supa
+          .from('products')
+          .update(updatePayload)
+          .eq('id', ctx2.productId);
+        if (error) throw error;
+
+        /* Mirror vers productRow pour V42 watcher (pattern V74.1) */
+        if (window._v18 && window._v18.productRow) {
+          window._v18.productRow.variants = window._v25.variants;
+          if (derivedBaseSwatch && baseState) {
+            window._v18.productRow.studio_state = baseState;
+          }
+        }
+        /* Trigger V42 final pour propager vers products.colors[] */
+        if (window._v42 && typeof window._v42.sync === 'function') {
+          await window._v42.sync(true);
+        }
+
+        toast(`« ${variant.name || 'Variante'} » publiée ✓ · Base + variante mises à jour sur scan.html`, 'ok', 4000);
+        updateState();
+      } catch (e) {
+        variant.published = wasPublished; /* rollback */
+        if (previousSwatch !== null) variant.studio_state.textureSwatchUrl = previousSwatch;
+        else delete variant.studio_state.textureSwatchUrl;
+        if (baseState) {
+          if (previousBaseSwatch !== null) baseState.textureSwatchUrl = previousBaseSwatch;
+          else delete baseState.textureSwatchUrl;
+        }
+        console.error('[v77 publish] UPDATE final :', e);
+        toast('Erreur publication : ' + (e.message || ''), 'err', 4500);
+        updateState();
+      }
+    }
+
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.classList.contains('v77-disabled-variant')) return;
+      doPublish();
+    };
+
+    /* Update initial + poll léger (state des variantes peut bouger
+       indépendamment : V73 drawer, V62 routing, etc.) */
+    updateState();
+    setInterval(updateState, 1200);
+
+    console.log('[v77] bouton "Enregistrer et publier nouvelle variante" injecté (publication éditoriale) ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 4 — Exports : v77.5 — Le hook download local est SUPPRIMÉ.
+     ─────────────────────────────────────────────────────────────────────
+     Raisons :
+     - V33 et V34 appellent window._v19.runExport('glb') et ('usdz')
+       PROGRAMMATIQUEMENT pendant la publication (avant V49 prenne le relais
+       sur le multi-variantes). Mon wrap ne pouvait pas distinguer ces calls
+       programmatiques des clics manuels → downloads parasites au publish.
+     - L'utilisateur veut zéro download automatique : "il faut le faire
+       manuellement". Les fichiers sont disponibles sur le bucket Supabase,
+       on peut les retrouver via dashboard ou link direct depuis la DB.
+
+     Si tu veux un download local d'un export, ouvre la console et fais :
+       fetch(window._v19.exports.glb).then(r => r.blob()).then(b => {
+         const a = document.createElement('a');
+         a.href = URL.createObjectURL(b);
+         a.download = 'modele.glb';
+         a.click();
+       });
+
+     Ou ajoute un bouton dédié dans une prochaine itération si besoin.
+     ───────────────────────────────────────────────────────────────────── */
+  function hookExportsForLocalDownload() {
+    /* no-op — voir commentaire ci-dessus. */
+    console.log('[v77] download local automatique désactivé (souhait utilisateur)');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 5 — "Sauvegarder l'état" devient fonctionnel
+     ───────────────────────────────────────────────────────────────────── */
+  function wireSaveStateButton() {
+    /* Le bouton est .admin-action[disabled] avec label "Sauvegarder l'état" */
+    const buttons = document.querySelectorAll('.admin-action');
+    let saveBtn = null;
+    buttons.forEach(b => {
+      const lbl = b.querySelector('.admin-action-label');
+      if (lbl && /sauvegarder.*état/i.test(lbl.textContent)) saveBtn = b;
+    });
+    if (!saveBtn) { setTimeout(wireSaveStateButton, 500); return; }
+    if (saveBtn.dataset.v77Wired === '1') return;
+
+    saveBtn.id = 'v77SaveStateBtn';
+    saveBtn.removeAttribute('disabled');
+    saveBtn.dataset.v77Wired = '1';
+
+    /* Update hint : Bientôt → Maintenant (label) */
+    const hint = saveBtn.querySelector('.admin-action-hint');
+    if (hint) hint.textContent = 'Manuel';
+
+    saveBtn.onclick = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      /* Mode sandbox = pas de productId, donc forceStudioSave n'écrit rien */
+      const productId = window._v18?.productId;
+      if (!productId) {
+        if (typeof toast === 'function') {
+          toast('Mode sandbox : sauvegarde indisponible. Crée d\'abord un produit.', 'err', 4500);
+        }
+        return;
+      }
+      if (typeof window.forceStudioSave === 'function') {
+        if (typeof toast === 'function') toast('Sauvegarde en cours…', 'info', 1800);
+        try {
+          await window.forceStudioSave();
+          if (typeof toast === 'function') toast('État sauvegardé ✓', 'ok', 2200);
+        } catch (err) {
+          console.error('[v77] save échec :', err);
+          if (typeof toast === 'function') toast('Erreur sauvegarde : ' + (err.message || ''), 'err', 4000);
+        }
+      } else {
+        if (typeof toast === 'function') toast('Sauvegarde indisponible (V18 non chargé)', 'err', 3000);
+      }
+    };
+
+    console.log('[v77] bouton "Sauvegarder l\'état" wired ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 6 (v77.5) — Click sur le modèle 3D ouvre OBLIGATOIREMENT le panel
+     matériau (mat-hidden retiré). Hook sur selectPartReal qui est appelé
+     par tous les chemins de sélection : handleSceneClick (click viewport),
+     tree click, pipette.
+     ───────────────────────────────────────────────────────────────────── */
+  function forceMatPanelOnSelect() {
+    function patch() {
+      if (typeof window.selectPartReal !== 'function') {
+        setTimeout(patch, 500);
+        return;
+      }
+      if (window.selectPartReal.__v77MatForce) return;
+
+      const original = window.selectPartReal;
+      window.selectPartReal = function(key) {
+        const r = original.apply(this, arguments);
+        try {
+          /* Ouvrir le panel matériau si caché */
+          const appEl = document.querySelector('.app');
+          if (appEl && appEl.classList.contains('mat-hidden')) {
+            appEl.classList.remove('mat-hidden');
+            /* Resync du bouton toggle si présent */
+            const btn = document.getElementById('matToggle');
+            if (btn) btn.classList.add('active');
+          }
+          /* S'assurer qu'on est sur l'onglet Matériau (idx 0) si on est en
+             vue Géométrie ou Scène — l'archi clique le modèle pour éditer la
+             matière, pas pour rester sur la géométrie. */
+          const tabs = document.querySelectorAll('.tb-mat-zone .mat-tab, .rp-view-edit .mat-tab');
+          let matTabActive = false;
+          tabs.forEach((tab, idx) => {
+            const isMatTab = tab.textContent.trim().toLowerCase().startsWith('mat');
+            if (isMatTab && tab.classList.contains('active')) matTabActive = true;
+          });
+          if (!matTabActive) {
+            const matTab = [...tabs].find(t => t.textContent.trim().toLowerCase().startsWith('mat'));
+            if (matTab) matTab.click();
+          }
+        } catch (e) {
+          console.warn('[v77 forceMatPanel] :', e);
+        }
+        return r;
+      };
+      window.selectPartReal.__v77MatForce = true;
+      /* Sync de la variable locale au scope racine */
+      if (typeof selectPartReal !== 'undefined') {
+        try { selectPartReal = window.selectPartReal; } catch (_) {}
+      }
+      console.log('[v77] click modèle → force ouverture panel matériau ✓');
+    }
+    patch();
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FIX 7 (v77.5) — iPad color picker : la fenêtre couleur dispar
+     pendant la manipulation des curseurs internes.
+
+     Cause :
+     - setupColorPicker (ligne ~5542) supprime l'input via setTimeout(remove, 500)
+       sur l'événement 'change'.
+     - Sur iOS Safari, l'événement 'change' fire à chaque relâchement de slider
+       interne, pas seulement à la fermeture du picker.
+     - Résultat : input retiré du DOM 500ms après le premier ajustement →
+       le picker se ferme alors que l'utilisateur continue à manipuler.
+
+     Fix : on switch sur 'blur' au lieu de 'change' (blur fire UNIQUEMENT
+     quand le picker est vraiment fermé/dismissé) + on augmente le timeout
+     à 2s pour donner de la marge. On hook par event delegation sur le
+     document pour catcher les inputs créés dynamiquement par setupColorPicker.
+     ───────────────────────────────────────────────────────────────────── */
+  function fixColorPickerIPad() {
+    /* Délégation : intercepte la création d'input[type=color] et remplace
+       son listener 'change' par un 'blur'. Comme setupColorPicker crée
+       l'input dynamiquement, on observe les ajouts au body. */
+    const mo = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType !== 1) return;
+          /* Cas direct : c'est l'input couleur lui-même */
+          if (node.tagName === 'INPUT' && node.type === 'color' && !node.dataset.v77Patched) {
+            patchPickerRemoval(node);
+          }
+          /* Cas indirect : l'input est inside */
+          const inner = node.querySelector && node.querySelector('input[type="color"]');
+          if (inner && !inner.dataset.v77Patched) patchPickerRemoval(inner);
+        });
+      });
+    });
+    mo.observe(document.body, { childList: true, subtree: false });
+
+    function patchPickerRemoval(input) {
+      input.dataset.v77Patched = '1';
+      /* Capture du listener 'change' existant (qui supprime à 500ms) */
+      /* Comme on ne peut pas le retirer directement (pas de référence),
+         on neutralise en clonant le node sans ses listeners… mais l'input
+         a déjà été inséré et clické. Plus simple : on ajoute notre propre
+         listener blur qui supprime à 2s, et on monkey-patch input.remove
+         pour différer si appelé trop tôt. */
+      const originalRemove = input.remove.bind(input);
+      let pickerStillOpen = true;
+
+      /* Le blur fire quand le picker se ferme vraiment sur iOS */
+      input.addEventListener('blur', () => {
+        pickerStillOpen = false;
+        setTimeout(() => {
+          if (input.isConnected) originalRemove();
+        }, 2000); /* 2s de marge après fermeture du picker */
+      });
+
+      /* Override de input.remove pour bloquer les suppressions précoces */
+      input.remove = function() {
+        if (pickerStillOpen) {
+          /* Le setupColorPicker original a déclenché remove via change event,
+             mais le user manipule encore le picker. On différé. */
+          console.log('[v77 colorPicker] remove différé (picker encore actif)');
+          return;
+        }
+        originalRemove();
+      };
+
+      console.log('[v77 colorPicker] input patché pour iPad ✓');
+    }
+    console.log('[v77] color picker iPad fix armé (MutationObserver sur body) ✓');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     Init — toutes les opérations sont idempotentes et auto-retry.
+     ───────────────────────────────────────────────────────────────────── */
+  function init() {
+    patchGeomViewToggle();
+    injectDimensionsSection();
+    removeV59Section();
+    injectVariantButton();
+    hookExportsForLocalDownload();
+    wireSaveStateButton();
+    forceMatPanelOnSelect();   /* v77.5 — click modèle = ouvre panel matière */
+    fixColorPickerIPad();      /* v77.5 — color picker robuste sur iPad */
+
+    /* Re-tentatives périodiques pour les éléments injectés tardivement */
+    setInterval(() => {
+      removeV59Section();
+      injectVariantButton();
+      wireSaveStateButton();
+    }, 3000);
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 200);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 200));
+  }
+
+  console.log('[studio v77] 5 fixes UX (catalogue/géom/variantes/exports/save) montés ✓');
 })();
 </script>
 
