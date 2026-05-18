@@ -27276,16 +27276,17 @@ console.log('[studio v3] prêt');
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════
-   v78 — BETA TESTER BADGE + ACTIVITÉ POUR ARCHITECTE
+   v78 — BETA TESTER : BADGE NAV-RAIL + LOCKDOWN ADMIN + ACTIVITÉ
    ───────────────────────────────────────────────────────────────────────
    Quand l'URL contient ?betatester=NOM, on :
-   - Affiche un badge "BETA · NOM" en bas à droite du studio (discret)
-   - On enregistre l'activité (ouverture d'un produit, sauvegarde, export…)
-     dans localStorage 'tadam.architect.activity' pour que le dashboard
-     architect-v2.html puisse l'afficher dans son "Activité récente".
-   - On enregistre aussi les exports locaux (déclenchés par v77 ou v50)
-     dans 'tadam.architect.exports' pour la section "Exports récents" du
-     dashboard.
+   - Affiche un badge "BETA" en bas du nav-rail (colonne sombre de gauche)
+     pour ne pas masquer le bouton AR flottant (v71). Tooltip au hover
+     affiche le nom complet.
+   - Verrouille les boutons du nav-rail (Catalogue/Matériaux/Sols/Icônes/
+     Aide/Compte) : la fonction navAdmin() est interceptée et affiche un
+     overlay "Accès verrouillé · beta" au lieu de rediriger vers admin.html.
+   - Enregistre l'activité (ouverture d'un produit, exports) dans
+     localStorage pour le dashboard architect-v2.html.
    ═══════════════════════════════════════════════════════════════════════ */
 (function v78BetaTester() {
   if (window.__v78Init) return;
@@ -27296,56 +27297,296 @@ console.log('[studio v3] prêt');
   const betatester = url.searchParams.get('betatester');
   if (!betatester) return;   /* Pas un beta tester, on n'injecte rien */
 
-  /* ─── Badge discret en bas à droite ─── */
+  const prettyName = betatester.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const initials = prettyName.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+  /* ─── CSS ─── */
   const css = document.createElement('style');
-  css.setAttribute('data-v78', 'beta-badge');
+  css.setAttribute('data-v78', 'beta');
   css.textContent = `
+    /* Badge inséré dans le nav-rail (en bas, sur le fond sombre) */
     .v78-badge {
-      position: fixed;
-      bottom: 14px; right: 14px;
-      z-index: 6500;
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 6px 11px;
-      background: rgba(26,26,26,0.92);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color: rgba(184,150,90,0.95);
+      margin-top: auto;
+      margin-bottom: 4px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      gap: 3px;
+      background: rgba(184,150,90,0.12);
+      border: 1px solid rgba(184,150,90,0.32);
+      color: #B8965A;
       font-family: 'Jost', sans-serif;
-      font-size: 9px; font-weight: 500;
-      letter-spacing: 0.22em; text-transform: uppercase;
-      border-left: 2px solid #B8965A;
-      pointer-events: none;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      cursor: help;
       user-select: none;
-      opacity: 0.78;
-      transition: opacity 0.2s;
+      position: relative;
+      transition: background 0.2s, border-color 0.2s;
     }
-    .v78-badge:hover { opacity: 1; }
-    .v78-badge::before {
-      content: '';
-      width: 6px; height: 6px;
+    .v78-badge:hover {
+      background: rgba(184,150,90,0.22);
+      border-color: rgba(184,150,90,0.6);
+    }
+    .v78-badge-initials {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11px;
+      font-style: italic;
+      letter-spacing: 0.02em;
+      color: #C7A872;
+      line-height: 1;
+    }
+    .v78-badge-dot {
+      width: 5px; height: 5px;
       background: #B8965A;
+      border-radius: 50%;
       animation: v78pulse 2.4s ease-in-out infinite;
     }
     @keyframes v78pulse {
       0%, 100% { opacity: 0.35; transform: scale(0.85); }
-      50%      { opacity: 1;    transform: scale(1.15); }
+      50%      { opacity: 1;    transform: scale(1.20); }
+    }
+    /* Tooltip personnalisé (style du studio existant) */
+    .v78-badge::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(26,22,18,0.96);
+      color: #F5F2EC;
+      font-family: 'Jost', sans-serif;
+      font-size: 10px; font-weight: 400;
+      letter-spacing: 0.06em; text-transform: none;
+      padding: 6px 11px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s 0.10s;
+      z-index: 9500;
+    }
+    .v78-badge:hover::after { opacity: 1; }
+
+    /* ─── Overlay "Accès verrouillé" ─── */
+    .v78-lock-overlay {
+      position: fixed; inset: 0;
+      z-index: 9100;
+      background: rgba(20, 18, 16, 0.74);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      font-family: 'Jost', sans-serif;
+    }
+    .v78-lock-overlay.v78-show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .v78-lock-card {
+      background: #F5F2EC;
+      width: 420px; max-width: calc(100vw - 36px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.42), 0 6px 14px rgba(0,0,0,0.2);
+      border-top: 3px solid #B8965A;
+      padding: 28px 30px 24px;
+      text-align: center;
+      transform: translateY(8px) scale(0.98);
+      transition: transform 0.28s cubic-bezier(.4,.2,.2,1);
+    }
+    .v78-lock-overlay.v78-show .v78-lock-card {
+      transform: translateY(0) scale(1);
+    }
+    .v78-lock-icon {
+      width: 52px; height: 52px;
+      margin: 0 auto 14px;
+      background: rgba(184,150,90,0.14);
+      display: flex; align-items: center; justify-content: center;
+      color: #8C7340;
+    }
+    .v78-lock-icon svg { width: 22px; height: 22px; }
+    .v78-lock-eyebrow {
+      font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase;
+      color: #8C7340; font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .v78-lock-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 500;
+      color: #1a1a1a;
+      letter-spacing: 0.005em;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .v78-lock-body {
+      font-size: 12.5px; line-height: 1.55;
+      color: #4a4640;
+      margin-bottom: 22px;
+    }
+    .v78-lock-body strong {
+      color: #1a1a1a; font-weight: 500;
+    }
+    .v78-lock-actions {
+      display: flex; gap: 8px; justify-content: center;
+    }
+    .v78-lock-btn {
+      font-family: 'Jost', sans-serif;
+      font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+      font-weight: 500;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+    .v78-lock-btn.v78-primary {
+      background: #B8965A;
+      color: #1a1a1a;
+      border-color: #B8965A;
+    }
+    .v78-lock-btn.v78-primary:hover { filter: brightness(1.10); }
+    .v78-lock-btn.v78-ghost {
+      background: transparent;
+      color: #4a4640;
+      border-color: #D8D2C7;
+    }
+    .v78-lock-btn.v78-ghost:hover {
+      border-color: #B8965A;
+      color: #B8965A;
+    }
+    @media (max-width: 720px) {
+      .v78-lock-card {
+        width: calc(100vw - 28px);
+        padding: 24px 22px 20px;
+      }
+      .v78-lock-title { font-size: 19px; }
     }
   `;
   document.head.appendChild(css);
 
+  /* ─── Injection du badge dans le nav-rail ─── */
   function injectBadge() {
-    if (document.querySelector('.v78-badge')) return;
-    if (!document.body) { setTimeout(injectBadge, 200); return; }
+    if (document.querySelector('.v78-badge')) return true;
+    const navRail = document.querySelector('.nav-rail');
+    if (!navRail) return false;
     const badge = document.createElement('div');
     badge.className = 'v78-badge';
-    const pretty = betatester.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    badge.textContent = 'Beta · ' + pretty;
-    badge.title = 'Tu es en mode beta tester';
-    document.body.appendChild(badge);
+    badge.setAttribute('data-tooltip', 'Beta · ' + prettyName);
+    badge.innerHTML = `
+      <span class="v78-badge-initials">${initials}</span>
+      <span class="v78-badge-dot"></span>
+    `;
+    /* Insérer juste avant le nav-footer pour rester visible mais propre */
+    const navFooter = navRail.querySelector('.nav-footer');
+    if (navFooter) {
+      navRail.insertBefore(badge, navFooter);
+    } else {
+      navRail.appendChild(badge);
+    }
+    return true;
   }
-  injectBadge();
+  if (!injectBadge()) {
+    const intv = setInterval(() => { if (injectBadge()) clearInterval(intv); }, 300);
+    setTimeout(() => clearInterval(intv), 8000);
+  }
 
-  /* ─── Activité : helpers d'enregistrement ─── */
+  /* ─── Verrou navAdmin() ─── */
+  const PANEL_LABELS = {
+    catalogue: 'Catalogue',
+    materiaux: 'Bibliothèque Matériaux',
+    sols:      'Bibliothèque Sols',
+    icones:    'Bibliothèque Icônes',
+    overview:  'Espace admin',
+    texture:   'Studio Texture (admin)',
+  };
+
+  function buildLockOverlay() {
+    let overlay = document.querySelector('.v78-lock-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.className = 'v78-lock-overlay';
+    overlay.innerHTML = `
+      <div class="v78-lock-card">
+        <div class="v78-lock-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="5" y="11" width="14" height="10"/>
+            <path d="M8 11 V7 a4 4 0 0 1 8 0 V11"/>
+          </svg>
+        </div>
+        <div class="v78-lock-eyebrow">Accès admin · verrouillé</div>
+        <div class="v78-lock-title" id="v78LockTitle">Cette section n'est pas accessible</div>
+        <div class="v78-lock-body" id="v78LockBody">
+          La section <strong>—</strong> fait partie de l'espace admin TadamHome,
+          réservé à l'équipe interne. Tu peux continuer à utiliser le studio
+          avec ses fonctionnalités complètes.
+        </div>
+        <div class="v78-lock-actions">
+          <button class="v78-lock-btn v78-ghost" data-action="back">Retour au studio</button>
+          <button class="v78-lock-btn v78-primary" data-action="feedback">Demander l'accès</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    /* Wire les boutons */
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) hideLockOverlay();
+      const btn = e.target.closest('.v78-lock-btn');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      if (action === 'back') {
+        hideLockOverlay();
+      } else if (action === 'feedback') {
+        const mailto = 'mailto:hello@tadamhome.fr'
+          + '?subject=' + encodeURIComponent('Beta studio - demande accès admin')
+          + '&body=' + encodeURIComponent('Bonjour,\n\nEn testant le studio (beta : ' + prettyName + '), j\'ai besoin d\'accéder à la section :\n\n[indique laquelle : Catalogue / Matériaux / Sols / Icônes / Compte]\n\nPour la raison suivante :\n\n[décris brièvement]\n\nMerci,\n' + prettyName);
+        try { window.open(mailto, '_blank'); } catch (_) { window.location.href = mailto; }
+        hideLockOverlay();
+      }
+    });
+
+    /* Échap pour fermer */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('v78-show')) hideLockOverlay();
+    });
+
+    return overlay;
+  }
+
+  function showLockOverlay(panel) {
+    const overlay = buildLockOverlay();
+    const label = PANEL_LABELS[panel] || panel || 'Cette section';
+    const titleEl = overlay.querySelector('#v78LockTitle');
+    const bodyEl = overlay.querySelector('#v78LockBody');
+    if (titleEl) titleEl.textContent = label + ' · accès admin';
+    if (bodyEl) {
+      bodyEl.innerHTML = 'La section <strong>' + escapeHtml(label) + '</strong> fait partie de '
+        + 'l\'espace admin TadamHome, réservé à l\'équipe interne. Tu peux continuer à '
+        + 'utiliser le studio avec ses fonctionnalités complètes pour texturer et publier '
+        + 'tes modèles.';
+    }
+    overlay.classList.add('v78-show');
+  }
+  function hideLockOverlay() {
+    const overlay = document.querySelector('.v78-lock-overlay');
+    if (overlay) overlay.classList.remove('v78-show');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* Patch global navAdmin */
+  function patchNavAdmin() {
+    /* navAdmin est défini en inline-script juste après le nav-rail.
+       On override sur window pour intercepter TOUTES les invocations. */
+    window.navAdmin = function(panel) {
+      console.log('[v78] navAdmin(' + panel + ') intercepté → overlay verrouillé');
+      showLockOverlay(panel);
+    };
+  }
+  patchNavAdmin();
+  /* Re-patch périodique au cas où un module re-définit navAdmin plus tard */
+  setInterval(patchNavAdmin, 2000);
+
+  /* ─── Activité : helpers d'enregistrement (inchangé) ─── */
   const KEY_ACTIVITY = 'tadam.architect.activity';
   const KEY_EXPORTS  = 'tadam.architect.exports';
   const MAX_ITEMS = 30;
@@ -27359,18 +27600,18 @@ console.log('[studio v3] prêt');
       localStorage.setItem(KEY_ACTIVITY, JSON.stringify(arr));
     } catch (_) {}
   }
-  function pushExport(name, format, url) {
+  function pushExport(name, format, fileUrl) {
     try {
       const raw = localStorage.getItem(KEY_EXPORTS);
       const arr = raw ? JSON.parse(raw) : [];
-      arr.unshift({ ts: Date.now(), name, format, url });
+      arr.unshift({ ts: Date.now(), name, format, url: fileUrl });
       while (arr.length > MAX_ITEMS) arr.pop();
       localStorage.setItem(KEY_EXPORTS, JSON.stringify(arr));
     } catch (_) {}
   }
-  window._v78 = { pushActivity, pushExport };
+  window._v78 = { pushActivity, pushExport, showLockOverlay, hideLockOverlay };
 
-  /* ─── Hook : ouverture d'un produit (V18 récupère productRow) ─── */
+  /* Hook ouverture produit */
   let lastProductId = null;
   setInterval(() => {
     if (window._v18 && window._v18.productId && window._v18.productId !== lastProductId) {
@@ -27380,7 +27621,7 @@ console.log('[studio v3] prêt');
     }
   }, 2500);
 
-  /* ─── Hook : download local (v77 et v50/v67 déclenchent des liens <a download>) ─── */
+  /* Hook downloads */
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[download]');
     if (!a || !a.href) return;
@@ -27390,7 +27631,7 @@ console.log('[studio v3] prêt');
     pushExport(name, format, a.href);
   }, true);
 
-  console.log('[studio v78] mode beta tester actif pour : ' + betatester);
+  console.log('[studio v78] mode beta tester actif pour : ' + prettyName + ' · navAdmin verrouillé · badge en nav-rail');
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════
