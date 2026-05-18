@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Studio Architecte · TadamHome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;500i&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EDEAE4;
+  --panel: #f6f3ed;
+  --panel-warm: #fcf8f0;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4640;
+  --ink-muted: #7a7570;
+  --muted: #9a958e;
+  --gold: #B8965A;
+  --gold-soft: #C7A872;
+  --gold-deep: #8c7340;
+  --gold-bg: #F3EDDE;
+  --line: #d9d4c8;
+  --line-light: #e6e1d4;
+  --viewport-bg: #1B1814;
+  --serif: 'Cormorant Garamond', serif;
+  --sans: 'Jost', sans-serif;
+  --nav-w: 56px;
+  --topbar-h: 58px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--ink); }
+body {
+  font-family: var(--sans);
+  font-size: 13px; letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  display: grid;
+  grid-template-columns: var(--nav-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; border: none; background: none; cursor: pointer; color: inherit; }
+
+/* ───── Nav-rail (col 1) ───── */
+.nav-rail {
+  grid-column: 1; grid-row: 1 / -1;
+  background: var(--viewport-bg);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  align-items: center; padding: 14px 0;
+  position: relative;
+}
+.nav-burger {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer; margin-bottom: 22px;
+}
+.nav-burger:hover { color: var(--gold-soft); }
+.nav-brand {
+  font-family: var(--sans); font-size: 9px; font-weight: 500;
+  letter-spacing: 0.32em; color: rgba(184,150,90,0.55);
+  writing-mode: vertical-rl;
+  margin: auto 0;
+  text-transform: uppercase;
+}
+.nav-icons {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: auto; padding: 14px 0;
+}
+.nav-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer; position: relative;
+  transition: color 0.15s;
+}
+.nav-icon:hover { color: var(--gold-soft); }
+.nav-icon.active { color: var(--gold); }
+.nav-icon.active::before {
+  content: ''; position: absolute; left: -1px; top: 9px; bottom: 9px;
+  width: 2px; background: var(--gold);
+}
+.nav-icon svg { width: 16px; height: 16px; stroke-width: 1.5; }
+.nav-tooltip {
+  position: absolute; left: 100%; top: 50%; transform: translateY(-50%) translateX(8px);
+  background: rgba(28,27,24,0.95); color: rgba(255,255,255,0.92);
+  padding: 6px 10px; font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s;
+  z-index: 1000;
+}
+.nav-icon:hover .nav-tooltip { opacity: 1; }
+
+/* ───── Topbar (row 1, col 2) ───── */
+.topbar {
+  grid-column: 2; grid-row: 1;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  gap: 18px;
+}
+.topbar-breadcrumb {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.topbar-breadcrumb .sep { color: var(--line); }
+.topbar-breadcrumb .active { color: var(--ink); }
+.topbar-spacer { flex: 1; }
+.topbar-meta {
+  display: flex; align-items: center; gap: 14px;
+}
+.topbar-saved {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--sans); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 5px 11px;
+  background: var(--gold-bg); border: 1px solid var(--gold);
+}
+.topbar-saved::before {
+  content: ''; width: 6px; height: 6px; background: #3a7c4e; border-radius: 50%;
+}
+.topbar-user {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans);
+}
+.topbar-user .initials {
+  width: 30px; height: 30px;
+  background: var(--ink); color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+}
+.topbar-user .who {
+  display: flex; flex-direction: column; line-height: 1.2;
+}
+.topbar-user .name {
+  font-size: 12px; font-weight: 500; color: var(--ink);
+}
+.topbar-user .role {
+  font-size: 9px; font-weight: 500; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--gold-deep);
+}
+
+/* ───── Main (row 2, col 2) ───── */
+.main {
+  grid-column: 2; grid-row: 2;
+  overflow-y: auto;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+}
+
+/* ───── Hero compact ───── */
+.hero {
+  padding: 46px 48px 28px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 32px;
+}
+.hero-left h1 {
+  font-family: var(--serif); font-weight: 300; font-size: 44px;
+  line-height: 1.05; letter-spacing: -0.01em;
+  color: var(--ink); margin-bottom: 8px;
+}
+.hero-left h1 em {
+  font-style: italic; color: var(--gold-deep); font-weight: 400;
+}
+.hero-left p {
+  font-family: var(--sans); font-size: 12px; color: var(--ink-muted);
+  letter-spacing: 0.04em; line-height: 1.6; max-width: 520px;
+}
+.hero-right {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.hero-right .pulse {
+  width: 6px; height: 6px; background: var(--gold); border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(184,150,90,0.55); animation: pulse 2.4s infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(184,150,90,0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(184,150,90,0); }
+  100% { box-shadow: 0 0 0 0 rgba(184,150,90,0); }
+}
+
+/* ───── Bannière tour ───── */
+.tour-banner {
+  margin: 0 48px 28px;
+}
+.tour-banner-inner {
+  display: flex; align-items: center; gap: 18px;
+  padding: 18px 22px;
+  background: #1a1a1a; color: #f0ece2;
+  border-left: 3px solid var(--gold);
+  position: relative;
+}
+.tour-banner-icon {
+  width: 32px; height: 32px; color: var(--gold);
+  flex-shrink: 0;
+}
+.tour-banner-icon svg { width: 100%; height: 100%; }
+.tour-banner-text { flex: 1; }
+.tour-banner-title {
+  font-family: var(--serif); font-weight: 500; font-style: italic;
+  font-size: 18px; color: var(--gold-soft);
+  margin-bottom: 4px; line-height: 1.2;
+}
+.tour-banner-sub {
+  font-family: var(--sans); font-size: 12px; color: rgba(240,236,226,0.7);
+  line-height: 1.5;
+}
+.tour-banner-cta {
+  font-family: var(--sans); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 10px 16px;
+  background: var(--gold); color: #1a1a1a;
+  border: none; cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.tour-banner-cta:hover { background: var(--gold-soft); }
+.tour-banner-skip {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px;
+  background: none; border: none; color: rgba(240,236,226,0.5);
+  cursor: pointer; font-size: 16px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.tour-banner-skip:hover { color: var(--gold-soft); }
+
+/* ───── Section grille outils ───── */
+.workzone {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  margin: 0 48px;
+  border: 1px solid var(--line);
+}
+.zone {
+  background: var(--panel);
+  padding: 24px 28px 28px;
+  display: flex; flex-direction: column;
+}
+.zone-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-light);
+}
+.zone-title {
+  font-family: var(--sans); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--ink);
+}
+.zone-meta {
+  font-family: var(--sans); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Cartes outils */
+.tools {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.tool {
+  background: var(--panel-warm);
+  border: 1px solid var(--line-light);
+  padding: 18px 16px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.tool:hover {
+  border-color: var(--gold);
+  background: var(--gold-bg);
+}
+.tool:hover .tool-cta { color: var(--gold-deep); }
+.tool:hover .tool-arrow { transform: translateX(3px); }
+.tool.disabled {
+  opacity: 0.45; pointer-events: none;
+}
+.tool-icon {
+  width: 26px; height: 26px;
+  color: var(--gold-deep);
+}
+.tool-icon svg { width: 100%; height: 100%; stroke-width: 1.3; fill: none; stroke: currentColor; }
+.tool h3 {
+  font-family: var(--serif); font-weight: 400; font-size: 19px;
+  line-height: 1.15; letter-spacing: -0.005em;
+}
+.tool h3 em { font-style: italic; color: var(--gold-deep); }
+.tool p {
+  font-family: var(--sans); font-size: 11px; color: var(--ink-muted);
+  line-height: 1.5; flex: 1;
+}
+.tool-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--sans); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-soft);
+  padding-top: 8px; border-top: 1px dashed var(--line);
+  margin-top: 2px;
+  transition: color 0.15s;
+}
+.tool-arrow { transition: transform 0.15s; }
+
+/* Activité récente */
+.activity {
+  display: flex; flex-direction: column; gap: 0;
+  flex: 1;
+}
+.activity-empty {
+  font-family: var(--sans); font-size: 11px; color: var(--muted);
+  font-style: italic; line-height: 1.6;
+  padding: 20px 16px;
+  border: 1px dashed var(--line);
+  text-align: center;
+  background: rgba(255,255,255,0.3);
+}
+.activity-item {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-light);
+  font-family: var(--sans);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 6px; height: 6px; background: var(--gold); border-radius: 50%;
+}
+.activity-name {
+  font-size: 12px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.activity-when {
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+/* ───── Exports section ───── */
+.exports-zone {
+  margin: 24px 48px 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 24px 28px 28px;
+}
+.exports-grid {
+  display: grid; gap: 1px; background: var(--line-light);
+  border: 1px solid var(--line-light);
+}
+.export-row {
+  background: var(--panel-warm);
+  display: grid; grid-template-columns: 70px 1fr 110px 100px;
+  align-items: center; gap: 14px;
+  padding: 11px 16px;
+}
+.export-row:hover { background: var(--gold-bg); }
+.export-format {
+  font-family: var(--sans); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--gold-deep);
+  padding: 3px 7px;
+  background: rgba(184,150,90,0.12);
+  text-align: center;
+}
+.export-name {
+  font-family: var(--sans); font-size: 12px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.export-when {
+  font-family: var(--sans); font-size: 10px; color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.export-dl {
+  font-family: var(--sans); font-size: 9px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink); text-align: center;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  cursor: pointer; transition: all 0.15s;
+}
+.export-dl:hover { background: var(--gold); color: white; border-color: var(--gold); }
+.exports-empty {
+  font-family: var(--sans); font-size: 11px; color: var(--muted);
+  font-style: italic; line-height: 1.6;
+  padding: 28px 16px;
+  border: 1px dashed var(--line);
+  text-align: center;
+  background: rgba(255,255,255,0.3);
+}
+
+/* ───── Footer bar ───── */
+.footbar {
+  margin-top: auto;
+  padding: 16px 48px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--sans); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+}
+.footbar a:hover { color: var(--gold-deep); }
+.footbar .links { display: flex; gap: 20px; }
+
+/* ───── Responsive ───── */
+@media (max-width: 900px) {
+  .hero { padding: 32px 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .hero-left h1 { font-size: 34px; }
+  .workzone, .exports-zone, .tour-banner { margin: 0 24px; }
+  .workzone { grid-template-columns: 1fr; }
+  .footbar { padding: 16px 24px 20px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar-breadcrumb { font-size: 9px; }
+  .topbar-user .who { display: none; }
+  .tour-banner-inner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px 18px 18px; }
+  .tour-banner-cta { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav-rail -->
+<aside class="nav-rail">
+  <div class="nav-burger" title="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </div>
+  <div class="nav-brand">TADAMHOME</div>
+  <div class="nav-icons">
+    <div class="nav-icon active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span class="nav-tooltip">Dashboard</span>
+    </div>
+    <a class="nav-icon" id="navStudio" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 v12 M6 10 l6 -6 l6 6 M4 20 h16"/></svg>
+      <span class="nav-tooltip">Studio</span>
+    </a>
+    <a class="nav-icon" id="navCatalogue" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="nav-tooltip">Catalogue</span>
+    </a>
+    <a class="nav-icon" href="mailto:beta@tadamhome.fr">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9.5 9 a2.5 2.5 0 1 1 3.5 2.3 c-0.7 0.4 -1 1 -1 1.7"/><circle cx="12" cy="17" r="0.7" fill="currentColor"/></svg>
+      <span class="nav-tooltip">Support</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="topbar-breadcrumb">
+    <span>TadamHome</span>
+    <span class="sep">/</span>
+    <span>Architecte</span>
+    <span class="sep">/</span>
+    <span class="active">Dashboard</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-meta">
+    <span class="topbar-saved" id="topbarStatus">Beta · accès actif</span>
+    <div class="topbar-user">
+      <div class="initials" id="userInitials">··</div>
+      <div class="who">
+        <span class="name" id="userName">Invité</span>
+        <span class="role">Architecte · Beta</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main area -->
+<main class="main">
+
+  <!-- Hero compact -->
+  <section class="hero">
+    <div class="hero-left">
+      <h1>Bonjour, <em id="firstNameHero">…</em>.</h1>
+      <p id="heroLead">Atelier privé pour préparer vos modèles 3D — chargez un fichier, appliquez des matières, exportez vers votre suite habituelle.</p>
+    </div>
+    <div class="hero-right">
+      <span class="pulse"></span>
+      <span id="todayDate">···</span>
+    </div>
+  </section>
+
+  <!-- Bannière première visite (visible tant que le tour n'a pas été vu) -->
+  <section class="tour-banner" id="tourBanner" style="display:none">
+    <div class="tour-banner-inner">
+      <div class="tour-banner-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8 v4 l3 2"/>
+          <circle cx="12" cy="12" r="0.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="tour-banner-text">
+        <div class="tour-banner-title">Première visite ?</div>
+        <div class="tour-banner-sub">Découvrez l'interface du studio en 2 minutes — visite guidée de chaque zone.</div>
+      </div>
+      <button class="tour-banner-cta" id="startTourBtn">Démarrer →</button>
+      <button class="tour-banner-skip" id="skipTourBannerBtn" title="Masquer cette bannière">×</button>
+    </div>
+  </section>
+
+  <!-- Zone outils + activité -->
+  <section class="workzone">
+
+    <!-- Outils -->
+    <div class="zone">
+      <div class="zone-head">
+        <span class="zone-title">Outils rapides</span>
+        <span class="zone-meta">3 actions</span>
+      </div>
+      <div class="tools">
+
+        <div class="tool" data-href="/studio">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 4 v12 M6 10 l6 -6 l6 6 M4 20 h16"/></svg>
+          </div>
+          <h3>Charger un <em>modèle</em></h3>
+          <p>.OBJ · .3DS · .FBX — application des matières, export vers GLB / USDZ / OBJ / COLLADA.</p>
+          <div class="tool-cta">Ouvrir studio <span class="tool-arrow">→</span></div>
+        </div>
+
+        <div class="tool" data-href="/studio?catalogue=1">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+          </div>
+          <h3>Parcourir le <em>catalogue</em></h3>
+          <p>Modèles existants par marque et catégorie. Clic pour ouvrir dans le studio.</p>
+          <div class="tool-cta">Explorer <span class="tool-arrow">→</span></div>
+        </div>
+
+        <div class="tool disabled" id="lastSessionCard">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7 v5 l3 2"/></svg>
+          </div>
+          <h3>Reprendre <em>la session</em></h3>
+          <p id="lastSessionDesc">Aucune session enregistrée pour le moment.</p>
+          <div class="tool-cta" id="lastSessionCta">Indisponible <span class="tool-arrow">→</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Activité récente -->
+    <div class="zone">
+      <div class="zone-head">
+        <span class="zone-title">Activité récente</span>
+        <span class="zone-meta" id="activityCount">—</span>
+      </div>
+      <div class="activity" id="activityList">
+        <div class="activity-empty">
+          Aucune action enregistrée.<br>
+          Lance un projet pour commencer.
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Exports -->
+  <section class="exports-zone">
+    <div class="zone-head">
+      <span class="zone-title">Derniers exports</span>
+      <span class="zone-meta" id="exportsCount">—</span>
+    </div>
+    <div id="exportsContainer">
+      <div class="exports-empty">
+        Aucun export sur ce navigateur.<br>
+        Les fichiers générés depuis le Studio s'enregistreront ici, classés par date.
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footbar">
+    <div>© TadamHome · Studio Architecte</div>
+    <div class="links">
+      <a id="lnkStudio" href="#">Studio</a>
+      <a id="lnkCatalogue" href="#">Catalogue</a>
+      <a href="mailto:beta@tadamhome.fr">Feedback</a>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+(function archDashboardV2() {
+  const KNOWN_TESTERS = {
+    'francois-ivain': { firstName: 'François', lastName: 'Ivain' },
+  };
+
+  const url = new URL(window.location.href);
+  const slug = (url.searchParams.get('betatester') || '').toLowerCase().trim();
+  const tester = slug && KNOWN_TESTERS[slug];
+
+  /* Date du jour formatée FR */
+  const today = new Date();
+  const dateFmt = today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('todayDate').textContent = dateFmt;
+
+  function withBeta(href) {
+    const u = new URL(href, window.location.origin);
+    if (slug) u.searchParams.set('betatester', slug);
+    return u.pathname + u.search;
+  }
+
+  if (!tester) {
+    document.getElementById('topbarStatus').textContent = 'Accès restreint';
+    document.getElementById('topbarStatus').style.background = 'rgba(181,72,58,0.1)';
+    document.getElementById('topbarStatus').style.borderColor = '#B5483A';
+    document.getElementById('userName').textContent = 'Invité';
+    document.getElementById('userInitials').textContent = '??';
+    document.getElementById('firstNameHero').textContent = 'invité';
+    document.getElementById('heroLead').textContent = 'Cet atelier est réservé aux beta-testeurs. Demande ton accès à beta@tadamhome.fr.';
+    document.querySelectorAll('.tool').forEach(c => c.classList.add('disabled'));
+    document.getElementById('navStudio').classList.add('disabled');
+    return;
+  }
+
+  /* Mode beta : personnaliser */
+  const initials = (tester.firstName[0] + (tester.lastName[0] || '')).toUpperCase();
+  document.getElementById('userInitials').textContent = initials;
+  document.getElementById('userName').textContent = tester.firstName + ' ' + tester.lastName;
+  document.getElementById('firstNameHero').textContent = tester.firstName;
+
+  /* Bannière tour : afficher tant que le tour n'a pas été vu, ou si l'utilisateur
+     a explicitement masqué la bannière dans une session précédente. */
+  const TOUR_SEEN_KEY = 'tadam.studio.tourSeenAt';
+  const BANNER_HIDDEN_KEY = 'tadam.beta.' + slug + '.tourBannerHidden';
+  const tourSeen = localStorage.getItem(TOUR_SEEN_KEY);
+  const bannerHidden = localStorage.getItem(BANNER_HIDDEN_KEY);
+  if (!tourSeen && !bannerHidden) {
+    document.getElementById('tourBanner').style.display = 'block';
+  }
+  document.getElementById('startTourBtn').addEventListener('click', () => {
+    window.location.href = withBeta('/studio?tour=1');
+  });
+  document.getElementById('skipTourBannerBtn').addEventListener('click', () => {
+    try { localStorage.setItem(BANNER_HIDDEN_KEY, String(Date.now())); } catch (_) {}
+    document.getElementById('tourBanner').style.display = 'none';
+  });
+
+  /* Wire liens */
+  document.querySelectorAll('[data-href]').forEach(card => {
+    const href = card.dataset.href;
+    if (!href) return;
+    card.addEventListener('click', () => { window.location.href = withBeta(href); });
+  });
+  document.getElementById('navStudio').href = withBeta('/studio');
+  document.getElementById('navCatalogue').href = withBeta('/studio?catalogue=1');
+  document.getElementById('lnkStudio').href = withBeta('/studio');
+  document.getElementById('lnkCatalogue').href = withBeta('/studio?catalogue=1');
+
+  /* Dernière session — localStorage */
+  const lastKey = 'tadam.beta.' + slug + '.lastSession';
+  try {
+    const raw = localStorage.getItem(lastKey);
+    if (raw) {
+      const last = JSON.parse(raw);
+      if (last && last.url && last.ts && (Date.now() - last.ts) < 30 * 86400000) {
+        const card = document.getElementById('lastSessionCard');
+        const desc = document.getElementById('lastSessionDesc');
+        const cta = document.getElementById('lastSessionCta');
+        const minutes = Math.round((Date.now() - last.ts) / 60000);
+        const when = minutes < 60 ? `il y a ${minutes} min`
+                  : minutes < 1440 ? `il y a ${Math.round(minutes/60)} h`
+                  : `il y a ${Math.round(minutes/1440)} j`;
+        desc.textContent = (last.label || 'Session studio') + ' · ' + when;
+        cta.innerHTML = 'Reprendre <span class="tool-arrow">→</span>';
+        card.classList.remove('disabled');
+        card.dataset.href = last.url;
+        card.addEventListener('click', () => { window.location.href = withBeta(last.url); });
+      }
+    }
+  } catch (_) {}
+
+  /* Activité récente (depuis localStorage) */
+  const actKey = 'tadam.beta.' + slug + '.activity';
+  try {
+    const raw = localStorage.getItem(actKey);
+    if (raw) {
+      const items = JSON.parse(raw);
+      if (Array.isArray(items) && items.length > 0) {
+        const sorted = items.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 6);
+        const list = document.getElementById('activityList');
+        document.getElementById('activityCount').textContent = items.length + ' évén.';
+        list.innerHTML = sorted.map(it => {
+          const minutes = Math.round((Date.now() - it.ts) / 60000);
+          const when = minutes < 60 ? `${minutes} min`
+                    : minutes < 1440 ? `${Math.round(minutes/60)} h`
+                    : `${Math.round(minutes/1440)} j`;
+          const safe = s => String(s || '').replace(/[<>"']/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+          return `<div class="activity-item">
+            <span class="activity-dot"></span>
+            <span class="activity-name">${safe(it.label)}</span>
+            <span class="activity-when">${when}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+  } catch (_) {}
+
+  /* Exports — depuis localStorage */
+  const expKey = 'tadam.beta.' + slug + '.exports';
+  try {
+    const raw = localStorage.getItem(expKey);
+    if (raw) {
+      const exports = JSON.parse(raw);
+      if (Array.isArray(exports) && exports.length > 0) {
+        const sorted = exports.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 12);
+        const container = document.getElementById('exportsContainer');
+        document.getElementById('exportsCount').textContent = exports.length + ' fichier' + (exports.length > 1 ? 's' : '');
+        container.innerHTML = '<div class="exports-grid">' + sorted.map(e => {
+          const minutes = Math.round((Date.now() - e.ts) / 60000);
+          const when = minutes < 60 ? `il y a ${minutes} min`
+                    : minutes < 1440 ? `il y a ${Math.round(minutes/60)} h`
+                    : `il y a ${Math.round(minutes/1440)} j`;
+          const safe = s => String(s || '').replace(/[<>"']/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+          return `<div class="export-row">
+            <span class="export-format">${safe((e.format || '?').toUpperCase().slice(0,6))}</span>
+            <span class="export-name">${safe(e.name || '—')}</span>
+            <span class="export-when">${when}</span>
+            <a class="export-dl" href="${safe(e.url || '#')}" download="${safe(e.name || 'export')}">Télécharger</a>
+          </div>`;
+        }).join('') + '</div>';
+      }
+    }
+  } catch (_) {}
+
+  console.log('[architect-v2] dashboard chargé pour ' + tester.firstName + ' ' + tester.lastName);
+})();
+</script>
+</body>
+</html>
