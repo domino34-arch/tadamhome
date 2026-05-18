@@ -27298,13 +27298,13 @@ console.log('[studio v3] prêt');
   if (!betatester) return;   /* Pas un beta tester, on n'injecte rien */
 
   const prettyName = betatester.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  const initials = prettyName.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
   /* ─── CSS ─── */
   const css = document.createElement('style');
   css.setAttribute('data-v78', 'beta');
   css.textContent = `
-    /* Badge inséré dans le nav-rail (en bas, sur le fond sombre) */
+    /* Badge inséré dans le nav-rail (en bas, sur le fond sombre)
+       — cliquable → retourne au tableau de bord architect-v2.html */
     .v78-badge {
       margin-top: auto;
       margin-bottom: 4px;
@@ -27318,22 +27318,23 @@ console.log('[studio v3] prêt');
       font-family: 'Jost', sans-serif;
       font-size: 8px; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase;
-      cursor: help;
+      cursor: pointer;
+      text-decoration: none;
       user-select: none;
       position: relative;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background 0.2s, border-color 0.2s, transform 0.12s;
     }
     .v78-badge:hover {
-      background: rgba(184,150,90,0.22);
-      border-color: rgba(184,150,90,0.6);
+      background: rgba(184,150,90,0.24);
+      border-color: rgba(184,150,90,0.7);
     }
-    .v78-badge-initials {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 11px;
-      font-style: italic;
-      letter-spacing: 0.02em;
+    .v78-badge:active {
+      transform: scale(0.94);
+    }
+    .v78-badge-icon {
+      width: 16px; height: 16px;
       color: #C7A872;
-      line-height: 1;
+      stroke-width: 1.5;
     }
     .v78-badge-dot {
       width: 5px; height: 5px;
@@ -27462,16 +27463,23 @@ console.log('[studio v3] prêt');
   `;
   document.head.appendChild(css);
 
-  /* ─── Injection du badge dans le nav-rail ─── */
+  /* ─── Injection du badge dans le nav-rail (cliquable → dashboard) ─── */
+  const DASHBOARD_URL = 'architect-v2.html?betatester=' + encodeURIComponent(betatester);
+
   function injectBadge() {
     if (document.querySelector('.v78-badge')) return true;
     const navRail = document.querySelector('.nav-rail');
     if (!navRail) return false;
-    const badge = document.createElement('div');
+    const badge = document.createElement('a');
     badge.className = 'v78-badge';
-    badge.setAttribute('data-tooltip', 'Beta · ' + prettyName);
+    badge.setAttribute('data-tooltip', 'Mon tableau de bord');
+    badge.setAttribute('href', DASHBOARD_URL);
+    badge.setAttribute('title', 'Retour au tableau de bord · ' + prettyName);
     badge.innerHTML = `
-      <span class="v78-badge-initials">${initials}</span>
+      <svg class="v78-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 12 L12 4 L21 12 V20 H3 Z"/>
+        <path d="M9 20 V14 H15 V20"/>
+      </svg>
       <span class="v78-badge-dot"></span>
     `;
     /* Insérer juste avant le nav-footer pour rester visible mais propre */
@@ -27586,21 +27594,30 @@ console.log('[studio v3] prêt');
   /* Re-patch périodique au cas où un module re-définit navAdmin plus tard */
   setInterval(patchNavAdmin, 2000);
 
-  /* ─── Rediriger le bouton "Aide" (?) vers la visite guidée ─── */
-  function wireAideToTour() {
-    const aideBtn = document.querySelector('.nav-rail .nav-icon[data-tooltip="Aide"]');
-    if (!aideBtn) return false;
-    if (aideBtn.dataset.v78Wired === '1') return true;
-    aideBtn.dataset.v78Wired = '1';
-    /* Supprimer l'onclick original (qui appellait navAdmin) en clonant le node */
-    const clone = aideBtn.cloneNode(true);
+  /* ─── Rediriger les boutons "Aide" et "Compte" du nav-rail
+         (sinon ils tombent dans navAdmin et déclenchent l'overlay verrouillé) ─── */
+  function rewireNavButton(tooltipLabel, handler) {
+    const btn = document.querySelector('.nav-rail .nav-icon[data-tooltip="' + tooltipLabel + '"]');
+    if (!btn) return null;
+    if (btn.dataset.v78Wired === '1') return btn;
+    /* Cloner pour retirer l'onclick original (qui pointait sur navAdmin) */
+    const clone = btn.cloneNode(true);
     clone.dataset.v78Wired = '1';
-    clone.setAttribute('data-tooltip', 'Relancer la visite guidée');
-    aideBtn.parentNode.replaceChild(clone, aideBtn);
     clone.style.cursor = 'pointer';
     clone.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      handler(clone);
+    });
+    btn.parentNode.replaceChild(clone, btn);
+    return clone;
+  }
+
+  function wireNavButtons() {
+    let wiredCount = 0;
+
+    /* Aide (?) → relance la visite guidée */
+    const aide = rewireNavButton('Aide', () => {
       if (typeof window.startStudioTour === 'function') {
         console.log('[v78] bouton Aide → lancement visite guidée');
         window.startStudioTour();
@@ -27611,10 +27628,25 @@ console.log('[studio v3] prêt');
         }, 500);
       }
     });
-    return true;
+    if (aide) {
+      aide.setAttribute('data-tooltip', 'Relancer la visite guidée');
+      wiredCount++;
+    }
+
+    /* Compte → retour au tableau de bord architect-v2 */
+    const compte = rewireNavButton('Compte', () => {
+      console.log('[v78] bouton Compte → retour au tableau de bord');
+      window.location.href = DASHBOARD_URL;
+    });
+    if (compte) {
+      compte.setAttribute('data-tooltip', 'Mon tableau de bord');
+      wiredCount++;
+    }
+
+    return wiredCount === 2;
   }
-  if (!wireAideToTour()) {
-    const intv2 = setInterval(() => { if (wireAideToTour()) clearInterval(intv2); }, 400);
+  if (!wireNavButtons()) {
+    const intv2 = setInterval(() => { if (wireNavButtons()) clearInterval(intv2); }, 400);
     setTimeout(() => clearInterval(intv2), 10000);
   }
 
@@ -27725,7 +27757,7 @@ console.log('[studio v3] prêt');
       target: '.nav-rail',
       eyebrow: 'Zone 1 sur 10',
       title: 'Navigation principale',
-      body: 'La colonne sombre à gauche regroupe la navigation entre les outils TadamHome (catalogue, matériaux, sols, icônes…). Le bouton burger en haut ouvre le panneau Paramètres. Le bouton ? en bas relance cette visite à tout moment.',
+      body: 'La colonne sombre à gauche regroupe : le burger (haut) qui ouvre le panneau Paramètres, les outils TadamHome (catalogue, matériaux, sols, icônes), l\'icône maison gold qui te ramène à ton tableau de bord, le bouton ? qui relance cette visite, et tout en bas l\'icône personne qui pointe aussi vers ton tableau de bord.',
     },
     {
       id: 'topbar',
@@ -27800,7 +27832,7 @@ console.log('[studio v3] prêt');
       target: null,
       eyebrow: 'C\'est tout !',
       title: 'Bonne exploration.',
-      body: 'Tu peux relancer cette visite à tout moment via le bouton ? en bas du nav-rail à gauche. Pour toute question, bug ou suggestion d\'amélioration, le bouton "Envoyer un retour" sur ton tableau de bord t\'ouvre un email pré-rempli. Merci pour ton temps !',
+      body: 'Pour revenir à ton tableau de bord, click sur l\'icône maison gold dans la colonne de gauche. Pour relancer cette visite, le bouton ? juste en dessous. Pour tout retour, bug ou idée d\'amélioration, le bouton "Envoyer un retour" sur ton tableau de bord t\'ouvre un email pré-rempli. Merci pour ton temps !',
     },
   ];
 
