@@ -1984,6 +1984,12 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
 .rightpanel .mat-card-thumb-sphere::after {
   display: none !important;  /* hide the CSS-pattern overlay */
 }
+/* Supabase thumbnails have admin-rendered sphere on dark padded background.
+   Zoom in to crop the padding and make the sphere fill the circle like
+   the locally-rendered ones do. */
+.rightpanel .mat-card-thumb-supabase {
+  background-size: 145% !important;
+}
 .rightpanel .mat-card:hover .mat-card-thumb-sphere {
   transform: translateY(-3px) scale(1.04) !important;
   box-shadow:
@@ -6033,11 +6039,12 @@ function renderSupabaseCards() {
     `;
     grid.appendChild(card);
 
-    // Set initial thumbnail (will be replaced by PBR sphere render after textures load)
+    // Set initial thumbnail with zoom to crop the dark padding around the admin's sphere render
     const thumbEl = card.querySelector('.mat-card-thumb');
     if (thumb) {
       thumbEl.style.backgroundImage = `url('${thumb}')`;
       thumbEl.classList.add('mat-card-thumb-sphere');
+      thumbEl.classList.add('mat-card-thumb-supabase');
     } else {
       thumbEl.style.background = fallbackBg;
       thumbEl.classList.add('mat-card-thumb-sphere');
@@ -6124,7 +6131,11 @@ async function generateSpheresForNewCards() {
     const dataURL = offCanvas.toDataURL('image/png');
 
     const thumb = card.querySelector('.mat-card-thumb');
-    if (thumb) thumb.style.backgroundImage = `url(${dataURL})`;
+    if (thumb) {
+      thumb.style.backgroundImage = `url(${dataURL})`;
+      // Local render already fills the canvas — drop the supabase-zoom class
+      thumb.classList.remove('mat-card-thumb-supabase');
+    }
 
     // Cleanup the temp material's textures (keep just the rendered sphere image)
     [albedo, normal, rough, metal].forEach(t => t && t.dispose());
