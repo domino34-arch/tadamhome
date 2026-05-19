@@ -128,6 +128,8 @@ input,select{font-family:inherit;color:inherit}
   padding: 0;
   overflow: hidden;
   min-width: 0;
+  position: relative;
+  z-index: 50;
 }
 #vrAR button {
   width: 100%;
@@ -307,9 +309,9 @@ body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); 
 
 .nav-rail   { grid-column:1; grid-row:1/-1; }
 .topbar     { grid-column:2/-1; grid-row:1; }
-.leftpanel  { grid-column:2; grid-row:2/-1; }
+.leftpanel  { grid-column:2; grid-row:2; }
 .viewport   { grid-column:3; grid-row:2; min-width:0; position:relative; }
-.rightpanel { grid-column:4; grid-row:2/-1; }
+.rightpanel { grid-column:4; grid-row:2; }
 .bottombar  { grid-column:3; grid-row:3; }
 
 /* === NAV RAIL === */
@@ -964,7 +966,7 @@ body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); 
 
 .vp-selection{
   position:absolute;
-  bottom:62px;
+  bottom:64px;   /* leaves room for origin-badge (bottom:22) + gap below */
   left:22px;
   padding:10px 16px;
   background:rgba(20,18,14,0.85);
@@ -1184,8 +1186,8 @@ body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); 
 /* === Distance to floor / origin badge === */
 .origin-badge{
   position:absolute;
-  bottom:62px;
-  left:24px;
+  bottom:22px;   /* matches left:22px for symmetric corner spacing */
+  left:22px;
   padding:6px 10px;
   background:rgba(20,18,14,0.7);
   border:1px solid rgba(255,255,255,0.08);
