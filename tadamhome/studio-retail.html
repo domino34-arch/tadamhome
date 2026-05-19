@@ -192,19 +192,36 @@ body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); 
 @media (max-width: 1120px) {
   /* iPad Pro 10.5" in landscape (1112×834) — compress the side panels */
   :root {
-    --nav-w: 48px;
-    --tree-w: 220px;
-    --mat-w: 280px;
-    --topbar-h: 48px;
-    --bottombar-h: 50px;
+    --nav-w: 44px;
+    --tree-w: 200px;
+    --mat-w: 264px;
+    --topbar-h: 46px;
+    --bottombar-h: 46px;
   }
-  /* Material library: 1 column instead of 2 to fit narrower panel */
-  .mat-grid { grid-template-columns: 1fr !important; }
-  .mat-card-thumb { max-width: 140px; margin: 0 auto; }
-  /* Hide some less-essential bottom-bar items on narrow screens */
+  /* Material library: 2 columns (cards smaller so they still fit) */
+  .mat-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .mat-card { padding: 6px !important; }
+  .mat-card-thumb { max-width: 100%; margin: 0 auto; aspect-ratio: 1; }
+  .mat-card-name { font-size: 9.5px !important; }
+  .mat-card-sub { font-size: 7.5px !important; }
+  /* Hide non-essential bottom-bar items on narrow screens */
   .bb-meta { display: none; }
-  /* Squeeze proj-grid + rotate-grid */
-  .proj-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  /* Compress projection / rotation grids */
+  .proj-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 4px !important; }
+  .rotate-grid { gap: 4px !important; }
+  /* Right panel: tighter section padding */
+  .rp-section { padding: 12px 12px !important; }
+  .rp-section-title { font-size: 9px !important; margin-bottom: 8px !important; }
+  /* Outliner: smaller items */
+  .out-item { padding: 7px 10px !important; }
+  .out-item-name { font-size: 10.5px !important; }
+  .out-item-meta { font-size: 9px !important; }
+  .out-group-label { font-size: 10px !important; }
+  /* Topbar: hide secondary controls to free space */
+  .topbar-crumb { font-size: 10px !important; letter-spacing: 0.06em !important; }
+  .topbar-title { font-size: 13px !important; }
+  /* Tabs in right panel slightly smaller */
+  .rp-tab { font-size: 9px !important; padding: 8px 6px !important; }
 }
 
 /* Touch-friendly: minimum 44×44 tap targets on touch devices */
@@ -2945,7 +2962,7 @@ body.pipette-mode #pipetteBtn {
 </head>
 <body>
 
-<div class="demo-banner">Stub démo · v0.1 · TadamHome Studio Retail</div>
+<!-- demo banner removed -->
 
 <div class="app" id="app">
 
@@ -3231,58 +3248,7 @@ body.pipette-mode #pipetteBtn {
         </div>
       </div>
 
-      <!-- Groupe ÉCLAIRAGE -->
-      <div class="out-group" data-group-id="lights">
-        <div class="out-group-head" data-group-id="lights">
-          <div class="out-chevron expanded" id="chev-lights">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-          </div>
-          <div class="out-group-label">Éclairage</div>
-          <div class="out-group-count">3</div>
-          <div class="out-group-actions">
-            <button class="out-group-action" title="Renommer" data-action="rename">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5a2 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button class="out-group-action" title="Supprimer" data-action="delete">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="out-items expanded" id="items-lights" data-group-id="lights">
-          <div class="out-item fade-in" style="--i:7" data-id="light-1" onclick="selectObject('light-1')">
-            <div class="out-item-marker light"></div>
-            <div class="out-item-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M8 4l8 0M10 8l4 0M12 4v0M9 8l3 12 3-12"/>
-              </svg>
-            </div>
-            <div class="out-item-name">Spot principal</div>
-            <div class="out-item-meta">ERCO 12° · 3200lm</div>
-          </div>
-          <div class="out-item fade-in" style="--i:8" data-id="light-2" onclick="selectObject('light-2')">
-            <div class="out-item-marker light"></div>
-            <div class="out-item-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="12" cy="6" r="3"/>
-                <path d="M9 9l-3 12M15 9l3 12"/>
-              </svg>
-            </div>
-            <div class="out-item-name">Spot accent</div>
-            <div class="out-item-meta">iGuzzini 24° · 1800lm</div>
-          </div>
-          <div class="out-item fade-in" style="--i:9" data-id="light-3" onclick="selectObject('light-3')">
-            <div class="out-item-marker light"></div>
-            <div class="out-item-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="4"/>
-                <path d="M5 7l-1 14M19 7l1 14M7 7l1 14M17 7l-1 14"/>
-              </svg>
-            </div>
-            <div class="out-item-name">Wallwasher LED</div>
-            <div class="out-item-meta">Linéaire · 2800lm/m</div>
-          </div>
-        </div>
-      </div>
+      <!-- Éclairage retiré : remplacé par un éclairage studio fixe géré dans le panneau Lumière -->
 
       <!-- Groupe DECAL / MARQUE -->
       <div class="out-group" data-group-id="decals">
@@ -3857,156 +3823,42 @@ body.pipette-mode #pipetteBtn {
           </div>
         </div>
 
-        <!-- Cartes de texture (albédo, normal, AO) -->
-        <div class="rp-section">
-          <div class="rp-section-title">Cartes de texture</div>
-          <div class="texmap-row" data-target="map">
-            <div class="texmap-thumb" id="texThumb-map">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
-            </div>
-            <div class="texmap-info">
-              <div class="texmap-name">Albédo</div>
-              <div class="texmap-status" id="texStatus-map">Aucune carte</div>
-            </div>
-            <button class="texmap-upload" data-target="map">+ Charger</button>
-            <button class="texmap-remove" data-target="map" style="display:none">×</button>
-          </div>
-          <div class="texmap-row" data-target="normalMap">
-            <div class="texmap-thumb" id="texThumb-normalMap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
-            </div>
-            <div class="texmap-info">
-              <div class="texmap-name">Normal</div>
-              <div class="texmap-status" id="texStatus-normalMap">Aucune carte</div>
-            </div>
-            <button class="texmap-upload" data-target="normalMap">+ Charger</button>
-            <button class="texmap-remove" data-target="normalMap" style="display:none">×</button>
-          </div>
-          <div class="texmap-row" data-target="aoMap">
-            <div class="texmap-thumb" id="texThumb-aoMap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
-            </div>
-            <div class="texmap-info">
-              <div class="texmap-name">Occlusion ambiante</div>
-              <div class="texmap-status" id="texStatus-aoMap">Aucune carte</div>
-            </div>
-            <button class="texmap-upload" data-target="aoMap">+ Charger</button>
-            <button class="texmap-remove" data-target="aoMap" style="display:none">×</button>
-          </div>
-        </div>
-
-
-        <!-- Decal / Impression marque -->
-        <div class="rp-section">
-          <div class="rp-section-title">Visuel de marque (decal)</div>
-          <div class="decal-preview" id="decalPreview">
-            <span class="face-tag">FACE AVANT</span>
-            Glisser un visuel
-          </div>
-          <div class="ies-upload">+ Importer un PDF / SVG / PNG</div>
-        </div>
       </div>
 
-      <!-- ─── PANE: LIGHT ─── -->
+      <!-- ─── PANE: LIGHT (éclairage d'ambiance studio) ─── -->
       <div class="rp-pane" id="pane-light">
-
         <div class="rp-section">
-          <div class="rp-section-title">Spot principal · ERCO 12°</div>
-
-          <div class="choice-grid">
-            <div class="choice-card active">
-              <div class="choice-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4h6l-2 6h-2L9 4zM6 22l3-12h6l3 12"/></svg>
-              </div>
-              <div class="choice-label">Spot</div>
+          <div class="rp-section-title">Ambiance studio</div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Intensité globale</span>
+              <span class="slider-val" id="lblAmbIntensity">100&nbsp;%</span>
             </div>
-            <div class="choice-card">
-              <div class="choice-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M8 14h8M9 18h6M10 22h4"/></svg>
-              </div>
-              <div class="choice-label">Downlight</div>
-            </div>
-            <div class="choice-card">
-              <div class="choice-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="9" width="18" height="6"/><path d="M3 18h18M3 6h18"/></svg>
-              </div>
-              <div class="choice-label">LED linéaire</div>
-            </div>
-            <div class="choice-card">
-              <div class="choice-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="3" width="12" height="3"/><path d="M5 9l-2 12M19 9l2 12M9 9l-1 12M15 9l1 12"/></svg>
-              </div>
-              <div class="choice-label">Wallwasher</div>
-            </div>
+            <input type="range" class="slider" id="sldAmbIntensity" min="0" max="200" step="1" value="100">
           </div>
-        </div>
-
-        <div class="rp-section">
-          <div class="rp-section-title">Profil photométrique (IES)</div>
-          <div class="ies-select">
-            <div class="ies-polar">
-              <svg viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-                <circle cx="18" cy="18" r="9" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-                <path d="M18 8 Q22 14 22 18 Q22 22 18 28 Q14 22 14 18 Q14 14 18 8 Z" fill="rgba(184,150,90,0.4)" stroke="#B8965A" stroke-width="0.8"/>
-                <line x1="18" y1="6" x2="18" y2="30" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/>
-                <line x1="6" y1="18" x2="30" y2="18" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/>
-              </svg>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Lumière ambiante</span>
+              <span class="slider-val" id="lblAmbAmbient">30&nbsp;%</span>
             </div>
-            <div class="ies-info">
-              <div class="ies-name">ERCO Pollux 12°</div>
-              <div class="ies-meta">Spot narrow · 3200 lm</div>
-            </div>
-            <div class="ies-chevron">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-            </div>
+            <input type="range" class="slider" id="sldAmbAmbient" min="0" max="100" step="1" value="30">
           </div>
-          <div class="ies-upload">+ Importer un fichier .ies</div>
-        </div>
-
-        <div class="rp-section">
-          <div class="rp-section-title">Intensité &amp; couleur</div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-name">Flux lumineux</div>
-              <div class="field-value" id="valLumens">3 200<span class="unit">lm</span></div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Température (K)</span>
+              <span class="slider-val" id="lblAmbTemp">4500&nbsp;K</span>
             </div>
-            <input type="range" class="slider" id="sldLumens" min="200" max="10000" step="100" value="3200">
+            <input type="range" class="slider" id="sldAmbTemp" min="2700" max="6500" step="100" value="4500">
           </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-name">Température</div>
-              <div class="field-value" id="valKelvin">3 000<span class="unit">K</span></div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span>Exposition caméra</span>
+              <span class="slider-val" id="lblAmbExposure">1.0</span>
             </div>
-            <input type="range" class="slider" id="sldKelvin" min="2700" max="6500" step="100" value="3000">
+            <input type="range" class="slider" id="sldAmbExposure" min="0.3" max="2.5" step="0.05" value="1.0">
           </div>
-
-          <div class="field">
-            <div class="field-label">
-              <div class="field-name">Angle du cône</div>
-              <div class="field-value" id="valCone">12<span class="unit">°</span></div>
-            </div>
-            <input type="range" class="slider" id="sldCone" min="8" max="60" step="1" value="12">
-          </div>
-        </div>
-
-        <div class="rp-section">
-          <div class="rp-section-title">Position dans la scène</div>
-          <div class="xyz">
-            <div class="xyz-field">
-              <div class="xyz-label">X</div>
-              <input type="text" class="xyz-input" value="1.20" id="lightPosX">
-            </div>
-            <div class="xyz-field">
-              <div class="xyz-label">Y</div>
-              <input type="text" class="xyz-input" value="2.80" id="lightPosY">
-            </div>
-            <div class="xyz-field">
-              <div class="xyz-label">Z</div>
-              <input type="text" class="xyz-input" value="-0.50" id="lightPosZ">
-            </div>
+          <div class="amb-hint" style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(245,242,236,0.4);margin-top:14px;line-height:1.5">
+            Éclairage 3 points préréglé pour mettre en valeur les modèles. Toute la scène est exportée à plat en AR (sans sources).
           </div>
         </div>
       </div>
@@ -4348,8 +4200,8 @@ const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0.6, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 2;
-controls.maxDistance = 16;
+controls.minDistance = 0.15;   // ~15cm — close enough to inspect fabric weave
+controls.maxDistance = 24;     // up to 24m back for big retail spaces
 controls.maxPolarAngle = Math.PI * 0.49;
 // Mouse mapping (convention SketchUp / Blender) :
 //   Bouton gauche  → orbite (rotation)
@@ -4385,19 +4237,44 @@ const grid = new THREE.GridHelper(20, 40, 0x3a3530, 0x2c2822);
 grid.position.y = 0.001;
 scene.add(grid);
 
-/* Subtle ambient + key fill */
-scene.add(new THREE.AmbientLight(0xFFE8C4, 0.18));
+/* Studio 3-point lighting preset (ambient + key + fill + rim).
+   These are NOT scene objects — they're fixed studio lighting that the
+   user can adjust globally via the Lumière pane (intensity / ambient
+   / temperature / exposure). They're never exported in AR (AR uses
+   the real environment lighting). */
+const _studioAmbient = new THREE.AmbientLight(0xFFE8C4, 0.30);
+scene.add(_studioAmbient);
 
-const keyLight = new THREE.DirectionalLight(0xFFEAC8, 0.6);
-keyLight.position.set(5, 8, 3);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(2048, 2048);
-keyLight.shadow.camera.left = -8;
-keyLight.shadow.camera.right = 8;
-keyLight.shadow.camera.top = 8;
-keyLight.shadow.camera.bottom = -8;
-keyLight.shadow.bias = -0.0005;
-scene.add(keyLight);
+const _studioKey = new THREE.DirectionalLight(0xFFEAC8, 0.85);
+_studioKey.position.set(5, 8, 3);
+_studioKey.castShadow = true;
+_studioKey.shadow.mapSize.set(2048, 2048);
+_studioKey.shadow.camera.left = -8;
+_studioKey.shadow.camera.right = 8;
+_studioKey.shadow.camera.top = 8;
+_studioKey.shadow.camera.bottom = -8;
+_studioKey.shadow.bias = -0.0005;
+scene.add(_studioKey);
+
+const _studioFill = new THREE.DirectionalLight(0xC8D8E8, 0.35);
+_studioFill.position.set(-4, 3, 2);
+scene.add(_studioFill);
+
+const _studioRim = new THREE.DirectionalLight(0xFFFFFF, 0.40);
+_studioRim.position.set(0, 4, -6);
+scene.add(_studioRim);
+
+// Base intensities (so the slider can scale them proportionally)
+const _STUDIO_BASE = {
+  ambient: 0.30,
+  key: 0.85,
+  fill: 0.35,
+  rim: 0.40,
+  exposure: 1.0,
+};
+
+// Keep legacy reference so older code that touches `keyLight` still works
+const keyLight = _studioKey;
 
 /* ═══ Material library (Three.js) ═══ */
 const materials = {
@@ -5356,6 +5233,117 @@ function setSelection(id) {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+/* ═══════════════════════════════════════════════════════════════════
+   TOUCH GESTURES (iPad / mobile) — modeled after ar-scene.html
+   1 finger on selected object → translate on ground (Y axis = up)
+   1 finger elsewhere          → orbit camera (OrbitControls default)
+   2 fingers                   → pinch zoom + rotate selected object Y axis
+   ═══════════════════════════════════════════════════════════════════ */
+(function wireTouchGestures() {
+  if (!('ontouchstart' in window) && navigator.maxTouchPoints < 1) return;
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  let t0 = null;
+  let tDragging = false;
+  let tMode = 'none'; // 'none' | 'drag' | 'orbit' | 'rotate'
+  let dragOffsetSet = false;
+  const dragOffset = new THREE.Vector3();
+  const dragStart = new THREE.Vector3();
+  let tAngle0 = 0;
+
+  function getAngle(e) {
+    return Math.atan2(
+      e.touches[1].clientY - e.touches[0].clientY,
+      e.touches[1].clientX - e.touches[0].clientX
+    );
+  }
+
+  function isMovableSelection() {
+    return selectedGroup &&
+           !selectedGroup.userData?.locked &&
+           selectedGroup.userData?.id !== 'floor' &&
+           !selectedGroup.userData?.id?.startsWith('light-');
+  }
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      t0 = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+      tDragging = false;
+      tMode = 'none';
+      dragOffsetSet = false;
+      // Don't preventDefault yet — let camera orbit work for taps on empty area
+    } else if (e.touches.length === 2 && isMovableSelection()) {
+      e.preventDefault();
+      tAngle0 = getAngle(e);
+      tMode = 'rotate';
+      controls.enabled = false; // disable orbit while 2-finger rotating
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && t0) {
+      const dx = e.touches[0].clientX - t0.x;
+      const dy = e.touches[0].clientY - t0.y;
+      if (!tDragging && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      tDragging = true;
+
+      if (isMovableSelection() && tMode !== 'orbit') {
+        // 1-finger drag on (or near) a selected object → translate it on ground
+        e.preventDefault();
+        if (tMode !== 'drag') {
+          tMode = 'drag';
+          controls.enabled = false;
+          if (window._undo?.recordTransformStart) {
+            window._undo.recordTransformStart(selectedGroup);
+          }
+        }
+        const rect = canvas.getBoundingClientRect();
+        const nx = ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
+        const ny = -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(new THREE.Vector2(nx, ny), activeCam);
+        const pt = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(groundPlane, pt)) {
+          if (!dragOffsetSet) {
+            dragOffset.set(
+              selectedGroup.position.x - pt.x,
+              0,
+              selectedGroup.position.z - pt.z
+            );
+            dragStart.copy(selectedGroup.position);
+            dragOffsetSet = true;
+          }
+          selectedGroup.position.x = pt.x + dragOffset.x;
+          selectedGroup.position.z = pt.z + dragOffset.z;
+          if (typeof updateOriginBadge === 'function') updateOriginBadge();
+          if (typeof updateTransformPaneInputs === 'function') updateTransformPaneInputs();
+        }
+      }
+      // else: OrbitControls handles single-finger orbit naturally
+    } else if (e.touches.length === 2 && tMode === 'rotate' && isMovableSelection()) {
+      e.preventDefault();
+      const a = getAngle(e);
+      const da = a - tAngle0;
+      selectedGroup.rotation.y -= da;
+      tAngle0 = a;
+      if (typeof updateOriginBadge === 'function') updateOriginBadge();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+      if ((tMode === 'drag' || tMode === 'rotate') && window._undo?.recordTransformEnd) {
+        window._undo.recordTransformEnd(selectedGroup);
+      }
+      controls.enabled = true;
+      t0 = null;
+      tDragging = false;
+      tMode = 'none';
+      dragOffsetSet = false;
+    }
+  }, { passive: false });
+
+  console.log('[touch-gestures] wired (1-finger drag, 2-finger rotate)');
+})();
+
 canvas.addEventListener('pointerdown', (e) => {
   // If user is dragging the gizmo, don't change selection
   if (transformControls.dragging) return;
@@ -5714,58 +5702,9 @@ document.querySelectorAll('.bb-cam').forEach(btn => {
   });
 });
 
-/* ═══ Light sliders ═══ */
-const sldLumens = document.getElementById('sldLumens');
-const valLumens = document.getElementById('valLumens');
-sldLumens.addEventListener('input', () => {
-  const lm = parseInt(sldLumens.value, 10);
-  valLumens.firstChild.textContent = lm.toLocaleString('fr-FR').replace(/,/g, ' ') + ' ';
-  // Map lumens to three.js intensity (rough)
-  const intensity = lm / 80;
-  if (retailLights['light-1']) retailLights['light-1'].intensity = intensity;
-});
-
-const sldKelvin = document.getElementById('sldKelvin');
-const valKelvin = document.getElementById('valKelvin');
-sldKelvin.addEventListener('input', () => {
-  const k = parseInt(sldKelvin.value, 10);
-  valKelvin.firstChild.textContent = k.toLocaleString('fr-FR').replace(/,/g, ' ') + ' ';
-  // Kelvin to RGB approximation
-  const rgb = kelvinToRGB(k);
-  if (retailLights['light-1']) retailLights['light-1'].color.setRGB(rgb.r, rgb.g, rgb.b);
-});
-
-const sldCone = document.getElementById('sldCone');
-const valCone = document.getElementById('valCone');
-sldCone.addEventListener('input', () => {
-  const deg = parseInt(sldCone.value, 10);
-  valCone.firstChild.textContent = deg + ' ';
-  if (retailLights['light-1']) retailLights['light-1'].angle = (deg / 2) * Math.PI / 180;
-});
-
-function kelvinToRGB(kelvin) {
-  let temp = kelvin / 100;
-  let r, g, b;
-  if (temp <= 66) {
-    r = 255;
-    g = 99.4708 * Math.log(temp) - 161.1196;
-  } else {
-    r = 329.6987 * Math.pow(temp - 60, -0.1332);
-    g = 288.1222 * Math.pow(temp - 60, -0.0755);
-  }
-  if (temp >= 66) {
-    b = 255;
-  } else if (temp <= 19) {
-    b = 0;
-  } else {
-    b = 138.5177 * Math.log(temp - 10) - 305.0448;
-  }
-  return {
-    r: Math.max(0, Math.min(255, r)) / 255,
-    g: Math.max(0, Math.min(255, g)) / 255,
-    b: Math.max(0, Math.min(255, b)) / 255,
-  };
-}
+/* Legacy light sliders (sldLumens / sldKelvin / sldCone) removed — replaced by
+   the global studio ambient lighting controls in pane "Lumière". The
+   kelvinToRGB helper is now embedded in wireAmbientLighting(). */
 
 /* ═══ AR button stub ═══ */
 document.getElementById('btnAR').addEventListener('click', () => {
@@ -9398,171 +9337,295 @@ window.importProduct = importProduct;
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   AR LAUNCH — export scene as USDZ (iOS) / GLB (Android, web fallback)
+   AR LAUNCH (v2 — robust, modeled after ar-scene.html)
+   iOS    : USDZExporter → <a rel=ar> Quick Look (instant)
+   Android: GLTFExporter → upload to Supabase Storage bucket 'ar-scenes'
+            → Scene Viewer with public HTTPS URL (blob URLs don't work
+            with Scene Viewer)
+   Desktop: download GLB locally
    ═══════════════════════════════════════════════════════════════════ */
 function _detectARPlatform() {
   const ua = navigator.userAgent || '';
-  if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+                (ua.includes('Mac') && 'ontouchend' in document) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) return 'ios';
   if (/Android/i.test(ua)) return 'android';
   return 'desktop';
 }
 
+function _sanitizeARName(s) {
+  return String(s || 'item').replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 40);
+}
+
 function _buildARScene() {
-  // Clone all scene fixtures+products into a fresh group for export
-  // (skip floor/lights since AR has the real environment)
-  const exportGroup = new THREE.Group();
-  exportGroup.name = 'AR_Scene';
+  // Clone every visible scene object (except floor & lights) into a single Group
+  // for export. Materials are cloned too so we can dispose them after.
+  const grp = new THREE.Group();
+  grp.name = 'TadamHomeScene';
+  const clonedMats = [];
+  let idx = 0;
   Object.entries(sceneObjects).forEach(([id, obj]) => {
     if (id === 'floor' || id.startsWith('light-')) return;
     if (!obj.visible) return;
-    // Skip user-groups whose children we'll already export individually
-    // (they'd be double-included otherwise)
-    if (obj.userData?.isUserGroup) return;
-    // Don't clone if obj is already inside a user-group that we won't export
-    if (obj.parent && obj.parent.userData?.isUserGroup) {
-      // Include via the user group instead
-      return;
-    }
-    const cloned = obj.clone(true);
-    cloned.updateMatrixWorld(true);
-    exportGroup.add(cloned);
+    // Skip children that are inside an exported user-group (avoid duplication)
+    if (obj.parent && obj.parent.userData?.isUserGroup) return;
+
+    const cl = obj.clone(true);
+    cl.position.copy(obj.position);
+    cl.rotation.copy(obj.rotation);
+    cl.scale.copy(obj.scale);
+    cl.name = 'object_' + idx + '_' + _sanitizeARName(obj.userData?.name || obj.userData?.label || 'item');
+    let meshIdx = 0;
+    cl.traverse((c) => {
+      if (c.name) c.name = 'o' + idx + '_' + _sanitizeARName(c.name);
+      else c.name = 'o' + idx + '_n' + meshIdx;
+      if (!c.isMesh) return;
+      meshIdx++;
+      if (!c.geometry || !c.material) {
+        if (c.parent) c.parent.remove(c);
+        return;
+      }
+      // Clone materials so USDZ/GLTF exporter doesn't mutate originals
+      if (Array.isArray(c.material)) {
+        c.material = c.material.map((m) => { const cm = m.clone(); clonedMats.push(cm); return cm; });
+      } else {
+        c.material = c.material.clone();
+        clonedMats.push(c.material);
+      }
+    });
+    grp.add(cl);
+    idx++;
   });
-  // Include user groups (which contain their children)
-  Object.entries(sceneObjects).forEach(([id, obj]) => {
-    if (!obj.userData?.isUserGroup) return;
-    if (!obj.visible) return;
-    const cloned = obj.clone(true);
-    cloned.updateMatrixWorld(true);
-    exportGroup.add(cloned);
-  });
-  exportGroup.updateMatrixWorld(true);
-  return exportGroup;
+  grp.updateMatrixWorld(true);
+  grp._clonedMats = clonedMats;  // attach for cleanup later
+  return grp;
 }
 
-async function _exportGLB(group) {
-  const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
-  const exporter = new GLTFExporter();
-  return new Promise((resolve, reject) => {
-    exporter.parse(group, (result) => {
-      const blob = new Blob([result], { type: 'model/gltf-binary' });
-      resolve(blob);
-    }, (err) => reject(err), { binary: true, embedImages: true, onlyVisible: true });
-  });
+// AR overlay (spinner + completion screen)
+function _arOverlay(html) {
+  const ov = document.createElement('div');
+  ov.id = 'arOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(28,27,24,0.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;font-family:Jost,sans-serif;color:#fff;';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  return ov;
+}
+function _arSpinner(label) {
+  const existing = document.getElementById('arOverlay');
+  if (existing) existing.remove();
+  return _arOverlay(
+    '<div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:26px;color:#B8965A">' + label + '</div>' +
+    '<div style="width:260px;height:2px;background:rgba(255,255,255,0.1);position:relative;overflow:hidden">' +
+      '<div style="position:absolute;left:-30%;top:0;bottom:0;width:30%;background:#B8965A;animation:arSlide 1.4s ease-in-out infinite"></div>' +
+    '</div>' +
+    '<style>@keyframes arSlide{0%{left:-30%}100%{left:100%}}</style>'
+  );
 }
 
-async function _exportUSDZ(group) {
-  const { USDZExporter } = await import('three/addons/exporters/USDZExporter.js');
-  const exporter = new USDZExporter();
-  const u8 = await exporter.parse(group);
-  return new Blob([u8], { type: 'model/vnd.usdz+zip' });
-}
-
-function _showARChooser(blobs) {
-  // Create a modal overlay with the export options + appropriate trigger
+async function _launchAR() {
+  const grp = _buildARScene();
+  if (grp.children.length === 0) {
+    showInfoToast('Ajoute des objets dans la scène d\'abord');
+    return;
+  }
   const platform = _detectARPlatform();
-  const usdzURL = blobs.usdz ? URL.createObjectURL(blobs.usdz) : null;
-  const glbURL = blobs.glb ? URL.createObjectURL(blobs.glb) : null;
-
-  // On iOS, immediately trigger the Quick Look AR via a hidden <a rel="ar">
-  if (platform === 'ios' && usdzURL) {
-    const a = document.createElement('a');
-    a.setAttribute('rel', 'ar');
-    a.href = usdzURL;
-    // Quick Look requires the link to contain an <img> child
-    const img = document.createElement('img');
-    img.style.cssText = 'display:none';
-    a.appendChild(img);
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => a.remove(), 2000);
-    showInfoToast('🚀 Ouverture AR Quick Look…');
-    return;
-  }
-
-  // Android: open Scene Viewer intent
-  if (platform === 'android' && glbURL) {
-    // Scene Viewer requires a publicly-fetchable URL — blob URLs work in Chrome
-    const url = encodeURIComponent(glbURL);
-    const intent = `intent://arvr.google.com/scene-viewer/1.0?file=${url}&mode=ar_preferred#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;end;`;
-    window.location.href = intent;
-    showInfoToast('🚀 Ouverture Scene Viewer…');
-    return;
-  }
-
-  // Desktop fallback: show modal with download links + QR code to share with phone
-  const overlay = document.createElement('div');
-  overlay.id = 'arOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,18,14,0.94);z-index:99999;display:flex;align-items:center;justify-content:center;color:#F5F2EC;font-family:Jost,sans-serif;backdrop-filter:blur(6px);';
-  overlay.innerHTML = `
-    <div style="background:#2A2620;border:1px solid rgba(184,150,90,0.3);padding:36px;max-width:520px;text-align:center">
-      <div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:28px;color:#B8965A;margin-bottom:6px">Scène prête pour l'AR</div>
-      <div style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,242,236,0.55);margin-bottom:28px">Téléchargements directs ou ouverture sur un appareil compatible</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${usdzURL ? `<a href="${usdzURL}" download="scene-tadamhome.usdz" style="display:block;padding:14px;background:#B8965A;color:#1A1814;font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none">📱 Télécharger USDZ (iPhone / iPad Quick Look)</a>` : ''}
-        ${glbURL ? `<a href="${glbURL}" download="scene-tadamhome.glb" style="display:block;padding:14px;background:#3A332A;color:rgba(245,242,236,0.85);border:1px solid rgba(184,150,90,0.35);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none">🤖 Télécharger GLB (Android Scene Viewer)</a>` : ''}
-      </div>
-      <div style="margin-top:24px;font-size:10px;letter-spacing:0.14em;color:rgba(245,242,236,0.4)">
-        Astuce iPad : ouvrir cette page directement sur ton iPad et cliquer "Lancer en AR" — Safari ouvrira AR Quick Look automatiquement.
-      </div>
-      <button onclick="document.getElementById('arOverlay').remove()" style="margin-top:24px;background:transparent;border:1px solid rgba(245,242,236,0.2);color:rgba(245,242,236,0.7);padding:10px 22px;font-family:Jost,sans-serif;font-size:10px;letter-spacing:0.20em;text-transform:uppercase;cursor:pointer">Fermer</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-}
-
-// Replace the AR button stub with the real implementation
-document.getElementById('btnAR').addEventListener('click', async (e) => {
-  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-  // Show progress overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'arProgress';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,18,14,0.94);z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#F5F2EC;font-family:Jost,sans-serif;backdrop-filter:blur(4px);';
-  overlay.innerHTML = `
-    <div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:26px;margin-bottom:10px;color:#B8965A" id="arProgressLabel">Préparation de l'AR…</div>
-    <div style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:24px" id="arProgressSub">Export du modèle 3D</div>
-    <div style="width:260px;height:2px;background:rgba(255,255,255,0.1);position:relative;overflow:hidden">
-      <div style="position:absolute;left:-30%;top:0;bottom:0;width:30%;background:#B8965A;animation:arSlide 1.4s ease-in-out infinite"></div>
-    </div>
-    <style>@keyframes arSlide{0%{left:-30%}100%{left:100%}}</style>
-  `;
-  document.body.appendChild(overlay);
-
-  const setLabel = (t) => { const el = overlay.querySelector('#arProgressLabel'); if (el) el.textContent = t; };
-  const setSub = (s) => { const el = overlay.querySelector('#arProgressSub'); if (el) el.textContent = s; };
-  const removeProgress = () => overlay.remove();
+  const cleanup = () => grp._clonedMats?.forEach(m => { try { m.dispose(); } catch(_){} });
 
   try {
-    const group = _buildARScene();
-    if (group.children.length === 0) {
-      removeProgress();
-      showInfoToast('Ajoute des objets dans la scène d\'abord');
-      return;
+    if (platform === 'ios') {
+      _arSpinner('Génération AR…');
+      const { USDZExporter } = await import('three/addons/exporters/USDZExporter.js');
+      const usdzEx = new USDZExporter();
+      const buf = await usdzEx.parse(grp, { maxTextureSize: 1024 });
+      const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
+      const url = URL.createObjectURL(blob);
+      document.getElementById('arOverlay')?.remove();
+      const a = document.createElement('a');
+      a.setAttribute('rel', 'ar');
+      a.href = url;
+      const img = document.createElement('img');
+      img.style.display = 'none';
+      a.appendChild(img);
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 8000);
+      showInfoToast('🚀 Ouverture AR Quick Look…');
+    } else if (platform === 'android') {
+      _arSpinner('Génération AR…');
+      const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        grp,
+        async (result) => {
+          try {
+            const blob = new Blob([result], { type: 'model/gltf-binary' });
+            const fileName = 'ar-scene-' + Date.now() + '-' + Math.floor(Math.random() * 1000) + '.glb';
+            _arSpinner('Téléversement vers AR…');
+            // Upload to Supabase Storage bucket 'ar-scenes' (must be public-read)
+            if (typeof sb === 'undefined' || !sb) {
+              document.getElementById('arOverlay')?.remove();
+              showInfoToast('Supabase indisponible : impossible d\'envoyer la scène AR');
+              return;
+            }
+            const { error: upErr } = await sb.storage
+              .from('ar-scenes')
+              .upload(fileName, blob, { contentType: 'model/gltf-binary', cacheControl: '3600', upsert: false });
+            if (upErr) throw new Error('Upload échoué : ' + upErr.message);
+            const { data: pub } = sb.storage.from('ar-scenes').getPublicUrl(fileName);
+            if (!pub || !pub.publicUrl) throw new Error('URL publique introuvable');
+            const glbUrl = pub.publicUrl;
+            const sceneViewerUrl =
+              'https://arvr.google.com/scene-viewer/1.0' +
+              '?file=' + encodeURIComponent(glbUrl) +
+              '&mode=ar_preferred' +
+              '&title=' + encodeURIComponent('Scène TadamHome');
+            document.getElementById('arOverlay')?.remove();
+            const overlay = _arOverlay(
+              '<div style="font-family:Cormorant Garamond,serif;font-size:26px;text-align:center;font-weight:300">Scène prête</div>' +
+              '<div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);text-align:center">Touchez le bouton pour lancer la réalité augmentée</div>' +
+              '<a href="' + sceneViewerUrl + '" id="ar-launch-btn" style="display:flex;align-items:center;gap:12px;background:#B8965A;color:#fff;padding:18px 36px;text-decoration:none;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;box-shadow:0 4px 20px rgba(184,150,90,0.4)">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>' +
+                'Lancer l\'AR' +
+              '</a>' +
+              '<button id="ar-cancel-btn" style="background:none;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);padding:10px 24px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer">Fermer</button>'
+            );
+            overlay.querySelector('#ar-cancel-btn').onclick = () => overlay.remove();
+            overlay.querySelector('#ar-launch-btn').onclick = () => setTimeout(() => overlay.remove(), 1000);
+          } catch (err) {
+            document.getElementById('arOverlay')?.remove();
+            console.error('[AR Android]', err);
+            showInfoToast('Erreur AR : ' + (err.message || 'inconnu'));
+          }
+        },
+        (err) => {
+          document.getElementById('arOverlay')?.remove();
+          console.error('[AR Export GLB]', err);
+          showInfoToast('Erreur export GLB : ' + (err.message || 'inconnu'));
+        },
+        { binary: true, maxTextureSize: 1024, forcePowerOfTwoTextures: false, embedImages: true, truncateDrawRange: true }
+      );
+    } else {
+      // Desktop: download both formats
+      _arSpinner('Export GLB + USDZ…');
+      const blobs = {};
+      try {
+        const { USDZExporter } = await import('three/addons/exporters/USDZExporter.js');
+        const usdzBuf = await new USDZExporter().parse(grp, { maxTextureSize: 1024 });
+        blobs.usdz = new Blob([usdzBuf], { type: 'model/vnd.usdz+zip' });
+      } catch (e) { console.warn('USDZ export skipped:', e); }
+      try {
+        const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
+        const exporter = new GLTFExporter();
+        const buf = await new Promise((res, rej) => exporter.parse(grp, res, rej, { binary: true, maxTextureSize: 1024, embedImages: true }));
+        blobs.glb = new Blob([buf], { type: 'model/gltf-binary' });
+      } catch (e) { console.warn('GLB export skipped:', e); }
+      document.getElementById('arOverlay')?.remove();
+      const usdzURL = blobs.usdz ? URL.createObjectURL(blobs.usdz) : null;
+      const glbURL = blobs.glb ? URL.createObjectURL(blobs.glb) : null;
+      const overlay = _arOverlay(
+        '<div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:26px;color:#B8965A;margin-bottom:6px">Scène prête pour l\'AR</div>' +
+        '<div style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,242,236,0.55);margin-bottom:6px;text-align:center;max-width:420px">Télécharge l\'un des fichiers et ouvre-le sur ton iPhone / iPad / Android pour lancer l\'AR</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;width:420px;margin-top:14px">' +
+          (usdzURL ? '<a href="' + usdzURL + '" download="tadamhome-scene.usdz" style="display:block;padding:14px;background:#B8965A;color:#1A1814;font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;text-align:center">📱 Télécharger USDZ (iOS Quick Look)</a>' : '') +
+          (glbURL ? '<a href="' + glbURL + '" download="tadamhome-scene.glb" style="display:block;padding:14px;background:#3A332A;color:rgba(245,242,236,0.85);border:1px solid rgba(184,150,90,0.35);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;text-align:center">🤖 Télécharger GLB (Android Scene Viewer)</a>' : '') +
+        '</div>' +
+        '<button id="ar-close" style="margin-top:24px;background:transparent;border:1px solid rgba(245,242,236,0.2);color:rgba(245,242,236,0.7);padding:10px 22px;font-size:10px;letter-spacing:0.20em;text-transform:uppercase;cursor:pointer">Fermer</button>'
+      );
+      overlay.querySelector('#ar-close').onclick = () => overlay.remove();
     }
-    setSub(`${group.children.length} objet(s) à exporter`);
-    const platform = _detectARPlatform();
-    setLabel(platform === 'ios' ? 'Export USDZ' : platform === 'android' ? 'Export GLB' : 'Export USDZ + GLB');
-
-    const blobs = {};
-    if (platform === 'ios' || platform === 'desktop') {
-      try { blobs.usdz = await _exportUSDZ(group); }
-      catch (e) { console.warn('[AR] USDZ export failed:', e); }
-    }
-    if (platform === 'android' || platform === 'desktop') {
-      try { blobs.glb = await _exportGLB(group); }
-      catch (e) { console.warn('[AR] GLB export failed:', e); }
-    }
-    removeProgress();
-    if (!blobs.usdz && !blobs.glb) {
-      showInfoToast('Erreur : impossible d\'exporter la scène');
-      return;
-    }
-    _showARChooser(blobs);
   } catch (err) {
-    removeProgress();
+    document.getElementById('arOverlay')?.remove();
     console.error('[AR]', err);
     showInfoToast('Erreur AR : ' + err.message);
+  } finally {
+    cleanup();
   }
-}, true);  // capture to override the older stub listener
+}
+
+// Bind real AR launcher (capture phase + stopImmediatePropagation to override
+// any older stub listener still attached during module init)
+document.getElementById('btnAR').addEventListener('click', async (e) => {
+  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  await _launchAR();
+}, true);
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   AMBIENT STUDIO LIGHTING CONTROLS — pane "Lumière"
+   intensity (0-200%), ambient bias (0-100%), color temperature (K),
+   exposure (0.3-2.5). Updates the 3-point studio rig + renderer.
+   ═══════════════════════════════════════════════════════════════════ */
+(function wireAmbientLighting() {
+  // Kelvin-to-RGB approximation (Tanner Helland) — returns THREE.Color
+  function kelvinToColor(k) {
+    k = Math.max(1000, Math.min(40000, k)) / 100;
+    let r, g, b;
+    if (k <= 66) { r = 255; } else { r = 329.7 * Math.pow(k - 60, -0.13320476); }
+    if (k <= 66) { g = 99.47 * Math.log(k) - 161.12; } else { g = 288.12 * Math.pow(k - 60, -0.0755148); }
+    if (k >= 66) { b = 255; }
+    else if (k <= 19) { b = 0; }
+    else { b = 138.52 * Math.log(k - 10) - 305.04; }
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return new THREE.Color(r / 255, g / 255, b / 255);
+  }
+
+  let intensity = 1.0;
+  let ambient = 0.30;
+  let temp = 4500;
+  let exposure = 1.0;
+
+  function apply() {
+    const tempColor = kelvinToColor(temp);
+    // The key & fill use the temperature; ambient stays neutral cream
+    _studioAmbient.intensity = ambient;
+    _studioKey.color.copy(tempColor);
+    _studioKey.intensity = _STUDIO_BASE.key * intensity;
+    _studioFill.intensity = _STUDIO_BASE.fill * intensity;
+    _studioRim.intensity = _STUDIO_BASE.rim * intensity;
+    renderer.toneMappingExposure = exposure;
+  }
+
+  const sldIntensity = document.getElementById('sldAmbIntensity');
+  const sldAmbient   = document.getElementById('sldAmbAmbient');
+  const sldTemp      = document.getElementById('sldAmbTemp');
+  const sldExposure  = document.getElementById('sldAmbExposure');
+  const lblIntensity = document.getElementById('lblAmbIntensity');
+  const lblAmbient   = document.getElementById('lblAmbAmbient');
+  const lblTemp      = document.getElementById('lblAmbTemp');
+  const lblExposure  = document.getElementById('lblAmbExposure');
+
+  sldIntensity?.addEventListener('input', () => {
+    intensity = parseInt(sldIntensity.value) / 100;
+    lblIntensity.textContent = sldIntensity.value + '\u00a0%';
+    apply();
+  });
+  sldAmbient?.addEventListener('input', () => {
+    ambient = parseInt(sldAmbient.value) / 100;
+    lblAmbient.textContent = sldAmbient.value + '\u00a0%';
+    apply();
+  });
+  sldTemp?.addEventListener('input', () => {
+    temp = parseInt(sldTemp.value);
+    lblTemp.textContent = temp + '\u00a0K';
+    apply();
+  });
+  sldExposure?.addEventListener('input', () => {
+    exposure = parseFloat(sldExposure.value);
+    lblExposure.textContent = exposure.toFixed(1);
+    apply();
+  });
+
+  apply();
+  console.log('[ambient-light] wired');
+})();
+
 
 console.log('[catalog + AR] wired');
 
