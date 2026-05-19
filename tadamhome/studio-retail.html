@@ -69,7 +69,6 @@ input,select{font-family:inherit;color:inherit}
   grid-template-columns:var(--nav-w) var(--tree-w) 1fr var(--mat-w);
   grid-template-rows:var(--topbar-h) 1fr var(--bottombar-h);
   height:100vh;
-  transition:grid-template-columns 0.28s cubic-bezier(.4,.2,.2,1);
 }
 .app.tree-hidden { --tree-w: 0px; }
 .app.mat-hidden  { --mat-w: 0px; }
@@ -105,56 +104,52 @@ input,select{font-family:inherit;color:inherit}
   color: #fff;
 }
 
-/* App grid adjustments when panels are hidden (matches studio.html V13) */
-.app.hide-tree {
-  grid-template-columns: var(--nav-w) 0 1fr var(--mat-w) !important;
-}
+/* App grid: panel toggles handled via JS inline style on .app
+   (CSS !important rules + grid-template-columns transition created
+   conflicts where the computed grid kept the old track widths even
+   after display:none was applied to the leftpanel/rightpanel) */
 .app.hide-tree .leftpanel { display: none !important; }
-
-.app.hide-mat {
-  grid-template-columns: var(--nav-w) var(--tree-w) 1fr 0 !important;
-}
 .app.hide-mat .rightpanel { display: none !important; }
 .app.hide-mat #vrAR { display: none !important; }
 
-.app.hide-tree.hide-mat {
-  grid-template-columns: var(--nav-w) 0 1fr 0 !important;
-}
-
-.app, .topbar { transition: grid-template-columns 0.25s ease; }
-
 /* ═══════════════════════════════════════════════════════════════════
-   BOUTON "VOIR EN RÉALITÉ AUGMENTÉE" — bas du panneau matière
-   (style identique à studio.html)
+   BOUTON "VOIR EN RÉALITÉ AUGMENTÉE" — cellule grid col 4 row 3
+   (sous le panneau matière, ALIGNÉ avec la bottombar)
    ═══════════════════════════════════════════════════════════════════ */
 #vrAR {
-  position: fixed;
-  bottom: var(--bottombar-h, 56px);
-  right: 0;
-  width: var(--mat-w, 320px);
-  z-index: 100;
+  grid-column: 4;
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
   background: var(--bg, #F5F2EC);
   border-top: 1px solid rgba(0,0,0,0.06);
-  padding: 14px 18px 18px;
-  transition: width 0.25s ease, right 0.25s ease;
+  border-left: 1px solid rgba(0,0,0,0.06);
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
 }
 #vrAR button {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
-  padding: 13px 20px;
+  padding: 0 14px;
   background: var(--gold, #B8965A);
   color: #fff;
   border: none;
   cursor: pointer;
   font-family: 'Jost', sans-serif;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.20em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   transition: filter 0.15s, transform 0.08s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #vrAR button:hover:not(:disabled) { filter: brightness(1.10); }
 #vrAR button:active:not(:disabled) { transform: scale(0.99); }
@@ -163,13 +158,16 @@ input,select{font-family:inherit;color:inherit}
   color: #6B6358;
   cursor: not-allowed;
 }
-#vrAR button svg { width: 16px; height: 16px; }
+#vrAR button svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-/* Dark theme override for the AR pill (matches viewport dark mode) */
+/* Hide AR button cell when the mat panel is collapsed */
+.app.hide-mat #vrAR { display: none !important; }
+
+/* Dark theme override */
 body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); }
 
-/* Reserve room at bottom of rp-body so the last slider isn't covered */
-.rp-body { padding-bottom: 76px !important; }
+/* Reset rp-body bottom padding (no longer needed since AR is in its own cell) */
+.rp-body { padding-bottom: 18px !important; }
 
 /* ═══════════════════════════════════════════════════════════════════
    RESPONSIVE — iPad Pro 10.5" (1112×834 landscape) and similar tablets
@@ -4065,17 +4063,6 @@ body.pipette-mode #pipetteBtn {
     </div><!-- /.rp-body -->
   </aside>
 
-  <!-- Bouton "Voir en réalité augmentée" — fixé en bas du panneau matière -->
-  <div id="vrAR">
-    <button id="btnAR" type="button" title="Voir la scène en réalité augmentée">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
-        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
-      </svg>
-      <span>Voir en réalité augmentée</span>
-    </button>
-  </div>
-
   <!-- ═══════════ BOTTOM BAR ═══════════ -->
   <footer class="bottombar">
     <div class="bb-cams">
@@ -4116,6 +4103,17 @@ body.pipette-mode #pipetteBtn {
       <span>Caméra <b>1.65 m</b></span>
     </div>
   </footer>
+
+  <!-- Bouton AR — cellule grid (col 4, row 3) alignée sur la bottombar -->
+  <div id="vrAR">
+    <button id="btnAR" type="button" title="Voir la scène en réalité augmentée">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
+      </svg>
+      <span>Voir en réalité augmentée</span>
+    </button>
+  </div>
 
 </div><!-- /.app -->
 
@@ -5380,11 +5378,21 @@ canvas.addEventListener('pointerdown', (e) => {
       selectSubMesh(hitMesh);
       return;
     }
-    // Parties mode: walk up to find the group
+    // Parties mode: walk up the entire hierarchy, prefer the OUTERMOST user-group
+    // (so clicking any part of a grouped block "dossier" selects the whole folder)
     let obj = hitMesh;
-    while (obj && (!obj.userData || !obj.userData.id)) obj = obj.parent;
-    if (obj && obj.userData.id) {
-      selectFromViewport(obj.userData.id);
+    let firstRegistered = null;
+    let outermostUserGroup = null;
+    while (obj) {
+      if (obj.userData && obj.userData.id && sceneObjects[obj.userData.id]) {
+        if (!firstRegistered) firstRegistered = obj;
+        if (obj.userData.isUserGroup) outermostUserGroup = obj; // keep updating → outermost wins
+      }
+      obj = obj.parent;
+    }
+    const target = outermostUserGroup || firstRegistered;
+    if (target && target.userData.id) {
+      selectFromViewport(target.userData.id);
     }
   }
 });
@@ -8266,8 +8274,31 @@ function groupSelectedObjects() {
   newGroup.userData.kind = 'user-group';
   newGroup.userData.isUserGroup = true;
   newGroup.userData.childIds = [...ids];
+
+  // Compute centroid of the selected objects' world positions, so the new
+  // group's pivot lives in the visible block — not at scene origin (0,0,0).
+  // The TransformControls gizmo will then appear on the block itself.
+  const centroid = new THREE.Vector3();
+  let valid = 0;
+  ids.forEach(cid => {
+    const child = sceneObjects[cid];
+    if (!child) return;
+    child.updateMatrixWorld(true);
+    const pos = new THREE.Vector3();
+    child.getWorldPosition(pos);
+    centroid.add(pos);
+    valid++;
+  });
+  if (valid > 0) centroid.divideScalar(valid);
+
   scene.add(newGroup);
-  // Reparent each selected to the new group, preserving world transform
+  newGroup.position.copy(centroid);
+  newGroup.updateMatrixWorld(true);
+
+  // Reparent each selected to the new group, preserving world transform.
+  // .attach() recomputes the child's local matrix relative to the new parent,
+  // so the visual position is unchanged but the local position is now centered
+  // around the group's pivot.
   ids.forEach(cid => {
     const child = sceneObjects[cid];
     if (!child) return;
@@ -9535,7 +9566,8 @@ console.log('[catalog + AR] wired');
 
 /* ═══════════════════════════════════════════════════════════════════
    PANEL TOGGLES — same UX as studio.html (V13)
-   Two icon buttons in topbar (.tb-toggles) hide/show left tree + right mat.
+   ResizeObserver on viewport handles aspect-ratio correction during
+   the grid transition (250ms) — no more squashed canvas.
    ═══════════════════════════════════════════════════════════════════ */
 (function wirePanelToggles() {
   const app = document.querySelector('.app');
@@ -9544,41 +9576,62 @@ console.log('[catalog + AR] wired');
   const btnTree = document.getElementById('tbToggleTree');
   const btnMat = document.getElementById('tbToggleMat');
 
-  function syncAR() {
-    // Adjust the position:fixed AR pill so it matches the current mat panel width
-    const ar = document.getElementById('vrAR');
-    if (!ar) return;
-    const matVisible = !app.classList.contains('hide-mat');
-    const matEl = document.querySelector('.rightpanel');
-    if (!matVisible || !matEl) {
-      ar.style.display = 'none';
-      return;
-    }
-    ar.style.display = '';
-    const r = matEl.getBoundingClientRect();
-    ar.style.width = r.width + 'px';
-    ar.style.right = (window.innerWidth - r.right) + 'px';
+  function applyGridLayout() {
+    const treeHidden = app.classList.contains('hide-tree');
+    const matHidden = app.classList.contains('hide-mat');
+    const navW = getComputedStyle(app).getPropertyValue('--nav-w').trim() || '56px';
+    const treeWBase = getComputedStyle(document.documentElement).getPropertyValue('--tree-w').trim() || '300px';
+    const matWBase = getComputedStyle(document.documentElement).getPropertyValue('--mat-w').trim() || '340px';
+    const treeW = treeHidden ? '0px' : treeWBase;
+    const matW = matHidden ? '0px' : matWBase;
+    app.style.gridTemplateColumns = `${navW} ${treeW} 1fr ${matW}`;
+    // Also update topbar grid (it shares the column structure for tree-zone / mat-zone alignment)
+    const topbar = document.querySelector('.topbar');
+    if (topbar) topbar.style.gridTemplateColumns = `${treeW} 1fr ${matW}`;
+    // Force layout/repaint so ResizeObserver picks up the new size
+    void app.offsetWidth;
   }
 
   btnTree?.addEventListener('click', (e) => {
     e.preventDefault();
-    app.classList.toggle('hide-tree');
-    btnTree.classList.toggle('collapsed', app.classList.contains('hide-tree'));
-    setTimeout(syncAR, 260);
-    // Trigger Three.js resize
-    window.dispatchEvent(new Event('resize'));
+    const next = !app.classList.contains('hide-tree');
+    app.classList.toggle('hide-tree', next);
+    app.classList.toggle('tree-hidden', next);
+    btnTree.classList.toggle('collapsed', next);
+    applyGridLayout();
   });
   btnMat?.addEventListener('click', (e) => {
     e.preventDefault();
-    app.classList.toggle('hide-mat');
-    btnMat.classList.toggle('collapsed', app.classList.contains('hide-mat'));
-    setTimeout(syncAR, 260);
-    window.dispatchEvent(new Event('resize'));
+    const next = !app.classList.contains('hide-mat');
+    app.classList.toggle('hide-mat', next);
+    app.classList.toggle('mat-hidden', next);
+    btnMat.classList.toggle('collapsed', next);
+    applyGridLayout();
   });
 
-  // Initial sync + on window resize
-  setTimeout(syncAR, 300);
-  window.addEventListener('resize', syncAR);
+  // ResizeObserver: redimensionne le renderer Three.js dès que le viewport change
+  // de taille (pendant ET après la transition CSS de 250ms). Ça évite que le canvas
+  // garde son ancien aspect ratio et que les modèles paraissent étirés/écrasés.
+  const viewportEl = document.getElementById('viewport') || document.querySelector('.viewport');
+  if (viewportEl && typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      // Re-déclenche le handler resize global qui fait :
+      //   renderer.setSize(viewport.clientWidth, viewport.clientHeight, false);
+      //   camera.aspect = w/h; camera.updateProjectionMatrix();
+      //   + maj ortho frustum + composer (post-processing) si présent
+      window.dispatchEvent(new Event('resize'));
+    });
+    ro.observe(viewportEl);
+    console.log('[panel-toggles] ResizeObserver attached to viewport');
+  } else {
+    // Fallback : dispatch resize plusieurs fois pendant la transition de 250ms
+    [btnTree, btnMat].forEach(btn => {
+      btn?.addEventListener('click', () => {
+        [50, 150, 270, 400].forEach(ms => setTimeout(() => window.dispatchEvent(new Event('resize')), ms));
+      });
+    });
+  }
+
   console.log('[panel-toggles] wired');
 })();
 
