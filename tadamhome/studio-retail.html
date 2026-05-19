@@ -75,6 +75,103 @@ input,select{font-family:inherit;color:inherit}
 .app.mat-hidden  { --mat-w: 0px; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   PANEL TOGGLES (topbar, matching studio.html style)
+   ═══════════════════════════════════════════════════════════════════ */
+.tb-toggles {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+.tb-toggles button {
+  width: 36px;
+  height: 36px;
+  background: var(--ink, #1A1814);
+  border: 1px solid var(--ink, #1A1814);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+}
+.tb-toggles button:hover { background: rgba(26,24,20,0.85); }
+.tb-toggles button svg { width: 16px; height: 16px; }
+.tb-toggles button.collapsed {
+  background: transparent;
+  color: var(--ink, #1A1814);
+}
+.tb-toggles button.collapsed:hover {
+  background: var(--ink, #1A1814);
+  color: #fff;
+}
+
+/* App grid adjustments when panels are hidden (matches studio.html V13) */
+.app.hide-tree {
+  grid-template-columns: var(--nav-w) 0 1fr var(--mat-w) !important;
+}
+.app.hide-tree .leftpanel { display: none !important; }
+
+.app.hide-mat {
+  grid-template-columns: var(--nav-w) var(--tree-w) 1fr 0 !important;
+}
+.app.hide-mat .rightpanel { display: none !important; }
+.app.hide-mat #vrAR { display: none !important; }
+
+.app.hide-tree.hide-mat {
+  grid-template-columns: var(--nav-w) 0 1fr 0 !important;
+}
+
+.app, .topbar { transition: grid-template-columns 0.25s ease; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOUTON "VOIR EN RÉALITÉ AUGMENTÉE" — bas du panneau matière
+   (style identique à studio.html)
+   ═══════════════════════════════════════════════════════════════════ */
+#vrAR {
+  position: fixed;
+  bottom: var(--bottombar-h, 56px);
+  right: 0;
+  width: var(--mat-w, 320px);
+  z-index: 100;
+  background: var(--bg, #F5F2EC);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 14px 18px 18px;
+  transition: width 0.25s ease, right 0.25s ease;
+}
+#vrAR button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  background: var(--gold, #B8965A);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  transition: filter 0.15s, transform 0.08s;
+}
+#vrAR button:hover:not(:disabled) { filter: brightness(1.10); }
+#vrAR button:active:not(:disabled) { transform: scale(0.99); }
+#vrAR button:disabled {
+  background: #E6E1D6;
+  color: #6B6358;
+  cursor: not-allowed;
+}
+#vrAR button svg { width: 16px; height: 16px; }
+
+/* Dark theme override for the AR pill (matches viewport dark mode) */
+body.dark-vp #vrAR { background: #14110D; border-color: rgba(255,255,255,0.06); }
+
+/* Reserve room at bottom of rp-body so the last slider isn't covered */
+.rp-body { padding-bottom: 76px !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
    RESPONSIVE — iPad Pro 10.5" (1112×834 landscape) and similar tablets
    ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 1280px) {
@@ -2954,19 +3051,20 @@ body.pipette-mode #pipetteBtn {
         <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M10 11v6M14 11v6M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14"/>
       </svg>
     </button>
-    <input type="file" id="fileInput" accept=".obj,.stl" multiple style="display:none">
+    <input type="file" id="fileInput" accept=".obj,.stl,.glb,.gltf" multiple style="display:none">
     <button class="tb-theme" id="btnTheme" title="Basculer le thème">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="themeIcon">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     </button>
-    <button class="tb-ar" id="btnAR">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M3 7l9-4 9 4-9 4-9-4z"/>
-        <path d="M3 7v10l9 4 9-4V7M12 11v10"/>
-      </svg>
-      Lancer en AR
-    </button>
+    <div class="tb-toggles">
+      <button id="tbToggleTree" data-tooltip="Masquer le panneau gauche" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="6" height="16"/><rect x="11" y="4" width="10" height="16"/></svg>
+      </button>
+      <button id="tbToggleMat" data-tooltip="Masquer le panneau droit" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="10" height="16"/><rect x="15" y="4" width="6" height="16"/></svg>
+      </button>
+    </div>
   </header>
 
   <!-- ═══════════ LEFT PANEL (OUTLINER) ═══════════ -->
@@ -3966,6 +4064,17 @@ body.pipette-mode #pipetteBtn {
 
     </div><!-- /.rp-body -->
   </aside>
+
+  <!-- Bouton "Voir en réalité augmentée" — fixé en bas du panneau matière -->
+  <div id="vrAR">
+    <button id="btnAR" type="button" title="Voir la scène en réalité augmentée">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 8 L12 4 L20 8 V16 L12 20 L4 16 Z"/>
+        <path d="M4 8 L12 12 L20 8 M12 12 V20"/>
+      </svg>
+      <span>Voir en réalité augmentée</span>
+    </button>
+  </div>
 
   <!-- ═══════════ BOTTOM BAR ═══════════ -->
   <footer class="bottombar">
@@ -9423,6 +9532,55 @@ document.getElementById('btnAR').addEventListener('click', async (e) => {
 }, true);  // capture to override the older stub listener
 
 console.log('[catalog + AR] wired');
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL TOGGLES — same UX as studio.html (V13)
+   Two icon buttons in topbar (.tb-toggles) hide/show left tree + right mat.
+   ═══════════════════════════════════════════════════════════════════ */
+(function wirePanelToggles() {
+  const app = document.querySelector('.app');
+  if (!app) return;
+
+  const btnTree = document.getElementById('tbToggleTree');
+  const btnMat = document.getElementById('tbToggleMat');
+
+  function syncAR() {
+    // Adjust the position:fixed AR pill so it matches the current mat panel width
+    const ar = document.getElementById('vrAR');
+    if (!ar) return;
+    const matVisible = !app.classList.contains('hide-mat');
+    const matEl = document.querySelector('.rightpanel');
+    if (!matVisible || !matEl) {
+      ar.style.display = 'none';
+      return;
+    }
+    ar.style.display = '';
+    const r = matEl.getBoundingClientRect();
+    ar.style.width = r.width + 'px';
+    ar.style.right = (window.innerWidth - r.right) + 'px';
+  }
+
+  btnTree?.addEventListener('click', (e) => {
+    e.preventDefault();
+    app.classList.toggle('hide-tree');
+    btnTree.classList.toggle('collapsed', app.classList.contains('hide-tree'));
+    setTimeout(syncAR, 260);
+    // Trigger Three.js resize
+    window.dispatchEvent(new Event('resize'));
+  });
+  btnMat?.addEventListener('click', (e) => {
+    e.preventDefault();
+    app.classList.toggle('hide-mat');
+    btnMat.classList.toggle('collapsed', app.classList.contains('hide-mat'));
+    setTimeout(syncAR, 260);
+    window.dispatchEvent(new Event('resize'));
+  });
+
+  // Initial sync + on window resize
+  setTimeout(syncAR, 300);
+  window.addEventListener('resize', syncAR);
+  console.log('[panel-toggles] wired');
+})();
 
 
 // Signal that the module has loaded successfully — disables the fallback error overlay
