@@ -2147,6 +2147,60 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
   color: var(--rp-on-gold) !important;
   font-weight: 600 !important;
 }
+
+/* PBR editable controls (number input + reset icon) */
+.rightpanel .pbr-field .field-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+.rightpanel .pbr-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rightpanel .pbr-num {
+  width: 56px;
+  background: var(--rp-elev);
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-ink);
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+  padding: 4px 6px;
+  outline: none;
+  transition: border-color 0.15s;
+  /* Hide spinner buttons */
+  -moz-appearance: textfield;
+}
+.rightpanel .pbr-num::-webkit-outer-spin-button,
+.rightpanel .pbr-num::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.rightpanel .pbr-num:focus { border-color: var(--rp-gold); color: var(--rp-gold); }
+.rightpanel .pbr-num:hover { border-color: rgba(184,150,90,0.4); }
+.rightpanel .pbr-reset {
+  width: 20px; height: 20px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--rp-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.rightpanel .pbr-reset:hover {
+  color: var(--rp-gold);
+  border-color: var(--rp-gold);
+}
+.rightpanel .pbr-reset svg { width: 11px; height: 11px; }
+.rightpanel .pbr-field.modified .pbr-num { color: var(--rp-gold); }
+.rightpanel .pbr-field.modified .pbr-reset { color: var(--rp-gold); }
 </style>
 </head>
 <body>
@@ -2916,42 +2970,67 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
         <div class="rp-section">
           <div class="rp-section-title">Paramètres physiques</div>
 
-          <div class="field">
+          <div class="field pbr-field" data-prop="roughness" data-default="0.5">
             <div class="field-label">
               <div class="field-name">Rugosité</div>
-              <div class="field-value" id="valRoughness">0.18<span class="unit"></span></div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numRoughness" min="0" max="1" step="0.01" value="0.50">
+                <button class="pbr-reset" data-target="Roughness" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
             </div>
-            <input type="range" class="slider" id="sldRoughness" min="0" max="1" step="0.01" value="0.18">
+            <input type="range" class="slider" id="sldRoughness" min="0" max="1" step="0.01" value="0.5">
           </div>
 
-          <div class="field">
+          <div class="field pbr-field" data-prop="metalness" data-default="0">
             <div class="field-label">
               <div class="field-name">Métallisation</div>
-              <div class="field-value" id="valMetalness">0.00<span class="unit"></span></div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numMetalness" min="0" max="1" step="0.01" value="0.00">
+                <button class="pbr-reset" data-target="Metalness" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
             </div>
             <input type="range" class="slider" id="sldMetalness" min="0" max="1" step="0.01" value="0">
           </div>
 
-          <div class="field">
+          <div class="field pbr-field" data-prop="transmission" data-default="0">
             <div class="field-label">
               <div class="field-name">Transmission (verre)</div>
-              <div class="field-value" id="valTransmission">0.00<span class="unit"></span></div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numTransmission" min="0" max="1" step="0.01" value="0.00">
+                <button class="pbr-reset" data-target="Transmission" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
             </div>
             <input type="range" class="slider" id="sldTransmission" min="0" max="1" step="0.01" value="0">
           </div>
 
-          <div class="field">
+          <div class="field pbr-field" data-prop="clearcoat" data-default="0">
             <div class="field-label">
               <div class="field-name">Vernis (clearcoat)</div>
-              <div class="field-value" id="valClearcoat">0.00<span class="unit"></span></div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numClearcoat" min="0" max="1" step="0.01" value="0.00">
+                <button class="pbr-reset" data-target="Clearcoat" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
             </div>
             <input type="range" class="slider" id="sldClearcoat" min="0" max="1" step="0.01" value="0">
           </div>
 
-          <div class="field">
+          <div class="field pbr-field" data-prop="ior" data-default="1.5">
             <div class="field-label">
               <div class="field-name">Indice de réfraction</div>
-              <div class="field-value" id="valIOR">1.50<span class="unit"></span></div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numIOR" min="1" max="2.5" step="0.01" value="1.50">
+                <button class="pbr-reset" data-target="IOR" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
             </div>
             <input type="range" class="slider" id="sldIOR" min="1" max="2.5" step="0.01" value="1.5">
           </div>
@@ -5948,9 +6027,9 @@ function renderSupabaseCards() {
     const fallbackBg = m.base_color || '#888';
 
     card.innerHTML = `
-      <div class="mat-card-thumb" data-sb-thumb="${escapeHtml(thumb)}" data-sb-fallback="${fallbackBg}"></div>
-      <div class="mat-card-name">${escapeHtml(m.name || '—')}</div>
-      <div class="mat-card-sub">${escapeHtml(sub)}</div>
+      <div class="mat-card-thumb" data-sb-thumb="${escapeHTML(thumb)}" data-sb-fallback="${fallbackBg}"></div>
+      <div class="mat-card-name">${escapeHTML(m.name || '—')}</div>
+      <div class="mat-card-sub">${escapeHTML(sub)}</div>
     `;
     grid.appendChild(card);
 
@@ -6149,62 +6228,129 @@ function getActiveMaterial() {
 
 function syncPBRSlidersToMaterial(mat) {
   if (!mat) return;
-  const setSlider = (id, valId, value, decimals = 2) => {
-    const sld = document.getElementById(id);
-    const lbl = document.getElementById(valId);
-    if (sld) sld.value = value;
-    if (lbl) {
-      const unit = lbl.querySelector('.unit');
-      lbl.textContent = (+value).toFixed(decimals);
-      if (unit) lbl.appendChild(unit);
-    }
+  const setControl = (sldId, numId, value, decimals = 2) => {
+    const sld = document.getElementById(sldId);
+    const num = document.getElementById(numId);
+    const v = +value;
+    if (sld) sld.value = v;
+    if (num) num.value = v.toFixed(decimals);
+    // Remove modified state since we're syncing from a fresh material
+    const field = sld?.closest('.pbr-field');
+    if (field) field.classList.remove('modified');
   };
-  setSlider('sldRoughness',    'valRoughness',    mat.roughness ?? 0.5);
-  setSlider('sldMetalness',    'valMetalness',    mat.metalness ?? 0);
-  setSlider('sldTransmission', 'valTransmission', mat.transmission ?? 0);
-  setSlider('sldClearcoat',    'valClearcoat',    mat.clearcoat ?? 0);
-  setSlider('sldIOR',          'valIOR',          mat.ior ?? 1.5);
+  setControl('sldRoughness',    'numRoughness',    mat.roughness ?? 0.5);
+  setControl('sldMetalness',    'numMetalness',    mat.metalness ?? 0);
+  setControl('sldTransmission', 'numTransmission', mat.transmission ?? 0);
+  setControl('sldClearcoat',    'numClearcoat',    mat.clearcoat ?? 0);
+  setControl('sldIOR',          'numIOR',          mat.ior ?? 1.5);
 }
 
 function wirePBRSliders() {
-  const bind = (sldId, valId, setter, decimals = 2) => {
-    const sld = document.getElementById(sldId);
-    const lbl = document.getElementById(valId);
-    if (!sld) return;
+  const props = [
+    { name: 'Roughness',    setter: (m, v) => m.roughness = v,    isPhysical: false },
+    { name: 'Metalness',    setter: (m, v) => m.metalness = v,    isPhysical: false },
+    { name: 'Transmission', setter: (m, v) => m.transmission = v, isPhysical: true  },
+    { name: 'Clearcoat',    setter: (m, v) => m.clearcoat = v,    isPhysical: true  },
+    { name: 'IOR',          setter: (m, v) => m.ior = v,          isPhysical: true  },
+  ];
+
+  function applyValue(prop, v) {
+    const mat = getActiveMaterial();
+    if (!mat) return;
+    let target = mat;
+    // Upgrade to MeshPhysicalMaterial if needed for physical-only props
+    if (prop.isPhysical && !mat.isMeshPhysicalMaterial && selectedGroup) {
+      const phys = new THREE.MeshPhysicalMaterial({
+        color: mat.color, map: mat.map, normalMap: mat.normalMap,
+        roughness: mat.roughness, metalness: mat.metalness,
+        roughnessMap: mat.roughnessMap, metalnessMap: mat.metalnessMap,
+      });
+      selectedGroup.traverse(o => {
+        if (o.isMesh && o.material === mat) o.material = phys;
+      });
+      target = phys;
+    }
+    prop.setter(target, v);
+    target.needsUpdate = true;
+    // Mark field as modified (gold tint on number + reset icon)
+    const field = document.getElementById('sld' + prop.name)?.closest('.pbr-field');
+    if (field) field.classList.add('modified');
+  }
+
+  props.forEach(prop => {
+    const sld = document.getElementById('sld' + prop.name);
+    const num = document.getElementById('num' + prop.name);
+    if (!sld || !num) return;
+
+    // Slider → number + apply
     sld.addEventListener('input', () => {
       const v = parseFloat(sld.value);
-      if (lbl) {
-        const unit = lbl.querySelector('.unit');
-        lbl.textContent = v.toFixed(decimals);
-        if (unit) lbl.appendChild(unit);
-      }
-      const mat = getActiveMaterial();
-      if (!mat) return;
-      // Upgrade MeshStandardMaterial → MeshPhysicalMaterial if needed for advanced props
-      if ((sldId === 'sldTransmission' || sldId === 'sldClearcoat' || sldId === 'sldIOR')
-          && !mat.isMeshPhysicalMaterial && selectedGroup) {
-        const phys = new THREE.MeshPhysicalMaterial({
-          color: mat.color, map: mat.map, normalMap: mat.normalMap,
-          roughness: mat.roughness, metalness: mat.metalness,
-          roughnessMap: mat.roughnessMap, metalnessMap: mat.metalnessMap,
-        });
-        selectedGroup.traverse(o => {
-          if (o.isMesh && o.material === mat) o.material = phys;
-        });
-        setter(phys, v);
-        phys.needsUpdate = true;
-      } else {
-        setter(mat, v);
-        mat.needsUpdate = true;
+      num.value = v.toFixed(2);
+      applyValue(prop, v);
+    });
+
+    // Number → slider + apply (on blur or Enter)
+    const commitNum = () => {
+      let v = parseFloat(num.value);
+      if (isNaN(v)) { num.value = sld.value; return; }
+      const min = parseFloat(sld.min), max = parseFloat(sld.max);
+      v = Math.max(min, Math.min(max, v));
+      num.value = v.toFixed(2);
+      sld.value = v;
+      applyValue(prop, v);
+    };
+    num.addEventListener('blur',  commitNum);
+    num.addEventListener('change', commitNum);
+    num.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { num.blur(); }
+      if (e.key === 'Escape') {
+        num.value = sld.value;
+        num.blur();
       }
     });
-  };
-  bind('sldRoughness',    'valRoughness',    (m, v) => m.roughness = v);
-  bind('sldMetalness',    'valMetalness',    (m, v) => m.metalness = v);
-  bind('sldTransmission', 'valTransmission', (m, v) => m.transmission = v);
-  bind('sldClearcoat',    'valClearcoat',    (m, v) => m.clearcoat = v);
-  bind('sldIOR',          'valIOR',          (m, v) => m.ior = v);
-  console.log('[pbr-editor] sliders wired');
+
+    // Select-all on focus for quick editing
+    num.addEventListener('focus', () => num.select());
+  });
+
+  // Reset buttons — restore to material's last applied value (or library default)
+  document.querySelectorAll('.pbr-reset').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target; // 'Roughness', 'Metalness', etc.
+      const field = btn.closest('.pbr-field');
+      if (!field) return;
+      const prop = props.find(p => p.name === target);
+      if (!prop) return;
+
+      // Default: from the applied Supabase/hardcoded material, or HTML default
+      let defaultVal = parseFloat(field.dataset.default);
+      // Try to use the original material's value if available
+      if (selectedGroup?.userData?.supabaseMaterial) {
+        const sm = selectedGroup.userData.supabaseMaterial;
+        const key = {
+          Roughness: 'roughness_factor', Metalness: 'metalness_factor',
+          Transmission: 'transmission_factor', Clearcoat: 'clearcoat_factor',
+          IOR: 'ior',
+        }[target];
+        if (key && sm[key] != null) defaultVal = sm[key];
+      } else if (selectedGroup?.userData?.materialKey) {
+        const origMat = materials[selectedGroup.userData.materialKey];
+        if (origMat) {
+          const propKey = target.toLowerCase();
+          if (origMat[propKey] != null) defaultVal = origMat[propKey];
+        }
+      }
+      const sld = document.getElementById('sld' + target);
+      const num = document.getElementById('num' + target);
+      sld.value = defaultVal;
+      num.value = defaultVal.toFixed(2);
+      applyValue(prop, defaultVal);
+      field.classList.remove('modified');
+    });
+  });
+
+  console.log('[pbr-editor] sliders + number inputs + reset wired');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
