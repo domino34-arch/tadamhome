@@ -5852,8 +5852,8 @@ function generateMaterialPreviewSpheres() {
   offScene.environment = scene.environment;  // reuse PMREM-baked RoomEnvironment
 
   // Showroom lighting setup
-  const offCam = new THREE.PerspectiveCamera(32, 1, 0.1, 10);
-  offCam.position.set(0, 0.05, 2.7);
+  const offCam = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+  offCam.position.set(0, 0.1, 2.4);
   offCam.lookAt(0, 0, 0);
 
   const accentKey = new THREE.DirectionalLight(0xFFE8C4, 0.6);
@@ -6066,8 +6066,8 @@ async function generateSpheresForNewCards() {
 
   const offScene = new THREE.Scene();
   offScene.environment = scene.environment;
-  const offCam = new THREE.PerspectiveCamera(32, 1, 0.1, 10);
-  offCam.position.set(0, 0.05, 2.7);
+  const offCam = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+  offCam.position.set(0, 0.1, 2.4);
 
   const keyLight = new THREE.DirectionalLight(0xFFE8C4, 0.6);
   keyLight.position.set(2.5, 3, 4);
