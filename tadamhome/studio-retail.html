@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>TadamHome · Studio Retail — v0.1 (stub démo)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,6 +73,107 @@ input,select{font-family:inherit;color:inherit}
 }
 .app.tree-hidden { --tree-w: 0px; }
 .app.mat-hidden  { --mat-w: 0px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE — iPad Pro 10.5" (1112×834 landscape) and similar tablets
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 1280px) {
+  :root {
+    --nav-w: 56px;
+    --tree-w: 252px;
+    --mat-w: 320px;
+    --topbar-h: 52px;
+    --bottombar-h: 56px;
+  }
+  /* Smaller text in dense areas */
+  .out-item-name, .out-item-meta { font-size: 11px; }
+  .bb-cam, .bb-tool { font-size: 9px; letter-spacing: 0.14em; }
+  .rp-section-title { font-size: 9px; }
+  .mat-card-name { font-size: 10px; }
+  .topbar-crumb, .topbar-title { font-size: 11px; }
+}
+@media (max-width: 1120px) {
+  /* iPad Pro 10.5" in landscape (1112×834) — compress the side panels */
+  :root {
+    --nav-w: 48px;
+    --tree-w: 220px;
+    --mat-w: 280px;
+    --topbar-h: 48px;
+    --bottombar-h: 50px;
+  }
+  /* Material library: 1 column instead of 2 to fit narrower panel */
+  .mat-grid { grid-template-columns: 1fr !important; }
+  .mat-card-thumb { max-width: 140px; margin: 0 auto; }
+  /* Hide some less-essential bottom-bar items on narrow screens */
+  .bb-meta { display: none; }
+  /* Squeeze proj-grid + rotate-grid */
+  .proj-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* Touch-friendly: minimum 44×44 tap targets on touch devices */
+@media (pointer: coarse), (hover: none) {
+  /* Outliner items taller for finger tapping */
+  .out-item { min-height: 40px; padding: 8px 12px; }
+  .out-item-chevron, .out-item-chevron-empty { width: 24px; height: 24px; }
+  .out-item-chevron svg { width: 11px; height: 11px; }
+  /* Bottombar buttons */
+  .bb-cam, .bb-tool { min-height: 38px; padding: 6px 10px; }
+  /* Topbar icons */
+  .tb-icon, .tb-cam-mode { min-width: 38px; min-height: 38px; padding: 8px; }
+  /* PBR sliders thicker for finger drag */
+  .slider { height: 6px !important; }
+  .slider::-webkit-slider-thumb { width: 22px !important; height: 22px !important; }
+  .pbr-num { min-height: 32px; }
+  .pbr-reset, .pbr-tex { min-width: 30px; min-height: 30px; }
+  .pbr-reset svg, .pbr-tex svg { width: 13px !important; height: 13px !important; }
+  /* Eye / lock buttons */
+  .out-item-action { min-width: 32px; min-height: 32px; }
+  /* Disable browser pinch-zoom on the whole app to avoid conflicts with Three.js */
+  body { touch-action: none; -webkit-user-select: none; user-select: none; }
+  /* Re-enable text selection in inputs */
+  input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+  /* Force show the FAB on touch */
+  #touchFab { display: flex !important; }
+  /* Replace hover effects with active state for touch */
+  .mat-card:active { transform: scale(0.97); }
+  .out-item:active { background: rgba(184,150,90,0.16) !important; }
+  /* Context menu — bigger items */
+  .ctx-item { padding: 14px 18px; font-size: 13px; }
+}
+
+/* Floating Action Bar — visible on tablets/touch devices */
+#touchFab {
+  position: fixed;
+  bottom: calc(var(--bottombar-h, 56px) + 14px);
+  right: calc(var(--mat-w, 320px) + 14px);
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 950;
+  pointer-events: none;
+  transition: right 0.28s cubic-bezier(.4,.2,.2,1);
+}
+#touchFab > * { pointer-events: auto; }
+.touch-fab-btn {
+  width: 48px;
+  height: 48px;
+  background: #2A2620;
+  border: 1px solid rgba(184,150,90,0.3);
+  color: rgba(245,242,236,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-fab-btn:active { transform: scale(0.92); background: #B8965A; color: #1A1814; }
+.touch-fab-btn svg { width: 19px; height: 19px; }
+.touch-fab-btn.danger { color: #D57676; border-color: rgba(213,118,118,0.4); }
+.touch-fab-btn.danger:active { background: #D57676; color: white; }
+.touch-fab-btn.disabled { opacity: 0.35; pointer-events: none; }
+.touch-fab-divider { height: 1px; background: rgba(184,150,90,0.2); margin: 2px 4px; }
 
 .nav-rail   { grid-column:1; grid-row:1/-1; }
 .topbar     { grid-column:2/-1; grid-row:1; }
@@ -2253,6 +2356,87 @@ body.pipette-mode #pipetteBtn {
 .rightpanel .pbr-field.modified .pbr-num { color: var(--rp-gold); }
 .rightpanel .pbr-field.modified .pbr-reset { color: var(--rp-gold); }
 
+/* ─── Context Menu (right-click sur outliner) ─── */
+.ctx-menu {
+  position: fixed;
+  z-index: 100000;
+  background: #2A2620;
+  border: 1px solid rgba(184,150,90,0.25);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+  min-width: 250px;
+  padding: 5px 0;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  color: rgba(245,242,236,0.92);
+  letter-spacing: 0.03em;
+  animation: ctxFadeIn 0.12s ease-out;
+}
+@keyframes ctxFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.ctx-item {
+  padding: 9px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.ctx-item:hover { background: rgba(184,150,90,0.14); color: #B8965A; }
+.ctx-item.danger { color: #D57676; }
+.ctx-item.danger:hover { color: #FF8585; background: rgba(213,118,118,0.1); }
+.ctx-item.disabled { opacity: 0.35; pointer-events: none; }
+.ctx-shortcut { font-size: 9px; opacity: 0.55; letter-spacing: 0.06em; }
+.ctx-meta { font-size: 9px; opacity: 0.55; font-style: italic; letter-spacing: 0.04em; }
+.ctx-sep { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
+
+/* ─── Chevron pour items multi-mesh + sub-mesh items ─── */
+.out-item { position: relative; }
+.out-item-chevron {
+  width: 16px; height: 16px;
+  background: transparent;
+  border: none;
+  color: rgba(245,242,236,0.5);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s, color 0.15s;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.out-item-chevron:hover { color: #B8965A; }
+.out-item-chevron svg { width: 9px; height: 9px; }
+.out-item.expanded > .out-item-chevron { transform: rotate(90deg); color: #B8965A; }
+/* Empty placeholder for items without children (keeps alignment) */
+.out-item-chevron-empty {
+  width: 16px; height: 16px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+/* Sub-mesh items (children when expanded) */
+.out-submesh-container {
+  background: rgba(184,150,90,0.04);
+  border-left: 2px solid rgba(184,150,90,0.2);
+  margin-left: 16px;
+}
+.out-item.out-submesh {
+  padding-left: 28px;
+  font-size: 0.96em;
+}
+.out-item.out-submesh .out-item-name { opacity: 0.88; }
+.out-item.out-submesh.selected { background: rgba(184,150,90,0.18); }
+
+/* Hidden/locked visual states */
+.out-item.hidden .out-item-name,
+.out-item.hidden .out-item-meta { opacity: 0.35; text-decoration: line-through; }
+.out-item.locked .out-item-name::after {
+  content: ' 🔒';
+  font-size: 0.8em;
+  opacity: 0.55;
+}
+
 /* Texture upload button next to each slider (loads roughnessMap, metalnessMap, etc) */
 .rightpanel .pbr-tex {
   width: 20px; height: 20px;
@@ -3936,6 +4120,10 @@ body.pipette-mode #pipetteBtn {
         <div class="seg-template-name">Pièce unique</div>
         <div class="seg-template-desc">Sans découpe</div>
       </div>
+      <div class="seg-template" data-template="permesh">
+        <div class="seg-template-name">Par mesh</div>
+        <div class="seg-template-desc">Chaque mesh = 1 partie</div>
+      </div>
       <div class="seg-template" data-template="auto">
         <div class="seg-template-name">Détection auto</div>
         <div class="seg-template-desc">Le studio devine</div>
@@ -5075,14 +5263,73 @@ canvas.addEventListener('pointerdown', (e) => {
   Object.values(sceneObjects).forEach(g => g.traverse(o => { if (o.isMesh) meshes.push(o); }));
   const hits = raycaster.intersectObjects(meshes, false);
   if (hits.length > 0) {
-    // walk up to find the group
-    let obj = hits[0].object;
+    const hitMesh = hits[0].object;
+    // Mesh mode: select the individual mesh, not its parent group
+    if (typeof selectionMode !== 'undefined' && selectionMode === 'mesh') {
+      selectSubMesh(hitMesh);
+      return;
+    }
+    // Parties mode: walk up to find the group
+    let obj = hitMesh;
     while (obj && (!obj.userData || !obj.userData.id)) obj = obj.parent;
     if (obj && obj.userData.id) {
       selectFromViewport(obj.userData.id);
     }
   }
 });
+
+/* Mesh mode: select an individual mesh inside a parent group */
+function selectSubMesh(mesh) {
+  if (!mesh || !mesh.isMesh) return;
+  // Find parent group with userData.id (for context)
+  let parent = mesh.parent;
+  while (parent && (!parent.userData || !parent.userData.id)) parent = parent.parent;
+  if (!parent) return; // mesh is not under any registered group
+  if (parent.userData.id === 'floor' || parent.userData.id?.startsWith('light-')) return;
+
+  // Clear existing outlines and detach gizmo
+  outlineHelpers.forEach(h => scene.remove(h));
+  outlineHelpers.clear();
+  transformControls.detach();
+
+  // Make this mesh the active selection
+  selectedGroup = mesh;
+  mesh.userData._parentGroup = parent;  // remember the original parent
+
+  // Box3 outline around the individual mesh (brighter to signal mesh-level)
+  const box = new THREE.Box3().setFromObject(mesh);
+  const helper = new THREE.Box3Helper(box, 0xD4B07A);
+  helper.material.depthTest = false;
+  helper.material.transparent = true;
+  helper.material.opacity = 0.95;
+  scene.add(helper);
+  outlineHelpers.set(mesh.uuid, helper);
+
+  // Gizmo on the mesh itself (so transforming moves just this mesh)
+  if (!parent.userData.locked) {
+    transformControls.attach(mesh);
+    transformControls.visible = true;
+    transformControls.enabled = true;
+  }
+
+  // Update outliner: highlight the parent (since the mesh itself isn't an outliner item)
+  document.querySelectorAll('.out-item').forEach(el =>
+    el.classList.toggle('selected', el.dataset.id === parent.userData.id));
+
+  // Update info badges + PBR sliders
+  const meshName = (mesh.name && mesh.name.trim()) || `Mesh ${mesh.uuid.slice(0, 6)}`;
+  const parentName = parent.userData.label || parent.userData.name || 'objet';
+  const originName = document.getElementById('originName');
+  if (originName) originName.textContent = `${parentName} · ${meshName}`;
+  const matCurrent = document.getElementById('matCurrent');
+  if (matCurrent) matCurrent.textContent = `${meshName} · matériau`;
+  if (typeof updateOriginBadge === 'function') updateOriginBadge();
+  if (typeof syncPBRSlidersToMaterial === 'function') syncPBRSlidersToMaterial(mesh.material);
+
+  showInfoToast(`Mesh sélectionné · ${meshName} (dans "${parentName}")`);
+  console.log('[mesh-select]', meshName, 'parent:', parentName);
+}
+window.selectSubMesh = selectSubMesh;
 
 function selectFromViewport(id) {
   setSelection(id);
@@ -5134,12 +5381,22 @@ window.applyMaterial = (cardEl, matKey) => {
   const newMat = materials[matKey];
   if (!newMat) return;
   selectedGroup.userData.materialKey = matKey;
+
+  // If selectedGroup is a single Mesh (mesh-mode selection), apply directly without skipping anything
+  if (selectedGroup.isMesh) {
+    selectedGroup.material = newMat;
+    const meshName = selectedGroup.name || 'mesh';
+    document.getElementById('matCurrent').textContent = meshName + ' · ' + matKey;
+    return;
+  }
+
+  // Group-level selection: traverse, preserving brass frame from the hardcoded vitrine
   selectedGroup.traverse(o => {
-    if (o.isMesh && o.material && o.material !== materials['brass']) { // Keep frame brass
+    if (o.isMesh && o.material && o.material !== materials['brass']) {
       o.material = newMat;
     }
   });
-  document.getElementById('matCurrent').textContent = selectedGroup.userData.name + ' · ' + matKey;
+  document.getElementById('matCurrent').textContent = (selectedGroup.userData.name || 'objet') + ' · ' + matKey;
 };
 
 window.toggleGroup = (group) => {
@@ -6239,6 +6496,26 @@ function segmentSingle(meshes) {
   return { 'Modèle complet': meshes };
 }
 
+function segmentPerMesh(meshes) {
+  // Each mesh becomes its own segment, named after the mesh
+  // (uses .name from the OBJ file, falls back to a numbered "Partie N")
+  const out = {};
+  const usedNames = new Set();
+  meshes.forEach((m, i) => {
+    let name = (m.name && m.name.trim()) || `Partie ${i + 1}`;
+    // Strip common OBJ noise prefixes
+    name = name.replace(/^(Object_|Mesh_|g\.|default_)/i, '').trim();
+    if (!name) name = `Partie ${i + 1}`;
+    // Disambiguate duplicate names
+    let final = name;
+    let n = 2;
+    while (usedNames.has(final)) { final = `${name} ${n++}`; }
+    usedNames.add(final);
+    out[final] = [m];
+  });
+  return out;
+}
+
 function cleanEmpty(groups) {
   const r = {};
   Object.keys(groups).forEach(k => { if (groups[k].length > 0) r[k] = groups[k]; });
@@ -6252,6 +6529,7 @@ function runSegmentation(rootObj, template) {
   if (template === 'podium')    return { template, segments: segmentPodium(meshes) };
   if (template === 'vitrine')   return { template, segments: segmentVitrine(meshes) };
   if (template === 'single')    return { template, segments: segmentSingle(meshes) };
+  if (template === 'permesh')   return { template, segments: segmentPerMesh(meshes) };
   return { template, segments: segmentGeneric(meshes) };
 }
 
@@ -7995,10 +8273,837 @@ window._multiIds = _multiIds;
 })();
 
 
+/* ═══════════════════════════════════════════════════════════════════
+   UNDO / REDO
+   Cmd+Z : annuler / Cmd+Shift+Z (ou Cmd+Y) : refaire
+   Couvre : transform (déplacement gizmo), matériau, suppression,
+            group/ungroup. Historique max 50 actions.
+   ═══════════════════════════════════════════════════════════════════ */
+const _undo = (function() {
+  const MAX = 50;
+  let recording = true;
+  const past = [];
+  const future = [];
+
+  function push(cmd) {
+    if (!recording) return;
+    past.push(cmd);
+    if (past.length > MAX) past.shift();
+    // Any new action clears the redo stack
+    future.length = 0;
+    updateBadge();
+  }
+  function undo() {
+    const cmd = past.pop();
+    if (!cmd) { showInfoToast('Rien à annuler'); return; }
+    recording = false;
+    try { cmd.undo(); } finally { recording = true; }
+    future.push(cmd);
+    showInfoToast(`↶ Annulé : ${cmd.label}`);
+    updateBadge();
+  }
+  function redo() {
+    const cmd = future.pop();
+    if (!cmd) { showInfoToast('Rien à refaire'); return; }
+    recording = false;
+    try { cmd.redo(); } finally { recording = true; }
+    past.push(cmd);
+    showInfoToast(`↷ Refait : ${cmd.label}`);
+    updateBadge();
+  }
+  function clear() { past.length = 0; future.length = 0; updateBadge(); }
+  function updateBadge() {
+    let badge = document.getElementById('undoBadge');
+    if (past.length === 0 && future.length === 0) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'undoBadge';
+      badge.style.cssText = 'position:fixed;bottom:78px;right:22px;display:flex;gap:6px;z-index:998;font-family:Jost,sans-serif;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;pointer-events:none;';
+      document.body.appendChild(badge);
+    }
+    const p = past.length, f = future.length;
+    badge.innerHTML = `
+      <span style="background:${p?'#2A2620':'rgba(42,38,32,0.4)'};color:${p?'#B8965A':'rgba(184,150,90,0.4)'};padding:5px 9px;border:1px solid ${p?'rgba(184,150,90,0.4)':'rgba(184,150,90,0.15)'};">↶ ${p}</span>
+      <span style="background:${f?'#2A2620':'rgba(42,38,32,0.4)'};color:${f?'#B8965A':'rgba(184,150,90,0.4)'};padding:5px 9px;border:1px solid ${f?'rgba(184,150,90,0.4)':'rgba(184,150,90,0.15)'};">↷ ${f}</span>
+    `;
+  }
+  return { push, undo, redo, clear, get recording() { return recording; }, get pastSize() { return past.length; }, get futureSize() { return future.length; } };
+})();
+
+/* ─── Transform : snapshot avant drag, push après drag ─── */
+let _trSnapshot = null;
+transformControls.addEventListener('dragging-changed', (e) => {
+  if (!selectedGroup) return;
+  if (e.value === true) {
+    // Drag start
+    _trSnapshot = {
+      obj: selectedGroup,
+      pos: selectedGroup.position.clone(),
+      quat: selectedGroup.quaternion.clone(),
+      scl: selectedGroup.scale.clone(),
+    };
+  } else {
+    // Drag end
+    if (!_trSnapshot || _trSnapshot.obj !== selectedGroup) { _trSnapshot = null; return; }
+    const before = _trSnapshot;
+    const after = {
+      pos: selectedGroup.position.clone(),
+      quat: selectedGroup.quaternion.clone(),
+      scl: selectedGroup.scale.clone(),
+    };
+    _trSnapshot = null;
+    // Skip if nothing actually changed
+    if (before.pos.equals(after.pos) && before.quat.equals(after.quat) && before.scl.equals(after.scl)) return;
+    const obj = before.obj;
+    const label = obj.userData?.label || 'objet';
+    _undo.push({
+      label: `Transform · ${label}`,
+      undo: () => {
+        obj.position.copy(before.pos);
+        obj.quaternion.copy(before.quat);
+        obj.scale.copy(before.scl);
+        obj.updateMatrixWorld(true);
+        if (typeof updateLiveTransformHUD === 'function') updateLiveTransformHUD();
+      },
+      redo: () => {
+        obj.position.copy(after.pos);
+        obj.quaternion.copy(after.quat);
+        obj.scale.copy(after.scl);
+        obj.updateMatrixWorld(true);
+        if (typeof updateLiveTransformHUD === 'function') updateLiveTransformHUD();
+      },
+    });
+  }
+});
+
+/* ─── Material : wrap applyMaterial pour capturer avant/après ─── */
+const _origApplyMaterialForUndo = window.applyMaterial;
+window.applyMaterial = function(cardEl, matKey) {
+  if (!selectedGroup || !_undo.recording) {
+    return _origApplyMaterialForUndo.call(this, cardEl, matKey);
+  }
+  // Snapshot before
+  const target = selectedGroup;
+  const oldMats = [];
+  target.traverse(o => { if (o.isMesh) oldMats.push({ mesh: o, mat: o.material }); });
+  const oldKey = target.userData?.materialKey;
+  const oldCurrentCard = document.querySelector('#matGrid .mat-card.current');
+  // Apply
+  _origApplyMaterialForUndo.call(this, cardEl, matKey);
+  // Snapshot after
+  const newMats = oldMats.map(o => ({ mesh: o.mesh, mat: o.mesh.material }));
+  const newKey = matKey;
+  const newCard = cardEl;
+  const label = (target.userData?.name || 'objet') + ' → ' + matKey;
+  _undo.push({
+    label: `Matière · ${label}`,
+    undo: () => {
+      oldMats.forEach(({ mesh, mat }) => { mesh.material = mat; });
+      target.userData.materialKey = oldKey;
+      document.querySelectorAll('#matGrid .mat-card').forEach(c => c.classList.remove('current'));
+      if (oldCurrentCard) oldCurrentCard.classList.add('current');
+    },
+    redo: () => {
+      newMats.forEach(({ mesh, mat }) => { mesh.material = mat; });
+      target.userData.materialKey = newKey;
+      document.querySelectorAll('#matGrid .mat-card').forEach(c => c.classList.remove('current'));
+      if (newCard) newCard.classList.add('current');
+    },
+  });
+};
+
+/* ─── Group / Ungroup : wrap pour rendre annulable ─── */
+const _origGroupSelected = window.groupSelectedObjects;
+window.groupSelectedObjects = function() {
+  if (!_undo.recording) return _origGroupSelected.call(this);
+  const before = Array.from(_multiIds);
+  if (before.length < 2) return _origGroupSelected.call(this);
+  _origGroupSelected.call(this);
+  const newId = selectedGroup?.userData?.id;
+  if (!newId || !newId.startsWith('usergroup-')) return;
+  _undo.push({
+    label: `Groupe · ${before.length} objets`,
+    undo: () => {
+      const g = sceneObjects[newId];
+      if (!g) return;
+      window.selectObject(newId);
+      _origUngroupSelected.call(this);
+    },
+    redo: () => {
+      _multiIds.clear();
+      before.forEach(id => _multiIds.add(id));
+      window.selectObject(before[0]);
+      before.forEach(id => _multiIds.add(id));
+      _origGroupSelected.call(this);
+    },
+  });
+};
+
+const _origUngroupSelected = window.ungroupSelectedObject;
+window.ungroupSelectedObject = function() {
+  if (!_undo.recording) return _origUngroupSelected.call(this);
+  const id = selectedGroup?.userData?.id;
+  const isUg = selectedGroup?.userData?.isUserGroup;
+  if (!id || !isUg) return _origUngroupSelected.call(this);
+  const childIds = [...(selectedGroup.userData.childIds || [])];
+  const label = selectedGroup.userData?.label;
+  _origUngroupSelected.call(this);
+  _undo.push({
+    label: `Dégroupé · ${label}`,
+    undo: () => {
+      _multiIds.clear();
+      childIds.forEach(cid => _multiIds.add(cid));
+      window.selectObject(childIds[0]);
+      childIds.forEach(cid => _multiIds.add(cid));
+      _origGroupSelected.call(this);
+    },
+    redo: () => {
+      // Find the most-recently-created usergroup that contains these childIds
+      const ugs = Object.keys(sceneObjects).filter(k => k.startsWith('usergroup-'));
+      const target = ugs.find(uid => {
+        const cs = sceneObjects[uid]?.userData?.childIds;
+        return cs && cs.length === childIds.length && cs.every(c => childIds.includes(c));
+      });
+      if (target) {
+        window.selectObject(target);
+        _origUngroupSelected.call(this);
+      }
+    },
+  });
+};
+
+/* ─── Delete (Delete / Backspace key) : supprime l'objet sélectionné ─── */
+function deleteSelectedObject() {
+  if (!selectedGroup) { showInfoToast('Sélectionne un objet à supprimer'); return; }
+  const id = selectedGroup.userData?.id;
+  if (id === 'floor' || id?.startsWith('light-')) {
+    showInfoToast('Cet objet est protégé');
+    return;
+  }
+  if (selectedGroup.userData?.locked) {
+    showInfoToast('🔒 Objet verrouillé');
+    return;
+  }
+  const obj = selectedGroup;
+  const parent = obj.parent;
+  // Snapshot outliner item to restore later
+  const outItem = document.querySelector(`.out-item[data-id="${id}"]`);
+  const outItemHTML = outItem?.outerHTML;
+  const outParent = outItem?.parentElement;
+  const outNextSibling = outItem?.nextElementSibling;
+  const wasInSceneObjects = sceneObjects[id];
+  const label = obj.userData?.label || 'objet';
+
+  // Perform deletion
+  scene.remove(obj);
+  if (parent && parent !== scene) parent.remove(obj);
+  delete sceneObjects[id];
+  if (outItem) outItem.remove();
+  transformControls.detach();
+  selectedGroup = null;
+  // Clear box helpers
+  if (typeof outlineHelpers !== 'undefined') {
+    outlineHelpers.forEach(h => scene.remove(h));
+    outlineHelpers.clear();
+  }
+  _clearMultiSelect();
+  showInfoToast(`🗑 "${label}" supprimé (Cmd+Z pour annuler)`);
+
+  _undo.push({
+    label: `Supprimé · ${label}`,
+    undo: () => {
+      if (parent) parent.add(obj);
+      else scene.add(obj);
+      sceneObjects[id] = wasInSceneObjects;
+      if (outItemHTML && outParent) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = outItemHTML;
+        const restored = tmp.firstElementChild;
+        if (outNextSibling) outParent.insertBefore(restored, outNextSibling);
+        else outParent.appendChild(restored);
+        if (typeof injectItemIcons === 'function') injectItemIcons(restored);
+      }
+      window.selectObject(id);
+    },
+    redo: () => {
+      scene.remove(obj);
+      if (parent && parent !== scene) parent.remove(obj);
+      delete sceneObjects[id];
+      const reItem = document.querySelector(`.out-item[data-id="${id}"]`);
+      if (reItem) reItem.remove();
+      transformControls.detach();
+      selectedGroup = null;
+    },
+  });
+}
+
+/* ─── Keyboard handler : Cmd+Z / Cmd+Shift+Z / Cmd+Y / Delete ─── */
+window.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+
+  const cmd = e.metaKey || e.ctrlKey;
+  if (cmd && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) _undo.redo();
+    else _undo.undo();
+  } else if (cmd && e.key.toLowerCase() === 'y') {
+    e.preventDefault();
+    _undo.redo();
+  } else if ((e.key === 'Delete' || e.key === 'Backspace') && !cmd) {
+    e.preventDefault();
+    deleteSelectedObject();
+  }
+}, true);  // capture phase to run before other Cmd handlers
+
+console.log('[undo] wired — Cmd+Z, Cmd+Shift+Z / Cmd+Y, Delete to remove');
+window._undo = _undo;
+window.deleteSelectedObject = deleteSelectedObject;
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   OUTLINER CONTEXT MENU + CHEVRON EXPAND
+   Clic-droit sur tout item → menu avec Renommer / Cacher / Verrouiller /
+   Isoler / Grouper / Dégrouper / Supprimer / Réinitialiser matériau.
+   Items multi-mesh ont un chevron pour révéler les sub-meshes.
+   ═══════════════════════════════════════════════════════════════════ */
+
+let _ctxTargetId = null;
+let _ctxTargetMesh = null; // for sub-mesh selections
+let _isolatedSet = null;   // remember scene state when isolating
+
+function _countMeshes(obj) {
+  let n = 0;
+  obj.traverse(o => { if (o.isMesh) n++; });
+  return n;
+}
+
+function _getItemId(item) { return item.dataset.id || null; }
+
+function _resolveContextObject() {
+  if (_ctxTargetMesh) return { obj: _ctxTargetMesh, isMesh: true, id: null };
+  if (_ctxTargetId && sceneObjects[_ctxTargetId]) return { obj: sceneObjects[_ctxTargetId], isMesh: false, id: _ctxTargetId };
+  return null;
+}
+
+/* ─── Context menu : show / hide / position ─── */
+function wireContextMenu() {
+  const menu = document.getElementById('ctxMenu');
+  const outliner = document.querySelector('.outliner');
+
+  outliner.addEventListener('contextmenu', (e) => {
+    const item = e.target.closest('.out-item');
+    if (!item) return;
+    e.preventDefault();
+    _ctxTargetMesh = null;
+    if (item.classList.contains('out-submesh')) {
+      // sub-mesh: find its THREE.Mesh by uuid
+      const uuid = item.dataset.meshUuid;
+      let foundMesh = null;
+      Object.values(sceneObjects).forEach(g => g.traverse(o => {
+        if (o.isMesh && o.uuid === uuid) foundMesh = o;
+      }));
+      _ctxTargetMesh = foundMesh;
+      _ctxTargetId = null;
+      if (foundMesh) selectSubMesh(foundMesh);
+    } else {
+      _ctxTargetId = item.dataset.id;
+      _ctxTargetMesh = null;
+      if (_ctxTargetId) window.selectObject(_ctxTargetId);
+    }
+
+    // Show + position
+    menu.style.display = 'block';
+    const r = menu.getBoundingClientRect();
+    let x = e.clientX, y = e.clientY;
+    if (x + r.width > window.innerWidth - 8) x = window.innerWidth - r.width - 8;
+    if (y + r.height > window.innerHeight - 8) y = window.innerHeight - r.height - 8;
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+
+    // Update enabled/disabled state per action
+    const ctx = _resolveContextObject();
+    const obj = ctx?.obj;
+    const isLight = ctx?.id?.startsWith('light-');
+    const isFloor = ctx?.id === 'floor';
+    const isUserGroup = !!obj?.userData?.isUserGroup;
+    const hasMat = !!obj?.userData?.materialKey || (obj?.isMesh && !!obj.material);
+
+    const set = (action, disabled) => menu.querySelector(`[data-action="${action}"]`).classList.toggle('disabled', !!disabled);
+    set('delete', isFloor || isLight);
+    set('rename', isFloor);
+    set('lock', isFloor);
+    set('isolate', false);
+    set('group-folder', _multiIds.size < 2);
+    set('ungroup', !isUserGroup);
+    set('reset-material', !hasMat);
+    set('duplicate-material', !hasMat);
+    set('hide', isFloor);
+  });
+
+  function hideMenu() { menu.style.display = 'none'; }
+  document.addEventListener('click', (e) => { if (!e.target.closest('.ctx-menu')) hideMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMenu(); });
+  window.addEventListener('blur', hideMenu);
+
+  menu.querySelectorAll('.ctx-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (item.classList.contains('disabled')) return;
+      const action = item.dataset.action;
+      hideMenu();
+      _execAction(action);
+    });
+  });
+  console.log('[ctx-menu] wired');
+}
+
+/* ─── Action dispatch ─── */
+function _execAction(action) {
+  const ctx = _resolveContextObject();
+  if (!ctx) return;
+  switch (action) {
+    case 'rename':              _actionRename(ctx); break;
+    case 'duplicate-material':  _actionDuplicateMaterial(ctx); break;
+    case 'hide':                _actionToggleHide(ctx); break;
+    case 'lock':                _actionToggleLock(ctx); break;
+    case 'isolate':             _actionIsolate(ctx); break;
+    case 'group-folder':        window.groupSelectedObjects?.(); break;
+    case 'ungroup':             window.ungroupSelectedObject?.(); break;
+    case 'delete':              window.deleteSelectedObject?.(); break;
+    case 'reset-material':      _actionResetMaterial(ctx); break;
+  }
+}
+
+function _actionRename(ctx) {
+  if (ctx.isMesh) {
+    const newName = prompt('Renommer ce mesh :', ctx.obj.name || '');
+    if (newName != null && newName.trim()) {
+      ctx.obj.name = newName.trim();
+      // Update sub-mesh outliner item
+      const subItem = document.querySelector(`.out-item.out-submesh[data-mesh-uuid="${ctx.obj.uuid}"] .out-item-name`);
+      if (subItem) subItem.textContent = newName.trim();
+      showInfoToast(`✓ Renommé en "${newName.trim()}"`);
+    }
+    return;
+  }
+  const current = ctx.obj.userData?.label || ctx.obj.userData?.name || 'Sans nom';
+  const newName = prompt('Renommer :', current);
+  if (newName != null && newName.trim()) {
+    ctx.obj.userData.label = newName.trim();
+    const item = document.querySelector(`.out-item[data-id="${ctx.id}"]`);
+    const nameEl = item?.querySelector('.out-item-name');
+    if (nameEl) nameEl.textContent = newName.trim();
+    showInfoToast(`✓ Renommé en "${newName.trim()}"`);
+  }
+}
+
+function _actionDuplicateMaterial(ctx) {
+  // Pick the active material from the object
+  let sourceMat = null;
+  if (ctx.isMesh) sourceMat = ctx.obj.material;
+  else ctx.obj.traverse(o => { if (o.isMesh && !sourceMat) sourceMat = o.material; });
+  if (!sourceMat) { showInfoToast('Aucune matière à dupliquer'); return; }
+  const dupe = sourceMat.clone();
+  const key = 'dupe-' + Date.now();
+  materials[key] = dupe;
+  if (ctx.isMesh) ctx.obj.material = dupe;
+  else ctx.obj.traverse(o => { if (o.isMesh) o.material = dupe; });
+  if (!ctx.isMesh) ctx.obj.userData.materialKey = key;
+  showInfoToast('✓ Matière dupliquée (instance indépendante)');
+  if (typeof syncPBRSlidersToMaterial === 'function') syncPBRSlidersToMaterial(dupe);
+}
+
+function _actionToggleHide(ctx) {
+  if (ctx.isMesh) {
+    ctx.obj.visible = !ctx.obj.visible;
+    showInfoToast(ctx.obj.visible ? 'Mesh visible' : 'Mesh masqué');
+    return;
+  }
+  const target = ctx.obj;
+  target.visible = !target.visible;
+  const item = document.querySelector(`.out-item[data-id="${ctx.id}"]`);
+  if (item) item.classList.toggle('hidden', !target.visible);
+  showInfoToast(target.visible ? '👁 Visible' : '👁 Masqué');
+}
+
+function _actionToggleLock(ctx) {
+  if (ctx.isMesh) {
+    ctx.obj.userData.locked = !ctx.obj.userData.locked;
+    showInfoToast(ctx.obj.userData.locked ? '🔒 Mesh verrouillé' : '🔓 Mesh déverrouillé');
+    return;
+  }
+  const target = ctx.obj;
+  if (!target.userData) target.userData = {};
+  target.userData.locked = !target.userData.locked;
+  const item = document.querySelector(`.out-item[data-id="${ctx.id}"]`);
+  if (item) item.classList.toggle('locked', !!target.userData.locked);
+  if (target === selectedGroup) {
+    transformControls.visible = !target.userData.locked;
+    transformControls.enabled = !target.userData.locked;
+  }
+  showInfoToast(target.userData.locked ? '🔒 Verrouillé' : '🔓 Déverrouillé');
+}
+
+function _actionIsolate(ctx) {
+  const targetId = ctx.id || (ctx.isMesh ? ctx.obj.userData?._parentGroup?.userData?.id : null);
+  // If already isolated, restore everything
+  if (_isolatedSet) {
+    _isolatedSet.forEach((wasVisible, objId) => {
+      const o = sceneObjects[objId];
+      if (o) o.visible = wasVisible;
+      const it = document.querySelector(`.out-item[data-id="${objId}"]`);
+      if (it) it.classList.toggle('hidden', !wasVisible);
+    });
+    _isolatedSet = null;
+    showInfoToast('Mode isolé désactivé');
+    return;
+  }
+  // Snapshot + hide all except target (and floor/lights for context)
+  _isolatedSet = new Map();
+  Object.entries(sceneObjects).forEach(([id, o]) => {
+    _isolatedSet.set(id, o.visible);
+    const keep = id === targetId || id === 'floor' || id.startsWith('light-');
+    o.visible = keep;
+    const it = document.querySelector(`.out-item[data-id="${id}"]`);
+    if (it) it.classList.toggle('hidden', !keep);
+  });
+  const lbl = sceneObjects[targetId]?.userData?.label || 'objet';
+  showInfoToast(`🔦 Isolé · "${lbl}" — relance "Isoler" pour réafficher`);
+}
+
+function _actionResetMaterial(ctx) {
+  if (ctx.isMesh) {
+    // Try to restore via parent's original key
+    const parent = ctx.obj.userData?._parentGroup;
+    const matKey = parent?.userData?.materialKey;
+    if (matKey && materials[matKey]) {
+      ctx.obj.material = materials[matKey];
+      showInfoToast('✓ Matière réinitialisée');
+    } else {
+      showInfoToast('Aucune matière d\'origine connue');
+    }
+    return;
+  }
+  // Group-level reset : reapply hardcoded materialKey
+  const matKey = ctx.obj.userData?.materialKey;
+  if (!matKey || !materials[matKey]) { showInfoToast('Aucune matière à réinitialiser'); return; }
+  ctx.obj.traverse(o => { if (o.isMesh) o.material = materials[matKey]; });
+  showInfoToast(`✓ Matière "${matKey}" réinitialisée`);
+}
+
+/* ─── Chevron expand : show sub-meshes for items with 2+ meshes ─── */
+function injectExpandChevrons() {
+  document.querySelectorAll('.out-item[data-id]').forEach(item => {
+    if (item.classList.contains('out-submesh')) return;
+    if (item.querySelector('.out-item-chevron, .out-item-chevron-empty')) return;
+    const id = item.dataset.id;
+    const obj = sceneObjects[id];
+    if (!obj) return;
+    if (id === 'floor' || id.startsWith('light-')) return;
+    const meshCount = _countMeshes(obj);
+    if (meshCount < 2) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'out-item-chevron-empty';
+      item.insertBefore(placeholder, item.firstChild);
+      return;
+    }
+    const chev = document.createElement('button');
+    chev.className = 'out-item-chevron';
+    chev.title = `Déployer (${meshCount} meshes)`;
+    chev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
+    chev.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleItemExpand(item, obj);
+    });
+    item.insertBefore(chev, item.firstChild);
+  });
+}
+
+function toggleItemExpand(item, obj) {
+  const wasExpanded = item.classList.contains('expanded');
+  item.classList.toggle('expanded');
+  // Find/create the sub-mesh container right after this item
+  let container = item.nextElementSibling;
+  if (!container || !container.classList.contains('out-submesh-container') || container.dataset.parentId !== item.dataset.id) {
+    container = document.createElement('div');
+    container.className = 'out-submesh-container';
+    container.dataset.parentId = item.dataset.id;
+    item.parentElement.insertBefore(container, item.nextSibling);
+  }
+  if (!wasExpanded) {
+    container.innerHTML = '';
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      const subItem = document.createElement('div');
+      subItem.className = 'out-item out-submesh';
+      subItem.dataset.meshUuid = o.uuid;
+      const meshName = (o.name && o.name.trim()) || `Mesh ${o.uuid.slice(0, 6)}`;
+      subItem.innerHTML = `
+        <div class="out-item-chevron-empty"></div>
+        <div class="out-item-marker"></div>
+        <div class="out-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2L22 7v10l-10 5L2 17V7z"/></svg>
+        </div>
+        <div class="out-item-name">${meshName}</div>
+      `;
+      subItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Switch to mesh mode and select this individual mesh
+        if (typeof selectionMode !== 'undefined') {
+          selectionMode = 'mesh';
+          document.getElementById('modeMesh')?.classList.add('active');
+          document.getElementById('modeParties')?.classList.remove('active');
+        }
+        if (typeof selectSubMesh === 'function') selectSubMesh(o);
+        document.querySelectorAll('.out-item').forEach(el => el.classList.remove('selected'));
+        subItem.classList.add('selected');
+      });
+      container.appendChild(subItem);
+    });
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+/* Keyboard shortcuts: F2 rename / Cmd+D dupe / Cmd+H hide / Cmd+L lock */
+window.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+  const cmd = e.metaKey || e.ctrlKey;
+
+  // F2 → rename selected
+  if (e.key === 'F2' && selectedGroup) {
+    e.preventDefault();
+    const id = selectedGroup.userData?.id;
+    if (id) { _ctxTargetId = id; _ctxTargetMesh = null; _execAction('rename'); }
+    else if (selectedGroup.isMesh) { _ctxTargetMesh = selectedGroup; _ctxTargetId = null; _execAction('rename'); }
+  }
+  // Cmd+D → duplicate material
+  if (cmd && e.key.toLowerCase() === 'd' && selectedGroup) {
+    e.preventDefault();
+    const id = selectedGroup.userData?.id;
+    if (id) { _ctxTargetId = id; _ctxTargetMesh = null; _execAction('duplicate-material'); }
+    else if (selectedGroup.isMesh) { _ctxTargetMesh = selectedGroup; _ctxTargetId = null; _execAction('duplicate-material'); }
+  }
+  // Cmd+H → hide (note: macOS browser may intercept this; the menu still works)
+  if (cmd && e.key.toLowerCase() === 'h' && selectedGroup) {
+    e.preventDefault();
+    const id = selectedGroup.userData?.id;
+    if (id) { _ctxTargetId = id; _ctxTargetMesh = null; _execAction('hide'); }
+  }
+  // Cmd+L → lock (browser may use this for address bar; preventDefault tries to stop it)
+  if (cmd && e.key.toLowerCase() === 'l' && selectedGroup && !e.shiftKey) {
+    e.preventDefault();
+    const id = selectedGroup.userData?.id;
+    if (id) { _ctxTargetId = id; _ctxTargetMesh = null; _execAction('lock'); }
+  }
+}, true);
+
+// Wire on init + re-inject chevrons whenever the outliner mutates
+setTimeout(() => {
+  wireContextMenu();
+  injectExpandChevrons();
+}, 300);
+const _outlinerObserver = new MutationObserver(() => injectExpandChevrons());
+const _outlinerEl = document.querySelector('.outliner');
+if (_outlinerEl) _outlinerObserver.observe(_outlinerEl, { childList: true, subtree: true });
+
+console.log('[ctx-menu + chevrons] wired (F2 rename, Cmd+D dupe, Cmd+H hide, Cmd+L lock)');
+window._execAction = _execAction;
+window._setCtxTarget = (id, mesh) => { _ctxTargetId = id; _ctxTargetMesh = mesh || null; };
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOUCH SUPPORT — iPad / tablettes
+   Long-press = clic-droit (menu contextuel)
+   Floating Action Bar = remplace les raccourcis clavier
+   ═══════════════════════════════════════════════════════════════════ */
+const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+
+if (IS_TOUCH) {
+  document.body.classList.add('touch-device');
+  console.log('[touch] device detected — long-press menu + FAB enabled');
+}
+
+/* ─── Long-press to open context menu on outliner items ─── */
+(function setupLongPress() {
+  const outliner = document.querySelector('.outliner');
+  if (!outliner) return;
+  let timer = null;
+  let startX = 0, startY = 0;
+  let triggered = false;
+
+  outliner.addEventListener('touchstart', (e) => {
+    const item = e.target.closest('.out-item');
+    if (!item) return;
+    triggered = false;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    timer = setTimeout(() => {
+      triggered = true;
+      // Synthetic contextmenu event at touch position
+      const evt = new MouseEvent('contextmenu', {
+        bubbles: true, cancelable: true,
+        clientX: startX, clientY: startY,
+        view: window,
+      });
+      item.dispatchEvent(evt);
+      // Haptic-like hint: small vibration if supported
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, 550);
+  }, { passive: true });
+
+  outliner.addEventListener('touchmove', (e) => {
+    if (!timer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) {
+      clearTimeout(timer); timer = null;
+    }
+  }, { passive: true });
+
+  outliner.addEventListener('touchend', (e) => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    // If long-press triggered, prevent the trailing click (which would re-select)
+    if (triggered) { e.preventDefault?.(); triggered = false; }
+  });
+  outliner.addEventListener('touchcancel', () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+  });
+})();
+
+/* ─── Floating Action Bar wiring ─── */
+(function wireFab() {
+  const fab = document.getElementById('touchFab');
+  if (!fab) return;
+
+  document.getElementById('fabUndo').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (window._undo) window._undo.undo();
+  });
+  document.getElementById('fabRedo').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (window._undo) window._undo.redo();
+  });
+  document.getElementById('fabGroup').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (window.groupSelectedObjects) window.groupSelectedObjects();
+  });
+  document.getElementById('fabUngroup').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (window.ungroupSelectedObject) window.ungroupSelectedObject();
+  });
+  document.getElementById('fabRename').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (selectedGroup) {
+      const id = selectedGroup.userData?.id;
+      if (id) { _ctxTargetId = id; _ctxTargetMesh = null; _execAction('rename'); }
+      else if (selectedGroup.isMesh) { _ctxTargetMesh = selectedGroup; _ctxTargetId = null; _execAction('rename'); }
+    }
+  });
+  document.getElementById('fabDelete').addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (window.deleteSelectedObject) window.deleteSelectedObject();
+  });
+
+  // Refresh disabled state periodically
+  function refreshFabState() {
+    const fU = document.getElementById('fabUndo');
+    const fR = document.getElementById('fabRedo');
+    const fG = document.getElementById('fabGroup');
+    const fUg = document.getElementById('fabUngroup');
+    const fRn = document.getElementById('fabRename');
+    const fD = document.getElementById('fabDelete');
+    if (window._undo) {
+      fU.classList.toggle('disabled', _undo.pastSize === 0);
+      fR.classList.toggle('disabled', _undo.futureSize === 0);
+    }
+    fG.classList.toggle('disabled', !_multiIds || _multiIds.size < 2);
+    fUg.classList.toggle('disabled', !selectedGroup?.userData?.isUserGroup);
+    fRn.classList.toggle('disabled', !selectedGroup);
+    const id = selectedGroup?.userData?.id;
+    const protectedObj = id === 'floor' || id?.startsWith('light-');
+    fD.classList.toggle('disabled', !selectedGroup || protectedObj);
+  }
+  setInterval(refreshFabState, 400);
+  refreshFabState();
+})();
+
+/* ─── Topbar toggle buttons to collapse panels (more viewport on iPad) ─── */
+(function addPanelToggles() {
+  // Make sure the panels can be toggled by clicking the burger or by adding small chevrons
+  const burger = document.querySelector('.tb-burger, .topbar-burger, #burgerMenu');
+  if (burger) {
+    burger.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelector('.app')?.classList.toggle('tree-hidden');
+    });
+  }
+  // Add a small toggle for the right panel — append it to the topbar if not present
+  if (!document.getElementById('togglerp')) {
+    const tb = document.querySelector('.topbar-end, .topbar-actions, .topbar');
+    if (tb) {
+      const btn = document.createElement('button');
+      btn.id = 'togglerp';
+      btn.className = 'tb-icon';
+      btn.title = 'Replier le panneau matière';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16"/><line x1="14" y1="4" x2="14" y2="20"/></svg>';
+      btn.addEventListener('click', () => {
+        document.querySelector('.app')?.classList.toggle('mat-hidden');
+      });
+      tb.appendChild(btn);
+    }
+  }
+})();
+
+console.log('[touch + responsive] iPad / tablette ready');
+
+
 // Signal that the module has loaded successfully — disables the fallback error overlay
 window._studioReady = true;
 
 </script>
+
+<!-- Floating Action Bar (visible sur tablette/tactile) -->
+<div id="touchFab">
+  <button class="touch-fab-btn" id="fabUndo" title="Annuler (Cmd+Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9c-3.5 0-6.5 2-9 5"/></svg>
+  </button>
+  <button class="touch-fab-btn" id="fabRedo" title="Refaire (Cmd+Shift+Z)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9c3.5 0 6.5 2 9 5"/></svg>
+  </button>
+  <div class="touch-fab-divider"></div>
+  <button class="touch-fab-btn" id="fabGroup" title="Grouper la sélection multiple (Cmd+G)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+  </button>
+  <button class="touch-fab-btn" id="fabUngroup" title="Dégrouper (Cmd+Shift+G)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3h6v6H3z"/><path d="M15 15h6v6h-6z"/><path d="M9 9l6 6"/></svg>
+  </button>
+  <div class="touch-fab-divider"></div>
+  <button class="touch-fab-btn" id="fabRename" title="Renommer (F2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  </button>
+  <button class="touch-fab-btn danger" id="fabDelete" title="Supprimer (Delete)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg>
+  </button>
+</div>
+
+<!-- Menu contextuel outliner (clic droit) -->
+<div id="ctxMenu" class="ctx-menu" style="display:none">
+  <div class="ctx-item" data-action="rename">Renommer<span class="ctx-shortcut">F2</span></div>
+  <div class="ctx-item" data-action="duplicate-material">Dupliquer le matériau<span class="ctx-shortcut">⌘D</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-action="hide">Cacher<span class="ctx-shortcut">⌘H</span></div>
+  <div class="ctx-item" data-action="lock">Verrouiller<span class="ctx-shortcut">⌘L</span></div>
+  <div class="ctx-item" data-action="isolate">Isoler</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item ctx-meta-item" data-action="group-folder">📁 Grouper en dossier<span class="ctx-meta">conserve matériaux</span></div>
+  <div class="ctx-item" data-action="ungroup">Dégrouper</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" data-action="delete">Supprimer<span class="ctx-shortcut">⌫</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-action="reset-material">Réinitialiser le matériau</div>
+</div>
 
 </body>
 </html>
