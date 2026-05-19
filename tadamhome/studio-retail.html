@@ -1728,8 +1728,7 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
 .tr-handle.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
 /* === BOTTOM BAR === */
-.bottombar{
-  background:var(--panel-2);
+.bottombar{  background:var(--panel-2);
   border-top:1px solid var(--line);
   display:flex;
   align-items:center;
@@ -1758,6 +1757,52 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
 }
 
 .bb-spacer{flex:1}
+
+/* Bottombar tools (Parties / Mesh / Pipette / Détecter / Auto-segmenter) */
+.bb-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.bb-tool {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-soft);
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.bb-tool svg { width: 14px; height: 14px; }
+.bb-tool:hover {
+  color: var(--ink);
+  background: rgba(184,150,90,0.05);
+}
+.bb-tool.active {
+  color: var(--gold);
+  background: rgba(184,150,90,0.10);
+  border-color: rgba(184,150,90,0.25);
+}
+.bb-tool-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
+  margin: 0 6px;
+}
+body.pipette-mode #pipetteBtn {
+  background: var(--gold);
+  color: #1A1814;
+  border-color: var(--gold);
+}
 
 .bb-meta{
   display:flex;
@@ -2207,6 +2252,379 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
 .rightpanel .pbr-reset svg { width: 11px; height: 11px; }
 .rightpanel .pbr-field.modified .pbr-num { color: var(--rp-gold); }
 .rightpanel .pbr-field.modified .pbr-reset { color: var(--rp-gold); }
+
+/* Texture upload button next to each slider (loads roughnessMap, metalnessMap, etc) */
+.rightpanel .pbr-tex {
+  width: 20px; height: 20px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--rp-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.rightpanel .pbr-tex:hover { color: var(--rp-gold); border-color: var(--rp-gold); }
+.rightpanel .pbr-tex svg { width: 11px; height: 11px; }
+.rightpanel .pbr-field.has-map .pbr-tex {
+  color: var(--rp-gold);
+  background: rgba(184,150,90,0.12);
+  border-color: var(--rp-gold-2);
+}
+
+/* Cartes de texture rows (Albédo / Normal / AO) */
+.rightpanel .texmap-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px dashed var(--rp-line);
+}
+.rightpanel .texmap-row:first-of-type { border-top: none; }
+.rightpanel .texmap-thumb {
+  width: 36px; height: 36px;
+  background: var(--rp-elev);
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-faint);
+  display: flex; align-items: center; justify-content: center;
+  background-size: cover;
+  background-position: center;
+}
+.rightpanel .texmap-thumb svg { width: 16px; height: 16px; }
+.rightpanel .texmap-row.has-map .texmap-thumb { border-color: var(--rp-gold-2); }
+.rightpanel .texmap-row.has-map .texmap-thumb svg { display: none; }
+.rightpanel .texmap-name {
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rp-ink);
+}
+.rightpanel .texmap-status {
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rp-faint);
+  margin-top: 2px;
+}
+.rightpanel .texmap-row.has-map .texmap-status { color: var(--rp-gold); }
+.rightpanel .texmap-upload {
+  background: transparent;
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-ink-2);
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rightpanel .texmap-upload:hover { border-color: var(--rp-gold); color: var(--rp-gold); }
+.rightpanel .texmap-remove {
+  background: transparent;
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-muted);
+  width: 24px; height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: 'Jost', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+}
+.rightpanel .texmap-remove:hover { border-color: #D57676; color: #D57676; }
+
+/* Projection mode grid (UV / Plan / Boîte / Sphère / Cylindre / Auto) */
+.rightpanel .proj-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.rightpanel .proj-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 4px 8px;
+  background: var(--rp-elev);
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-ink-2);
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rightpanel .proj-btn svg { width: 22px; height: 22px; }
+.rightpanel .proj-btn:hover { border-color: var(--rp-gold-2); color: var(--rp-ink); }
+.rightpanel .proj-btn.active {
+  background: rgba(184,150,90,0.16);
+  border-color: var(--rp-gold);
+  color: var(--rp-gold);
+}
+
+/* Rotation presets (0/45/90/135) */
+.rightpanel .rotate-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.rightpanel .rotate-btn {
+  padding: 9px 4px;
+  background: var(--rp-elev);
+  border: 1px solid var(--rp-line-mid);
+  color: var(--rp-ink-2);
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rightpanel .rotate-btn:hover { border-color: var(--rp-gold-2); color: var(--rp-ink); }
+.rightpanel .rotate-btn.active {
+  background: rgba(184,150,90,0.16);
+  border-color: var(--rp-gold);
+  color: var(--rp-gold);
+}
+
+/* + Nouveau matériau button */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px dashed var(--rp-line-mid);
+  color: var(--rp-ink-2);
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: 18px;
+  transition: all 0.15s;
+}
+.rightpanel .add-mat-btn:hover {
+  border-color: var(--rp-gold);
+  color: var(--rp-gold);
+  border-style: solid;
+}
+.rightpanel .add-mat-btn svg { width: 14px; height: 14px; }
+
+/* Modal: Nouveau matériau */
+.newmat-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.newmat-overlay.visible { display: flex; opacity: 1; }
+.newmat-modal {
+  background: #2A2620;
+  color: rgba(245,242,236,0.95);
+  font-family: 'Jost', sans-serif;
+  width: 520px;
+  max-width: 92vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(184,150,90,0.2);
+  box-shadow: 0 16px 60px rgba(0,0,0,0.7);
+}
+.newmat-header {
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.newmat-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 500;
+  color: rgba(245,242,236,0.95);
+}
+.newmat-close {
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(245,242,236,0.55);
+  font-size: 16px;
+  cursor: pointer;
+}
+.newmat-close:hover { color: #B8965A; border-color: #B8965A; }
+.newmat-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+.newmat-body::-webkit-scrollbar { width: 4px; }
+.newmat-body::-webkit-scrollbar-thumb { background: rgba(184,150,90,0.25); }
+.newmat-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+}
+.newmat-row label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(245,242,236,0.55);
+}
+.newmat-row input[type="text"],
+.newmat-row select {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(245,242,236,0.95);
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  outline: none;
+}
+.newmat-row input[type="text"]:focus,
+.newmat-row select:focus { border-color: #B8965A; }
+.newmat-row input[type="color"] {
+  width: 56px; height: 32px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: transparent;
+  cursor: pointer;
+  padding: 2px;
+}
+.newmat-sliders {
+  display: block;
+  padding: 8px 0 0;
+}
+.newmat-slider-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+.newmat-slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: rgba(255,255,255,0.16);
+  outline: none;
+}
+.newmat-slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: #B8965A;
+  cursor: pointer;
+}
+.newmat-slider-row span {
+  font-size: 11px;
+  color: rgba(245,242,236,0.95);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.newmat-section-title {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(245,242,236,0.55);
+  margin: 22px 0 12px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.newmat-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+}
+.newmat-tex-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.newmat-tex-cell {
+  cursor: pointer;
+  text-align: center;
+}
+.newmat-tex-cell input[type="file"] { display: none; }
+.newmat-tex-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.2);
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 6px;
+  transition: border-color 0.15s;
+}
+.newmat-tex-cell:hover .newmat-tex-thumb { border-color: #B8965A; }
+.newmat-tex-cell.has-file .newmat-tex-thumb {
+  border: 1px solid #B8965A;
+  border-style: solid;
+}
+.newmat-tex-label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: rgba(245,242,236,0.55);
+  font-weight: 600;
+}
+.newmat-tex-cell.has-file .newmat-tex-label { color: #B8965A; }
+.newmat-footer {
+  padding: 16px 22px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.newmat-btn {
+  font-family: 'Jost', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  padding: 11px 22px;
+  cursor: pointer;
+  border: 1px solid;
+}
+.newmat-cancel {
+  background: transparent;
+  border-color: rgba(255,255,255,0.16);
+  color: rgba(245,242,236,0.55);
+}
+.newmat-cancel:hover { color: rgba(245,242,236,0.95); border-color: rgba(245,242,236,0.4); }
+.newmat-submit {
+  background: #B8965A;
+  border-color: #B8965A;
+  color: #1A1814;
+}
+.newmat-submit:hover { filter: brightness(1.1); }
+.newmat-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -2796,6 +3214,11 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
             <button class="cat-chip" data-cat="floor">Sol</button>
           </div>
 
+          <button class="add-mat-btn" id="addMatBtn" title="Ajouter un nouveau matériau">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <span>Nouveau matériau</span>
+          </button>
+
           <div class="mat-grid" id="matGrid">
             <button class="mat-card current" data-cat="stone" data-mat="marble" onclick="applyMaterial(this,'marble')">
               <div class="mat-card-thumb tex-marble"></div>
@@ -2984,6 +3407,9 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
                 <button class="pbr-reset" data-target="Roughness" title="Reset" tabindex="-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
                 </button>
+                <button class="pbr-tex" data-target="roughnessMap" title="Charger une carte de rugosité" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
+                </button>
               </div>
             </div>
             <input type="range" class="slider" id="sldRoughness" min="0" max="1" step="0.01" value="0.5">
@@ -2996,6 +3422,9 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
                 <input type="number" class="pbr-num" id="numMetalness" min="0" max="1" step="0.01" value="0.00">
                 <button class="pbr-reset" data-target="Metalness" title="Reset" tabindex="-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+                <button class="pbr-tex" data-target="metalnessMap" title="Charger une carte de métallisation" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
                 </button>
               </div>
             </div>
@@ -3010,6 +3439,9 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
                 <button class="pbr-reset" data-target="Transmission" title="Reset" tabindex="-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
                 </button>
+                <button class="pbr-tex" data-target="transmissionMap" title="Charger une carte de transmission" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
+                </button>
               </div>
             </div>
             <input type="range" class="slider" id="sldTransmission" min="0" max="1" step="0.01" value="0">
@@ -3022,6 +3454,9 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
                 <input type="number" class="pbr-num" id="numClearcoat" min="0" max="1" step="0.01" value="0.00">
                 <button class="pbr-reset" data-target="Clearcoat" title="Reset" tabindex="-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+                <button class="pbr-tex" data-target="clearcoatMap" title="Charger une carte de clearcoat" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
                 </button>
               </div>
             </div>
@@ -3041,6 +3476,141 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
             <input type="range" class="slider" id="sldIOR" min="1" max="2.5" step="0.01" value="1.5">
           </div>
         </div>
+
+        <!-- UV / Projection -->
+        <div class="rp-section">
+          <div class="rp-section-title">UV / Projection</div>
+
+          <div class="proj-grid">
+            <button class="proj-btn active" data-proj="uv" title="Utiliser les UVs natifs du mesh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="4" width="16" height="16"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              <span>UV</span>
+            </button>
+            <button class="proj-btn" data-proj="plan" title="Projection planaire (vue du dessus)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><polygon points="4,18 12,4 20,18"/></svg>
+              <span>Plan</span>
+            </button>
+            <button class="proj-btn" data-proj="box" title="Projection cubique triplanaire">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 L21 8 L21 16 L12 21 L3 16 L3 8 Z"/><path d="M12 3 V21 M3 8 L21 8 M3 16 L21 16"/></svg>
+              <span>Boîte</span>
+            </button>
+            <button class="proj-btn" data-proj="sphere" title="Projection sphérique">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.5"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+              <span>Sphère</span>
+            </button>
+            <button class="proj-btn" data-proj="cylinder" title="Projection cylindrique">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="12" cy="5" rx="7" ry="2.5"/><line x1="5" y1="5" x2="5" y2="19"/><line x1="19" y1="5" x2="19" y2="19"/><ellipse cx="12" cy="19" rx="7" ry="2.5"/></svg>
+              <span>Cylindre</span>
+            </button>
+            <button class="proj-btn" data-proj="auto" title="Auto : choisit selon la forme">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z"/></svg>
+              <span>Auto</span>
+            </button>
+          </div>
+
+          <div class="pbr-field" style="margin-top:18px">
+            <div class="field-label">
+              <div class="field-name">Rotation UV</div>
+            </div>
+            <div class="rotate-grid">
+              <button class="rotate-btn active" data-rot="0">0°</button>
+              <button class="rotate-btn" data-rot="45">45°</button>
+              <button class="rotate-btn" data-rot="90">90°</button>
+              <button class="rotate-btn" data-rot="135">135°</button>
+            </div>
+          </div>
+
+          <div class="field pbr-field" data-prop="uvU" data-default="1">
+            <div class="field-label">
+              <div class="field-name">Répétition U</div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numUVU" min="0.1" max="10" step="0.1" value="1.0">
+                <button class="pbr-reset" data-target="UVU" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="range" class="slider" id="sldUVU" min="0.1" max="10" step="0.1" value="1">
+          </div>
+
+          <div class="field pbr-field" data-prop="uvV" data-default="1">
+            <div class="field-label">
+              <div class="field-name">Répétition V</div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numUVV" min="0.1" max="10" step="0.1" value="1.0">
+                <button class="pbr-reset" data-target="UVV" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="range" class="slider" id="sldUVV" min="0.1" max="10" step="0.1" value="1">
+          </div>
+
+          <div class="field pbr-field" data-prop="normalScale" data-default="1">
+            <div class="field-label">
+              <div class="field-name">Intensité Normal</div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numNormalScale" min="0" max="3" step="0.05" value="1.00">
+                <button class="pbr-reset" data-target="NormalScale" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="range" class="slider" id="sldNormalScale" min="0" max="3" step="0.05" value="1">
+          </div>
+
+          <div class="field pbr-field" data-prop="aoIntensity" data-default="1">
+            <div class="field-label">
+              <div class="field-name">Intensité Occlusion</div>
+              <div class="pbr-controls">
+                <input type="number" class="pbr-num" id="numAOIntensity" min="0" max="3" step="0.05" value="1.00">
+                <button class="pbr-reset" data-target="AOIntensity" title="Reset" tabindex="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="range" class="slider" id="sldAOIntensity" min="0" max="3" step="0.05" value="1">
+          </div>
+        </div>
+
+        <!-- Cartes de texture (albédo, normal, AO) -->
+        <div class="rp-section">
+          <div class="rp-section-title">Cartes de texture</div>
+          <div class="texmap-row" data-target="map">
+            <div class="texmap-thumb" id="texThumb-map">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
+            </div>
+            <div class="texmap-info">
+              <div class="texmap-name">Albédo</div>
+              <div class="texmap-status" id="texStatus-map">Aucune carte</div>
+            </div>
+            <button class="texmap-upload" data-target="map">+ Charger</button>
+            <button class="texmap-remove" data-target="map" style="display:none">×</button>
+          </div>
+          <div class="texmap-row" data-target="normalMap">
+            <div class="texmap-thumb" id="texThumb-normalMap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
+            </div>
+            <div class="texmap-info">
+              <div class="texmap-name">Normal</div>
+              <div class="texmap-status" id="texStatus-normalMap">Aucune carte</div>
+            </div>
+            <button class="texmap-upload" data-target="normalMap">+ Charger</button>
+            <button class="texmap-remove" data-target="normalMap" style="display:none">×</button>
+          </div>
+          <div class="texmap-row" data-target="aoMap">
+            <div class="texmap-thumb" id="texThumb-aoMap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 16 L15 10 L3 21"/></svg>
+            </div>
+            <div class="texmap-info">
+              <div class="texmap-name">Occlusion ambiante</div>
+              <div class="texmap-status" id="texStatus-aoMap">Aucune carte</div>
+            </div>
+            <button class="texmap-upload" data-target="aoMap">+ Charger</button>
+            <button class="texmap-remove" data-target="aoMap" style="display:none">×</button>
+          </div>
+        </div>
+
 
         <!-- Decal / Impression marque -->
         <div class="rp-section">
@@ -3220,6 +3790,29 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
       <button class="bb-cam">Côté</button>
       <button class="bb-cam">Vue client</button>
     </div>
+    <div class="bb-tools">
+      <button class="bb-tool active" id="modeParties" data-mode="parties" title="Sélection au niveau groupe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>
+        <span>Parties</span>
+      </button>
+      <button class="bb-tool" id="modeMesh" data-mode="mesh" title="Sélection au niveau mesh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v6 M12 16v6 M2 12h6 M16 12h6 M5 5l4 4 M15 15l4 4 M19 5l-4 4 M9 15l-4 4"/></svg>
+        <span>Mesh</span>
+      </button>
+      <button class="bb-tool" id="pipetteBtn" title="Pipette : copie le matériau d'un objet vers la sélection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 3 L21 5 L13 13 L11 11 Z"/><path d="M11 11 L3 19 V21 H5 L13 13"/></svg>
+        <span>Pipette</span>
+      </button>
+      <div class="bb-tool-sep"></div>
+      <button class="bb-tool" id="detectPartsBtn" title="Re-segmente l'objet sélectionné en parties">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18 M12 3v18"/></svg>
+        <span>Détecter parties</span>
+      </button>
+      <button class="bb-tool" id="autoSegBtn" title="Lance la segmentation automatique">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z"/></svg>
+        <span>Auto-segmenter</span>
+      </button>
+    </div>
     <div class="bb-spacer"></div>
     <div class="bb-meta">
       <span><b>4</b> objets</span>
@@ -3232,6 +3825,90 @@ body.theme-light .axis-legend svg ellipse[fill]{fill:rgba(0,0,0,0.02) !important
 </div><!-- /.app -->
 
 <!-- ═══ Segmentation dialog (modal) ═══ -->
+<!-- Modal: ajouter un nouveau matériau -->
+<div class="newmat-overlay" id="newmatOverlay">
+  <div class="newmat-modal">
+    <div class="newmat-header">
+      <div class="newmat-title">Nouveau matériau</div>
+      <button class="newmat-close" id="newmatClose" title="Fermer">×</button>
+    </div>
+    <div class="newmat-body">
+      <div class="newmat-row">
+        <label>Nom</label>
+        <input type="text" id="newmatName" placeholder="ex: Bouclette" autocomplete="off">
+      </div>
+      <div class="newmat-row">
+        <label>Sous-titre</label>
+        <input type="text" id="newmatSub" placeholder="ex: Bleu nuit" autocomplete="off">
+      </div>
+      <div class="newmat-row">
+        <label>Code-réf</label>
+        <input type="text" id="newmatRef" placeholder="ex: BCL-BN-027" autocomplete="off">
+      </div>
+      <div class="newmat-row">
+        <label>Catégorie</label>
+        <select id="newmatCat">
+          <option value="wood">Bois</option>
+          <option value="stone">Pierre</option>
+          <option value="glass">Verre</option>
+          <option value="plastic">Plastique</option>
+          <option value="metal">Métal</option>
+          <option value="fabric" selected>Textile</option>
+          <option value="floor">Sol</option>
+        </select>
+      </div>
+      <div class="newmat-row">
+        <label>Couleur de base</label>
+        <input type="color" id="newmatColor" value="#B89048">
+      </div>
+      <div class="newmat-row newmat-sliders">
+        <div class="newmat-slider-row">
+          <label>Rugosité</label>
+          <input type="range" id="newmatRoughness" min="0" max="1" step="0.01" value="0.5">
+          <span id="newmatRoughnessVal">0.50</span>
+        </div>
+        <div class="newmat-slider-row">
+          <label>Métallisation</label>
+          <input type="range" id="newmatMetalness" min="0" max="1" step="0.01" value="0">
+          <span id="newmatMetalnessVal">0.00</span>
+        </div>
+      </div>
+      <div class="newmat-section-title">Cartes de texture (optionnel)</div>
+      <div class="newmat-tex-grid">
+        <label class="newmat-tex-cell" for="newmatTexMap">
+          <div class="newmat-tex-thumb" id="newmatTexPreview-map"></div>
+          <div class="newmat-tex-label">ALBÉDO</div>
+          <input type="file" id="newmatTexMap" accept="image/*" data-target="map">
+        </label>
+        <label class="newmat-tex-cell" for="newmatTexNormal">
+          <div class="newmat-tex-thumb" id="newmatTexPreview-normalMap"></div>
+          <div class="newmat-tex-label">NORMAL</div>
+          <input type="file" id="newmatTexNormal" accept="image/*" data-target="normalMap">
+        </label>
+        <label class="newmat-tex-cell" for="newmatTexRough">
+          <div class="newmat-tex-thumb" id="newmatTexPreview-roughnessMap"></div>
+          <div class="newmat-tex-label">ROUGHNESS</div>
+          <input type="file" id="newmatTexRough" accept="image/*" data-target="roughnessMap">
+        </label>
+        <label class="newmat-tex-cell" for="newmatTexMetal">
+          <div class="newmat-tex-thumb" id="newmatTexPreview-metalnessMap"></div>
+          <div class="newmat-tex-label">METALNESS</div>
+          <input type="file" id="newmatTexMetal" accept="image/*" data-target="metalnessMap">
+        </label>
+        <label class="newmat-tex-cell" for="newmatTexAO">
+          <div class="newmat-tex-thumb" id="newmatTexPreview-aoMap"></div>
+          <div class="newmat-tex-label">AO</div>
+          <input type="file" id="newmatTexAO" accept="image/*" data-target="aoMap">
+        </label>
+      </div>
+    </div>
+    <div class="newmat-footer">
+      <button class="newmat-btn newmat-cancel" id="newmatCancel">Annuler</button>
+      <button class="newmat-btn newmat-submit" id="newmatSubmit">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <div class="seg-overlay" id="segOverlay">
   <div class="seg-modal">
     <div class="seg-eyebrow">Modèle importé</div>
@@ -4383,6 +5060,11 @@ const mouse = new THREE.Vector2();
 canvas.addEventListener('pointerdown', (e) => {
   // If user is dragging the gizmo, don't change selection
   if (transformControls.dragging) return;
+  // Pipette mode intercepts: copy material from clicked object to selection
+  if (typeof pipetteMode !== 'undefined' && pipetteMode) {
+    handlePipetteClick(e);
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -6391,10 +7073,671 @@ window.selectObject = function(id) {
   }, 50);
 };
 
+/* ═══════════════════════════════════════════════════════════════════
+   TEXTURE UPLOAD — icônes à droite des sliders + section Cartes de texture
+   Clic → file picker → applique la texture à la propriété correspondante
+   du matériau actif (roughnessMap, normalMap, map, etc.)
+   ═══════════════════════════════════════════════════════════════════ */
+const _texInput = document.createElement('input');
+_texInput.type = 'file';
+_texInput.accept = 'image/*';
+_texInput.style.display = 'none';
+document.body.appendChild(_texInput);
+let _texTargetProp = null;
+
+function wireTextureButtons() {
+  // Inline icons next to PBR sliders (roughnessMap, metalnessMap, etc.)
+  document.querySelectorAll('.pbr-tex').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _texTargetProp = btn.dataset.target;
+      _texInput.value = '';
+      _texInput.click();
+    });
+  });
+  // Cartes de texture upload buttons (map, normalMap, aoMap)
+  document.querySelectorAll('.texmap-upload').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _texTargetProp = btn.dataset.target;
+      _texInput.value = '';
+      _texInput.click();
+    });
+  });
+  // Remove buttons
+  document.querySelectorAll('.texmap-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const prop = btn.dataset.target;
+      const mat = getActiveMaterial();
+      if (mat && mat[prop]) {
+        try { mat[prop].dispose(); } catch(_) {}
+        mat[prop] = null;
+        mat.needsUpdate = true;
+      }
+      const row = btn.closest('.texmap-row');
+      if (row) row.classList.remove('has-map');
+      const thumb = document.getElementById(`texThumb-${prop}`);
+      if (thumb) thumb.style.backgroundImage = '';
+      const status = document.getElementById(`texStatus-${prop}`);
+      if (status) status.textContent = 'Aucune carte';
+      btn.style.display = 'none';
+    });
+  });
+
+  _texInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !_texTargetProp) return;
+
+    const mat = getActiveMaterial();
+    if (!mat) {
+      showInfoToast('Sélectionne d\'abord un objet avec une matière');
+      return;
+    }
+    if (selectedGroup?.userData?.locked) {
+      showInfoToast('🔒 Objet verrouillé');
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const loader = new THREE.TextureLoader();
+    loader.load(url, (tex) => {
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      // SRGB only for color maps (albedo, emissive)
+      if (_texTargetProp === 'map' || _texTargetProp === 'emissiveMap') {
+        tex.colorSpace = THREE.SRGBColorSpace;
+      }
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      // Upgrade to MeshPhysicalMaterial if needed for physical-only maps
+      const physMaps = ['transmissionMap', 'clearcoatMap', 'clearcoatNormalMap', 'sheenColorMap'];
+      if (physMaps.includes(_texTargetProp) && !mat.isMeshPhysicalMaterial && selectedGroup) {
+        const phys = new THREE.MeshPhysicalMaterial({
+          color: mat.color, map: mat.map, normalMap: mat.normalMap, aoMap: mat.aoMap,
+          roughness: mat.roughness, metalness: mat.metalness,
+          roughnessMap: mat.roughnessMap, metalnessMap: mat.metalnessMap,
+        });
+        selectedGroup.traverse(o => { if (o.isMesh && o.material === mat) o.material = phys; });
+        phys[_texTargetProp] = tex;
+        phys.needsUpdate = true;
+      } else {
+        if (mat[_texTargetProp]) { try { mat[_texTargetProp].dispose(); } catch(_){} }
+        mat[_texTargetProp] = tex;
+        if (_texTargetProp === 'map') {
+          // When uploading albedo, reset color to white so texture shows true colors
+          mat.color.setHex(0xFFFFFF);
+        }
+        mat.needsUpdate = true;
+      }
+
+      // Update UI: mark the slider field as has-map
+      const sliderField = document.querySelector(`.pbr-tex[data-target="${_texTargetProp}"]`)?.closest('.pbr-field');
+      if (sliderField) sliderField.classList.add('has-map');
+
+      // Update Cartes de texture row if applicable
+      const texRow = document.querySelector(`.texmap-row[data-target="${_texTargetProp}"]`);
+      if (texRow) {
+        texRow.classList.add('has-map');
+        const thumb = texRow.querySelector('.texmap-thumb');
+        if (thumb) thumb.style.backgroundImage = `url(${url})`;
+        const status = texRow.querySelector('.texmap-status');
+        if (status) status.textContent = file.name.slice(0, 22);
+        const remove = texRow.querySelector('.texmap-remove');
+        if (remove) remove.style.display = '';
+      }
+
+      showInfoToast(`✓ Carte ${_texTargetProp} appliquée`);
+    }, undefined, (err) => {
+      console.error('[tex-upload] failed:', err);
+      showInfoToast('Erreur lecture image');
+    });
+  });
+  console.log('[tex-upload] buttons wired');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   "+ NOUVEAU MATÉRIAU" — modal pour créer une nouvelle matière
+   ═══════════════════════════════════════════════════════════════════ */
+const _newMatFiles = {}; // { map: File, normalMap: File, ... }
+
+function openNewMatModal() {
+  // Reset form
+  document.getElementById('newmatName').value = '';
+  document.getElementById('newmatSub').value = '';
+  document.getElementById('newmatRef').value = '';
+  document.getElementById('newmatCat').value = 'fabric';
+  document.getElementById('newmatColor').value = '#B89048';
+  document.getElementById('newmatRoughness').value = 0.5;
+  document.getElementById('newmatRoughnessVal').textContent = '0.50';
+  document.getElementById('newmatMetalness').value = 0;
+  document.getElementById('newmatMetalnessVal').textContent = '0.00';
+  // Clear file previews
+  ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach(t => {
+    const p = document.getElementById(`newmatTexPreview-${t}`);
+    if (p) {
+      p.style.backgroundImage = '';
+      p.closest('.newmat-tex-cell')?.classList.remove('has-file');
+    }
+  });
+  Object.keys(_newMatFiles).forEach(k => delete _newMatFiles[k]);
+  document.getElementById('newmatOverlay').classList.add('visible');
+}
+function closeNewMatModal() {
+  document.getElementById('newmatOverlay').classList.remove('visible');
+}
+
+function wireNewMatModal() {
+  document.getElementById('addMatBtn').addEventListener('click', openNewMatModal);
+  document.getElementById('newmatClose').addEventListener('click', closeNewMatModal);
+  document.getElementById('newmatCancel').addEventListener('click', closeNewMatModal);
+
+  // Live update value labels
+  document.getElementById('newmatRoughness').addEventListener('input', (e) => {
+    document.getElementById('newmatRoughnessVal').textContent = parseFloat(e.target.value).toFixed(2);
+  });
+  document.getElementById('newmatMetalness').addEventListener('input', (e) => {
+    document.getElementById('newmatMetalnessVal').textContent = parseFloat(e.target.value).toFixed(2);
+  });
+
+  // Wire each texture file input
+  document.querySelectorAll('.newmat-tex-cell input[type="file"]').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const target = input.dataset.target;
+      _newMatFiles[target] = file;
+      const preview = document.getElementById(`newmatTexPreview-${target}`);
+      if (preview) {
+        preview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+        preview.closest('.newmat-tex-cell')?.classList.add('has-file');
+      }
+    });
+  });
+
+  // Submit
+  document.getElementById('newmatSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('newmatName').value.trim() || 'Nouvelle matière';
+    const sub = document.getElementById('newmatSub').value.trim();
+    const ref = document.getElementById('newmatRef').value.trim();
+    const cat = document.getElementById('newmatCat').value;
+    const color = document.getElementById('newmatColor').value;
+    const roughness = parseFloat(document.getElementById('newmatRoughness').value);
+    const metalness = parseFloat(document.getElementById('newmatMetalness').value);
+
+    // Build the material
+    const mat = new THREE.MeshStandardMaterial({
+      color, roughness, metalness,
+    });
+
+    // Load any texture files
+    const loader = new THREE.TextureLoader();
+    function loadFileAsTex(file, isSRGB) {
+      return new Promise((res) => {
+        if (!file) return res(null);
+        const url = URL.createObjectURL(file);
+        loader.load(url, (tex) => {
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          if (isSRGB) tex.colorSpace = THREE.SRGBColorSpace;
+          tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          res(tex);
+        }, undefined, () => res(null));
+      });
+    }
+    const [albedo, normal, rough, metal, ao] = await Promise.all([
+      loadFileAsTex(_newMatFiles.map, true),
+      loadFileAsTex(_newMatFiles.normalMap, false),
+      loadFileAsTex(_newMatFiles.roughnessMap, false),
+      loadFileAsTex(_newMatFiles.metalnessMap, false),
+      loadFileAsTex(_newMatFiles.aoMap, false),
+    ]);
+    if (albedo) { mat.map = albedo; mat.color.setHex(0xFFFFFF); }
+    if (normal) mat.normalMap = normal;
+    if (rough)  mat.roughnessMap = rough;
+    if (metal)  mat.metalnessMap = metal;
+    if (ao)     mat.aoMap = ao;
+    mat.needsUpdate = true;
+
+    // Generate a unique key for the materials map
+    const matKey = 'custom-' + Date.now();
+    materials[matKey] = mat;
+
+    // Render a sphere preview
+    const dataURL = await renderSphereSnapshot(mat);
+
+    // Create the card and add to grid
+    const card = document.createElement('button');
+    card.className = 'mat-card';
+    card.dataset.cat = cat;
+    card.dataset.mat = matKey;
+    card.onclick = function() { applyMaterial(this, matKey); };
+    const subBits = [sub, ref].filter(Boolean).join(' · ');
+    card.innerHTML = `
+      <div class="mat-card-thumb mat-card-thumb-sphere" style="background-image:url(${dataURL})"></div>
+      <div class="mat-card-name">${escapeHTML(name)}</div>
+      <div class="mat-card-sub">${escapeHTML(subBits || '—')}</div>
+    `;
+    document.getElementById('matGrid').appendChild(card);
+
+    closeNewMatModal();
+    showInfoToast(`✓ "${name}" ajoutée à la bibliothèque`);
+  });
+
+  // Click outside modal to close
+  document.getElementById('newmatOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'newmatOverlay') closeNewMatModal();
+  });
+  console.log('[newmat-modal] wired');
+}
+
+/* Helper: render a single material to a sphere preview data URL */
+async function renderSphereSnapshot(mat) {
+  const SIZE = 128;
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE * DPR;
+  canvas.height = SIZE * DPR;
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setPixelRatio(DPR); r.setSize(SIZE, SIZE, false);
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = 1.0;
+
+  const s = new THREE.Scene();
+  s.environment = scene.environment;
+  const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+  cam.position.set(0, 0.1, 2.4);
+
+  s.add(new THREE.DirectionalLight(0xFFE8C4, 0.6).translateOnAxis(new THREE.Vector3(2.5, 3, 4).normalize(), 5));
+  s.add(new THREE.DirectionalLight(0xC8D8E8, 0.25).translateOnAxis(new THREE.Vector3(-2.5, 1, 2).normalize(), 5));
+
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 48), mat);
+  s.add(sphere);
+  r.render(s, cam);
+  const url = canvas.toDataURL('image/png');
+  sphere.geometry.dispose();
+  r.dispose();
+  return url;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   UV / PROJECTION — répétition, rotation, modes (UV/Plan/Boîte/Sphère/Cylindre/Auto)
+   ═══════════════════════════════════════════════════════════════════ */
+const TEX_MAP_KEYS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'transmissionMap', 'clearcoatMap'];
+
+function applyUVRepeat(u, v) {
+  const mat = getActiveMaterial();
+  if (!mat) return;
+  TEX_MAP_KEYS.forEach(key => {
+    if (mat[key]) {
+      mat[key].wrapS = mat[key].wrapT = THREE.RepeatWrapping;
+      mat[key].repeat.set(u, v);
+      mat[key].needsUpdate = true;
+    }
+  });
+}
+
+function applyUVRotation(deg) {
+  const mat = getActiveMaterial();
+  if (!mat) return;
+  const rad = deg * Math.PI / 180;
+  TEX_MAP_KEYS.forEach(key => {
+    if (mat[key]) {
+      mat[key].center.set(0.5, 0.5);
+      mat[key].rotation = rad;
+      mat[key].needsUpdate = true;
+    }
+  });
+}
+
+function applyNormalScale(v) {
+  const mat = getActiveMaterial();
+  if (!mat) return;
+  if (mat.normalScale) mat.normalScale.set(v, v);
+  mat.needsUpdate = true;
+}
+
+function applyAOIntensity(v) {
+  const mat = getActiveMaterial();
+  if (!mat) return;
+  mat.aoMapIntensity = v;
+  mat.needsUpdate = true;
+}
+
+/* UV coord generators per projection mode. Modifies geometry.attributes.uv in place.
+   Saves original UVs in userData._originalUV so they can be restored. */
+function generatePlanarUVs(geom) {
+  const pos = geom.attributes.position;
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox;
+  const sx = bb.max.x - bb.min.x || 1;
+  const sz = bb.max.z - bb.min.z || 1;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2]     = (pos.getX(i) - bb.min.x) / sx;
+    uv[i * 2 + 1] = (pos.getZ(i) - bb.min.z) / sz;
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function generateBoxUVs(geom) {
+  // Triplanar : per-face pick dominant normal axis and project from that plane
+  const pos = geom.attributes.position;
+  const idx = geom.index;
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox;
+  const sx = bb.max.x - bb.min.x || 1;
+  const sy = bb.max.y - bb.min.y || 1;
+  const sz = bb.max.z - bb.min.z || 1;
+  const uv = new Float32Array(pos.count * 2);
+  // For each triangle, compute its normal, pick dominant axis, set UVs of its 3 verts
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+  const AB = new THREE.Vector3(), AC = new THREE.Vector3(), N = new THREE.Vector3();
+  const triCount = idx ? idx.count / 3 : pos.count / 3;
+  for (let t = 0; t < triCount; t++) {
+    const i0 = idx ? idx.getX(t * 3)     : t * 3;
+    const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+    const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+    A.fromBufferAttribute(pos, i0);
+    B.fromBufferAttribute(pos, i1);
+    C.fromBufferAttribute(pos, i2);
+    AB.subVectors(B, A); AC.subVectors(C, A);
+    N.crossVectors(AB, AC).normalize();
+    const ax = Math.abs(N.x), ay = Math.abs(N.y), az = Math.abs(N.z);
+    [i0, i1, i2].forEach(i => {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      if (ay > ax && ay > az) {           // +/- Y face
+        uv[i * 2]     = (x - bb.min.x) / sx;
+        uv[i * 2 + 1] = (z - bb.min.z) / sz;
+      } else if (ax > az) {               // +/- X face
+        uv[i * 2]     = (z - bb.min.z) / sz;
+        uv[i * 2 + 1] = (y - bb.min.y) / sy;
+      } else {                            // +/- Z face
+        uv[i * 2]     = (x - bb.min.x) / sx;
+        uv[i * 2 + 1] = (y - bb.min.y) / sy;
+      }
+    });
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function generateSphericalUVs(geom) {
+  const pos = geom.attributes.position;
+  geom.computeBoundingSphere();
+  const center = geom.boundingSphere.center;
+  const uv = new Float32Array(pos.count * 2);
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.set(pos.getX(i) - center.x, pos.getY(i) - center.y, pos.getZ(i) - center.z).normalize();
+    uv[i * 2]     = 0.5 + Math.atan2(v.z, v.x) / (2 * Math.PI);
+    uv[i * 2 + 1] = 0.5 - Math.asin(v.y) / Math.PI;
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function generateCylindricalUVs(geom) {
+  const pos = geom.attributes.position;
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox;
+  const center = new THREE.Vector3((bb.min.x+bb.max.x)/2, 0, (bb.min.z+bb.max.z)/2);
+  const sy = bb.max.y - bb.min.y || 1;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    const dx = pos.getX(i) - center.x;
+    const dz = pos.getZ(i) - center.z;
+    uv[i * 2]     = 0.5 + Math.atan2(dz, dx) / (2 * Math.PI);
+    uv[i * 2 + 1] = (pos.getY(i) - bb.min.y) / sy;
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function applyProjection(mode) {
+  if (!selectedGroup) return;
+  selectedGroup.traverse(o => {
+    if (!o.isMesh || !o.geometry) return;
+    // Backup original UVs once
+    if (!o.userData._originalUV && o.geometry.attributes.uv) {
+      o.userData._originalUV = o.geometry.attributes.uv.clone();
+    }
+    const g = o.geometry;
+    if (mode === 'uv') {
+      if (o.userData._originalUV) g.setAttribute('uv', o.userData._originalUV.clone());
+    } else if (mode === 'plan')     generatePlanarUVs(g);
+    else if (mode === 'box')        generateBoxUVs(g);
+    else if (mode === 'sphere')     generateSphericalUVs(g);
+    else if (mode === 'cylinder')   generateCylindricalUVs(g);
+    else if (mode === 'auto') {
+      // Pick by bounding-box aspect ratio
+      g.computeBoundingBox();
+      const bb = g.boundingBox;
+      const sx = bb.max.x-bb.min.x, sy = bb.max.y-bb.min.y, sz = bb.max.z-bb.min.z;
+      const max = Math.max(sx, sy, sz), min = Math.min(sx, sy, sz);
+      if (max/min > 3 && sy === max)      generateCylindricalUVs(g);
+      else if (Math.abs(sx-sy) < 0.2*max && Math.abs(sy-sz) < 0.2*max) generateSphericalUVs(g);
+      else if (sy < 0.2*Math.max(sx, sz)) generatePlanarUVs(g);
+      else                                 generateBoxUVs(g);
+    }
+  });
+  selectedGroup.userData.projection = mode;
+  showInfoToast(`Projection : ${mode.toUpperCase()}`);
+}
+
+function wireProjectionButtons() {
+  document.querySelectorAll('.proj-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyProjection(btn.dataset.proj);
+    });
+  });
+  document.querySelectorAll('.rotate-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.rotate-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyUVRotation(parseInt(btn.dataset.rot, 10));
+    });
+  });
+  // U & V repeat sliders
+  const bindUV = (sld, num, applyFn) => {
+    const sldEl = document.getElementById(sld);
+    const numEl = document.getElementById(num);
+    if (!sldEl || !numEl) return;
+    const commit = (val) => {
+      const v = Math.max(0.1, Math.min(10, parseFloat(val) || 1));
+      sldEl.value = v;
+      numEl.value = v.toFixed(1);
+      applyFn();
+    };
+    sldEl.addEventListener('input', () => commit(sldEl.value));
+    numEl.addEventListener('change', () => commit(numEl.value));
+    numEl.addEventListener('keydown', e => { if (e.key === 'Enter') numEl.blur(); });
+  };
+  bindUV('sldUVU', 'numUVU', () => {
+    const u = parseFloat(document.getElementById('sldUVU').value);
+    const v = parseFloat(document.getElementById('sldUVV').value);
+    applyUVRepeat(u, v);
+  });
+  bindUV('sldUVV', 'numUVV', () => {
+    const u = parseFloat(document.getElementById('sldUVU').value);
+    const v = parseFloat(document.getElementById('sldUVV').value);
+    applyUVRepeat(u, v);
+  });
+  // Normal & AO intensity
+  const bindIntensity = (sld, num, applyFn, max = 3) => {
+    const sldEl = document.getElementById(sld);
+    const numEl = document.getElementById(num);
+    if (!sldEl || !numEl) return;
+    const commit = (val) => {
+      const v = Math.max(0, Math.min(max, parseFloat(val) || 0));
+      sldEl.value = v;
+      numEl.value = v.toFixed(2);
+      applyFn(v);
+    };
+    sldEl.addEventListener('input', () => commit(sldEl.value));
+    numEl.addEventListener('change', () => commit(numEl.value));
+    numEl.addEventListener('keydown', e => { if (e.key === 'Enter') numEl.blur(); });
+  };
+  bindIntensity('sldNormalScale', 'numNormalScale', applyNormalScale);
+  bindIntensity('sldAOIntensity', 'numAOIntensity', applyAOIntensity);
+
+  // Reset buttons for UV/Normal/AO
+  document.querySelectorAll('.pbr-reset').forEach(btn => {
+    const target = btn.dataset.target;
+    if (['UVU', 'UVV', 'NormalScale', 'AOIntensity'].includes(target)) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const map = { UVU: ['sldUVU','numUVU',1], UVV: ['sldUVV','numUVV',1],
+                      NormalScale: ['sldNormalScale','numNormalScale',1],
+                      AOIntensity: ['sldAOIntensity','numAOIntensity',1] };
+        const [sld, num, def] = map[target];
+        document.getElementById(sld).value = def;
+        document.getElementById(num).value = def.toFixed(2);
+        if (target === 'UVU' || target === 'UVV') {
+          applyUVRepeat(parseFloat(document.getElementById('sldUVU').value),
+                        parseFloat(document.getElementById('sldUVV').value));
+        } else if (target === 'NormalScale') applyNormalScale(def);
+        else if (target === 'AOIntensity') applyAOIntensity(def);
+      });
+    }
+  });
+  console.log('[uv-projection] wired');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PIPETTE MODE — clic sur un objet 3D pour copier son matériau
+   sur l'objet précédemment sélectionné
+   ═══════════════════════════════════════════════════════════════════ */
+let pipetteMode = false;
+let pipetteSourceGroup = null;   // The group whose material we'll overwrite
+
+function enterPipetteMode() {
+  if (!selectedGroup) {
+    showInfoToast('Sélectionne d\'abord l\'objet à modifier');
+    return;
+  }
+  pipetteMode = true;
+  pipetteSourceGroup = selectedGroup;
+  renderer.domElement.style.cursor = 'crosshair';
+  document.body.classList.add('pipette-mode');
+  showInfoToast('🎨 Pipette : clique un objet pour copier son matériau');
+}
+function exitPipetteMode() {
+  pipetteMode = false;
+  pipetteSourceGroup = null;
+  renderer.domElement.style.cursor = '';
+  document.body.classList.remove('pipette-mode');
+}
+
+function handlePipetteClick(event) {
+  if (!pipetteMode || !pipetteSourceGroup) return false;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const mx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  const my = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera({ x: mx, y: my }, activeCam || camera);
+  // Collect all selectable meshes (skip locked/floor/lights)
+  const candidates = [];
+  scene.traverse(o => {
+    if (o.isMesh && o.userData?.group && o.userData.group !== pipetteSourceGroup
+        && !o.userData.group.userData?.locked) candidates.push(o);
+  });
+  const hits = raycaster.intersectObjects(candidates, false);
+  if (hits.length === 0) {
+    showInfoToast('Aucun objet sous le curseur');
+    return true;
+  }
+  const hitMesh = hits[0].object;
+  const sourceMat = hitMesh.material;
+  // Apply to all meshes of pipetteSourceGroup
+  pipetteSourceGroup.traverse(o => {
+    if (o.isMesh) o.material = sourceMat.clone();
+  });
+  const srcName = hitMesh.userData.group?.userData?.label || 'matériau';
+  const dstName = pipetteSourceGroup.userData?.label || 'objet';
+  showInfoToast(`✓ Matière de "${srcName}" copiée sur "${dstName}"`);
+  exitPipetteMode();
+  return true;
+}
+
+function wirePipetteButton() {
+  const btn = document.getElementById('pipetteBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (pipetteMode) exitPipetteMode();
+    else enterPipetteMode();
+  });
+  // Escape exits pipette
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pipetteMode) exitPipetteMode();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTTOMBAR TOOLS — Parties/Mesh mode toggle, Détecter parties, Auto-segmenter
+   ═══════════════════════════════════════════════════════════════════ */
+let selectionMode = 'parties'; // 'parties' or 'mesh'
+
+function wireBottombarTools() {
+  const modeParties = document.getElementById('modeParties');
+  const modeMesh = document.getElementById('modeMesh');
+  const detectBtn = document.getElementById('detectPartsBtn');
+  const segBtn = document.getElementById('autoSegBtn');
+
+  modeParties?.addEventListener('click', () => {
+    selectionMode = 'parties';
+    modeParties.classList.add('active');
+    modeMesh.classList.remove('active');
+    showInfoToast('Mode : Sélection par groupe');
+  });
+  modeMesh?.addEventListener('click', () => {
+    selectionMode = 'mesh';
+    modeMesh.classList.add('active');
+    modeParties.classList.remove('active');
+    showInfoToast('Mode : Sélection par mesh');
+  });
+
+  detectBtn?.addEventListener('click', () => {
+    if (!selectedGroup) {
+      showInfoToast('Sélectionne un objet d\'abord');
+      return;
+    }
+    // Count meshes inside the selected group → if >1, already segmented; offer to re-segment
+    const meshes = [];
+    selectedGroup.traverse(o => { if (o.isMesh) meshes.push(o); });
+    if (meshes.length === 0) {
+      showInfoToast('Aucun mesh dans cet objet');
+      return;
+    }
+    if (meshes.length > 1) {
+      showInfoToast(`✓ ${meshes.length} parties détectées dans "${selectedGroup.userData?.label || 'sélection'}"`);
+    } else {
+      showInfoToast(`Cet objet n\'a qu\'une partie. Utilise Auto-segmenter pour le diviser.`);
+    }
+  });
+
+  segBtn?.addEventListener('click', () => {
+    if (!selectedGroup) {
+      showInfoToast('Sélectionne un objet importé pour le segmenter');
+      return;
+    }
+    // Open the segmentation modal if the object came from an OBJ/STL import
+    if (typeof openSegmentationDialog === 'function' && selectedGroup.userData?._sourceFile) {
+      openSegmentationDialog(selectedGroup);
+    } else {
+      showInfoToast('Auto-segmenter ne fonctionne qu\'avec des modèles OBJ importés');
+    }
+  });
+  console.log('[bottombar-tools] wired');
+}
+
 /* ─── Init ─── */
 setTimeout(() => {
   wirePBRSliders();
   wireCategoryChips();
+  wireTextureButtons();
+  wireNewMatModal();
+  wireProjectionButtons();
+  wirePipetteButton();
+  wireBottombarTools();
   if (initSupabaseClient()) loadSupabaseMaterials();
 }, 200);
 
