@@ -7746,6 +7746,255 @@ setTimeout(() => {
   selectFromViewport('podium-1');
 }, 1000);
 
+/* ═══════════════════════════════════════════════════════════════════
+   MULTI-SÉLECTION + GROUPING
+   Shift/Cmd+clic : ajoute à la sélection
+   Cmd+G : groupe / Cmd+Shift+G : dégroupe / Cmd+A : tout sélectionner
+   Esc : désélectionne tout
+   ═══════════════════════════════════════════════════════════════════ */
+const _multiIds = new Set();
+const _multiOutlines = new Map();
+
+function _isAdditive(e) { return e.shiftKey || e.metaKey || e.ctrlKey; }
+
+function _refreshMultiOutlines() {
+  // Clear
+  _multiOutlines.forEach(h => scene.remove(h));
+  _multiOutlines.clear();
+  // Add box helpers for every selected EXCEPT the primary (which keeps its own outline)
+  _multiIds.forEach(id => {
+    if (id === selectedGroup?.userData?.id) return;
+    const g = sceneObjects[id];
+    if (!g) return;
+    const box = new THREE.Box3().setFromObject(g);
+    const h = new THREE.Box3Helper(box, 0xB8965A);
+    h.material.depthTest = false;
+    h.material.transparent = true;
+    h.material.opacity = 0.55;
+    scene.add(h);
+    _multiOutlines.set(id, h);
+  });
+  // Outliner highlighting
+  document.querySelectorAll('.out-item').forEach(el => {
+    const isMulti = _multiIds.has(el.dataset.id) && el.dataset.id !== selectedGroup?.userData?.id;
+    el.classList.toggle('multi-selected', isMulti);
+  });
+  _updateMultiCountBadge();
+}
+
+function _updateMultiCountBadge() {
+  let badge = document.getElementById('multiSelCount');
+  if (_multiIds.size < 2) {
+    if (badge) badge.remove();
+    return;
+  }
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'multiSelCount';
+    badge.style.cssText = 'position:fixed;top:84px;left:50%;transform:translateX(-50%);background:#B8965A;color:#1A1814;font-family:Jost,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;padding:7px 14px;z-index:1000;pointer-events:none;';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `${_multiIds.size} objets · Cmd+G pour grouper`;
+}
+
+function _toggleMultiSelect(id) {
+  if (!id || !sceneObjects[id]) return;
+  if (id === 'floor') return; // can't multi-select the floor
+  if (_multiIds.has(id) && id !== selectedGroup?.userData?.id) {
+    _multiIds.delete(id);
+  } else {
+    _multiIds.add(id);
+    window.selectObject(id);  // makes this the primary
+  }
+  // Ensure primary is always in the set
+  if (selectedGroup?.userData?.id) _multiIds.add(selectedGroup.userData.id);
+  _refreshMultiOutlines();
+}
+
+function _clearMultiSelect() {
+  _multiIds.clear();
+  _refreshMultiOutlines();
+}
+
+/* ─── Canvas pointerdown : capture phase to intercept shift/cmd+clic ─── */
+canvas.addEventListener('pointerdown', (e) => {
+  if (transformControls.dragging) return;
+  if (typeof pipetteMode !== 'undefined' && pipetteMode) return;
+  if (!_isAdditive(e)) { _clearMultiSelect(); return; }
+
+  // Additive: raycast and toggle
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  const rect = canvas.getBoundingClientRect();
+  const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera({ x: mx, y: my }, activeCam || camera);
+  const meshes = [];
+  Object.values(sceneObjects).forEach(g => g.traverse(o => { if (o.isMesh) meshes.push(o); }));
+  const hits = ray.intersectObjects(meshes, false);
+  if (hits.length === 0) return;
+  let obj = hits[0].object;
+  while (obj && (!obj.userData || !obj.userData.id)) obj = obj.parent;
+  if (obj?.userData?.id) _toggleMultiSelect(obj.userData.id);
+}, true);
+
+/* ─── Outliner clicks : delegated capture phase ─── */
+document.querySelector('.outliner')?.addEventListener('click', (e) => {
+  const item = e.target.closest('.out-item');
+  if (!item) return;
+  if (!_isAdditive(e)) { _clearMultiSelect(); return; }
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  _toggleMultiSelect(item.dataset.id);
+}, true);
+
+/* ─── Group / Ungroup ─── */
+function groupSelectedObjects() {
+  if (_multiIds.size < 2) {
+    showInfoToast('Sélectionne au moins 2 objets (Shift+clic) avant de grouper');
+    return;
+  }
+  const ids = Array.from(_multiIds);
+  const groupId = 'usergroup-' + Date.now();
+  const newGroup = new THREE.Group();
+  const existingGroups = Object.keys(sceneObjects).filter(k => k.startsWith('usergroup-')).length;
+  newGroup.userData.id = groupId;
+  newGroup.userData.label = `Groupe ${existingGroups + 1}`;
+  newGroup.userData.kind = 'user-group';
+  newGroup.userData.isUserGroup = true;
+  newGroup.userData.childIds = [...ids];
+  scene.add(newGroup);
+  // Reparent each selected to the new group, preserving world transform
+  ids.forEach(cid => {
+    const child = sceneObjects[cid];
+    if (!child) return;
+    newGroup.attach(child);
+    // Hide the original outliner item
+    const oldItem = document.querySelector(`.out-item[data-id="${cid}"]`);
+    if (oldItem) {
+      oldItem.style.display = 'none';
+      oldItem.dataset.groupedInto = groupId;
+    }
+  });
+  sceneObjects[groupId] = newGroup;
+  // Add an outliner entry under Mobilier
+  const items = document.getElementById('items-mobilier');
+  if (items) {
+    const node = document.createElement('div');
+    node.className = 'out-item out-user-group fade-in';
+    node.dataset.id = groupId;
+    node.setAttribute('onclick', `selectObject('${groupId}')`);
+    node.innerHTML = `
+      <div class="out-item-marker filled"></div>
+      <div class="out-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="out-item-name">${newGroup.userData.label}</div>
+      <div class="out-item-meta">${ids.length} objets</div>
+    `;
+    items.appendChild(node);
+    // Re-inject the eye/lock buttons via the existing helper if available
+    if (typeof injectItemIcons === 'function') injectItemIcons(node);
+  }
+  _clearMultiSelect();
+  window.selectObject(groupId);
+  showInfoToast(`✓ ${ids.length} objets groupés dans "${newGroup.userData.label}"`);
+}
+
+function ungroupSelectedObject() {
+  const id = selectedGroup?.userData?.id;
+  if (!id || !selectedGroup.userData?.isUserGroup) {
+    showInfoToast('Sélectionne d\'abord un groupe (créé via Cmd+G)');
+    return;
+  }
+  const childIds = selectedGroup.userData.childIds || [];
+  // Detach children back to scene root, preserving world transform
+  childIds.forEach(cid => {
+    const child = sceneObjects[cid];
+    if (!child) return;
+    scene.attach(child);
+    const oldItem = document.querySelector(`.out-item[data-id="${cid}"]`);
+    if (oldItem) {
+      oldItem.style.display = '';
+      delete oldItem.dataset.groupedInto;
+    }
+  });
+  // Remove the user-group
+  scene.remove(selectedGroup);
+  delete sceneObjects[id];
+  const groupItem = document.querySelector(`.out-item.out-user-group[data-id="${id}"]`);
+  if (groupItem) groupItem.remove();
+  // Reselect the children as multi
+  _clearMultiSelect();
+  if (childIds.length > 0) {
+    window.selectObject(childIds[0]);
+    childIds.forEach(cid => _multiIds.add(cid));
+    _refreshMultiOutlines();
+  }
+  showInfoToast(`✓ Groupe dégroupé (${childIds.length} objets libérés)`);
+}
+
+/* ─── Keyboard shortcuts ─── */
+window.addEventListener('keydown', (e) => {
+  // Skip when typing in an input
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+
+  const cmd = e.metaKey || e.ctrlKey;
+  if (cmd && e.key.toLowerCase() === 'g') {
+    e.preventDefault();
+    if (e.shiftKey) ungroupSelectedObject();
+    else groupSelectedObjects();
+  } else if (cmd && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    // Select all fixtures + products (skip floor and lights)
+    _clearMultiSelect();
+    Object.keys(sceneObjects).forEach(id => {
+      if (id === 'floor' || id.startsWith('light-')) return;
+      _multiIds.add(id);
+    });
+    const first = Array.from(_multiIds)[0];
+    if (first) window.selectObject(first);
+    _refreshMultiOutlines();
+  } else if (e.key === 'Escape') {
+    _clearMultiSelect();
+  }
+});
+
+console.log('[multi-select] wired — Shift/Cmd+clic, Cmd+G group, Cmd+Shift+G ungroup, Cmd+A all, Esc clear');
+
+// Expose so they can be called from devtools / external code
+window.groupSelectedObjects = groupSelectedObjects;
+window.ungroupSelectedObject = ungroupSelectedObject;
+window._toggleMultiSelect = _toggleMultiSelect;
+window._clearMultiSelect = _clearMultiSelect;
+window._multiIds = _multiIds;
+
+/* ─── CSS for multi-selected state (injected to bypass CSS file ordering) ─── */
+(function addMultiSelectCSS() {
+  const s = document.createElement('style');
+  s.textContent = `
+    .out-item.multi-selected {
+      background: rgba(184,150,90,0.12) !important;
+      position: relative;
+    }
+    .out-item.multi-selected::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 4px; bottom: 4px;
+      width: 2px;
+      background: var(--gold, #B8965A);
+    }
+    .out-item.out-user-group .out-item-icon {
+      color: var(--gold, #B8965A);
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+
 // Signal that the module has loaded successfully — disables the fallback error overlay
 window._studioReady = true;
 
